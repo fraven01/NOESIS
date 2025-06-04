@@ -1,0 +1,4 @@
+/* Custom styles for card hover effects */
+.group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+}
