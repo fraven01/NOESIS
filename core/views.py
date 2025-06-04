@@ -10,6 +10,9 @@ from .models import Recording
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
+
+import time
+
 import markdown
 from django.conf import settings
 
@@ -76,6 +79,8 @@ def stop_recording_view(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect('home')
     stop_recording()
+    time.sleep(1)
+    _process_recordings_for_user(bereich, request.user)
     return redirect('recording_page', bereich=bereich)
 
 
@@ -87,6 +92,11 @@ def toggle_recording_view(request, bereich):
 
     if is_recording():
         stop_recording()
+
+        # wait a moment to allow OBS to finalize the file
+        time.sleep(1)
+        _process_recordings_for_user(bereich, request.user)
+
     else:
         start_recording(bereich, Path(settings.MEDIA_ROOT))
 
@@ -149,11 +159,12 @@ def dashboard(request):
     return render(request, "dashboard.html", {"recordings": recordings})
 
 
-@login_required
-def talkdiary(request, bereich):
-    if bereich not in ["work", "personal"]:
-        return redirect("home")
 
+def _process_recordings_for_user(bereich: str, user) -> list:
+    """Convert and transcribe recordings for ``bereich`` and ``user``.
+
+    Returns a list of :class:`Recording` objects found or created.
+    """
 
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
@@ -168,13 +179,16 @@ def talkdiary(request, bereich):
         ffmpeg = "ffmpeg"
 
 
-    # convert mkv to wav if needed (case-insensitive)
+    # convert mkv to wav and remove mkv
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
 
         wav = mkv.with_suffix(".wav")
         if not wav.exists():
             try:
                 subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
+
+                mkv.unlink(missing_ok=True)
+
             except Exception:
                 pass
 
@@ -213,11 +227,13 @@ def talkdiary(request, bereich):
         rel_wav = Path("recordings") / bereich / wav.name
         rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
         rec_obj, _ = Recording.objects.get_or_create(
-            user=request.user,
+
+            user=user,
             bereich=bereich,
             audio_file=str(rel_wav),
         )
-        if rel_md and (not rec_obj.transcript_file):
+        if rel_md and not rec_obj.transcript_file:
+
             with md.open("rb") as f:
                 rec_obj.transcript_file.save(md.name, f, save=False)
         if excerpt:
@@ -225,10 +241,23 @@ def talkdiary(request, bereich):
         rec_obj.save()
         recordings.append(rec_obj)
 
+
+    return recordings
+
+
+@login_required
+def talkdiary(request, bereich):
+    if bereich not in ["work", "personal"]:
+        return redirect("home")
+
+    # always process new recordings; manual rescan available via query param
+    _process_recordings_for_user(bereich, request.user)
+
+    recordings = Recording.objects.filter(user=request.user, bereich=bereich).order_by("-created_at")
+
     context = {
         "bereich": bereich,
         "recordings": recordings,
-
         "is_recording": is_recording(),
 
     }

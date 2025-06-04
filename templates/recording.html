@@ -6,9 +6,9 @@
 <h1 class="text-2xl font-semibold mb-4">Aufnahme {{ bereich|capfirst }}</h1>
 <div class="mb-6">
     {% if is_recording %}
-    <a href="{% url 'stop_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700">Aufnahme stoppen</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700">Aufnahme stoppen</a>
     {% else %}
-    <a href="{% url 'start_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
     {% endif %}
 </div>
 <h2 class="text-xl font-semibold mb-2">Vergangene Aufnahmen</h2>

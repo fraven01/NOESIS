@@ -1,4 +1,7 @@
 from pathlib import Path
+
+import time
+
 import obsws_python as obs
 
 HOST = 'localhost'
@@ -24,11 +27,24 @@ def start_recording(bereich: str, base_dir: Path) -> None:
         pass  # no disconnect needed for ReqClient
 
 
-def stop_recording() -> None:
-    """Stop OBS recording."""
+
+def stop_recording(wait: bool = True, timeout: float = 10.0) -> None:
+    """Stop OBS recording.
+
+    If ``wait`` is ``True`` (default), this call blocks until OBS reports that
+    recording has actually stopped or until ``timeout`` seconds have elapsed.
+    """
+
     ws = _connect()
     try:
         ws.stop_record()
+        if wait:
+            end = time.time() + timeout
+            while time.time() < end:
+                status = ws.get_record_status()
+                if not status.output_active:
+                    break
+                time.sleep(0.5)
     finally:
         pass
 
