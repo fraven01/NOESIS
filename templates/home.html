@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Noesis Assistant{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <a href="{% url 'work' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0052A5, #00B2FF);">
+            <i class="fas fa-briefcase text-white text-5xl"></i>
+        </div>
+        <div class="p-4">
+            <h3 class="text-xl font-semibold mb-2">Work Assistant</h3>
+            <p class="text-gray-600">Organize your professional tasks and schedules.</p>
+        </div>
+    </a>
+    <a href="{% url 'personal' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0070D1, #6EB5FF);">
+            <i class="fas fa-user text-white text-5xl"></i>
+        </div>
+        <div class="p-4">
+            <h3 class="text-xl font-semibold mb-2">Personal Hub</h3>
+            <p class="text-gray-600">Manage your personal reminders and notes.</p>
+        </div>
+    </a>
+</div>
+{% endblock %}

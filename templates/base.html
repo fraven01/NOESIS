@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Noesis Assistant{% endblock %}</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-mK8e1zgS60F7uO3cu6UytzszbmWzxubUANe0yoyS9MhUlCT3ocOITkkpFmS6r30YIOCwRvDDDeZz7eGRIDcNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="flex flex-col min-h-screen bg-white text-gray-900">
+    <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div class="container mx-auto flex items-center justify-between p-4">
+            <div class="text-xl font-semibold">
+                <a href="/">Logo</a>
+            </div>
+            <nav class="space-x-4">
+                <a href="/" class="hover:underline">Home</a>
+                {% if user.is_authenticated %}
+                    <span>{{ user.username }}</span>
+                    <a href="/logout/" class="hover:underline">Logout</a>
+                {% else %}
+                    <a href="/login/" class="hover:underline">Login</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 container mx-auto p-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-100 text-center py-4">
+        <p>&copy; 2024 Noesis Assistant</p>
+    </footer>
+</body>
+</html>
