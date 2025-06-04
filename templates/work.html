@@ -5,7 +5,7 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Arbeitsassistent</h1>
 <p>Dies ist eine Platzhalterseite für arbeitsbezogene Werkzeuge.</p>
-{% if user.groups.filter(name='admin').exists %}
+{% if is_admin %}
 <div class="grid grid-cols-1 sm:grid-cols-2 mt-6">
     <a href="{% url 'recording_page' bereich='work' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
         <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
