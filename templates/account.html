@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block title %}Konto{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Benutzereinstellungen werden hier angezeigt</h1>
+<p class="mb-2">Angemeldet als: <strong>{{ user.username }}</strong></p>
+<p class="mb-2">Gruppen: {% if user.groups.all %}{% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Keine{% endif %}</p>
+{% endblock %}

@@ -17,12 +17,15 @@
                 <a href="/">Logo</a>
             </div>
             <nav class="space-x-4">
-                <a href="/" class="hover:underline">Home</a>
+                <a href="/" class="hover:underline">Startseite</a>
                 {% if user.is_authenticated %}
-                    <span>{{ user.username }}</span>
-                    <a href="/logout/" class="hover:underline">Logout</a>
+                    <a href="/account/" class="hover:underline">Mein Konto</a>
+                    <form action="{% url 'logout' %}" method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-transparent border-0 p-0 m-0 text-white hover:underline">Abmelden</button>
+                    </form>
                 {% else %}
-                    <a href="/login/" class="hover:underline">Login</a>
+                    <a href="/login/" class="hover:underline">Anmelden</a>
                 {% endif %}
             </nav>
         </div>
