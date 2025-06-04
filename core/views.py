@@ -14,12 +14,20 @@ def home(request):
 
 @login_required
 def work(request):
-    return render(request, 'work.html')
+    is_admin = request.user.groups.filter(name='admin').exists()
+    context = {
+        'is_admin': is_admin,
+    }
+    return render(request, 'work.html', context)
 
 
 @login_required
 def personal(request):
-    return render(request, 'personal.html')
+    is_admin = request.user.groups.filter(name='admin').exists()
+    context = {
+        'is_admin': is_admin,
+    }
+    return render(request, 'personal.html', context)
 
 
 @login_required
