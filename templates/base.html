@@ -19,7 +19,7 @@
             <nav class="space-x-4">
                 <a href="/" class="hover:underline">Home</a>
                 {% if user.is_authenticated %}
-                    <span>{{ user.username }}</span>
+                    <a href="/account/" class="hover:underline">My Account</a>
                     <a href="/logout/" class="hover:underline">Logout</a>
                 {% else %}
                     <a href="/login/" class="hover:underline">Login</a>
