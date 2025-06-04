@@ -10,7 +10,9 @@ from .models import Recording
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
+
 import time
+
 import markdown
 from django.conf import settings
 
@@ -90,9 +92,11 @@ def toggle_recording_view(request, bereich):
 
     if is_recording():
         stop_recording()
+
         # wait a moment to allow OBS to finalize the file
         time.sleep(1)
         _process_recordings_for_user(bereich, request.user)
+
     else:
         start_recording(bereich, Path(settings.MEDIA_ROOT))
 
@@ -155,15 +159,18 @@ def dashboard(request):
     return render(request, "dashboard.html", {"recordings": recordings})
 
 
+
 def _process_recordings_for_user(bereich: str, user) -> list:
     """Convert and transcribe recordings for ``bereich`` and ``user``.
 
     Returns a list of :class:`Recording` objects found or created.
     """
+
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
     rec_dir = media_root / "recordings" / bereich
     trans_dir = media_root / "transcripts" / bereich
+
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
@@ -171,18 +178,24 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
 
+
     # convert mkv to wav and remove mkv
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
+
         wav = mkv.with_suffix(".wav")
         if not wav.exists():
             try:
                 subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
+
                 mkv.unlink(missing_ok=True)
+
             except Exception:
                 pass
 
     # transcribe wav files
+
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
+
         md = trans_dir / f"{wav.stem}.md"
         if not md.exists():
             cmd = [
@@ -203,7 +216,9 @@ def _process_recordings_for_user(bereich: str, user) -> list:
                 pass
 
     recordings = []
+
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
+
         md = trans_dir / f"{wav.stem}.md"
         excerpt = ""
         if md.exists():
@@ -212,17 +227,20 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         rel_wav = Path("recordings") / bereich / wav.name
         rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
         rec_obj, _ = Recording.objects.get_or_create(
+
             user=user,
             bereich=bereich,
             audio_file=str(rel_wav),
         )
         if rel_md and not rec_obj.transcript_file:
+
             with md.open("rb") as f:
                 rec_obj.transcript_file.save(md.name, f, save=False)
         if excerpt:
             rec_obj.excerpt = excerpt
         rec_obj.save()
         recordings.append(rec_obj)
+
 
     return recordings
 
@@ -241,6 +259,7 @@ def talkdiary(request, bereich):
         "bereich": bereich,
         "recordings": recordings,
         "is_recording": is_recording(),
+
     }
     return render(request, "talkdiary.html", context)
 
