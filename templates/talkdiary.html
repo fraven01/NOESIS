@@ -4,11 +4,13 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">TalkDiary {{ bereich|capfirst }}</h1>
 <div class="mb-6 flex items-center space-x-4">
+
     {% if is_recording %}
     <a href="{% url 'stop_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700">Aufnahme stoppen</a>
     {% else %}
     <a href="{% url 'start_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
     {% endif %}
+
     <form method="get" class="inline-block">
         <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-white rounded">Rescan</button>
     </form>

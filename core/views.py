@@ -140,10 +140,12 @@ def talkdiary(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect("home")
 
+
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
     rec_dir = media_root / "recordings" / bereich
     trans_dir = media_root / "transcripts" / bereich
+
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
@@ -206,7 +208,9 @@ def talkdiary(request, bereich):
     context = {
         "bereich": bereich,
         "recordings": recordings,
+
         "is_recording": is_recording(),
+
     }
     return render(request, "talkdiary.html", context)
 
