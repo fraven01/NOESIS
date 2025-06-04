@@ -10,6 +10,7 @@ from .models import Recording
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
+import markdown
 from django.conf import settings
 
 
@@ -46,7 +47,7 @@ def account(request):
 def recording_page(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect('home')
-    rec_dir = Path(settings.BASE_DIR) / 'recordings' / bereich
+    rec_dir = Path(settings.MEDIA_ROOT) / 'recordings' / bereich
     files = []
     if rec_dir.exists():
         for f in sorted(rec_dir.iterdir(), reverse=True):
@@ -67,7 +68,7 @@ def recording_page(request, bereich):
 def start_recording_view(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect('home')
-    start_recording(bereich, Path(settings.BASE_DIR))
+    start_recording(bereich, Path(settings.MEDIA_ROOT))
     return redirect('recording_page', bereich=bereich)
 
 
@@ -132,3 +133,101 @@ def upload_recording(request):
 def dashboard(request):
     recordings = Recording.objects.filter(user=request.user).order_by("-created_at")
     return render(request, "dashboard.html", {"recordings": recordings})
+
+
+@login_required
+def talkdiary(request, bereich):
+    if bereich not in ["work", "personal"]:
+        return redirect("home")
+
+    media_root = Path(settings.MEDIA_ROOT)
+    base_dir = Path(settings.BASE_DIR)
+    rec_dir = media_root / "recordings" / bereich
+    trans_dir = media_root / "transcripts" / bereich
+    rec_dir.mkdir(parents=True, exist_ok=True)
+    trans_dir.mkdir(parents=True, exist_ok=True)
+
+    ffmpeg = base_dir / "tools" / ("ffmpeg.exe" if (base_dir / "tools" / "ffmpeg.exe").exists() else "ffmpeg")
+    if not ffmpeg.exists():
+        ffmpeg = "ffmpeg"
+
+    # convert mkv to wav if needed
+    for mkv in rec_dir.glob("*.mkv"):
+        wav = mkv.with_suffix(".wav")
+        if not wav.exists():
+            try:
+                subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
+            except Exception:
+                pass
+
+    # transcribe wav files
+    for wav in rec_dir.glob("*.wav"):
+        md = trans_dir / f"{wav.stem}.md"
+        if not md.exists():
+            cmd = [
+                "whisper",
+                str(wav),
+                "--model",
+                "base",
+                "--language",
+                "de",
+                "--output_format",
+                "md",
+                "--output_dir",
+                str(trans_dir),
+            ]
+            try:
+                subprocess.run(cmd, check=True)
+            except Exception:
+                pass
+
+    recordings = []
+    for wav in rec_dir.glob("*.wav"):
+        md = trans_dir / f"{wav.stem}.md"
+        excerpt = ""
+        if md.exists():
+            lines = md.read_text(encoding="utf-8").splitlines()[:2]
+            excerpt = "\n".join(lines)
+        rel_wav = Path("recordings") / bereich / wav.name
+        rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
+        rec_obj, _ = Recording.objects.get_or_create(
+            user=request.user,
+            bereich=bereich,
+            audio_file=str(rel_wav),
+        )
+        if rel_md and (not rec_obj.transcript_file):
+            with md.open("rb") as f:
+                rec_obj.transcript_file.save(md.name, f, save=False)
+        if excerpt:
+            rec_obj.excerpt = excerpt
+        rec_obj.save()
+        recordings.append(rec_obj)
+
+    context = {
+        "bereich": bereich,
+        "recordings": recordings,
+        "is_recording": is_recording(),
+    }
+    return render(request, "talkdiary.html", context)
+
+
+@login_required
+def talkdiary_detail(request, pk):
+    try:
+        rec = Recording.objects.get(pk=pk, user=request.user)
+    except Recording.DoesNotExist:
+        return redirect("home")
+
+    md_text = ""
+    if rec.transcript_file:
+        md_path = Path(settings.MEDIA_ROOT) / rec.transcript_file.name
+        if md_path.exists():
+            md_text = md_path.read_text(encoding="utf-8")
+
+    html = markdown.markdown(md_text)
+
+    context = {
+        "recording": rec,
+        "transcript_html": html,
+    }
+    return render(request, "talkdiary_detail.html", context)

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load recording_extras %}
+{% block title %}TalkDiary {{ bereich|capfirst }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">TalkDiary {{ bereich|capfirst }}</h1>
+<div class="mb-6 flex items-center space-x-4">
+    {% if is_recording %}
+    <a href="{% url 'stop_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700">Aufnahme stoppen</a>
+    {% else %}
+    <a href="{% url 'start_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
+    {% endif %}
+    <form method="get" class="inline-block">
+        <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-white rounded">Rescan</button>
+    </form>
+</div>
+<h2 class="text-xl font-semibold mb-2">Original files</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for rec in recordings %}
+    <div class="border p-4 rounded shadow">
+        <audio controls src="{{ rec.audio_file.url }}" class="w-full"></audio>
+        <p class="mt-2 text-sm">{{ rec.audio_file.name|basename }}</p>
+        <p class="text-xs text-gray-500">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
+    </div>
+    {% empty %}
+    <p>Keine Aufnahmen vorhanden.</p>
+    {% endfor %}
+</div>
+<h2 class="text-xl font-semibold mt-8 mb-2">Transkripte</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for rec in recordings %}
+        {% if rec.transcript_file %}
+        <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-4 bg-gray-50 hover:bg-gray-100">
+            <h3 class="font-semibold">{{ rec.audio_file.name|basename }}</h3>
+            <p class="text-sm whitespace-pre-line mt-1">{{ rec.excerpt }}</p>
+        </a>
+        {% endif %}
+    {% empty %}
+    <p>Keine Transkripte.</p>
+    {% endfor %}
+</div>
+{% endblock %}
