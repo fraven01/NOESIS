@@ -15,10 +15,10 @@ def start_recording(bereich: str, base_dir: Path):
     ws = _connect()
     try:
         ws.set_record_directory(str(directory))
-        ws.set_filename_formatting(f"{bereich}_%CCYY-%MM-%DD_%hh-%mm.wav")
+        # OBS WebSocket 5.x does not support setting filename formatting via API
         ws.start_record()
     finally:
-        pass # ws.disconnect() might not be needed for ReqClient
+        pass  # ws.disconnect() might not be needed for ReqClient
 
 def stop_recording():
     ws = _connect()
