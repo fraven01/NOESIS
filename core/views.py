@@ -47,7 +47,7 @@ def account(request):
 def recording_page(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect('home')
-    rec_dir = Path(settings.BASE_DIR) / 'recordings' / bereich
+    rec_dir = Path(settings.MEDIA_ROOT) / 'recordings' / bereich
     files = []
     if rec_dir.exists():
         for f in sorted(rec_dir.iterdir(), reverse=True):
@@ -68,7 +68,7 @@ def recording_page(request, bereich):
 def start_recording_view(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect('home')
-    start_recording(bereich, Path(settings.BASE_DIR))
+    start_recording(bereich, Path(settings.MEDIA_ROOT))
     return redirect('recording_page', bereich=bereich)
 
 
@@ -140,9 +140,12 @@ def talkdiary(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect("home")
 
+
+    media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
-    rec_dir = base_dir / "recordings" / bereich
-    trans_dir = base_dir / "transcripts" / bereich
+    rec_dir = media_root / "recordings" / bereich
+    trans_dir = media_root / "transcripts" / bereich
+
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
@@ -205,6 +208,9 @@ def talkdiary(request, bereich):
     context = {
         "bereich": bereich,
         "recordings": recordings,
+
+        "is_recording": is_recording(),
+
     }
     return render(request, "talkdiary.html", context)
 
