@@ -5,4 +5,17 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Arbeitsassistent</h1>
 <p>Dies ist eine Platzhalterseite für arbeitsbezogene Werkzeuge.</p>
+{% if user.groups.filter(name='admin').exists %}
+<div class="grid grid-cols-1 sm:grid-cols-2 mt-6">
+    <a href="{% url 'recording_page' bereich='work' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
+            <i class="fas fa-microphone text-white text-4xl"></i>
+        </div>
+        <div class="p-4 bg-white">
+            <h3 class="text-lg font-semibold mb-2">Aufnahme starten</h3>
+            <p class="text-gray-600">Audioaufnahmen verwalten</p>
+        </div>
+    </a>
+</div>
+{% endif %}
 {% endblock %}
