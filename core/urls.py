@@ -10,6 +10,7 @@ urlpatterns = [
     path('recording/<str:bereich>/', views.recording_page, name='recording_page'),
     path('start-recording/<str:bereich>/', views.start_recording_view, name='start_recording'),
     path('stop-recording/<str:bereich>/', views.stop_recording_view, name='stop_recording'),
+    path('toggle-recording/<str:bereich>/', views.toggle_recording_view, name='toggle_recording'),
     path('upload/', views.upload_recording, name='upload_recording'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('personal/talkdiary/', views.talkdiary, {'bereich': 'personal'}, name='talkdiary_personal'),
