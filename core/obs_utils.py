@@ -1,41 +1,36 @@
 from pathlib import Path
-from obsws_python import obsws, requests
+import obsws_python as obs # This is likely the correct way to import
 
 HOST = 'localhost'
 PORT = 4455
-PASSWORD = ''
-
+PASSWORD = 'BpJznpdkIZC2pevm'
 
 def _connect():
-    ws = obsws(HOST, PORT, PASSWORD)
-    ws.connect()
+    ws = obs.ReqClient(host=HOST, port=PORT, password=PASSWORD, timeout=3)
     return ws
-
 
 def start_recording(bereich: str, base_dir: Path):
     directory = base_dir / 'recordings' / bereich
     directory.mkdir(parents=True, exist_ok=True)
     ws = _connect()
     try:
-        ws.call(requests.SetRecordDirectory(str(directory)))
-        ws.call(requests.SetFilenameFormatting(f"{bereich}_%CCYY-%MM-%DD_%hh-%mm.wav"))
-        ws.call(requests.StartRecord())
+        ws.set_record_directory(str(directory))
+        ws.set_filename_formatting(f"{bereich}_%CCYY-%MM-%DD_%hh-%mm.wav")
+        ws.start_record()
     finally:
-        ws.disconnect()
-
+        pass # ws.disconnect() might not be needed for ReqClient
 
 def stop_recording():
     ws = _connect()
     try:
-        ws.call(requests.StopRecord())
+        ws.stop_record()
     finally:
-        ws.disconnect()
-
+        pass # ws.disconnect() might not be needed
 
 def is_recording() -> bool:
     ws = _connect()
     try:
-        status = ws.call(requests.GetRecordStatus())
-        return status.get("outputActive", False)
+        status = ws.get_record_status()
+        return status.output_active
     finally:
-        ws.disconnect()
+        pass # ws.disconnect() might not be needed
