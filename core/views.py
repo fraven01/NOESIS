@@ -154,10 +154,12 @@ def talkdiary(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect("home")
 
+
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
     rec_dir = media_root / "recordings" / bereich
     trans_dir = media_root / "transcripts" / bereich
+
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
@@ -165,8 +167,10 @@ def talkdiary(request, bereich):
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
 
+
     # convert mkv to wav if needed (case-insensitive)
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
+
         wav = mkv.with_suffix(".wav")
         if not wav.exists():
             try:
@@ -175,7 +179,9 @@ def talkdiary(request, bereich):
                 pass
 
     # transcribe wav files
+
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
+
         md = trans_dir / f"{wav.stem}.md"
         if not md.exists():
             cmd = [
@@ -196,7 +202,9 @@ def talkdiary(request, bereich):
                 pass
 
     recordings = []
+
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
+
         md = trans_dir / f"{wav.stem}.md"
         excerpt = ""
         if md.exists():
@@ -220,7 +228,9 @@ def talkdiary(request, bereich):
     context = {
         "bereich": bereich,
         "recordings": recordings,
+
         "is_recording": is_recording(),
+
     }
     return render(request, "talkdiary.html", context)
 
