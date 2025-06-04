@@ -25,6 +25,7 @@ class Recording(models.Model):
     audio_file = models.FileField(upload_to=recording_upload_path)
     transcript_file = models.FileField(upload_to=transcript_upload_path, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    duration = models.FloatField(null=True, blank=True)
     excerpt = models.TextField(blank=True)
 
     class Meta:
