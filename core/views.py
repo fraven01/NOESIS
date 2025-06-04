@@ -1,8 +1,9 @@
 from pathlib import Path
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
 from django.http import HttpResponseBadRequest
+from django.core.files.storage import default_storage
+from django.contrib import messages
 import subprocess
 
 from .forms import RecordingForm
@@ -110,9 +111,25 @@ def upload_recording(request):
     if request.method == "POST":
         form = RecordingForm(request.POST, request.FILES)
         if form.is_valid():
-            recording = form.save(commit=False)
-            recording.user = request.user
-            recording.save()
+            bereich = form.cleaned_data["bereich"]
+            uploaded = form.cleaned_data["audio_file"]
+
+            rel_path = Path("recordings") / bereich / uploaded.name
+            storage_name = default_storage.get_available_name(str(rel_path))
+            if storage_name != str(rel_path):
+                messages.info(request, "Datei existierte bereits, wurde umbenannt.")
+
+            file_path = default_storage.save(storage_name, uploaded)
+
+            if Recording.objects.filter(audio_file=file_path, user=request.user).exists():
+                messages.info(request, "Aufnahme bereits in der Datenbank.")
+                return redirect("dashboard")
+
+            recording = Recording.objects.create(
+                user=request.user,
+                bereich=bereich,
+                audio_file=file_path,
+            )
 
             out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich}"
             out_dir.mkdir(parents=True, exist_ok=True)
@@ -284,3 +301,48 @@ def talkdiary_detail(request, pk):
         "transcript_html": html,
     }
     return render(request, "talkdiary_detail.html", context)
+
+
+@login_required
+@admin_required
+def admin_talkdiary(request):
+    recordings = list(Recording.objects.all().order_by("-created_at"))
+
+    filter_opt = request.GET.get("filter")
+    filtered = []
+    for rec in recordings:
+        audio_path = Path(settings.MEDIA_ROOT) / rec.audio_file.name
+        transcript_path = (
+            Path(settings.MEDIA_ROOT) / rec.transcript_file.name
+            if rec.transcript_file
+            else None
+        )
+        rec.audio_missing = not audio_path.exists()
+        rec.transcript_missing = (
+            rec.transcript_file == "" or (transcript_path and not transcript_path.exists())
+        )
+        rec.incomplete = rec.audio_missing or rec.transcript_missing
+
+        if filter_opt == "missing_audio" and not rec.audio_missing:
+            continue
+        if filter_opt == "missing_transcript" and not rec.transcript_missing:
+            continue
+        if filter_opt == "incomplete" and not rec.incomplete:
+            continue
+        filtered.append(rec)
+
+    if request.method == "POST":
+        ids = request.POST.getlist("delete")
+        for rec in Recording.objects.filter(id__in=ids):
+            if rec.audio_file:
+                (Path(settings.MEDIA_ROOT) / rec.audio_file.name).unlink(missing_ok=True)
+            if rec.transcript_file:
+                (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(missing_ok=True)
+            rec.delete()
+        return redirect("admin_talkdiary")
+
+    context = {
+        "recordings": filtered,
+        "filter": filter_opt or "",
+    }
+    return render(request, "admin_talkdiary.html", context)

@@ -24,6 +24,7 @@ class Recording(models.Model):
     bereich = models.CharField(max_length=10, choices=BEREICH_CHOICES)
     audio_file = models.FileField(upload_to=recording_upload_path)
     transcript_file = models.FileField(upload_to=transcript_upload_path, blank=True)
+    notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     duration = models.FloatField(null=True, blank=True)
     excerpt = models.TextField(blank=True)
@@ -33,3 +34,11 @@ class Recording(models.Model):
 
     def __str__(self):
         return f"{self.audio_file.name} ({self.bereich})"
+
+    @property
+    def recording_path(self):
+        return self.audio_file.name
+
+    @property
+    def transcript_path(self):
+        return self.transcript_file.name if self.transcript_file else ""
