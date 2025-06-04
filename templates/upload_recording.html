@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Audio hochladen</h1>
+<form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.bereich.label_tag }}<br>
+        {{ form.bereich }}
+        {{ form.bereich.errors }}
+    </div>
+    <div>
+        {{ form.audio_file.label_tag }}<br>
+        {{ form.audio_file }}
+        {{ form.audio_file.errors }}
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+</form>
+{% endblock %}

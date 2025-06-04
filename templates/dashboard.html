@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load recording_extras %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Meine Aufnahmen</h1>
+<table class="min-w-full">
+    <thead>
+        <tr class="text-left border-b">
+            <th>Datei</th>
+            <th>Hochgeladen am</th>
+            <th>Auszug</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for rec in recordings %}
+        <tr class="border-b">
+            <td class="py-2">{{ rec.audio_file.name|basename }}</td>
+            <td class="py-2">{{ rec.created_at|date:"d.m.Y H:i" }}</td>
+            <td class="py-2 whitespace-pre-line text-sm">{{ rec.excerpt }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">Keine Aufnahmen</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
