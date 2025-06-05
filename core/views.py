@@ -29,9 +29,12 @@ _WHISPER_MODEL = None
 def _get_whisper_model():
     """Lade das Whisper-Modell nur einmal."""
     global _WHISPER_MODEL
+    logger.debug("Whisper-Modell wird angefordert")
     if _WHISPER_MODEL is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.debug("Lade Whisper-Modell auf %s", device)
         _WHISPER_MODEL = whisper.load_model("base", device=device)
+        logger.debug("Whisper-Modell geladen")
     return _WHISPER_MODEL
 
 
@@ -134,6 +137,7 @@ def upload_recording(request):
         if form.is_valid():
             bereich = form.cleaned_data["bereich"]
             uploaded = form.cleaned_data["audio_file"]
+            logger.debug("Upload erhalten: %s f\u00fcr Bereich %s", uploaded.name, bereich)
 
             rel_path = Path("recordings") / bereich / uploaded.name
             storage_name = default_storage.get_available_name(str(rel_path))
@@ -141,6 +145,7 @@ def upload_recording(request):
                 messages.info(request, "Datei existierte bereits, wurde umbenannt.")
 
             file_path = default_storage.save(storage_name, uploaded)
+            logger.debug("Datei gespeichert: %s", file_path)
 
             abs_path = default_storage.path(file_path)
             final_rel = file_path
@@ -154,6 +159,7 @@ def upload_recording(request):
                 wav_storage = default_storage.get_available_name(str(wav_rel))
                 wav_abs = default_storage.path(wav_storage)
                 try:
+                    logger.debug("Konvertiere %s nach %s", abs_path, wav_abs)
                     subprocess.run([str(ffmpeg), "-y", "-i", abs_path, wav_abs], check=True)
                     Path(abs_path).unlink(missing_ok=True)
                     final_rel = wav_storage
@@ -175,6 +181,7 @@ def upload_recording(request):
 
             model = _get_whisper_model()
             try:
+                logger.debug("Starte Transkription: %s", recording.audio_file.path)
                 result = model.transcribe(recording.audio_file.path, language="de")
             except Exception:
                 return HttpResponseBadRequest("Transkription fehlgeschlagen")
@@ -186,6 +193,7 @@ def upload_recording(request):
             lines = result["text"].splitlines()[:5]
             recording.excerpt = "\n".join(lines)
             recording.save()
+            logger.debug("Aufnahme gespeichert: %s", recording)
 
             return redirect("dashboard")
     else:
@@ -235,6 +243,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     Returns a list of :class:`Recording` objects found or created.
     """
 
+    logger.debug("Beginne Verarbeitung f\u00fcr Bereich '%s' und Benutzer '%s'", bereich, user)
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
     rec_dir = media_root / "recordings" / bereich
@@ -248,12 +257,14 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         ffmpeg = "ffmpeg"
 
 
+    logger.debug("Konvertiere mkv-Dateien")
     # convert mkv to wav and remove mkv
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
 
         wav = mkv.with_suffix(".wav")
         if not wav.exists() and mkv.exists():
             try:
+                logger.debug("ffmpeg %s -> %s", mkv, wav)
                 subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
 
                 mkv.unlink(missing_ok=True)
@@ -261,7 +272,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
             except Exception as exc:
                 logger.error("ffmpeg failed: %s", exc)
 
-    # transcribe wav files
+    logger.debug("Transkribiere wav-Dateien")
 
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
 
@@ -270,6 +281,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
 
         md = trans_dir / f"{wav.stem}.md"
         if not md.exists():
+            logger.debug("Transkribiere %s", wav)
             model = _get_whisper_model()
             try:
                 result = model.transcribe(str(wav), language="de")
@@ -278,6 +290,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
                 continue
 
             md.write_text(result["text"], encoding="utf-8")
+            logger.debug("Transkript gespeichert: %s", md)
 
     recordings = []
 
@@ -303,9 +316,11 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         if excerpt:
             rec_obj.excerpt = excerpt
         rec_obj.save()
+        logger.debug("Recording verarbeitet: %s", rec_obj)
         recordings.append(rec_obj)
 
 
+    logger.debug("Verarbeitung abgeschlossen")
     return recordings
 
 
@@ -378,6 +393,7 @@ def transcribe_recording(request, pk):
     if audio_path.suffix.lower() == ".mkv":
         wav_path = audio_path.with_suffix(".wav")
         try:
+            logger.debug("Konvertiere %s nach %s", audio_path, wav_path)
             subprocess.run([str(ffmpeg), "-y", "-i", str(audio_path), str(wav_path)], check=True)
         except Exception as exc:
             logger.error("ffmpeg failed: %s", exc)
@@ -391,6 +407,7 @@ def transcribe_recording(request, pk):
 
     model = _get_whisper_model()
     try:
+        logger.debug("Starte Transkription: %s", audio_path)
         result = model.transcribe(str(audio_path), language="de")
     except Exception as exc:
         logger.error("whisper failed: %s", exc)
@@ -403,6 +420,7 @@ def transcribe_recording(request, pk):
         rec.transcript_file.save(md_path.name, f, save=False)
     rec.excerpt = "\n".join(result["text"].splitlines()[:5])
     rec.save()
+    logger.debug("Transkription abgeschlossen f\u00fcr %s", rec)
     messages.success(request, "Transkription abgeschlossen")
 
     return redirect("talkdiary_%s" % rec.bereich)
