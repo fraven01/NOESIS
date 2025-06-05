@@ -7,7 +7,7 @@ from django.contrib import messages
 import subprocess
 
 from .forms import RecordingForm
-from .models import Recording
+from .models import Recording, transcript_upload_path
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -176,6 +176,34 @@ def dashboard(request):
     return render(request, "dashboard.html", {"recordings": recordings})
 
 
+@login_required
+def upload_transcript(request):
+    """Ermöglicht das manuelle Hochladen eines Transkript-Files."""
+    from .forms import TranscriptUploadForm
+
+    if request.method == "POST":
+        form = TranscriptUploadForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            rec = form.cleaned_data["recording"]
+            uploaded = form.cleaned_data["transcript_file"]
+
+            rel_path = transcript_upload_path(rec, uploaded.name)
+            storage_name = default_storage.get_available_name(rel_path)
+            path = default_storage.save(storage_name, uploaded)
+
+            with default_storage.open(path, "rb") as f:
+                rec.transcript_file.save(Path(path).name, f, save=False)
+
+            txt = default_storage.open(path).read().decode("utf-8")
+            rec.excerpt = "\n".join(txt.splitlines()[:2])
+            rec.save()
+            return redirect("talkdiary_%s" % rec.bereich)
+    else:
+        form = TranscriptUploadForm(user=request.user)
+
+    return render(request, "upload_transcript.html", {"form": form})
+
+
 
 def _process_recordings_for_user(bereich: str, user) -> list:
     """Convert and transcribe recordings for ``bereich`` and ``user``.
@@ -223,14 +251,20 @@ def _process_recordings_for_user(bereich: str, user) -> list:
                 "--language",
                 "de",
                 "--output_format",
-                "md",
+                "txt",
                 "--output_dir",
                 str(trans_dir),
             ]
             try:
                 subprocess.run(cmd, check=True)
             except Exception:
-                pass
+                continue
+
+            txt_path = trans_dir / f"{wav.stem}.txt"
+            if txt_path.exists():
+                txt_content = txt_path.read_text(encoding="utf-8")
+                md.write_text(txt_content, encoding="utf-8")
+                txt_path.unlink(missing_ok=True)
 
     recordings = []
 
@@ -276,6 +310,7 @@ def talkdiary(request, bereich):
         "bereich": bereich,
         "recordings": recordings,
         "is_recording": is_recording(),
+        "is_admin": request.user.groups.filter(name="admin").exists(),
 
     }
     return render(request, "talkdiary.html", context)

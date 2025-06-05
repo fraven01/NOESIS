@@ -3,10 +3,13 @@
 {% block title %}TalkDiary {{ bereich|capfirst }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">TalkDiary {{ bereich|capfirst }}</h1>
-<div class="mb-6 flex items-center space-x-4">
+<div class="mb-6 flex flex-wrap items-center space-x-4">
 
     {% if is_recording %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700">Aufnahme stoppen</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700 flex items-center">
+        Aufnahme stoppen
+        <span class="ml-2 animate-pulse">&#9679;</span>
+    </a>
     {% else %}
     <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
     {% endif %}
@@ -14,13 +17,21 @@
     <form method="get" class="inline-block">
         <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-white rounded">Rescan</button>
     </form>
+    <a href="{% url 'upload_transcript' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Transcript hochladen</a>
+    {% if is_admin %}
+    <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 bg-purple-600 text-white rounded">Admin</a>
+    {% endif %}
 </div>
 <h2 class="text-xl font-semibold mb-2">Original files</h2>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {% for rec in recordings %}
-    <div class="border p-4 rounded shadow">
+    <div class="border p-4 rounded shadow {{ rec.transcript_file|yesno:'bg-green-50,' }}">
         <audio controls src="{{ rec.audio_file.url }}" class="w-full"></audio>
-        <p class="mt-2 text-sm">{{ rec.audio_file.name|basename }}</p>
+        <p class="mt-2 text-sm flex items-center">
+            <i class="fas fa-microphone text-blue-600 mr-2"></i>
+            {{ rec.audio_file.name|basename }}
+            {% if rec.transcript_file %}<i class="fas fa-check text-green-600 ml-2"></i>{% endif %}
+        </p>
         <p class="text-xs text-gray-500">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
     </div>
     {% empty %}
@@ -32,7 +43,10 @@
     {% for rec in recordings %}
         {% if rec.transcript_file %}
         <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-4 bg-gray-50 hover:bg-gray-100">
-            <h3 class="font-semibold">{{ rec.audio_file.name|basename }}</h3>
+            <h3 class="font-semibold flex items-center">
+                <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                {{ rec.audio_file.name|basename }}
+            </h3>
             <p class="text-sm whitespace-pre-line mt-1">{{ rec.excerpt }}</p>
         </a>
         {% endif %}
@@ -40,4 +54,17 @@
     <p>Keine Transkripte.</p>
     {% endfor %}
 </div>
+{% if is_admin %}
+<div class="mt-8">
+    <a href="{% url 'admin_talkdiary' %}" class="block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        <div class="h-32 bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
+            <i class="fas fa-tools text-white text-4xl"></i>
+        </div>
+        <div class="p-4 bg-white">
+            <h3 class="text-lg font-semibold mb-2">Transcript Verwaltung</h3>
+            <p class="text-gray-600">Alle Einträge prüfen und bereinigen</p>
+        </div>
+    </a>
+</div>
+{% endif %}
 {% endblock %}
