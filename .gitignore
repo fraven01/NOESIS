@@ -196,6 +196,8 @@ cython_debug/
 
 venv/
 
+media/
+
 *.sqlite3
 
 .env
