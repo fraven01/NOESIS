@@ -13,6 +13,7 @@ urlpatterns = [
     path('toggle-recording/<str:bereich>/', views.toggle_recording_view, name='toggle_recording'),
     path('upload/', views.upload_recording, name='upload_recording'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('upload-transcript/', views.upload_transcript, name='upload_transcript'),
     path('personal/talkdiary/', views.talkdiary, {'bereich': 'personal'}, name='talkdiary_personal'),
     path('work/talkdiary/', views.talkdiary, {'bereich': 'work'}, name='talkdiary_work'),
     path('talkdiary/<int:pk>/', views.talkdiary_detail, name='talkdiary_detail'),
