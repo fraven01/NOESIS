@@ -33,6 +33,7 @@
         <div class="flex space-x-2 mt-1">
             <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="transcribe-form">
                 {% csrf_token %}
+                <input type="hidden" name="track" value="1">
                 <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded flex items-center">
                     <span>Transkribieren</span>
                     <svg class="hidden w-4 h-4 ml-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -87,7 +88,15 @@
 {% endif %}
 <script>
 document.querySelectorAll('.transcribe-form').forEach(f => {
-    f.addEventListener('submit', () => {
+    f.addEventListener('submit', ev => {
+        const trackInput = f.querySelector('input[name="track"]');
+        let track = prompt('Welche Spur soll transkribiert werden?', '1');
+        if (!track) {
+            ev.preventDefault();
+            return;
+        }
+        if (trackInput) trackInput.value = track;
+
         const btn = f.querySelector('button[type="submit"]');
         const spinner = btn.querySelector('svg');
         if (btn) {
