@@ -19,7 +19,7 @@
     <form method="get" class="inline-block">
         <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-white rounded">Rescan</button>
     </form>
-    <a href="{% url 'upload_transcript' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Transcript hochladen</a>
+    <a href="{% url 'upload_recording' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Datei hochladen</a>
     {% if is_admin %}
     <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 bg-purple-600 text-white rounded">Admin</a>
     {% endif %}
@@ -30,10 +30,21 @@
     {% for rec in recordings %}
     <div class="border p-3 rounded shadow text-sm {{ rec.transcript_file|yesno:'bg-green-50,' }}">
         <audio controls src="{{ rec.audio_file.url }}" class="w-full mb-1"></audio>
-        <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="mt-1 transcribe-form">
-            {% csrf_token %}
-            <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded">Transkribieren</button>
-        </form>
+        <div class="flex space-x-2 mt-1">
+            <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="transcribe-form">
+                {% csrf_token %}
+                <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded flex items-center">
+                    <span>Transkribieren</span>
+                    <svg class="hidden w-4 h-4 ml-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </button>
+            </form>
+            {% if rec.transcript_file %}
+            <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-green-600 text-white rounded">Transcript</a>
+            {% endif %}
+        </div>
         <p class="mt-1 flex items-center break-all">
             <i class="fas fa-microphone text-blue-600 mr-2"></i>
             {{ rec.audio_file.name|basename|truncatechars:30 }}
@@ -78,9 +89,13 @@
 document.querySelectorAll('.transcribe-form').forEach(f => {
     f.addEventListener('submit', () => {
         const btn = f.querySelector('button[type="submit"]');
+        const spinner = btn.querySelector('svg');
         if (btn) {
             btn.disabled = true;
-            btn.textContent = 'Transkribiere...';
+            btn.querySelector('span').textContent = 'Transkribiere...';
+            if (spinner) {
+                spinner.classList.remove('hidden');
+            }
         }
     });
 });

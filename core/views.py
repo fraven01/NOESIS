@@ -254,18 +254,21 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
 
         wav = mkv.with_suffix(".wav")
-        if not wav.exists():
+        if not wav.exists() and mkv.exists():
             try:
                 subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
 
                 mkv.unlink(missing_ok=True)
 
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("ffmpeg failed: %s", exc)
 
     # transcribe wav files
 
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
+
+        if not wav.exists():
+            continue
 
         md = trans_dir / f"{wav.stem}.md"
         if not md.exists():
@@ -283,7 +286,8 @@ def _process_recordings_for_user(bereich: str, user) -> list:
             ]
             try:
                 subprocess.run(cmd, check=True)
-            except Exception:
+            except Exception as exc:
+                logger.error("whisper failed: %s", exc)
                 continue
 
             txt_path = trans_dir / f"{wav.stem}.txt"
@@ -375,15 +379,36 @@ def transcribe_recording(request, pk):
     out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{rec.bereich}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    audio_path = Path(rec.audio_file.path)
+    if not audio_path.exists():
+        messages.error(request, "Audio-Datei nicht gefunden")
+        return redirect("talkdiary_%s" % rec.bereich)
+
     if rec.transcript_file:
         messages.info(request, "Transkript existiert bereits")
         return redirect("talkdiary_%s" % rec.bereich)
+
+    ffmpeg = Path(settings.BASE_DIR) / "tools" / ("ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg")
+    if not ffmpeg.exists():
+        ffmpeg = "ffmpeg"
+
+    if audio_path.suffix.lower() == ".mkv":
+        wav_path = audio_path.with_suffix(".wav")
+        try:
+            subprocess.run([str(ffmpeg), "-y", "-i", str(audio_path), str(wav_path)], check=True)
+        except Exception as exc:
+            logger.error("ffmpeg failed: %s", exc)
+            messages.error(request, "Konvertierung fehlgeschlagen")
+            return redirect("talkdiary_%s" % rec.bereich)
+        audio_path = wav_path
+        rec.audio_file.name = f"recordings/{rec.bereich}/{wav_path.name}"
+        rec.save()
 
     messages.info(request, "Transkription gestartet")
 
     cmd = [
         "whisper",
-        rec.audio_file.path,
+        str(audio_path),
         "--model",
         "base",
         "--language",
@@ -421,7 +446,7 @@ def transcribe_recording(request, pk):
 def admin_talkdiary(request):
     recordings = list(Recording.objects.all().order_by("-created_at"))
 
-    filter_opt = request.GET.get("filter")
+    active_filter = request.GET.get("filter")
     filtered = []
     for rec in recordings:
         audio_path = Path(settings.MEDIA_ROOT) / rec.audio_file.name
@@ -436,11 +461,11 @@ def admin_talkdiary(request):
         )
         rec.incomplete = rec.audio_missing or rec.transcript_missing
 
-        if filter_opt == "missing_audio" and not rec.audio_missing:
+        if active_filter == "missing_audio" and not rec.audio_missing:
             continue
-        if filter_opt == "missing_transcript" and not rec.transcript_missing:
+        if active_filter == "missing_transcript" and not rec.transcript_missing:
             continue
-        if filter_opt == "incomplete" and not rec.incomplete:
+        if active_filter == "incomplete" and not rec.incomplete:
             continue
         filtered.append(rec)
 
@@ -456,6 +481,6 @@ def admin_talkdiary(request):
 
     context = {
         "recordings": filtered,
-        "filter": filter_opt or "",
+        "active_filter": active_filter or "",
     }
     return render(request, "admin_talkdiary.html", context)

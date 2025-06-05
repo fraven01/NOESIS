@@ -4,10 +4,10 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Admin TalkDiary</h1>
 <div class="mb-4 space-x-2">
-    <a href="?" class="px-3 py-1 rounded bg-gray-200 {% if not filter %}bg-gray-400{% endif %}">Alle</a>
-    <a href="?filter=missing_audio" class="px-3 py-1 rounded bg-gray-200 {% if filter == 'missing_audio' %}bg-gray-400{% endif %}">Missing Audio</a>
-    <a href="?filter=missing_transcript" class="px-3 py-1 rounded bg-gray-200 {% if filter == 'missing_transcript' %}bg-gray-400{% endif %}">Missing Transcript</a>
-    <a href="?filter=incomplete" class="px-3 py-1 rounded bg-gray-200 {% if filter == 'incomplete' %}bg-gray-400{% endif %}">Incomplete</a>
+    <a href="?" class="px-3 py-1 rounded bg-gray-200 {% if not active_filter %}bg-gray-400{% endif %}">Alle</a>
+    <a href="?filter=missing_audio" class="px-3 py-1 rounded bg-gray-200 {% if active_filter == 'missing_audio' %}bg-gray-400{% endif %}">Missing Audio</a>
+    <a href="?filter=missing_transcript" class="px-3 py-1 rounded bg-gray-200 {% if active_filter == 'missing_transcript' %}bg-gray-400{% endif %}">Missing Transcript</a>
+    <a href="?filter=incomplete" class="px-3 py-1 rounded bg-gray-200 {% if active_filter == 'incomplete' %}bg-gray-400{% endif %}">Incomplete</a>
 </div>
 <form method="post">
     {% csrf_token %}
