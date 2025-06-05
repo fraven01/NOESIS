@@ -395,40 +395,62 @@ def transcribe_recording(request, pk):
         messages.info(request, "Transkript existiert bereits")
         return redirect("talkdiary_%s" % rec.bereich)
 
-    ffmpeg = Path(settings.BASE_DIR) / "tools" / ("ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg")
+    track = int(request.POST.get("track", "1"))
+
+    ffmpeg = Path(settings.BASE_DIR) / "tools" / (
+        "ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+    )
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
 
-    if audio_path.suffix.lower() == ".mkv":
-        wav_path = audio_path.with_suffix(".wav")
+    source = audio_path if audio_path.suffix.lower() == ".mkv" else audio_path.with_suffix(".mkv")
+
+    if track != 1 or source.suffix.lower() == ".mkv":
+        if not source.exists():
+            messages.error(request, "Originaldatei mit mehreren Spuren nicht gefunden")
+            return redirect("talkdiary_%s" % rec.bereich)
+        wav_path = source.with_name(f"{source.stem}_track{track}.wav")
         try:
-            logger.debug("Konvertiere %s nach %s", audio_path, wav_path)
-            subprocess.run([str(ffmpeg), "-y", "-i", str(audio_path), str(wav_path)], check=True)
+            logger.debug("Extrahiere Spur %s: %s -> %s", track, source, wav_path)
+            subprocess.run([
+                str(ffmpeg),
+                "-y",
+                "-i",
+                str(source),
+                "-map",
+                f"0:a:{track - 1}",
+                str(wav_path),
+            ], check=True)
         except Exception as exc:
             logger.error("ffmpeg failed: %s", exc)
             messages.error(request, "Konvertierung fehlgeschlagen")
             return redirect("talkdiary_%s" % rec.bereich)
+        if track == 1:
+            rec.audio_file.name = f"recordings/{rec.bereich}/{wav_path.name}"
+            rec.save()
         audio_path = wav_path
-        rec.audio_file.name = f"recordings/{rec.bereich}/{wav_path.name}"
-        rec.save()
 
     messages.info(request, "Transkription gestartet")
 
     model = _get_whisper_model()
     try:
         logger.debug("Starte Transkription: %s", audio_path)
-        result = model.transcribe(str(audio_path), language="de")
+        result = model.transcribe(str(audio_path), language="de", word_timestamps=True)
     except Exception as exc:
         logger.error("whisper failed: %s", exc)
         messages.error(request, "Transkription fehlgeschlagen")
         return redirect("talkdiary_%s" % rec.bereich)
 
-    md_path = out_dir / f"{Path(rec.audio_file.name).stem}.md"
+    stem = Path(rec.audio_file.name).stem
+    md_name = f"{stem}.md" if track == 1 else f"{stem}_track{track}.md"
+    md_path = out_dir / md_name
     md_path.write_text(result["text"], encoding="utf-8")
-    with md_path.open("rb") as f:
-        rec.transcript_file.save(md_path.name, f, save=False)
-    rec.excerpt = "\n".join(result["text"].splitlines()[:5])
-    rec.save()
+
+    if track == 1:
+        with md_path.open("rb") as f:
+            rec.transcript_file.save(md_path.name, f, save=False)
+        rec.excerpt = "\n".join(result["text"].splitlines()[:5])
+        rec.save()
     logger.debug("Transkription abgeschlossen f\u00fcr %s", rec)
     messages.success(request, "Transkription abgeschlossen")
 
