@@ -12,10 +12,14 @@ from .models import Recording, transcript_upload_path
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
 
+import logging
+
 import time
 
 import markdown
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -97,9 +101,13 @@ def toggle_recording_view(request, bereich):
         # wait a moment to allow OBS to finalize the file
         time.sleep(1)
         _process_recordings_for_user(bereich, request.user)
+        rec_dir = Path(settings.MEDIA_ROOT) / "recordings" / bereich
+        if not list(rec_dir.glob("*.mkv")) and not list(rec_dir.glob("*.wav")):
+            messages.warning(request, "Keine Aufnahme gefunden")
 
     else:
         start_recording(bereich, Path(settings.MEDIA_ROOT))
+        messages.success(request, "Aufnahme gestartet")
 
     if "HTTP_REFERER" in request.META:
         return redirect(request.META["HTTP_REFERER"])
@@ -367,6 +375,12 @@ def transcribe_recording(request, pk):
     out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{rec.bereich}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if rec.transcript_file:
+        messages.info(request, "Transkript existiert bereits")
+        return redirect("talkdiary_%s" % rec.bereich)
+
+    messages.info(request, "Transkription gestartet")
+
     cmd = [
         "whisper",
         rec.audio_file.path,
@@ -381,8 +395,10 @@ def transcribe_recording(request, pk):
     ]
 
     try:
-        subprocess.run(cmd, check=True)
-    except Exception:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        logger.debug("whisper output: %s", result.stdout)
+    except subprocess.CalledProcessError as exc:
+        logger.error("whisper failed: %s", exc.stderr)
         messages.error(request, "Transkription fehlgeschlagen")
         return redirect("talkdiary_%s" % rec.bereich)
 
