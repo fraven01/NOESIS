@@ -1,6 +1,6 @@
 from django import forms
 from pathlib import Path
-from .models import Recording
+from .models import Recording, BVProject
 
 
 class RecordingForm(forms.ModelForm):
@@ -45,3 +45,18 @@ class TranscriptUploadForm(forms.Form):
         if not f.name.endswith(".md"):
             raise forms.ValidationError("Nur .md Dateien erlaubt")
         return f
+
+
+class BVProjectForm(forms.ModelForm):
+    class Meta:
+        model = BVProject
+        fields = ["beschreibung", "software_typen"]
+        labels = {
+            "beschreibung": "Beschreibung",
+            "software_typen": "Software-Typen (kommagetrennt)",
+        }
+        widgets = {
+            "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2"}),
+            "software_typen": forms.TextInput(attrs={"class": "border rounded p-2"}),
+        }
+
