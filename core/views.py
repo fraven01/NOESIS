@@ -5,6 +5,8 @@ from django.http import HttpResponseBadRequest
 from django.core.files.storage import default_storage
 from django.contrib import messages
 import subprocess
+import whisper
+import torch
 
 from .forms import RecordingForm
 from .models import Recording, transcript_upload_path
@@ -20,6 +22,17 @@ import markdown
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+_WHISPER_MODEL = None
+
+
+def _get_whisper_model():
+    """Lade das Whisper-Modell nur einmal."""
+    global _WHISPER_MODEL
+    if _WHISPER_MODEL is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _WHISPER_MODEL = whisper.load_model("base", device=device)
+    return _WHISPER_MODEL
 
 
 @login_required
@@ -160,34 +173,19 @@ def upload_recording(request):
             out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich}"
             out_dir.mkdir(parents=True, exist_ok=True)
 
-            cmd = [
-                "whisper",
-                recording.audio_file.path,
-                "--model",
-                "base",
-                "--language",
-                "de",
-                "--output_format",
-                "txt",
-                "--output_dir",
-                str(out_dir),
-            ]
-
+            model = _get_whisper_model()
             try:
-                subprocess.run(cmd, check=True)
+                result = model.transcribe(recording.audio_file.path, language="de")
             except Exception:
                 return HttpResponseBadRequest("Transkription fehlgeschlagen")
 
-            txt_path = out_dir / f"{Path(recording.audio_file.name).stem}.txt"
-            if txt_path.exists():
-                md_path = out_dir / f"{Path(recording.audio_file.name).stem}.md"
-                txt_content = txt_path.read_text(encoding="utf-8")
-                md_path.write_text(txt_content, encoding="utf-8")
-                with md_path.open("rb") as f:
-                    recording.transcript_file.save(md_path.name, f, save=False)
-                lines = txt_content.splitlines()[:5]
-                recording.excerpt = "\n".join(lines)
-                recording.save()
+            md_path = out_dir / f"{Path(recording.audio_file.name).stem}.md"
+            md_path.write_text(result["text"], encoding="utf-8")
+            with md_path.open("rb") as f:
+                recording.transcript_file.save(md_path.name, f, save=False)
+            lines = result["text"].splitlines()[:5]
+            recording.excerpt = "\n".join(lines)
+            recording.save()
 
             return redirect("dashboard")
     else:
@@ -272,29 +270,14 @@ def _process_recordings_for_user(bereich: str, user) -> list:
 
         md = trans_dir / f"{wav.stem}.md"
         if not md.exists():
-            cmd = [
-                "whisper",
-                str(wav),
-                "--model",
-                "base",
-                "--language",
-                "de",
-                "--output_format",
-                "txt",
-                "--output_dir",
-                str(trans_dir),
-            ]
+            model = _get_whisper_model()
             try:
-                subprocess.run(cmd, check=True)
+                result = model.transcribe(str(wav), language="de")
             except Exception as exc:
                 logger.error("whisper failed: %s", exc)
                 continue
 
-            txt_path = trans_dir / f"{wav.stem}.txt"
-            if txt_path.exists():
-                txt_content = txt_path.read_text(encoding="utf-8")
-                md.write_text(txt_content, encoding="utf-8")
-                txt_path.unlink(missing_ok=True)
+            md.write_text(result["text"], encoding="utf-8")
 
     recordings = []
 
@@ -303,7 +286,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         md = trans_dir / f"{wav.stem}.md"
         excerpt = ""
         if md.exists():
-            lines = md.read_text(encoding="utf-8").splitlines()[:2]
+            lines = md.read_text(encoding="utf-8").splitlines()[:5]
             excerpt = "\n".join(lines)
         rel_wav = Path("recordings") / bereich / wav.name
         rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
@@ -406,37 +389,21 @@ def transcribe_recording(request, pk):
 
     messages.info(request, "Transkription gestartet")
 
-    cmd = [
-        "whisper",
-        str(audio_path),
-        "--model",
-        "base",
-        "--language",
-        "de",
-        "--output_format",
-        "txt",
-        "--output_dir",
-        str(out_dir),
-    ]
-
+    model = _get_whisper_model()
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        logger.debug("whisper output: %s", result.stdout)
-    except subprocess.CalledProcessError as exc:
-        logger.error("whisper failed: %s", exc.stderr)
+        result = model.transcribe(str(audio_path), language="de")
+    except Exception as exc:
+        logger.error("whisper failed: %s", exc)
         messages.error(request, "Transkription fehlgeschlagen")
         return redirect("talkdiary_%s" % rec.bereich)
 
-    txt_path = out_dir / f"{Path(rec.audio_file.name).stem}.txt"
-    if txt_path.exists():
-        md_path = out_dir / f"{Path(rec.audio_file.name).stem}.md"
-        txt_content = txt_path.read_text(encoding="utf-8")
-        md_path.write_text(txt_content, encoding="utf-8")
-        with md_path.open("rb") as f:
-            rec.transcript_file.save(md_path.name, f, save=False)
-        rec.excerpt = "\n".join(txt_content.splitlines()[:5])
-        rec.save()
-        messages.success(request, "Transkription abgeschlossen")
+    md_path = out_dir / f"{Path(rec.audio_file.name).stem}.md"
+    md_path.write_text(result["text"], encoding="utf-8")
+    with md_path.open("rb") as f:
+        rec.transcript_file.save(md_path.name, f, save=False)
+    rec.excerpt = "\n".join(result["text"].splitlines()[:5])
+    rec.save()
+    messages.success(request, "Transkription abgeschlossen")
 
     return redirect("talkdiary_%s" % rec.bereich)
 
