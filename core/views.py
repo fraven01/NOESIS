@@ -252,9 +252,17 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
-    ffmpeg = base_dir / "tools" / ("ffmpeg.exe" if (base_dir / "tools" / "ffmpeg.exe").exists() else "ffmpeg")
+    ffmpeg = base_dir / "tools" / (
+        "ffmpeg.exe" if (base_dir / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+    )
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
+
+    # Pfad zu ffmpeg dem System-PATH hinzufügen, falls notwendig
+    tools_dir = str(base_dir / "tools")
+    current_path = os.environ.get("PATH", "")
+    if tools_dir not in current_path.split(os.pathsep):
+        os.environ["PATH"] = current_path + os.pathsep + tools_dir
 
 
     logger.debug("Konvertiere mkv-Dateien")
