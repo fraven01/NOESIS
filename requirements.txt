@@ -4,3 +4,5 @@ obsws-python
 markdown
 torch
 git+https://github.com/openai/whisper.git
+openai
+google-generativeai
