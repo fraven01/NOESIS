@@ -1,4 +1,5 @@
 from django import forms
+from pathlib import Path
 from .models import Recording
 
 
@@ -15,9 +16,11 @@ class RecordingForm(forms.ModelForm):
         }
 
     def clean_audio_file(self):
+        """Prüft die Dateiendung des Uploads."""
         f = self.cleaned_data["audio_file"]
-        if f.content_type not in ["audio/wav", "audio/x-wav", "audio/mpeg"]:
-            raise forms.ValidationError("Nur WAV oder MP3 erlaubt")
+        ext = Path(f.name).suffix.lower()
+        if ext not in [".wav", ".mkv"]:
+            raise forms.ValidationError("Nur WAV oder MKV erlaubt")
         return f
 
 

@@ -121,14 +121,32 @@ def upload_recording(request):
 
             file_path = default_storage.save(storage_name, uploaded)
 
-            if Recording.objects.filter(audio_file=file_path, user=request.user).exists():
+            abs_path = default_storage.path(file_path)
+            final_rel = file_path
+            if Path(abs_path).suffix.lower() == ".mkv":
+                ffmpeg = Path(settings.BASE_DIR) / "tools" / (
+                    "ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+                )
+                if not ffmpeg.exists():
+                    ffmpeg = "ffmpeg"
+                wav_rel = Path(file_path).with_suffix(".wav")
+                wav_storage = default_storage.get_available_name(str(wav_rel))
+                wav_abs = default_storage.path(wav_storage)
+                try:
+                    subprocess.run([str(ffmpeg), "-y", "-i", abs_path, wav_abs], check=True)
+                    Path(abs_path).unlink(missing_ok=True)
+                    final_rel = wav_storage
+                except Exception:
+                    return HttpResponseBadRequest("Konvertierung fehlgeschlagen")
+
+            if Recording.objects.filter(audio_file=final_rel, user=request.user).exists():
                 messages.info(request, "Aufnahme bereits in der Datenbank.")
                 return redirect("dashboard")
 
             recording = Recording.objects.create(
                 user=request.user,
                 bereich=bereich,
-                audio_file=file_path,
+                audio_file=final_rel,
             )
 
             out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich}"
@@ -336,6 +354,50 @@ def talkdiary_detail(request, pk):
         "transcript_html": html,
     }
     return render(request, "talkdiary_detail.html", context)
+
+
+@login_required
+def transcribe_recording(request, pk):
+    """Startet die Transkription für eine einzelne Aufnahme."""
+    try:
+        rec = Recording.objects.get(pk=pk, user=request.user)
+    except Recording.DoesNotExist:
+        return redirect("home")
+
+    out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{rec.bereich}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        "whisper",
+        rec.audio_file.path,
+        "--model",
+        "base",
+        "--language",
+        "de",
+        "--output_format",
+        "txt",
+        "--output_dir",
+        str(out_dir),
+    ]
+
+    try:
+        subprocess.run(cmd, check=True)
+    except Exception:
+        messages.error(request, "Transkription fehlgeschlagen")
+        return redirect("talkdiary_%s" % rec.bereich)
+
+    txt_path = out_dir / f"{Path(rec.audio_file.name).stem}.txt"
+    if txt_path.exists():
+        md_path = out_dir / f"{Path(rec.audio_file.name).stem}.md"
+        txt_content = txt_path.read_text(encoding="utf-8")
+        md_path.write_text(txt_content, encoding="utf-8")
+        with md_path.open("rb") as f:
+            rec.transcript_file.save(md_path.name, f, save=False)
+        rec.excerpt = "\n".join(txt_content.splitlines()[:5])
+        rec.save()
+        messages.success(request, "Transkription abgeschlossen")
+
+    return redirect("talkdiary_%s" % rec.bereich)
 
 
 @login_required

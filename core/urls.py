@@ -17,7 +17,8 @@ urlpatterns = [
     path('personal/talkdiary/', views.talkdiary, {'bereich': 'personal'}, name='talkdiary_personal'),
     path('work/talkdiary/', views.talkdiary, {'bereich': 'work'}, name='talkdiary_work'),
     path('talkdiary/<int:pk>/', views.talkdiary_detail, name='talkdiary_detail'),
-    path('admin/talkdiary/', views.admin_talkdiary, name='admin_talkdiary'),
+    path('transcribe/<int:pk>/', views.transcribe_recording, name='transcribe_recording'),
+    path('talkdiary-admin/', views.admin_talkdiary, name='admin_talkdiary'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 ]
