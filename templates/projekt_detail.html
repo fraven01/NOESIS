@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Projekt {{ projekt.title }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
+<p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung }}</p>
+<p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
+<p class="mb-2"><strong>LLM geprüft:</strong> {{ projekt.llm_geprueft|yesno:'Ja,Nein' }}{% if projekt.llm_geprueft_am %} ({{ projekt.llm_geprueft_am|date:'d.m.Y H:i' }}){% endif %}</p>
+{% if projekt.llm_antwort %}
+<h2 class="text-xl font-semibold mt-4 mb-2">LLM-Antwort</h2>
+<pre class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ projekt.llm_antwort }}</pre>
+{% endif %}
+<div class="mt-4 space-x-2">
+    <a href="{% url 'projekt_edit' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Bearbeiten</a>
+    <button data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded">
+        {% if projekt.llm_geprueft %}LLM-Prüfung wiederholen{% else %}System per LLM prüfen{% endif %}
+    </button>
+</div>
+<script>
+function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
+const btn=document.querySelector('.llm-check-btn');
+if(btn){btn.addEventListener('click',ev=>{ev.preventDefault();fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});}
+</script>
+{% endblock %}

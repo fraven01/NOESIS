@@ -4,13 +4,17 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.core.files.storage import default_storage
 from django.contrib import messages
+from django.http import JsonResponse
+from django.utils import timezone
 import os
 import subprocess
 import whisper
 import torch
+import openai
+import google.generativeai as genai
 
-from .forms import RecordingForm
-from .models import Recording, transcript_upload_path
+from .forms import RecordingForm, BVProjectForm
+from .models import Recording, BVProject, transcript_upload_path
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -500,3 +504,86 @@ def admin_talkdiary(request):
         "active_filter": active_filter or "",
     }
     return render(request, "admin_talkdiary.html", context)
+
+
+@login_required
+def projekt_list(request):
+    projekte = BVProject.objects.all().order_by("-created_at")
+    context = {"projekte": projekte}
+    return render(request, "projekt_list.html", context)
+
+
+@login_required
+def projekt_detail(request, pk):
+    projekt = BVProject.objects.get(pk=pk)
+    context = {"projekt": projekt}
+    return render(request, "projekt_detail.html", context)
+
+
+@login_required
+def projekt_create(request):
+    if request.method == "POST":
+        form = BVProjectForm(request.POST)
+        if form.is_valid():
+            projekt = form.save()
+            return redirect("projekt_detail", pk=projekt.pk)
+    else:
+        form = BVProjectForm()
+    return render(request, "projekt_form.html", {"form": form})
+
+
+@login_required
+def projekt_edit(request, pk):
+    projekt = BVProject.objects.get(pk=pk)
+    if request.method == "POST":
+        form = BVProjectForm(request.POST, instance=projekt)
+        if form.is_valid():
+            form.save()
+            return redirect("projekt_detail", pk=projekt.pk)
+    else:
+        form = BVProjectForm(instance=projekt)
+    return render(request, "projekt_form.html", {"form": form, "projekt": projekt})
+
+
+@login_required
+def projekt_check(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Nur POST"}, status=400)
+    projekt = BVProject.objects.get(pk=pk)
+    prompt = (
+        "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
+        + projekt.beschreibung
+    )
+    reply = ""
+    success = False
+    try:
+        if settings.GOOGLE_API_KEY:
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            model = genai.GenerativeModel("gemini-pro")
+            resp = model.generate_content(prompt)
+            reply = resp.text
+            success = True
+    except Exception:
+        logger.exception("Gemini Fehler")
+
+    if not success:
+        try:
+            if settings.OPENAI_API_KEY:
+                openai.api_key = settings.OPENAI_API_KEY
+                completion = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                reply = completion.choices[0].message.content
+                success = True
+        except Exception:
+            logger.exception("OpenAI Fehler")
+            return JsonResponse({"status": "error"}, status=500)
+
+    projekt.llm_antwort = reply
+    projekt.llm_geprueft = True
+    projekt.llm_geprueft_am = timezone.now()
+    projekt.save()
+
+    return JsonResponse({"status": "ok", "snippet": reply[:100]})
+

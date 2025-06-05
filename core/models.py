@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from pathlib import Path
 
 
@@ -42,3 +43,29 @@ class Recording(models.Model):
     @property
     def transcript_path(self):
         return self.transcript_file.name if self.transcript_file else ""
+
+
+class BVProject(models.Model):
+    """Projekt zur Bewertung von Betriebsvereinbarungen."""
+
+    title = models.CharField("Titel", max_length=50, unique=True, blank=True)
+    beschreibung = models.TextField("Beschreibung", blank=True)
+    software_typen = models.CharField(
+        "Software-Typen", max_length=200, blank=True
+    )
+    created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
+    llm_geprueft = models.BooleanField("LLM geprüft", default=False)
+    llm_antwort = models.TextField("LLM-Antwort", blank=True)
+    llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.title:
+            self.title = "BV_" + timezone.now().strftime("%Y%m%d_%H%M%S")
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.title
+
