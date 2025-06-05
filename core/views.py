@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.core.files.storage import default_storage
 from django.contrib import messages
+import os
 import subprocess
 import whisper
 import torch
