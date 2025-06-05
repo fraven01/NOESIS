@@ -27,6 +27,10 @@
     {% for rec in recordings %}
     <div class="border p-4 rounded shadow {{ rec.transcript_file|yesno:'bg-green-50,' }}">
         <audio controls src="{{ rec.audio_file.url }}" class="w-full"></audio>
+        <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="px-2 py-1 text-sm text-white bg-blue-600 rounded">Transkribieren</button>
+        </form>
         <p class="mt-2 text-sm flex items-center">
             <i class="fas fa-microphone text-blue-600 mr-2"></i>
             {{ rec.audio_file.name|basename }}
