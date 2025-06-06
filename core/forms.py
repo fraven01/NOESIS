@@ -121,3 +121,23 @@ class BVProjectFileForm(forms.ModelForm):
             ),
         }
 
+
+class BVProjectFileJSONForm(forms.ModelForm):
+    """Formular zum Bearbeiten der Analyse-Daten einer Anlage."""
+
+    class Meta:
+        model = BVProjectFile
+        fields = ["analysis_json", "manual_analysis_json"]
+        labels = {
+            "analysis_json": "Automatische Analyse (JSON)",
+            "manual_analysis_json": "Manuelle Analyse (JSON)",
+        }
+        widgets = {
+            "analysis_json": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 10}
+            ),
+            "manual_analysis_json": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 10}
+            ),
+        }
+

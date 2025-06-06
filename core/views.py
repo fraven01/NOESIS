@@ -1,7 +1,7 @@
 from pathlib import Path
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, Http404
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
@@ -12,7 +12,13 @@ import subprocess
 import whisper
 import torch
 
-from .forms import RecordingForm, BVProjectForm, BVProjectUploadForm, BVProjectFileForm
+from .forms import (
+    RecordingForm,
+    BVProjectForm,
+    BVProjectUploadForm,
+    BVProjectFileForm,
+    BVProjectFileJSONForm,
+)
 from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -728,6 +734,26 @@ def projekt_file_check_pk(request, pk):
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
     return JsonResponse({"status": "ok"})
+
+
+@login_required
+def projekt_file_edit_json(request, pk):
+    """Ermöglicht das Bearbeiten der JSON-Daten einer Anlage."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        raise Http404
+
+    if request.method == "POST":
+        form = BVProjectFileJSONForm(request.POST, instance=anlage)
+        if form.is_valid():
+            form.save()
+            return redirect("projekt_detail", pk=anlage.projekt.pk)
+    else:
+        form = BVProjectFileJSONForm(instance=anlage)
+
+    context = {"form": form, "anlage": anlage}
+    return render(request, "projekt_file_json_form.html", context)
 
 
 def _validate_llm_output(text: str) -> tuple[bool, str]:
