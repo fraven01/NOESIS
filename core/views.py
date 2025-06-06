@@ -562,6 +562,7 @@ def projekt_check(request, pk):
             model = genai.GenerativeModel("gemini-pro")
             resp = model.generate_content(prompt)
             reply = resp.text
+            logger.debug("Gemini Antwort: %s", reply)
             success = True
     except Exception:
         logger.exception("Gemini Fehler")
