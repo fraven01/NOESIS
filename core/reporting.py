@@ -64,8 +64,12 @@ def generate_management_summary(project: BVProject) -> Path:
                 doc.add_paragraph(line)
 
     for anlage in project.anlagen.all():
+        doc.add_heading(f"Anlage {anlage.anlage_nr}", level=2)
+        if anlage.manual_comment:
+            for line in anlage.manual_comment.splitlines():
+                doc.add_paragraph(line)
         if anlage.analysis_json:
-            _add_json_section(doc, f"Anlage {anlage.anlage_nr}", anlage.analysis_json)
+            _add_json_section(doc, "Analyse", anlage.analysis_json)
 
     path = _output_path("summary")
     doc.save(path)

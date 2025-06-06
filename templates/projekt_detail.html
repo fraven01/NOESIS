@@ -19,6 +19,19 @@
     |
     <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>
 </p>
+<h2 class="text-xl font-semibold mt-4">Anlagen</h2>
+<ul class="list-disc pl-5 mb-4">
+    {% for a in projekt.anlagen.all %}
+    <li class="mb-2">
+        Anlage {{ a.anlage_nr }}:
+        <a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a>
+        {% if a.manual_comment %}<div class="italic">{{ a.manual_comment }}</div>{% endif %}
+    </li>
+    {% empty %}
+    <li>Keine Anlagen vorhanden</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Anlage hochladen</a>
 <div id="llm-section" class="mt-4"></div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}

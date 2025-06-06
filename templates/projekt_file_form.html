@@ -15,6 +15,11 @@
         {{ form.upload }}
         {{ form.upload.errors }}
     </div>
+    <div>
+        {{ form.manual_comment.label_tag }}<br>
+        {{ form.manual_comment }}
+        {{ form.manual_comment.errors }}
+    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
 </form>
 {% endblock %}
