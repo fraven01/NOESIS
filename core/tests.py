@@ -12,6 +12,8 @@ from docx import Document
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import BVProject, BVProjectFile
 from .workflow import set_project_status
+from .llm_tasks import classify_system
+from unittest.mock import patch
 
 
 
@@ -78,6 +80,23 @@ class WorkflowTests(TestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with self.assertRaises(ValueError):
             set_project_status(projekt, "XXX")
+
+
+class LLMTasksTests(TestCase):
+    def test_classify_system(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testtext",
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"kategorie":"X","begruendung":"ok"}'):
+            data = classify_system(projekt.pk)
+        projekt.refresh_from_db()
+        self.assertEqual(projekt.classification_json["kategorie"], "X")
+        self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
+        self.assertEqual(data["kategorie"], "X")
 
 
 
