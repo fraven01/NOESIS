@@ -700,6 +700,36 @@ def projekt_file_check(request, pk, nr):
     return JsonResponse({"status": "ok"})
 
 
+@login_required
+@require_http_methods(["POST"])
+def projekt_file_check_pk(request, pk):
+    """Prüft eine Anlage anhand der Datenbank-ID."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        return JsonResponse({"error": "not found"}, status=404)
+
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2,
+        3: check_anlage3,
+        4: check_anlage4,
+        5: check_anlage5,
+        6: check_anlage6,
+    }
+    func = funcs.get(anlage.anlage_nr)
+    if not func:
+        return JsonResponse({"error": "invalid"}, status=404)
+    try:
+        func(anlage.projekt_id)
+    except RuntimeError:
+        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"status": "error"}, status=502)
+    return JsonResponse({"status": "ok"})
+
+
 def _validate_llm_output(text: str) -> tuple[bool, str]:
     """Prüfe, ob die LLM-Antwort technisch brauchbar ist."""
     if not text:

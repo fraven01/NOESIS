@@ -26,7 +26,7 @@
     <li class="mb-2">
         Anlage {{ a.anlage_nr }}:
         <a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a>
-        <button data-url="{% url 'projekt_file_check' projekt.pk a.anlage_nr %}" class="anlage-check-btn bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</button>
+        <button data-url="{% url 'projekt_file_check_pk' a.pk %}" class="anlage-check-btn bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</button>
         {% if a.manual_comment %}<div class="italic">{{ a.manual_comment }}</div>{% endif %}
     </li>
     {% empty %}
