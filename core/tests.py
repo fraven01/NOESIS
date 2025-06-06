@@ -12,7 +12,7 @@ from docx import Document
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import BVProject, BVProjectFile
 from .workflow import set_project_status
-from .llm_tasks import classify_system
+from .llm_tasks import classify_system, check_anlage2
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
 
@@ -126,6 +126,20 @@ class LLMTasksTests(TestCase):
         self.assertEqual(projekt.classification_json["kategorie"], "X")
         self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
         self.assertEqual(data["kategorie"], "X")
+
+    def test_check_anlage2(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Anlagetext",
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+            data = check_anlage2(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertTrue(file_obj.analysis_json["ok"])
+        self.assertTrue(data["ok"])
 
 
 class ReportingTests(TestCase):
