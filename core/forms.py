@@ -55,14 +55,16 @@ class BVProjectForm(forms.ModelForm):
     )
     class Meta:
         model = BVProject
-        fields = ["beschreibung", "software_typen"]
+        fields = ["beschreibung", "software_typen", "status"]
         labels = {
             "beschreibung": "Beschreibung",
             "software_typen": "Software-Typen (kommagetrennt)",
+            "status": "Status",
         }
         widgets = {
             "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2"}),
             "software_typen": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
 
     def clean_software_typen(self) -> str:

@@ -16,6 +16,7 @@ from .forms import RecordingForm, BVProjectForm, BVProjectUploadForm, BVProjectF
 from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
 from .docx_utils import extract_text
 from .llm_utils import query_llm
+from .workflow import set_project_status
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -534,7 +535,10 @@ def projekt_list(request):
 @login_required
 def projekt_detail(request, pk):
     projekt = BVProject.objects.get(pk=pk)
-    context = {"projekt": projekt}
+    context = {
+        "projekt": projekt,
+        "status_choices": BVProject.STATUS_CHOICES,
+    }
     return render(request, "projekt_detail.html", context)
 
 
@@ -760,4 +764,17 @@ def project_llm_check(request, pk):
         "llm_initial_output": projekt.llm_initial_output,
     }
     return JsonResponse(resp)
+
+
+@login_required
+@require_http_methods(["POST"])
+def projekt_status_update(request, pk):
+    """Aktualisiert den Projektstatus."""
+    projekt = BVProject.objects.get(pk=pk)
+    status = request.POST.get("status")
+    try:
+        set_project_status(projekt, status)
+    except ValueError:
+        pass
+    return redirect("projekt_detail", pk=projekt.pk)
 

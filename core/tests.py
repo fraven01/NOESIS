@@ -11,6 +11,7 @@ from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import BVProject, BVProjectFile
+from .workflow import set_project_status
 
 
 
@@ -60,6 +61,23 @@ class BVProjectFileTests(TestCase):
             )
         self.assertEqual(projekt.anlagen.count(), 3)
         self.assertListEqual(list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3])
+
+
+class WorkflowTests(TestCase):
+    def test_default_status(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.assertEqual(projekt.status, BVProject.STATUS_NEW)
+
+    def test_set_project_status(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        set_project_status(projekt, BVProject.STATUS_CLASSIFIED)
+        projekt.refresh_from_db()
+        self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
+
+    def test_invalid_status(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        with self.assertRaises(ValueError):
+            set_project_status(projekt, "XXX")
 
 
 

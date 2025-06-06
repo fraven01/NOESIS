@@ -10,6 +10,7 @@
                 <th class="py-2">Titel</th>
                 <th class="py-2">Beschreibung</th>
                 <th class="py-2">Software-Typen</th>
+                <th class="py-2">Status</th>
                 <th class="py-2">LLM geprüft</th>
                 <th class="py-2 text-center">Löschen</th>
             </tr>
@@ -20,11 +21,12 @@
                 <td class="py-1">{{ p.title }}</td>
                 <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
                 <td class="py-1">{{ p.software_typen }}</td>
+                <td class="py-1">{{ p.get_status_display }}</td>
                 <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
                 <td class="py-1 text-center"><input type="checkbox" name="delete" value="{{ p.id }}" class="form-checkbox"></td>
             </tr>
         {% empty %}
-            <tr><td colspan="5" class="py-2">Keine Projekte</td></tr>
+            <tr><td colspan="6" class="py-2">Keine Projekte</td></tr>
         {% endfor %}
         </tbody>
     </table>
