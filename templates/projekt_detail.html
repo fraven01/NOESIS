@@ -16,6 +16,14 @@
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
 </form>
 <p class="mb-4">
+    <a href="{% url 'projekt_gutachten' projekt.pk %}" class="text-blue-700 underline">
+        {% if projekt.gutachten_file %}Gutachten bearbeiten{% else %}Gutachten erstellen{% endif %}
+    </a>
+    {% if projekt.gutachten_file %}|
+    <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
+    {% endif %}
+</p>
+<p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-blue-700 underline">Gap-Analyse herunterladen</a>
     |
     <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>

@@ -33,6 +33,7 @@ urlpatterns = [
     path('work/anlage/<int:pk>/edit-json/', views.projekt_file_edit_json, name='projekt_file_edit_json'),
     path('work/projekte/<int:pk>/gap-analysis/', views.projekt_gap_analysis, name='projekt_gap_analysis'),
     path('work/projekte/<int:pk>/summary/', views.projekt_management_summary, name='projekt_management_summary'),
+    path('work/projekte/<int:pk>/gutachten/', views.projekt_gutachten, name='projekt_gutachten'),
     path('projects/<int:pk>/', views.project_detail_api, name='project_detail_api'),
     path('projects/<int:pk>/llm-check/', views.project_llm_check, name='project_llm_check'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),

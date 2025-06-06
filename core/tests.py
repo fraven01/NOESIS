@@ -302,4 +302,27 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(self.file.analysis_json, {"old": True})
 
 
+class ProjektGutachtenViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("guser", password="pass")
+        self.client.login(username="guser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_gutachten_view_creates_file(self):
+        url = reverse("projekt_gutachten", args=[self.projekt.pk])
+        with patch("core.views.query_llm", return_value="Gutachtentext"):
+            resp = self.client.post(url, {"prompt": "foo"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.projekt.refresh_from_db()
+        self.assertTrue(self.projekt.gutachten_file.name)
+        self.assertEqual(self.projekt.status, BVProject.STATUS_GUTACHTEN_OK)
+        Path(self.projekt.gutachten_file.path).unlink(missing_ok=True)
+
+
 
