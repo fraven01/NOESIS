@@ -13,7 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import BVProject, BVProjectFile
 from .workflow import set_project_status
 from .llm_tasks import classify_system
-from .reporting import generate_gap_analysis
+from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
 
 
@@ -113,6 +113,23 @@ class ReportingTests(TestCase):
         path = generate_gap_analysis(projekt)
         try:
             self.assertTrue(path.exists())
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_management_summary_includes_comment(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testtext",
+            manual_comment="Hinweis",
+        )
+        path = generate_management_summary(projekt)
+        try:
+            doc = Document(path)
+            text = "\n".join(p.text for p in doc.paragraphs)
+            self.assertIn("Hinweis", text)
         finally:
             path.unlink(missing_ok=True)
 

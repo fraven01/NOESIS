@@ -106,6 +106,7 @@ class BVProjectFile(models.Model):
     upload = models.FileField("Upload", upload_to="bv_files")
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
+    manual_comment = models.TextField("Kommentar", blank=True)
 
     class Meta:
         ordering = ["anlage_nr"]
