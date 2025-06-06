@@ -2,6 +2,7 @@
 {% block title %}Projekt {{ projekt.title }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
+<p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.get_status_display }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
 <form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4">
