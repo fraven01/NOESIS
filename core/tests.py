@@ -3,6 +3,10 @@ from django.urls import reverse
 from django.test import TestCase
 
 from .models import BVProject
+from .docx_utils import extract_text
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from docx import Document
 
 
 
@@ -22,5 +26,19 @@ class AdminProjectsTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
+
+
+class DocxExtractTests(TestCase):
+    def test_extract_text(self):
+        doc = Document()
+        doc.add_paragraph("Das ist ein Test")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            text = extract_text(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertIn("Das ist ein Test", text)
 
 
