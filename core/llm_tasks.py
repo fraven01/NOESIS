@@ -53,15 +53,16 @@ def classify_system(projekt_id: int) -> dict:
     return data
 
 
-def generate_gutachten(projekt_id: int) -> Path:
+def generate_gutachten(projekt_id: int, text: str | None = None) -> Path:
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
-    prefix = get_prompt(
-        "generate_gutachten",
-        "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
-    )
-    prompt = prefix + _collect_text(projekt)
-    text = query_llm(prompt)
+    if text is None:
+        prefix = get_prompt(
+            "generate_gutachten",
+            "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
+        )
+        prompt = prefix + _collect_text(projekt)
+        text = query_llm(prompt)
     doc = Document()
     for line in text.splitlines():
         doc.add_paragraph(line)

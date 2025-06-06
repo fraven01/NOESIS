@@ -31,6 +31,8 @@ from .llm_tasks import (
     check_anlage4,
     check_anlage5,
     check_anlage6,
+    generate_gutachten,
+    get_prompt,
 )
 
 from .decorators import admin_required
@@ -902,3 +904,39 @@ def projekt_management_summary(request, pk):
     projekt = BVProject.objects.get(pk=pk)
     path = generate_management_summary(projekt)
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
+
+
+@login_required
+def projekt_gutachten(request, pk):
+    """Erstellt ein Gutachten für das Projekt."""
+    projekt = BVProject.objects.get(pk=pk)
+
+    def _collect_text(p: BVProject) -> str:
+        parts: list[str] = []
+        for anlage in p.anlagen.all():
+            if anlage.text_content:
+                parts.append(f"Anlage {anlage.anlage_nr}\n{anlage.text_content}")
+        return "\n\n".join(parts)
+
+    prefix = get_prompt(
+        "generate_gutachten",
+        "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
+    )
+    default_prompt = prefix + _collect_text(projekt)
+    prompt = default_prompt
+
+    if request.method == "POST":
+        prompt = request.POST.get("prompt", default_prompt)
+        try:
+            text = query_llm(prompt)
+            generate_gutachten(projekt.pk, text)
+            messages.success(request, "Gutachten erstellt")
+            return redirect("projekt_detail", pk=projekt.pk)
+        except RuntimeError:
+            messages.error(request, "Missing LLM credentials from environment.")
+        except Exception:
+            logger.exception("LLM Fehler")
+            messages.error(request, "LLM-Fehler bei der Erstellung des Gutachtens.")
+
+    context = {"projekt": projekt, "prompt": prompt}
+    return render(request, "projekt_gutachten_form.html", context)
