@@ -11,11 +11,10 @@ import os
 import subprocess
 import whisper
 import torch
-import openai
-import google.generativeai as genai
 
 from .forms import RecordingForm, BVProjectForm
 from .models import Recording, BVProject, transcript_upload_path
+from .llm_utils import query_llm
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -555,32 +554,15 @@ def projekt_check(request, pk):
         "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
         + projekt.beschreibung
     )
-    reply = ""
-    success = False
     try:
-        if settings.GOOGLE_API_KEY:
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            model = genai.GenerativeModel("gemini-pro")
-            resp = model.generate_content(prompt)
-            reply = resp.text
-            logger.debug("Gemini Antwort: %s", reply)
-            success = True
+        reply = query_llm(prompt)
+    except RuntimeError:
+        return JsonResponse(
+            {"error": "Missing LLM credentials from environment."}, status=500
+        )
     except Exception:
-        logger.exception("Gemini Fehler")
-
-    if not success:
-        try:
-            if settings.OPENAI_API_KEY:
-                openai.api_key = settings.OPENAI_API_KEY
-                completion = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                reply = completion.choices[0].message.content
-                success = True
-        except Exception:
-            logger.exception("OpenAI Fehler")
-            return JsonResponse({"status": "error"}, status=500)
+        logger.exception("LLM Fehler")
+        return JsonResponse({"status": "error"}, status=502)
 
     projekt.llm_antwort = reply
     projekt.llm_geprueft = True
@@ -645,25 +627,15 @@ def project_llm_check(request, pk):
     if additional:
         prompt = prompt + " " + additional
 
-    reply = ""
     try:
-        if settings.GOOGLE_API_KEY:
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            model = genai.GenerativeModel("gemini-pro")
-            resp = model.generate_content(prompt)
-            reply = resp.text
-        elif settings.OPENAI_API_KEY:
-            openai.api_key = settings.OPENAI_API_KEY
-            completion = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            reply = completion.choices[0].message.content
-        else:
-            raise RuntimeError("No LLM credentials")
+        reply = query_llm(prompt)
+    except RuntimeError:
+        return JsonResponse(
+            {"error": "Missing LLM credentials from environment."}, status=500
+        )
     except Exception:
         logger.exception("LLM Fehler")
-        return JsonResponse({"error": "LLM aktuell nicht verfügbar"}, status=500)
+        return JsonResponse({"error": "LLM aktuell nicht verfügbar"}, status=502)
 
     projekt.llm_initial_output = reply
     projekt.llm_geprueft = True
