@@ -37,8 +37,9 @@ def generate_gap_analysis(project: BVProject) -> Path:
         _add_json_section(doc, "Klassifizierung", project.classification_json)
 
     for anlage in project.anlagen.all():
-        if anlage.analysis_json:
-            _add_json_section(doc, f"Anlage {anlage.anlage_nr}", anlage.analysis_json)
+        data = anlage.manual_analysis_json or anlage.analysis_json
+        if data:
+            _add_json_section(doc, f"Anlage {anlage.anlage_nr}", data)
 
     path = _output_path("gap")
     doc.save(path)
@@ -68,8 +69,9 @@ def generate_management_summary(project: BVProject) -> Path:
         if anlage.manual_comment:
             for line in anlage.manual_comment.splitlines():
                 doc.add_paragraph(line)
-        if anlage.analysis_json:
-            _add_json_section(doc, "Analyse", anlage.analysis_json)
+        data = anlage.manual_analysis_json or anlage.analysis_json
+        if data:
+            _add_json_section(doc, "Analyse", data)
 
     path = _output_path("summary")
     doc.save(path)
