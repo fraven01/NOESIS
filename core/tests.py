@@ -176,6 +176,28 @@ class PromptTests(TestCase):
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
 
 
+class AdminPromptsViewTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("padmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="padmin", password="pass")
+        self.prompt = Prompt.objects.create(name="p1", text="orig")
+
+    def test_update_prompt(self):
+        url = reverse("admin_prompts")
+        resp = self.client.post(url, {"pk": self.prompt.id, "text": "neu", "action": "save"})
+        self.assertRedirects(resp, url)
+        self.prompt.refresh_from_db()
+        self.assertEqual(self.prompt.text, "neu")
+
+    def test_delete_prompt(self):
+        url = reverse("admin_prompts")
+        resp = self.client.post(url, {"pk": self.prompt.id, "action": "delete"})
+        self.assertRedirects(resp, url)
+        self.assertFalse(Prompt.objects.filter(id=self.prompt.id).exists())
+
+
 class ReportingTests(TestCase):
     def test_gap_analysis_file_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")

@@ -19,7 +19,7 @@ from .forms import (
     BVProjectFileForm,
     BVProjectFileJSONForm,
 )
-from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
+from .models import Recording, BVProject, BVProjectFile, transcript_upload_path, Prompt
 from .docx_utils import extract_text
 from .llm_utils import query_llm
 from .workflow import set_project_status
@@ -550,6 +550,31 @@ def admin_project_delete(request, pk):
         raise Http404
     projekt.delete()
     return redirect("admin_projects")
+
+
+@login_required
+@admin_required
+def admin_prompts(request):
+    """Verwaltet die gespeicherten Prompts."""
+    prompts = list(Prompt.objects.all().order_by("name"))
+
+    if request.method == "POST":
+        pk = request.POST.get("pk")
+        action = request.POST.get("action")
+        if pk:
+            try:
+                prompt = Prompt.objects.get(pk=pk)
+            except Prompt.DoesNotExist:
+                raise Http404
+            if action == "delete":
+                prompt.delete()
+            elif action == "save":
+                prompt.text = request.POST.get("text", "")
+                prompt.save(update_fields=["text"])
+        return redirect("admin_prompts")
+
+    context = {"prompts": prompts}
+    return render(request, "admin_prompts.html", context)
 
 
 @login_required

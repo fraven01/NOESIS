@@ -21,6 +21,7 @@ urlpatterns = [
     path('talkdiary-admin/', views.admin_talkdiary, name='admin_talkdiary'),
     path('projects-admin/', views.admin_projects, name='admin_projects'),
     path('projects-admin/<int:pk>/delete/', views.admin_project_delete, name='admin_project_delete'),
+    path('projects-admin/prompts/', views.admin_prompts, name='admin_prompts'),
     path('work/projekte/', views.projekt_list, name='projekt_list'),
     path('work/projekte/neu/', views.projekt_create, name='projekt_create'),
     path('work/projekte/upload/', views.projekt_upload, name='projekt_upload'),
