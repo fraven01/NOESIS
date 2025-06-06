@@ -18,6 +18,14 @@ from .docx_utils import extract_text
 from .llm_utils import query_llm
 from .workflow import set_project_status
 from .reporting import generate_gap_analysis, generate_management_summary
+from .llm_tasks import (
+    check_anlage1,
+    check_anlage2,
+    check_anlage3,
+    check_anlage4,
+    check_anlage5,
+    check_anlage6,
+)
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -658,6 +666,38 @@ def projekt_check(request, pk):
     projekt.save()
 
     return JsonResponse({"status": "ok", "snippet": reply[:100]})
+
+
+@login_required
+@require_http_methods(["POST"])
+def projekt_file_check(request, pk, nr):
+    """Prüft eine einzelne Anlage per LLM."""
+    try:
+        nr_int = int(nr)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2,
+        3: check_anlage3,
+        4: check_anlage4,
+        5: check_anlage5,
+        6: check_anlage6,
+    }
+    func = funcs.get(nr_int)
+    if not func:
+        return JsonResponse({"error": "invalid"}, status=404)
+    try:
+        func(pk)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=404)
+    except RuntimeError:
+        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"status": "error"}, status=502)
+    return JsonResponse({"status": "ok"})
 
 
 def _validate_llm_output(text: str) -> tuple[bool, str]:
