@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.core.files.storage import default_storage
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 import os
@@ -17,6 +17,7 @@ from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
 from .docx_utils import extract_text
 from .llm_utils import query_llm
 from .workflow import set_project_status
+from .reporting import generate_gap_analysis, generate_management_summary
 
 from .decorators import admin_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -778,3 +779,18 @@ def projekt_status_update(request, pk):
         pass
     return redirect("projekt_detail", pk=projekt.pk)
 
+
+@login_required
+def projekt_gap_analysis(request, pk):
+    """Stellt die Gap-Analyse als Download bereit."""
+    projekt = BVProject.objects.get(pk=pk)
+    path = generate_gap_analysis(projekt)
+    return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
+
+
+@login_required
+def projekt_management_summary(request, pk):
+    """Stellt die Management-Zusammenfassung als Download bereit."""
+    projekt = BVProject.objects.get(pk=pk)
+    path = generate_management_summary(projekt)
+    return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)

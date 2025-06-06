@@ -28,6 +28,8 @@ urlpatterns = [
     path('work/projekte/<int:pk>/anlage/', views.projekt_file_upload, name='projekt_file_upload'),
     path('work/projekte/<int:pk>/check/', views.projekt_check, name='projekt_check'),
     path('work/projekte/<int:pk>/status/', views.projekt_status_update, name='projekt_status_update'),
+    path('work/projekte/<int:pk>/gap-analysis/', views.projekt_gap_analysis, name='projekt_gap_analysis'),
+    path('work/projekte/<int:pk>/summary/', views.projekt_management_summary, name='projekt_management_summary'),
     path('projects/<int:pk>/', views.project_detail_api, name='project_detail_api'),
     path('projects/<int:pk>/llm-check/', views.project_llm_check, name='project_llm_check'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
