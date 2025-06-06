@@ -12,6 +12,7 @@
                 <th class="py-2">Software-Typen</th>
                 <th class="py-2">Status</th>
                 <th class="py-2">LLM geprüft</th>
+                <th class="py-2 text-center">Aktion</th>
                 <th class="py-2 text-center">Löschen</th>
             </tr>
         </thead>
@@ -23,10 +24,17 @@
                 <td class="py-1">{{ p.software_typen }}</td>
                 <td class="py-1">{{ p.get_status_display }}</td>
                 <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
+                <td class="py-1 text-center">
+                    <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded mr-2">Bearbeiten</a>
+                    <form action="{% url 'admin_project_delete' p.pk %}" method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
+                    </form>
+                </td>
                 <td class="py-1 text-center"><input type="checkbox" name="delete" value="{{ p.id }}" class="form-checkbox"></td>
             </tr>
         {% empty %}
-            <tr><td colspan="6" class="py-2">Keine Projekte</td></tr>
+            <tr><td colspan="7" class="py-2">Keine Projekte</td></tr>
         {% endfor %}
         </tbody>
     </table>
