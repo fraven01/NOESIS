@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Admin Prompts{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Admin Prompts</h1>
+<table class="min-w-full">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Name</th>
+            <th class="py-2">Text</th>
+            <th class="py-2 text-center">Aktion</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in prompts %}
+        <tr class="border-b align-top text-sm">
+            <td class="py-1 font-semibold">{{ p.name }}</td>
+            <td class="py-1">
+                <form method="post" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="pk" value="{{ p.id }}">
+                    <textarea name="text" rows="4" class="border rounded p-2 w-full">{{ p.text }}</textarea>
+                    <button name="action" value="save" class="px-2 py-1 bg-blue-600 text-white rounded">Speichern</button>
+                </form>
+            </td>
+            <td class="py-1 text-center">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="pk" value="{{ p.id }}">
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Prompt wirklich löschen?');">Löschen</button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3" class="py-2">Keine Prompts</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
