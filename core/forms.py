@@ -1,6 +1,6 @@
 from django import forms
 from pathlib import Path
-from .models import Recording, BVProject
+from .models import Recording, BVProject, BVProjectFile
 
 
 class RecordingForm(forms.ModelForm):
@@ -93,4 +93,18 @@ class BVProjectUploadForm(forms.Form):
         if f and not f.name.lower().endswith(".docx"):
             raise forms.ValidationError("Nur .docx Dateien erlaubt")
         return f
+
+
+class BVProjectFileForm(forms.ModelForm):
+    class Meta:
+        model = BVProjectFile
+        fields = ["anlage_nr", "upload"]
+        labels = {"anlage_nr": "Anlage Nr", "upload": "Datei"}
+        widgets = {
+            "anlage_nr": forms.Select(
+                choices=[(i, str(i)) for i in range(1, 7)],
+                attrs={"class": "border rounded p-2"},
+            ),
+            "upload": forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+        }
 

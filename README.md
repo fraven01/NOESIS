@@ -1,7 +1,6 @@
 # NOESIS
 
-Dieses Projekt ist eine Django-Anwendung zur Verwaltung und Analyse von Audio-Aufnahmen und Transkripten.
-
+Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter Agent.
 ## Installation
 
 1. Installiere Python 3.11 und `pip`.
