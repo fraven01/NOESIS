@@ -34,3 +34,10 @@ python manage.py showmigrations
 ```
 
 lässt sich prüfen, ob alle Migrationen angewendet wurden.
+
+### Gutachten verwalten
+
+1. Öffne `/work/projekte/<pk>/gutachten/` und ersetze `<pk>` durch die ID des Projekts. Dort lässt sich mithilfe eines LLM ein Gutachten erzeugen.
+2. Nach erfolgreicher Erstellung zeigt `/work/projekte/<pk>/gutachten/view/` den Text an und bietet einen Download-Link.
+3. Über `/work/projekte/<pk>/gutachten/edit/` kann der Text im Browser bearbeitet und erneut gespeichert werden.
+4. Ein POST-Request an `/work/projekte/<pk>/gutachten/delete/` entfernt das Dokument wieder aus dem Projekt.
