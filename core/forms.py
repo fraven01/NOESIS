@@ -60,3 +60,23 @@ class BVProjectForm(forms.ModelForm):
             "software_typen": forms.TextInput(attrs={"class": "border rounded p-2"}),
         }
 
+    def clean_software_typen(self) -> str:
+        """Bereinigt die Eingabe und stellt sicher, dass sie nicht leer ist."""
+        raw = self.cleaned_data.get("software_typen", "")
+        names = [s.strip() for s in raw.split(",") if s.strip()]
+        if not names:
+            raise forms.ValidationError(
+                "Software-Typen dürfen nicht leer sein.")
+        cleaned = ", ".join(names)
+        return cleaned
+
+    def save(self, commit: bool = True):
+        """Speichert das Projekt mit Titel aus den Software-Namen."""
+        instance: BVProject = super().save(commit=False)
+        cleaned = self.cleaned_data["software_typen"]
+        instance.software_typen = cleaned
+        instance.title = cleaned
+        if commit:
+            instance.save()
+        return instance
+
