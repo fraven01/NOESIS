@@ -24,6 +24,7 @@ urlpatterns = [
     path('work/projekte/neu/', views.projekt_create, name='projekt_create'),
     path('work/projekte/<int:pk>/', views.projekt_detail, name='projekt_detail'),
     path('work/projekte/<int:pk>/bearbeiten/', views.projekt_edit, name='projekt_edit'),
+    path('work/projekte/<int:pk>/anlage/', views.projekt_file_upload, name='projekt_file_upload'),
     path('work/projekte/<int:pk>/check/', views.projekt_check, name='projekt_check'),
     path('projects/<int:pk>/', views.project_detail_api, name='project_detail_api'),
     path('projects/<int:pk>/llm-check/', views.project_llm_check, name='project_llm_check'),

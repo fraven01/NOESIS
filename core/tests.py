@@ -2,7 +2,8 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
 
-from .models import BVProject
+from django.core.files.uploadedfile import SimpleUploadedFile
+from .models import BVProject, BVProjectFile
 
 
 
@@ -22,5 +23,20 @@ class AdminProjectsTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
+
+
+class BVProjectFileTests(TestCase):
+    def test_create_project_with_files(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        for i in range(1, 4):
+            f = SimpleUploadedFile(f"f{i}.txt", b"data")
+            BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=i,
+                upload=f,
+                text_content="data",
+            )
+        self.assertEqual(projekt.anlagen.count(), 3)
+        self.assertListEqual(list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3])
 
 

@@ -12,8 +12,8 @@ import subprocess
 import whisper
 import torch
 
-from .forms import RecordingForm, BVProjectForm
-from .models import Recording, BVProject, transcript_upload_path
+from .forms import RecordingForm, BVProjectForm, BVProjectFileForm
+from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
 from .llm_utils import query_llm
 
 from .decorators import admin_required
@@ -560,6 +560,28 @@ def projekt_edit(request, pk):
     else:
         form = BVProjectForm(instance=projekt)
     return render(request, "projekt_form.html", {"form": form, "projekt": projekt})
+
+
+@login_required
+def projekt_file_upload(request, pk):
+    projekt = BVProject.objects.get(pk=pk)
+    if request.method == "POST":
+        form = BVProjectFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded = form.cleaned_data["upload"]
+            content = ""
+            try:
+                content = uploaded.read().decode("utf-8")
+            except Exception:
+                pass
+            obj = form.save(commit=False)
+            obj.projekt = projekt
+            obj.text_content = content
+            obj.save()
+            return redirect("projekt_detail", pk=projekt.pk)
+    else:
+        form = BVProjectFileForm()
+    return render(request, "projekt_file_form.html", {"form": form, "projekt": projekt})
 
 
 @login_required
