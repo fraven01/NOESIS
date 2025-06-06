@@ -53,6 +53,20 @@ class BVProject(models.Model):
     software_typen = models.CharField(
         "Software-Typen", max_length=200, blank=True
     )
+    STATUS_NEW = "NEW"
+    STATUS_CLASSIFIED = "CLASSIFIED"
+    STATUS_GUTACHTEN_OK = "GUTACHTEN_OK"
+    STATUS_CHOICES = [
+        (STATUS_NEW, "Neu"),
+        (STATUS_CLASSIFIED, "Klassifiziert"),
+        (STATUS_GUTACHTEN_OK, "Gutachten OK"),
+    ]
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_NEW,
+    )
     created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
     llm_geprueft = models.BooleanField("LLM geprüft", default=False)
     llm_antwort = models.TextField("LLM-Antwort", blank=True)
