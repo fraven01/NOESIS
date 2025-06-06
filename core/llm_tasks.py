@@ -64,22 +64,55 @@ def generate_gutachten(projekt_id: int) -> Path:
     return path
 
 
-def check_anlage1(projekt_id: int) -> dict:
-    """Pr\xFCft die erste Anlage und speichert das Ergebnis am Dateiobjekt."""
+def _check_anlage(projekt_id: int, nr: int) -> dict:
+    """Pr\xFCft eine Anlage und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
-        anlage = projekt.anlagen.get(anlage_nr=1)
+        anlage = projekt.anlagen.get(anlage_nr=nr)
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
-        raise ValueError("Anlage 1 fehlt") from exc
+        raise ValueError(f"Anlage {nr} fehlt") from exc
+
     prompt = (
         "Pr\xFCfe die folgende Anlage auf Vollst\xE4ndigkeit. "
         "Gib ein JSON mit 'ok' und 'hinweis' zur\xFCck:\n\n" + anlage.text_content
     )
+
     reply = query_llm(prompt)
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
+
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
+
+
+def check_anlage1(projekt_id: int) -> dict:
+    """Pr\xFCft die erste Anlage."""
+    return _check_anlage(projekt_id, 1)
+
+
+def check_anlage2(projekt_id: int) -> dict:
+    """Pr\xFCft die zweite Anlage."""
+    return _check_anlage(projekt_id, 2)
+
+
+def check_anlage3(projekt_id: int) -> dict:
+    """Pr\xFCft die dritte Anlage."""
+    return _check_anlage(projekt_id, 3)
+
+
+def check_anlage4(projekt_id: int) -> dict:
+    """Pr\xFCft die vierte Anlage."""
+    return _check_anlage(projekt_id, 4)
+
+
+def check_anlage5(projekt_id: int) -> dict:
+    """Pr\xFCft die f\xFCnfte Anlage."""
+    return _check_anlage(projekt_id, 5)
+
+
+def check_anlage6(projekt_id: int) -> dict:
+    """Pr\xFCft die sechste Anlage."""
+    return _check_anlage(projekt_id, 6)
