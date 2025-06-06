@@ -48,6 +48,18 @@ class Recording(models.Model):
 class BVProject(models.Model):
     """Projekt zur Bewertung von Betriebsvereinbarungen."""
 
+    NEW = "new"
+    CLASSIFIED = "classified"
+    GUTACHTEN_OK = "gutachten_ok"
+    REJECTED = "rejected"
+
+    STATUS_CHOICES = [
+        (NEW, "Neu"),
+        (CLASSIFIED, "Klassifiziert"),
+        (GUTACHTEN_OK, "Gutachten OK"),
+        (REJECTED, "Abgelehnt"),
+    ]
+
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
     software_typen = models.CharField(
@@ -59,6 +71,12 @@ class BVProject(models.Model):
     llm_initial_output = models.TextField("LLM Initialantwort", blank=True)
     llm_validated = models.BooleanField("LLM validiert", default=False)
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=NEW,
+    )
 
     class Meta:
         ordering = ["-created_at"]

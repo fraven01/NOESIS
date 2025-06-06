@@ -14,6 +14,7 @@ import torch
 
 from .forms import RecordingForm, BVProjectForm
 from .models import Recording, BVProject, transcript_upload_path
+from .workflow import change_project_status
 from .llm_utils import query_llm
 
 from .decorators import admin_required
@@ -542,7 +543,8 @@ def projekt_create(request):
     if request.method == "POST":
         form = BVProjectForm(request.POST)
         if form.is_valid():
-            projekt = form.save()
+            projekt = form.save(commit=False)
+            change_project_status(projekt, form.cleaned_data["status"])
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
@@ -555,7 +557,8 @@ def projekt_edit(request, pk):
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
-            form.save()
+            projekt = form.save(commit=False)
+            change_project_status(projekt, form.cleaned_data["status"])
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)

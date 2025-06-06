@@ -15,6 +15,11 @@
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
     </div>
+    <div>
+        {{ form.status.label_tag }}<br>
+        {{ form.status }}
+        {{ form.status.errors }}
+    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
     {% if projekt %}
     <button type="button" data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded ml-2">

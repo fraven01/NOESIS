@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.test import TestCase
 
 from .models import BVProject
+from .workflow import change_project_status
 
 
 
@@ -22,5 +23,17 @@ class AdminProjectsTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
+
+
+class ProjectStatusTests(TestCase):
+    def test_default_status(self):
+        p = BVProject.objects.create(software_typen="X", beschreibung="")
+        self.assertEqual(p.status, BVProject.NEW)
+
+    def test_change_status_helper(self):
+        p = BVProject.objects.create(software_typen="X", beschreibung="")
+        change_project_status(p, BVProject.CLASSIFIED)
+        p.refresh_from_db()
+        self.assertEqual(p.status, BVProject.CLASSIFIED)
 
 

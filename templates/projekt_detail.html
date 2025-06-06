@@ -4,6 +4,7 @@
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
+<p class="mb-2"><strong>Status:</strong> {{ projekt.get_status_display }}</p>
 <div id="llm-section" class="mt-4"></div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
