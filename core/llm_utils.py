@@ -28,21 +28,25 @@ def query_llm(prompt: str) -> str:
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
-        endpoint = (
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-        )
-        payload = {"prompt": prompt}
-        logger.debug(
-            "[%s] [%s] Request to %s payload=%s",
-            _timestamp(),
-            correlation_id,
-            endpoint,
-            payload,
-        )
         try:
+        # Hier konfigurierst und nutzt du das SDK. 
+        # Du brauchst keinen manuellen Endpoint.
             genai.configure(api_key=settings.GOOGLE_API_KEY)
-            model = genai.GenerativeModel("gemini-pro")
+        
+        # Verwende hier das Modell, das für dich verfügbar ist, 
+        # z.B. aus den Settings, wie wir besprochen haben.
+            model_name = settings.GOOGLE_LLM_MODEL 
+            model = genai.GenerativeModel(model_name)
+        
+            logger.debug(
+                "[%s] [%s] Request to Google Gemini model=%s",
+                _timestamp(),
+                correlation_id,
+                model_name, # Logge den Modellnamen, nicht einen alten Endpoint.
+            )
+        
             resp = model.generate_content(prompt)
+        
             logger.debug(
                 "[%s] [%s] Response 200 %s",
                 _timestamp(),
@@ -50,6 +54,7 @@ def query_llm(prompt: str) -> str:
                 repr(resp.text)[:200],
             )
             return resp.text
+        
         except Exception as exc:
             logger.error(
                 "[%s] [%s] LLM service error: %s",

@@ -622,7 +622,7 @@ def project_llm_check(request, pk):
         return JsonResponse(resp)
 
     prompt = (
-        f"Do you know software {projekt.title}? Provide a short, technically correct description."
+        f"Do you know software {projekt.title}? Provide a short, technically correct description in German."
     )
     if additional:
         prompt = prompt + " " + additional
