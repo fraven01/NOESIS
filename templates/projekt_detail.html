@@ -27,6 +27,7 @@
         Anlage {{ a.anlage_nr }}:
         <a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a>
         <button data-url="{% url 'projekt_file_check_pk' a.pk %}" class="anlage-check-btn bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</button>
+        <a href="{% url 'projekt_file_edit_json' a.pk %}" class="text-blue-700 underline ml-2">Analyse bearbeiten</a>
         {% if a.manual_comment %}<div class="italic">{{ a.manual_comment }}</div>{% endif %}
     </li>
     {% empty %}

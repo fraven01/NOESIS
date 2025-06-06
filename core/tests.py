@@ -256,4 +256,50 @@ class ProjektFileCheckViewTests(TestCase):
         self.assertTrue(file_obj.analysis_json["ok"])
 
 
+class ProjektFileJSONEditTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("user3", password="pass")
+        self.client.login(username="user3", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+            analysis_json={"old": True},
+        )
+
+    def test_edit_json_updates_and_reports(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.post(
+            url,
+            {
+                "analysis_json": "{\"new\": 1}",
+                "manual_analysis_json": "{\"manual\": 2}",
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.analysis_json["new"], 1)
+        self.assertEqual(self.file.manual_analysis_json["manual"], 2)
+        path = generate_gap_analysis(self.projekt)
+        try:
+            doc = Document(path)
+            text = "\n".join(p.text for p in doc.paragraphs)
+            self.assertIn('"manual": 2', text)
+            self.assertNotIn('"old": true', text.lower())
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_invalid_json_shows_error(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.post(
+            url,
+            {"analysis_json": "{", "manual_analysis_json": "{}"},
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.analysis_json, {"old": True})
+
+
 
