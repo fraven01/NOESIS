@@ -138,6 +138,12 @@ LOGOUT_REDIRECT_URL = '/login/'
 
 # API-Schlüssel für LLM-Abfragen
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
-GOOGLE_LLM_MODEL = "gemini-2.5-flash-preview-05-20"
+GOOGLE_AVAILABLE_MODELS = [
+    "gemini-pro",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
+    "gemini-2.5-flash-preview-05-20",
+]
+GOOGLE_LLM_MODEL = GOOGLE_AVAILABLE_MODELS[0]
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_LLM_MODEL = "gpt-4o"

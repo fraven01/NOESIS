@@ -949,25 +949,20 @@ def projekt_gutachten(request, pk):
     """Erstellt ein Gutachten für das Projekt."""
     projekt = BVProject.objects.get(pk=pk)
 
-    def _collect_text(p: BVProject) -> str:
-        parts: list[str] = []
-        for anlage in p.anlagen.all():
-            if anlage.text_content:
-                parts.append(f"Anlage {anlage.anlage_nr}\n{anlage.text_content}")
-        return "\n\n".join(parts)
-
     prefix = get_prompt(
         "generate_gutachten",
-        "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
+        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
     )
-    default_prompt = prefix + _collect_text(projekt)
+    default_prompt = prefix + projekt.software_typen
     prompt = default_prompt
+    model = request.POST.get("model", settings.GOOGLE_LLM_MODEL)
 
     if request.method == "POST":
         prompt = request.POST.get("prompt", default_prompt)
+        model = request.POST.get("model", settings.GOOGLE_LLM_MODEL)
         try:
-            text = query_llm(prompt)
-            generate_gutachten(projekt.pk, text)
+            text = query_llm(prompt, model_name=model)
+            generate_gutachten(projekt.pk, text, model_name=model)
             messages.success(request, "Gutachten erstellt")
             return redirect("projekt_detail", pk=projekt.pk)
         except RuntimeError:
@@ -976,5 +971,10 @@ def projekt_gutachten(request, pk):
             logger.exception("LLM Fehler")
             messages.error(request, "LLM-Fehler bei der Erstellung des Gutachtens.")
 
-    context = {"projekt": projekt, "prompt": prompt}
+    context = {
+        "projekt": projekt,
+        "prompt": prompt,
+        "model": model,
+        "models": settings.GOOGLE_AVAILABLE_MODELS,
+    }
     return render(request, "projekt_gutachten_form.html", context)
