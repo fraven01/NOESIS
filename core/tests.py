@@ -246,5 +246,14 @@ class ProjektFileCheckViewTests(TestCase):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         self.assertTrue(file_obj.analysis_json["ok"])
 
+    def test_file_check_pk_endpoint_saves_json(self):
+        file_obj = self.projekt.anlagen.get(anlage_nr=1)
+        url = reverse("projekt_file_check_pk", args=[file_obj.pk])
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+            resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        file_obj.refresh_from_db()
+        self.assertTrue(file_obj.analysis_json["ok"])
+
 
 

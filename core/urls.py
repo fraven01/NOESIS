@@ -29,6 +29,7 @@ urlpatterns = [
     path('work/projekte/<int:pk>/check/', views.projekt_check, name='projekt_check'),
     path('work/projekte/<int:pk>/status/', views.projekt_status_update, name='projekt_status_update'),
     path('work/projekte/<int:pk>/anlage/<int:nr>/check/', views.projekt_file_check, name='projekt_file_check'),
+    path('work/anlage/<int:pk>/check/', views.projekt_file_check_pk, name='projekt_file_check_pk'),
     path('work/projekte/<int:pk>/gap-analysis/', views.projekt_gap_analysis, name='projekt_gap_analysis'),
     path('work/projekte/<int:pk>/summary/', views.projekt_management_summary, name='projekt_management_summary'),
     path('projects/<int:pk>/', views.project_detail_api, name='project_detail_api'),
