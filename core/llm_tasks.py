@@ -33,7 +33,7 @@ def _collect_text(projekt: BVProject) -> str:
     return "\n\n".join(parts)
 
 
-def classify_system(projekt_id: int) -> dict:
+def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     prefix = get_prompt(
@@ -41,7 +41,7 @@ def classify_system(projekt_id: int) -> dict:
         "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xFCsseln 'kategorie' und 'begruendung' zur\xFCck.\n\n",
     )
     prompt = prefix + _collect_text(projekt)
-    reply = query_llm(prompt)
+    reply = query_llm(prompt, model_name=model_name)
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -53,16 +53,18 @@ def classify_system(projekt_id: int) -> dict:
     return data
 
 
-def generate_gutachten(projekt_id: int, text: str | None = None) -> Path:
+def generate_gutachten(
+    projekt_id: int, text: str | None = None, model_name: str | None = None
+) -> Path:
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
     if text is None:
         prefix = get_prompt(
             "generate_gutachten",
-            "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
+            "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
         )
-        prompt = prefix + _collect_text(projekt)
-        text = query_llm(prompt)
+        prompt = prefix + projekt.software_typen
+        text = query_llm(prompt, model_name=model_name)
     doc = Document()
     for line in text.splitlines():
         doc.add_paragraph(line)
@@ -77,7 +79,7 @@ def generate_gutachten(projekt_id: int, text: str | None = None) -> Path:
     return path
 
 
-def _check_anlage(projekt_id: int, nr: int) -> dict:
+def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:
     """Pr\xFCft eine Anlage und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
@@ -91,7 +93,7 @@ def _check_anlage(projekt_id: int, nr: int) -> dict:
     )
     prompt = prefix + anlage.text_content
 
-    reply = query_llm(prompt)
+    reply = query_llm(prompt, model_name=model_name)
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -102,31 +104,31 @@ def _check_anlage(projekt_id: int, nr: int) -> dict:
     return data
 
 
-def check_anlage1(projekt_id: int) -> dict:
+def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die erste Anlage."""
-    return _check_anlage(projekt_id, 1)
+    return _check_anlage(projekt_id, 1, model_name)
 
 
-def check_anlage2(projekt_id: int) -> dict:
+def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die zweite Anlage."""
-    return _check_anlage(projekt_id, 2)
+    return _check_anlage(projekt_id, 2, model_name)
 
 
-def check_anlage3(projekt_id: int) -> dict:
+def check_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die dritte Anlage."""
-    return _check_anlage(projekt_id, 3)
+    return _check_anlage(projekt_id, 3, model_name)
 
 
-def check_anlage4(projekt_id: int) -> dict:
+def check_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die vierte Anlage."""
-    return _check_anlage(projekt_id, 4)
+    return _check_anlage(projekt_id, 4, model_name)
 
 
-def check_anlage5(projekt_id: int) -> dict:
+def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die f\xFCnfte Anlage."""
-    return _check_anlage(projekt_id, 5)
+    return _check_anlage(projekt_id, 5, model_name)
 
 
-def check_anlage6(projekt_id: int) -> dict:
+def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die sechste Anlage."""
-    return _check_anlage(projekt_id, 6)
+    return _check_anlage(projekt_id, 6, model_name)

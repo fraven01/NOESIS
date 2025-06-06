@@ -15,7 +15,7 @@ def _timestamp() -> str:
     return datetime.utcnow().isoformat()
 
 
-def query_llm(prompt: str) -> str:
+def query_llm(prompt: str, model_name: str | None = None) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
     correlation_id = str(uuid.uuid4())
 
@@ -32,17 +32,15 @@ def query_llm(prompt: str) -> str:
         # Hier konfigurierst und nutzt du das SDK. 
         # Du brauchst keinen manuellen Endpoint.
             genai.configure(api_key=settings.GOOGLE_API_KEY)
-        
-        # Verwende hier das Modell, das für dich verfügbar ist, 
-        # z.B. aus den Settings, wie wir besprochen haben.
-            model_name = settings.GOOGLE_LLM_MODEL 
-            model = genai.GenerativeModel(model_name)
+
+            name = model_name or settings.GOOGLE_LLM_MODEL
+            model = genai.GenerativeModel(name)
         
             logger.debug(
                 "[%s] [%s] Request to Google Gemini model=%s",
                 _timestamp(),
                 correlation_id,
-                model_name, # Logge den Modellnamen, nicht einen alten Endpoint.
+                name,  # Logge den Modellnamen, nicht einen alten Endpoint.
             )
         
             resp = model.generate_content(prompt)
@@ -66,7 +64,8 @@ def query_llm(prompt: str) -> str:
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
-    payload = {"model": "gpt-4", "messages": [{"role": "user", "content": prompt}]}
+    openai_model = model_name or settings.OPENAI_LLM_MODEL
+    payload = {"model": openai_model, "messages": [{"role": "user", "content": prompt}]}
     logger.debug(
         "[%s] [%s] Request to %s payload=%s",
         _timestamp(),
