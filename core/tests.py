@@ -66,6 +66,34 @@ class BVProjectFileTests(TestCase):
         self.assertListEqual(list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3])
 
 
+class ProjektFileUploadTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("user", password="pass")
+        self.client.login(username="user", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_docx_upload_extracts_text(self):
+        doc = Document()
+        doc.add_paragraph("Docx Inhalt")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        file_obj = self.projekt.anlagen.first()
+        self.assertIsNotNone(file_obj)
+        self.assertIn("Docx Inhalt", file_obj.text_content)
+
+
 class WorkflowTests(TestCase):
     def test_default_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
