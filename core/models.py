@@ -64,8 +64,11 @@ class BVProject(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        if not self.pk and not self.title:
-            self.title = "BV_" + timezone.now().strftime("%Y%m%d_%H%M%S")
+        """Speichert das Projekt und setzt den Titel aus den Software-Namen."""
+        if self.software_typen:
+            cleaned = ", ".join([s.strip() for s in self.software_typen.split(",") if s.strip()])
+            self.software_typen = cleaned
+            self.title = cleaned
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

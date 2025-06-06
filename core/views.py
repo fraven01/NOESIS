@@ -581,18 +581,37 @@ def _validate_llm_output(text: str) -> tuple[bool, str]:
     return True, ""
 
 
+def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]:
+    """Führt die LLM-Abfrage für eine einzelne Software durch."""
+    prompt = (
+        f"Do you know software {name}? Provide a short, technically correct "
+        "description of what it does and how it is typically used."
+    )
+    if additional:
+        prompt += " " + additional
+
+    logger.debug("Starte LLM-Check für %s", name)
+    reply = query_llm(prompt)
+    valid, _ = _validate_llm_output(reply)
+    logger.debug("LLM-Antwort für %s: %s", name, reply[:100])
+    return reply, valid
+
+
 @login_required
 @require_http_methods(["GET"])
 def project_detail_api(request, pk):
     projekt = BVProject.objects.get(pk=pk)
+    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
     data = {
         "id": projekt.pk,
         "title": projekt.title,
         "beschreibung": projekt.beschreibung,
         "software_typen": projekt.software_typen,
+        "software_list": software_list,
         "ist_llm_geprueft": projekt.llm_geprueft,
         "llm_validated": projekt.llm_validated,
         "llm_initial_output": projekt.llm_initial_output,
+        "llm_initial_output_combined": projekt.llm_initial_output,
     }
     return JsonResponse(data)
 
@@ -621,37 +640,53 @@ def project_llm_check(request, pk):
             resp["error"] = msg
         return JsonResponse(resp)
 
-    prompt = (
-        f"Do you know software {projekt.title}? Provide a short, technically correct description in German."
-    )
-    if additional:
-        prompt = prompt + " " + additional
-
-    try:
-        reply = query_llm(prompt)
-    except RuntimeError:
+    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    if not software_list:
         return JsonResponse(
-            {"error": "Missing LLM credentials from environment."}, status=500
+            {"error": "Software-Typen field cannot be empty. Please provide one or more software names, comma-separated."},
+            status=400,
         )
-    except Exception:
-        logger.exception("LLM Fehler")
-        return JsonResponse({"error": "LLM aktuell nicht verfügbar"}, status=502)
 
-    projekt.llm_initial_output = reply
+    llm_responses = []
+    validated_all = True
+    for name in software_list:
+        try:
+            reply, valid = _run_llm_check(name, additional)
+        except RuntimeError:
+            return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+        except Exception:
+            logger.exception("LLM Fehler")
+            return JsonResponse(
+                {"error": f"LLM service error during check for software {name}. Check server logs for details."},
+                status=502,
+            )
+        llm_responses.append({"software": name, "output": reply, "validated": valid})
+        if not valid:
+            validated_all = False
+
+    sections = [f"**{r['software']}**\n{r['output']}" for r in llm_responses]
+    combined = "### LLM Initial Responses for Each Software\n" + "\n\n".join(sections)
+
+    orig_desc = projekt.beschreibung
+    summary = (
+        "Queried LLM for initial knowledge check on the following software: "
+        + ", ".join(software_list)
+        + "."
+    )
+    if orig_desc:
+        summary += f"\n\n**User-Supplied Notes:** {orig_desc}"
+
+    projekt.llm_initial_output = combined
     projekt.llm_geprueft = True
-    valid, msg = _validate_llm_output(reply)
-    projekt.llm_validated = valid
-    if not valid:
-        projekt.llm_geprueft = False
+    projekt.llm_validated = validated_all
     projekt.llm_geprueft_am = timezone.now()
+    projekt.beschreibung = summary
     projekt.save()
 
     resp = {
-        "ist_llm_geprueft": projekt.llm_geprueft,
-        "llm_validated": valid,
+        "ist_llm_geprueft": True,
+        "llm_validated": validated_all,
         "llm_initial_output": projekt.llm_initial_output,
     }
-    if not valid:
-        resp["error"] = msg
     return JsonResponse(resp)
 
