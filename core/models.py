@@ -48,7 +48,7 @@ class Recording(models.Model):
 class BVProject(models.Model):
     """Projekt zur Bewertung von Betriebsvereinbarungen."""
 
-    title = models.CharField("Titel", max_length=50, unique=True, blank=True)
+    title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
     software_typen = models.CharField(
         "Software-Typen", max_length=200, blank=True
