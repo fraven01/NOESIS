@@ -59,6 +59,8 @@ class BVProject(models.Model):
     llm_initial_output = models.TextField("LLM Initialantwort", blank=True)
     llm_validated = models.BooleanField("LLM validiert", default=False)
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
+    system_classification = models.JSONField(blank=True, null=True)
+    anlage1_check = models.JSONField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -73,4 +75,22 @@ class BVProject(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+def project_file_upload_path(instance, filename):
+    return f"bvprojects/{instance.project_id}/{filename}"
+
+
+class BVProjectFile(models.Model):
+    """Datei, die einem BVProject zugeordnet ist."""
+
+    project = models.ForeignKey(
+        BVProject, related_name="files", on_delete=models.CASCADE
+    )
+    category = models.CharField(max_length=50, blank=True)
+    file = models.FileField(upload_to=project_file_upload_path)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.project_id}:{self.file.name}"
 
