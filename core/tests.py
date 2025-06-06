@@ -5,6 +5,7 @@ from django.test import TestCase
 from .models import BVProject
 
 
+
 class AdminProjectsTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -21,4 +22,5 @@ class AdminProjectsTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
+
 
