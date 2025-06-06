@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_http_methods
 import os
 import subprocess
 import whisper
@@ -587,4 +588,98 @@ def projekt_check(request, pk):
     projekt.save()
 
     return JsonResponse({"status": "ok", "snippet": reply[:100]})
+
+
+def _validate_llm_output(text: str) -> tuple[bool, str]:
+    """Prüfe, ob die LLM-Antwort technisch brauchbar ist."""
+    if not text:
+        return False, "Antwort leer"
+    if len(text.split()) < 5:
+        return False, "Antwort zu kurz"
+    return True, ""
+
+
+@login_required
+@require_http_methods(["GET"])
+def project_detail_api(request, pk):
+    projekt = BVProject.objects.get(pk=pk)
+    data = {
+        "id": projekt.pk,
+        "title": projekt.title,
+        "beschreibung": projekt.beschreibung,
+        "software_typen": projekt.software_typen,
+        "ist_llm_geprueft": projekt.llm_geprueft,
+        "llm_validated": projekt.llm_validated,
+        "llm_initial_output": projekt.llm_initial_output,
+    }
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(["POST"])
+def project_llm_check(request, pk):
+    projekt = BVProject.objects.get(pk=pk)
+    edited = request.POST.get("edited_initial_output")
+    additional = request.POST.get("additional_context")
+
+    if edited:
+        projekt.llm_initial_output = edited
+        projekt.llm_geprueft = True
+        valid, msg = _validate_llm_output(edited)
+        projekt.llm_validated = valid
+        if not valid:
+            projekt.llm_geprueft = False
+        projekt.save()
+        resp = {
+            "ist_llm_geprueft": projekt.llm_geprueft,
+            "llm_validated": valid,
+            "llm_initial_output": projekt.llm_initial_output,
+        }
+        if not valid:
+            resp["error"] = msg
+        return JsonResponse(resp)
+
+    prompt = (
+        f"Do you know software {projekt.title}? Provide a short, technically correct description."
+    )
+    if additional:
+        prompt = prompt + " " + additional
+
+    reply = ""
+    try:
+        if settings.GOOGLE_API_KEY:
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            model = genai.GenerativeModel("gemini-pro")
+            resp = model.generate_content(prompt)
+            reply = resp.text
+        elif settings.OPENAI_API_KEY:
+            openai.api_key = settings.OPENAI_API_KEY
+            completion = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            reply = completion.choices[0].message.content
+        else:
+            raise RuntimeError("No LLM credentials")
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"error": "LLM aktuell nicht verfügbar"}, status=500)
+
+    projekt.llm_initial_output = reply
+    projekt.llm_geprueft = True
+    valid, msg = _validate_llm_output(reply)
+    projekt.llm_validated = valid
+    if not valid:
+        projekt.llm_geprueft = False
+    projekt.llm_geprueft_am = timezone.now()
+    projekt.save()
+
+    resp = {
+        "ist_llm_geprueft": projekt.llm_geprueft,
+        "llm_validated": valid,
+        "llm_initial_output": projekt.llm_initial_output,
+    }
+    if not valid:
+        resp["error"] = msg
+    return JsonResponse(resp)
 
