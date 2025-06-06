@@ -507,9 +507,26 @@ def admin_talkdiary(request):
 
 
 @login_required
+@admin_required
+def admin_projects(request):
+    projects = list(BVProject.objects.all().order_by("-created_at"))
+
+    if request.method == "POST":
+        ids = request.POST.getlist("delete")
+        BVProject.objects.filter(id__in=ids).delete()
+        return redirect("admin_projects")
+
+    context = {"projects": projects}
+    return render(request, "admin_projects.html", context)
+
+
+@login_required
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
-    context = {"projekte": projekte}
+    context = {
+        "projekte": projekte,
+        "is_admin": request.user.groups.filter(name="admin").exists(),
+    }
     return render(request, "projekt_list.html", context)
 
 
