@@ -19,6 +19,7 @@ urlpatterns = [
     path('talkdiary/<int:pk>/', views.talkdiary_detail, name='talkdiary_detail'),
     path('transcribe/<int:pk>/', views.transcribe_recording, name='transcribe_recording'),
     path('talkdiary-admin/', views.admin_talkdiary, name='admin_talkdiary'),
+    path('projects-admin/', views.admin_projects, name='admin_projects'),
     path('work/projekte/', views.projekt_list, name='projekt_list'),
     path('work/projekte/neu/', views.projekt_create, name='projekt_create'),
     path('work/projekte/<int:pk>/', views.projekt_detail, name='projekt_detail'),
