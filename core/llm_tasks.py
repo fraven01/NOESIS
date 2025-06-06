@@ -9,11 +9,19 @@ from pathlib import Path
 
 from django.conf import settings
 
-from .models import BVProject, BVProjectFile
+from .models import BVProject, BVProjectFile, Prompt
 from .llm_utils import query_llm
 from docx import Document
 
 logger = logging.getLogger(__name__)
+
+
+def get_prompt(name: str, default: str) -> str:
+    """Lade einen Prompt-Text aus der Datenbank."""
+    try:
+        return Prompt.objects.get(name=name).text
+    except Prompt.DoesNotExist:
+        return default
 
 
 def _collect_text(projekt: BVProject) -> str:
@@ -28,11 +36,11 @@ def _collect_text(projekt: BVProject) -> str:
 def classify_system(projekt_id: int) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
-    prompt = (
-        "Bitte klassifiziere das folgende Softwaresystem. "
-        "Gib ein JSON mit den Schl\xFCsseln 'kategorie' und 'begruendung' zur\xFCck.\n\n"
-        + _collect_text(projekt)
+    prefix = get_prompt(
+        "classify_system",
+        "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xFCsseln 'kategorie' und 'begruendung' zur\xFCck.\n\n",
     )
+    prompt = prefix + _collect_text(projekt)
     reply = query_llm(prompt)
     try:
         data = json.loads(reply)
@@ -48,7 +56,11 @@ def classify_system(projekt_id: int) -> dict:
 def generate_gutachten(projekt_id: int) -> Path:
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
-    prompt = "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n" + _collect_text(projekt)
+    prefix = get_prompt(
+        "generate_gutachten",
+        "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n",
+    )
+    prompt = prefix + _collect_text(projekt)
     text = query_llm(prompt)
     doc = Document()
     for line in text.splitlines():
@@ -72,10 +84,11 @@ def _check_anlage(projekt_id: int, nr: int) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
         raise ValueError(f"Anlage {nr} fehlt") from exc
 
-    prompt = (
-        "Pr\xFCfe die folgende Anlage auf Vollst\xE4ndigkeit. "
-        "Gib ein JSON mit 'ok' und 'hinweis' zur\xFCck:\n\n" + anlage.text_content
+    prefix = get_prompt(
+        f"check_anlage{nr}",
+        "Pr\xFCfe die folgende Anlage auf Vollst\xE4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xFCck:\n\n",
     )
+    prompt = prefix + anlage.text_content
 
     reply = query_llm(prompt)
     try:

@@ -1,7 +1,12 @@
 from django.contrib import admin
-from .models import Recording
+from .models import Recording, Prompt
 
 
 @admin.register(Recording)
 class RecordingAdmin(admin.ModelAdmin):
     list_display = ("user", "bereich", "audio_file", "created_at", "duration")
+
+
+@admin.register(Prompt)
+class PromptAdmin(admin.ModelAdmin):
+    list_display = ("name",)
