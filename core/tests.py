@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 
 
+
 class AdminProjectsTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -213,6 +214,27 @@ class ReportingTests(TestCase):
             self.assertNotIn('"foo": "orig"', text)
         finally:
             path2.unlink(missing_ok=True)
+
+
+class ProjektFileCheckViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("user2", password="pass")
+        self.client.login(username="user2", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_file_check_endpoint_saves_json(self):
+        url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+            resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        file_obj = self.projekt.anlagen.get(anlage_nr=1)
+        self.assertTrue(file_obj.analysis_json["ok"])
 
 
 
