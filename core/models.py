@@ -56,6 +56,8 @@ class BVProject(models.Model):
     created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
     llm_geprueft = models.BooleanField("LLM geprüft", default=False)
     llm_antwort = models.TextField("LLM-Antwort", blank=True)
+    llm_initial_output = models.TextField("LLM Initialantwort", blank=True)
+    llm_validated = models.BooleanField("LLM validiert", default=False)
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
 
     class Meta:

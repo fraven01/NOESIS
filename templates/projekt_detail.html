@@ -4,20 +4,74 @@
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
-<p class="mb-2"><strong>LLM geprüft:</strong> {{ projekt.llm_geprueft|yesno:'Ja,Nein' }}{% if projekt.llm_geprueft_am %} ({{ projekt.llm_geprueft_am|date:'d.m.Y H:i' }}){% endif %}</p>
-{% if projekt.llm_antwort %}
-<h2 class="text-xl font-semibold mt-4 mb-2">LLM-Antwort</h2>
-<pre class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ projekt.llm_antwort }}</pre>
-{% endif %}
-<div class="mt-4 space-x-2">
-    <a href="{% url 'projekt_edit' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Bearbeiten</a>
-    <button data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded">
-        {% if projekt.llm_geprueft %}LLM-Prüfung wiederholen{% else %}System per LLM prüfen{% endif %}
-    </button>
-</div>
+<div id="llm-section" class="mt-4"></div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-const btn=document.querySelector('.llm-check-btn');
-if(btn){btn.addEventListener('click',ev=>{ev.preventDefault();fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});}
+
+function loadLLM(){
+ fetch('{% url 'project_detail_api' projekt.pk %}')
+  .then(r=>r.json())
+  .then(data=>renderLLM(data));
+}
+
+function renderLLM(data){
+ const sec=document.getElementById('llm-section');
+ sec.innerHTML='';
+ if(!data.ist_llm_geprueft && !data.llm_initial_output){
+   sec.innerHTML=`<button id="run" class="bg-green-600 text-white px-4 py-2 rounded">Run LLM Check (Initial)</button>`;
+ }else if(data.ist_llm_geprueft && !data.llm_validated){
+   sec.innerHTML=`<div class="text-red-600 mb-2">Initial LLM check incomplete or technically incorrect.</div>
+   <textarea id="edit" class="border rounded w-full p-2 mb-2">${data.llm_initial_output||''}</textarea>
+   <input id="context" type="text" placeholder="Additional context" class="border rounded w-full p-2 mb-2 hidden">
+   <div class="space-x-2">
+     <button id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Edit Response & Recheck (Initial)</button>
+     <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Additional Context & Recheck (Initial)</button>
+   </div>`;
+ }else if(data.ist_llm_geprueft && data.llm_validated){
+   sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Show/Hide Initial LLM Response</button>
+   <pre id="output" class="whitespace-pre-wrap bg-gray-100 p-2 rounded hidden">${data.llm_initial_output}</pre>`;
+ }
+ attachHandlers();
+}
+
+function attachHandlers(){
+ const run=document.getElementById('run');
+ if(run){run.addEventListener('click',()=>sendCheck({}));}
+ const editBtn=document.getElementById('edit-btn');
+ const ctxBtn=document.getElementById('ctx-btn');
+ if(editBtn){
+   editBtn.addEventListener('click',()=>{
+     const text=document.getElementById('edit').value;
+     sendCheck({edited_initial_output:text});
+   });
+ }
+ if(ctxBtn){
+   const ctxInput=document.getElementById('context');
+   ctxBtn.addEventListener('click',()=>{
+     if(ctxInput.classList.contains('hidden')){ctxInput.classList.remove('hidden');return;}
+     if(ctxInput.value){sendCheck({additional_context:ctxInput.value});}
+   });
+ }
+ const toggle=document.getElementById('toggle');
+ if(toggle){
+   toggle.addEventListener('click',()=>{
+     document.getElementById('output').classList.toggle('hidden');
+   });
+ }
+}
+
+function sendCheck(payload){
+ const sec=document.getElementById('llm-section');
+ const spinner=document.createElement('span');
+ spinner.textContent='...';
+ sec.appendChild(spinner);
+ fetch('{% url 'project_llm_check' projekt.pk %}',{
+   method:'POST',
+   headers:{'X-CSRFToken':getCookie('csrftoken')},
+   body:new URLSearchParams(payload)
+ }).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);} loadLLM();}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
+}
+
+document.addEventListener('DOMContentLoaded',loadLLM);
 </script>
 {% endblock %}
