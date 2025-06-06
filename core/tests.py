@@ -110,6 +110,17 @@ class WorkflowTests(TestCase):
         with self.assertRaises(ValueError):
             set_project_status(projekt, "XXX")
 
+    def test_set_project_status_new_states(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        for status in [
+            BVProject.STATUS_IN_PRUEFUNG_ANLAGE_X,
+            BVProject.STATUS_FB_IN_PRUEFUNG,
+            BVProject.STATUS_ENDGEPRUEFT,
+        ]:
+            set_project_status(projekt, status)
+            projekt.refresh_from_db()
+            self.assertEqual(projekt.status, status)
+
 
 class LLMTasksTests(TestCase):
     def test_classify_system(self):
