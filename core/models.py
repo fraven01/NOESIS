@@ -73,6 +73,8 @@ class BVProject(models.Model):
     llm_initial_output = models.TextField("LLM Initialantwort", blank=True)
     llm_validated = models.BooleanField("LLM validiert", default=False)
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
+    classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
+    gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -103,6 +105,7 @@ class BVProjectFile(models.Model):
     )
     upload = models.FileField("Upload", upload_to="bv_files")
     text_content = models.TextField("Textinhalt", blank=True)
+    analysis_json = models.JSONField("Analyse", null=True, blank=True)
 
     class Meta:
         ordering = ["anlage_nr"]
