@@ -11,7 +11,7 @@ from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .workflow import set_project_status
-from .llm_tasks import classify_system, check_anlage2, get_prompt
+from .llm_tasks import classify_system, check_anlage2, get_prompt, generate_gutachten
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
 
@@ -163,6 +163,17 @@ class LLMTasksTests(TestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(file_obj.analysis_json["ok"])
         self.assertTrue(data["ok"])
+
+    def test_generate_gutachten_twice_replaces_file(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        first = generate_gutachten(projekt.pk, text="Alt")
+        second = generate_gutachten(projekt.pk, text="Neu")
+        try:
+            self.assertTrue(second.exists())
+            self.assertNotEqual(first, second)
+            self.assertFalse(first.exists())
+        finally:
+            second.unlink(missing_ok=True)
 
 
 class PromptTests(TestCase):

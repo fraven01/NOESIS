@@ -72,6 +72,10 @@ def generate_gutachten(
     out_dir = Path(settings.MEDIA_ROOT) / "gutachten"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / fname
+    # Bestehende Datei entfernen, falls vorhanden
+    if projekt.gutachten_file and projekt.gutachten_file.name:
+        old_path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+        old_path.unlink(missing_ok=True)
     doc.save(path)
     projekt.gutachten_file.name = f"gutachten/{fname}"
     projekt.status = BVProject.STATUS_GUTACHTEN_OK
