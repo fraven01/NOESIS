@@ -186,5 +186,33 @@ class ReportingTests(TestCase):
         finally:
             path.unlink(missing_ok=True)
 
+    def test_manual_analysis_overrides(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testtext",
+            analysis_json={"foo": "orig"},
+            manual_analysis_json={"foo": "manual"},
+        )
+        path1 = generate_gap_analysis(projekt)
+        try:
+            doc = Document(path1)
+            text = "\n".join(p.text for p in doc.paragraphs)
+            self.assertIn('"foo": "manual"', text)
+            self.assertNotIn('"foo": "orig"', text)
+        finally:
+            path1.unlink(missing_ok=True)
+
+        path2 = generate_management_summary(projekt)
+        try:
+            doc = Document(path2)
+            text = "\n".join(p.text for p in doc.paragraphs)
+            self.assertIn('"foo": "manual"', text)
+            self.assertNotIn('"foo": "orig"', text)
+        finally:
+            path2.unlink(missing_ok=True)
+
 
 

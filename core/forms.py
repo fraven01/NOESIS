@@ -100,11 +100,12 @@ class BVProjectUploadForm(forms.Form):
 class BVProjectFileForm(forms.ModelForm):
     class Meta:
         model = BVProjectFile
-        fields = ["anlage_nr", "upload", "manual_comment"]
+        fields = ["anlage_nr", "upload", "manual_comment", "manual_analysis_json"]
         labels = {
             "anlage_nr": "Anlage Nr",
             "upload": "Datei",
             "manual_comment": "Kommentar",
+            "manual_analysis_json": "Manuelle Analyse (JSON)",
         }
         widgets = {
             "anlage_nr": forms.Select(
@@ -114,6 +115,9 @@ class BVProjectFileForm(forms.ModelForm):
             "upload": forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
             "manual_comment": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 3}
+            ),
+            "manual_analysis_json": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 5}
             ),
         }
 
