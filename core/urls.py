@@ -22,6 +22,7 @@ urlpatterns = [
     path('projects-admin/', views.admin_projects, name='admin_projects'),
     path('work/projekte/', views.projekt_list, name='projekt_list'),
     path('work/projekte/neu/', views.projekt_create, name='projekt_create'),
+    path('work/projekte/upload/', views.projekt_upload, name='projekt_upload'),
     path('work/projekte/<int:pk>/', views.projekt_detail, name='projekt_detail'),
     path('work/projekte/<int:pk>/bearbeiten/', views.projekt_edit, name='projekt_edit'),
     path('work/projekte/<int:pk>/anlage/', views.projekt_file_upload, name='projekt_file_upload'),

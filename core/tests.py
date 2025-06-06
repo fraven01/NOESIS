@@ -2,8 +2,16 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
 
+
+from .models import BVProject
+from .docx_utils import extract_text
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from docx import Document
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import BVProject, BVProjectFile
+
 
 
 
@@ -25,6 +33,20 @@ class AdminProjectsTests(TestCase):
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
 
 
+
+class DocxExtractTests(TestCase):
+    def test_extract_text(self):
+        doc = Document()
+        doc.add_paragraph("Das ist ein Test")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            text = extract_text(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertIn("Das ist ein Test", text)
+
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -38,5 +60,6 @@ class BVProjectFileTests(TestCase):
             )
         self.assertEqual(projekt.anlagen.count(), 3)
         self.assertListEqual(list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3])
+
 
 

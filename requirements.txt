@@ -7,3 +7,4 @@ git+https://github.com/openai/whisper.git
 openai
 google-generativeai
 python-dotenv
+python-docx

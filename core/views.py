@@ -12,8 +12,9 @@ import subprocess
 import whisper
 import torch
 
-from .forms import RecordingForm, BVProjectForm, BVProjectFileForm
+from .forms import RecordingForm, BVProjectForm, BVProjectUploadForm, BVProjectFileForm
 from .models import Recording, BVProject, BVProjectFile, transcript_upload_path
+from .docx_utils import extract_text
 from .llm_utils import query_llm
 
 from .decorators import admin_required
@@ -538,11 +539,42 @@ def projekt_detail(request, pk):
 
 
 @login_required
+def projekt_upload(request):
+    if request.method == "POST":
+        form = BVProjectUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            docx_file = form.cleaned_data["docx_file"]
+            from tempfile import NamedTemporaryFile
+            tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+            for chunk in docx_file.chunks():
+                tmp.write(chunk)
+            tmp.close()
+            text = extract_text(Path(tmp.name))
+            Path(tmp.name).unlink(missing_ok=True)
+            projekt = BVProject.objects.create(beschreibung=text)
+            return redirect("projekt_edit", pk=projekt.pk)
+    else:
+        form = BVProjectUploadForm()
+    return render(request, "projekt_upload.html", {"form": form})
+
+
+@login_required
 def projekt_create(request):
     if request.method == "POST":
-        form = BVProjectForm(request.POST)
+        form = BVProjectForm(request.POST, request.FILES)
         if form.is_valid():
-            projekt = form.save()
+            projekt = form.save(commit=False)
+            docx_file = form.cleaned_data.get("docx_file")
+            if docx_file:
+                from tempfile import NamedTemporaryFile
+                tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+                for chunk in docx_file.chunks():
+                    tmp.write(chunk)
+                tmp.close()
+                text = extract_text(Path(tmp.name))
+                Path(tmp.name).unlink(missing_ok=True)
+                projekt.beschreibung = text
+            projekt.save()
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()

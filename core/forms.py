@@ -48,6 +48,11 @@ class TranscriptUploadForm(forms.Form):
 
 
 class BVProjectForm(forms.ModelForm):
+    docx_file = forms.FileField(
+        required=False,
+        label="DOCX-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
     class Meta:
         model = BVProject
         fields = ["beschreibung", "software_typen"]
@@ -70,15 +75,24 @@ class BVProjectForm(forms.ModelForm):
         cleaned = ", ".join(names)
         return cleaned
 
-    def save(self, commit: bool = True):
-        """Speichert das Projekt mit Titel aus den Software-Namen."""
-        instance: BVProject = super().save(commit=False)
-        cleaned = self.cleaned_data["software_typen"]
-        instance.software_typen = cleaned
-        instance.title = cleaned
-        if commit:
-            instance.save()
-        return instance
+    def clean_docx_file(self):
+        f = self.cleaned_data.get("docx_file")
+        if f and not f.name.lower().endswith(".docx"):
+            raise forms.ValidationError("Nur .docx Dateien erlaubt")
+        return f
+
+
+class BVProjectUploadForm(forms.Form):
+    docx_file = forms.FileField(
+        label="DOCX-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
+    def clean_docx_file(self):
+        f = self.cleaned_data.get("docx_file")
+        if f and not f.name.lower().endswith(".docx"):
+            raise forms.ValidationError("Nur .docx Dateien erlaubt")
+        return f
 
 
 class BVProjectFileForm(forms.ModelForm):
