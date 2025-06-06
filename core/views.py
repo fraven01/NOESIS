@@ -607,10 +607,22 @@ def projekt_file_upload(request, pk):
         if form.is_valid():
             uploaded = form.cleaned_data["upload"]
             content = ""
-            try:
-                content = uploaded.read().decode("utf-8")
-            except Exception:
-                pass
+            if uploaded.name.lower().endswith(".docx"):
+                from tempfile import NamedTemporaryFile
+
+                tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+                for chunk in uploaded.chunks():
+                    tmp.write(chunk)
+                tmp.close()
+                try:
+                    content = extract_text(Path(tmp.name))
+                finally:
+                    Path(tmp.name).unlink(missing_ok=True)
+            else:
+                try:
+                    content = uploaded.read().decode("utf-8")
+                except Exception:
+                    pass
             obj = form.save(commit=False)
             obj.projekt = projekt
             obj.text_content = content
