@@ -122,3 +122,16 @@ class BVProjectFile(models.Model):
     def __str__(self) -> str:
         return f"Anlage {self.anlage_nr} zu {self.projekt}"
 
+
+class Prompt(models.Model):
+    """Speichert Texte für LLM-Prompts."""
+
+    name = models.CharField(max_length=50, unique=True)
+    text = models.TextField()
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+

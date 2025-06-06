@@ -3,16 +3,15 @@ from django.urls import reverse
 from django.test import TestCase
 
 
-from .models import BVProject
+from .models import BVProject, BVProjectFile, Prompt
 from .docx_utils import extract_text
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .models import BVProject, BVProjectFile
 from .workflow import set_project_status
-from .llm_tasks import classify_system, check_anlage2
+from .llm_tasks import classify_system, check_anlage2, get_prompt
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
 
@@ -152,6 +151,17 @@ class LLMTasksTests(TestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(file_obj.analysis_json["ok"])
         self.assertTrue(data["ok"])
+
+
+class PromptTests(TestCase):
+    def test_get_prompt_returns_default(self):
+        self.assertEqual(get_prompt("unknown", "foo"), "foo")
+
+    def test_get_prompt_returns_db_value(self):
+        p, _ = Prompt.objects.get_or_create(name="classify_system", defaults={"text": "orig"})
+        p.text = "DB"
+        p.save()
+        self.assertEqual(get_prompt("classify_system", "x"), "DB")
 
 
 class ReportingTests(TestCase):
