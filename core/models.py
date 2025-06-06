@@ -74,3 +74,25 @@ class BVProject(models.Model):
     def __str__(self) -> str:
         return self.title
 
+
+class BVProjectFile(models.Model):
+    """Datei-Anlagen zu einem BVProject."""
+
+    projekt = models.ForeignKey(
+        BVProject,
+        on_delete=models.CASCADE,
+        related_name="anlagen",
+    )
+    anlage_nr = models.PositiveSmallIntegerField(
+        "Anlage Nr",
+        choices=[(i, str(i)) for i in range(1, 7)],
+    )
+    upload = models.FileField("Upload", upload_to="bv_files")
+    text_content = models.TextField("Textinhalt", blank=True)
+
+    class Meta:
+        ordering = ["anlage_nr"]
+
+    def __str__(self) -> str:
+        return f"Anlage {self.anlage_nr} zu {self.projekt}"
+

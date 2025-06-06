@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Anlage hochladen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage hochladen f\u00fcr {{ projekt.title }}</h1>
+<form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.anlage_nr.label_tag }}<br>
+        {{ form.anlage_nr }}
+        {{ form.anlage_nr.errors }}
+    </div>
+    <div>
+        {{ form.upload.label_tag }}<br>
+        {{ form.upload }}
+        {{ form.upload.errors }}
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+{% endblock %}
