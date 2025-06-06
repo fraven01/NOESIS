@@ -25,3 +25,13 @@ Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
 python manage.py makemigrations --check
 python manage.py test
 ```
+
+## Datenbankmigrationen
+
+Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Mit
+
+```bash
+python manage.py showmigrations
+```
+
+lässt sich prüfen, ob alle Migrationen angewendet wurden.
