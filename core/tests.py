@@ -36,6 +36,18 @@ class AdminProjectsTests(TestCase):
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
 
+    def test_delete_single_project(self):
+        url = reverse("admin_project_delete", args=[self.p2.id])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("admin_projects"))
+        self.assertFalse(BVProject.objects.filter(id=self.p2.id).exists())
+
+    def test_delete_single_requires_post(self):
+        url = reverse("admin_project_delete", args=[self.p1.id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 405)
+        self.assertTrue(BVProject.objects.filter(id=self.p1.id).exists())
+
 
 
 class DocxExtractTests(TestCase):

@@ -540,6 +540,19 @@ def admin_projects(request):
 
 
 @login_required
+@admin_required
+@require_http_methods(["POST"])
+def admin_project_delete(request, pk):
+    """Löscht ein einzelnes Projekt."""
+    try:
+        projekt = BVProject.objects.get(pk=pk)
+    except BVProject.DoesNotExist:
+        raise Http404
+    projekt.delete()
+    return redirect("admin_projects")
+
+
+@login_required
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
     context = {
