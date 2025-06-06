@@ -359,4 +359,46 @@ class ProjektGutachtenViewTests(TestCase):
         Path(self.projekt.gutachten_file.path).unlink(missing_ok=True)
 
 
+class GutachtenEditDeleteTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("euser", password="pass")
+        self.client.login(username="euser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("Alt")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            self.projekt.gutachten_file.save("g.docx", SimpleUploadedFile("g.docx", fh.read()))
+        Path(tmp.name).unlink(missing_ok=True)
+
+    def test_view_shows_content(self):
+        url = reverse("gutachten_view", args=[self.projekt.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Alt")
+
+    def test_edit_replaces_file(self):
+        old_path = Path(self.projekt.gutachten_file.path)
+        url = reverse("gutachten_edit", args=[self.projekt.pk])
+        resp = self.client.post(url, {"text": "Neu"})
+        self.assertRedirects(resp, reverse("gutachten_view", args=[self.projekt.pk]))
+        self.projekt.refresh_from_db()
+        new_path = Path(self.projekt.gutachten_file.path)
+        self.assertNotEqual(old_path, new_path)
+        self.assertTrue(new_path.exists())
+        text = extract_text(new_path)
+        self.assertIn("Neu", text)
+        self.assertFalse(old_path.exists())
+
+    def test_delete_removes_file(self):
+        path = Path(self.projekt.gutachten_file.path)
+        url = reverse("gutachten_delete", args=[self.projekt.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.projekt.refresh_from_db()
+        self.assertEqual(self.projekt.gutachten_file.name, "")
+        self.assertFalse(path.exists())
+
+
 

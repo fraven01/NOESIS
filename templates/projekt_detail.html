@@ -16,11 +16,16 @@
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
 </form>
 <p class="mb-4">
-    <a href="{% url 'projekt_gutachten' projekt.pk %}" class="text-blue-700 underline">
-        {% if projekt.gutachten_file %}Gutachten bearbeiten{% else %}Gutachten erstellen{% endif %}
-    </a>
-    {% if projekt.gutachten_file %}|
-    <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
+    {% if projekt.gutachten_file %}
+        <a href="{% url 'gutachten_view' projekt.pk %}" class="text-blue-700 underline">Gutachten anzeigen</a> |
+        <a href="{% url 'gutachten_edit' projekt.pk %}" class="text-blue-700 underline">Bearbeiten</a> |
+        <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
+        <form method="post" action="{% url 'gutachten_delete' projekt.pk %}" class="inline-block ml-2">
+            {% csrf_token %}
+            <button type="submit" class="text-red-700 underline">Löschen</button>
+        </form>
+    {% else %}
+        <a href="{% url 'projekt_gutachten' projekt.pk %}" class="text-blue-700 underline">Gutachten erstellen</a>
     {% endif %}
 </p>
 <p class="mb-4">

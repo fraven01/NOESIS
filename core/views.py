@@ -978,3 +978,50 @@ def projekt_gutachten(request, pk):
         "models": settings.GOOGLE_AVAILABLE_MODELS,
     }
     return render(request, "projekt_gutachten_form.html", context)
+
+
+@login_required
+def gutachten_view(request, pk):
+    """Zeigt den Text des bestehenden Gutachtens an."""
+    projekt = BVProject.objects.get(pk=pk)
+    if not projekt.gutachten_file:
+        raise Http404
+    path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+    if not path.exists():
+        raise Http404
+    text = extract_text(path)
+    return render(request, "gutachten_view.html", {"projekt": projekt, "text": text})
+
+
+@login_required
+def gutachten_edit(request, pk):
+    """Ermöglicht das Bearbeiten und erneute Speichern des Gutachtens."""
+    projekt = BVProject.objects.get(pk=pk)
+    if not projekt.gutachten_file:
+        raise Http404
+    path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+    if not path.exists():
+        raise Http404
+    if request.method == "POST":
+        text = request.POST.get("text", "")
+        old_path = path
+        new_path = generate_gutachten(projekt.pk, text)
+        if old_path != new_path:
+            old_path.unlink(missing_ok=True)
+        messages.success(request, "Gutachten gespeichert")
+        return redirect("gutachten_view", pk=projekt.pk)
+    text = extract_text(path)
+    return render(request, "gutachten_edit.html", {"projekt": projekt, "text": text})
+
+
+@login_required
+@require_http_methods(["POST"])
+def gutachten_delete(request, pk):
+    """Löscht das Gutachten und entfernt den Verweis im Projekt."""
+    projekt = BVProject.objects.get(pk=pk)
+    if projekt.gutachten_file:
+        path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+        path.unlink(missing_ok=True)
+        projekt.gutachten_file = ""
+        projekt.save(update_fields=["gutachten_file"])
+    return redirect("projekt_detail", pk=projekt.pk)
