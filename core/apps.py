@@ -25,18 +25,20 @@ class CoreConfig(AppConfig):
                 },
             )
 
-            if not cfg.available_models:
-                models = []
-                try:
-                    if settings.GOOGLE_API_KEY:
-                        genai.configure(api_key=settings.GOOGLE_API_KEY)
-                        models = [m.name for m in genai.list_models()]
-                except Exception:
-                    logger.exception("Failed to fetch model list")
-                    models = settings.GOOGLE_AVAILABLE_MODELS
-                if not models:
-                    models = settings.GOOGLE_AVAILABLE_MODELS
+            models = []
+            try:
+                if settings.GOOGLE_API_KEY:
+                    genai.configure(api_key=settings.GOOGLE_API_KEY)
+                    models = [m.name for m in genai.list_models()]
+            except Exception:
+                logger.exception("Failed to fetch model list")
+                models = settings.GOOGLE_AVAILABLE_MODELS
+            if not models:
+                models = settings.GOOGLE_AVAILABLE_MODELS
+
+            if models != (cfg.available_models or []):
                 cfg.available_models = models
+                cfg.models_changed = True
                 cfg.save()
         except DatabaseError:
             # Datenbanktabellen existieren noch nicht (Migrationen)

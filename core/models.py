@@ -146,6 +146,7 @@ class LLMConfig(models.Model):
     gutachten_model = models.CharField(max_length=100, blank=True)
     anlagen_model = models.CharField(max_length=100, blank=True)
     available_models = models.JSONField(null=True, blank=True)
+    models_changed = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "LLM Konfiguration"
