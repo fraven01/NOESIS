@@ -137,3 +137,39 @@ class Prompt(models.Model):
     def __str__(self) -> str:
         return self.name
 
+
+
+class LLMConfig(models.Model):
+    """Konfiguration der LLM-Modelle."""
+
+    default_model = models.CharField(max_length=100, blank=True)
+    gutachten_model = models.CharField(max_length=100, blank=True)
+    anlagen_model = models.CharField(max_length=100, blank=True)
+    available_models = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "LLM Konfiguration"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return "LLMConfig"
+
+    @classmethod
+    def get_default(cls, kind: str = "default") -> str:
+        """Gibt das Standardmodell für einen Typ zurück."""
+        from django.conf import settings
+        cfg = cls.objects.first()
+        if not cfg:
+            return settings.GOOGLE_LLM_MODEL
+        if kind == "gutachten":
+            return cfg.gutachten_model or cfg.default_model or settings.GOOGLE_LLM_MODEL
+        if kind == "anlagen":
+            return cfg.anlagen_model or cfg.default_model or settings.GOOGLE_LLM_MODEL
+        return cfg.default_model or settings.GOOGLE_LLM_MODEL
+
+    @classmethod
+    def get_available(cls) -> list[str]:
+        from django.conf import settings
+        cfg = cls.objects.first()
+        if cfg and cfg.available_models:
+            return list(cfg.available_models)
+        return settings.GOOGLE_AVAILABLE_MODELS

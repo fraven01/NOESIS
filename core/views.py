@@ -19,7 +19,14 @@ from .forms import (
     BVProjectFileForm,
     BVProjectFileJSONForm,
 )
-from .models import Recording, BVProject, BVProjectFile, transcript_upload_path, Prompt
+from .models import (
+    Recording,
+    BVProject,
+    BVProjectFile,
+    transcript_upload_path,
+    Prompt,
+    LLMConfig,
+)
 from .docx_utils import extract_text
 from .llm_utils import query_llm
 from .workflow import set_project_status
@@ -578,6 +585,21 @@ def admin_prompts(request):
 
 
 @login_required
+@admin_required
+def admin_models(request):
+    """Ermöglicht die Auswahl der Standard-LLM-Modelle."""
+    cfg = LLMConfig.objects.first() or LLMConfig.objects.create()
+    if request.method == "POST":
+        cfg.default_model = request.POST.get("default_model", cfg.default_model)
+        cfg.gutachten_model = request.POST.get("gutachten_model", cfg.gutachten_model)
+        cfg.anlagen_model = request.POST.get("anlagen_model", cfg.anlagen_model)
+        cfg.save()
+        return redirect("admin_models")
+    context = {"config": cfg, "models": LLMConfig.get_available()}
+    return render(request, "admin_models.html", context)
+
+
+@login_required
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
     context = {
@@ -995,13 +1017,14 @@ def projekt_gutachten(request, pk):
     )
     default_prompt = prefix + projekt.software_typen
     prompt = default_prompt
-    model = request.POST.get("model", settings.GOOGLE_LLM_MODEL)
+    cfg_model = LLMConfig.get_default("gutachten")
+    model = request.POST.get("model", cfg_model)
 
     if request.method == "POST":
         prompt = request.POST.get("prompt", default_prompt)
-        model = request.POST.get("model", settings.GOOGLE_LLM_MODEL)
+        model = request.POST.get("model") or None
         try:
-            text = query_llm(prompt, model_name=model)
+            text = query_llm(prompt, model_name=model, model_type="gutachten")
             generate_gutachten(projekt.pk, text, model_name=model)
             messages.success(request, "Gutachten erstellt")
             return redirect("projekt_detail", pk=projekt.pk)
@@ -1015,7 +1038,7 @@ def projekt_gutachten(request, pk):
         "projekt": projekt,
         "prompt": prompt,
         "model": model,
-        "models": settings.GOOGLE_AVAILABLE_MODELS,
+        "models": LLMConfig.get_available(),
     }
     return render(request, "projekt_gutachten_form.html", context)
 
