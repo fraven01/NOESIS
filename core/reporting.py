@@ -10,6 +10,13 @@ from docx import Document
 from .models import BVProject
 
 
+def _get_value(obj):
+    """Extrahiert den Wert aus Strukturen mit ``{"value": x}``."""
+    if isinstance(obj, dict) and "value" in obj:
+        return obj["value"]
+    return obj
+
+
 def _add_json_section(doc: Document, title: str, data: dict | list | str) -> None:
     """F\u00fcgt einen Abschnitt mit JSON-Daten hinzu."""
     doc.add_heading(title, level=2)
@@ -53,8 +60,8 @@ def generate_management_summary(project: BVProject) -> Path:
 
     if project.classification_json:
         data = project.classification_json
-        cat = data.get("kategorie") if isinstance(data, dict) else None
-        begr = data.get("begruendung") if isinstance(data, dict) else None
+        cat = _get_value(data.get("kategorie")) if isinstance(data, dict) else None
+        begr = _get_value(data.get("begruendung")) if isinstance(data, dict) else None
         doc.add_heading("Klassifizierung", level=2)
         if cat:
             doc.add_paragraph(f"Kategorie: {cat}")
