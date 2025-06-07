@@ -226,6 +226,29 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json, expected)
         self.assertEqual(data, expected)
 
+    def test_check_anlage1_parser(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        text = "1.->Q1?\u00b6A1\u00b62.->Q2?\u00b6A2"
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content=text,
+        )
+        with patch("core.llm_tasks.query_llm", side_effect=AssertionError("LLM should not be called")):
+            data = check_anlage1(projekt.pk)
+        expected_questions = {
+            str(i): {"answer": None, "ok": None, "note": "Geparst"} for i in range(1, 10)
+        }
+        expected_questions["1"]["answer"] = "A1"
+        expected_questions["2"]["answer"] = "A2"
+        file_obj = projekt.anlagen.get(anlage_nr=1)
+        self.assertEqual(
+            file_obj.analysis_json,
+            {"task": "check_anlage1", "source": "parser", "questions": expected_questions},
+        )
+        self.assertEqual(data, file_obj.analysis_json)
+
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
