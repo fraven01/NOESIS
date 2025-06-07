@@ -26,6 +26,7 @@ from .models import (
     transcript_upload_path,
     Prompt,
     LLMConfig,
+    Tile,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -69,6 +70,14 @@ def _get_whisper_model():
     return _WHISPER_MODEL
 
 
+def get_user_tiles(user, bereich: str):
+    """Gibt alle Kacheln zurück, die ein Nutzer für den Bereich sehen darf."""
+    tiles = Tile.objects.filter(bereich=bereich)
+    if not user.groups.filter(name="admin").exists():
+        tiles = tiles.filter(admin_only=False)
+    return list(tiles)
+
+
 @login_required
 def home(request):
     return render(request, 'home.html')
@@ -79,6 +88,7 @@ def work(request):
     is_admin = request.user.groups.filter(name='admin').exists()
     context = {
         'is_admin': is_admin,
+        'tiles': get_user_tiles(request.user, 'work'),
     }
     return render(request, 'work.html', context)
 
@@ -88,6 +98,7 @@ def personal(request):
     is_admin = request.user.groups.filter(name='admin').exists()
     context = {
         'is_admin': is_admin,
+        'tiles': get_user_tiles(request.user, 'personal'),
     }
     return render(request, 'personal.html', context)
 

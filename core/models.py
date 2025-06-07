@@ -174,3 +174,21 @@ class LLMConfig(models.Model):
         if cfg and cfg.available_models:
             return list(cfg.available_models)
         return settings.GOOGLE_AVAILABLE_MODELS
+
+
+class Tile(models.Model):
+    """Darstellung einer Funktionskachel im Dashboard."""
+
+    bereich = models.CharField(max_length=10, choices=Recording.BEREICH_CHOICES)
+    url_name = models.CharField(max_length=100)
+    title = models.CharField(max_length=50)
+    description = models.CharField(max_length=200, blank=True)
+    icon = models.CharField(max_length=50)
+    bg_class = models.CharField(max_length=100, default="bg-gradient-to-r from-purple-600 to-purple-800")
+    admin_only = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["title"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.title
