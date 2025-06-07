@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from pathlib import Path
 
@@ -38,6 +39,26 @@ def _collect_text(projekt: BVProject) -> str:
         if anlage.text_content:
             parts.append(f"Anlage {anlage.anlage_nr}\n{anlage.text_content}")
     return "\n\n".join(parts)
+
+
+def parse_structured_anlage(text_content: str) -> dict | None:
+    """Parst eine strukturiert aufgebaute Anlage."""
+    if not text_content:
+        return None
+    lines = [line.strip() for line in text_content.split("\u00b6") if line.strip()]
+    question_pattern = re.compile(r"^(\d+)\.->.*\?$")
+    if not any(question_pattern.match(line) for line in lines):
+        return None
+    parsed: dict[str, str] = {}
+    for idx, line in enumerate(lines):
+        m = question_pattern.match(line)
+        if m:
+            qnum = m.group(1)
+            if idx + 1 < len(lines):
+                ans = lines[idx + 1]
+                if not question_pattern.match(ans):
+                    parsed[qnum] = ans
+    return parsed if parsed else None
 
 
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
@@ -125,20 +146,40 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
 
+    parsed = parse_structured_anlage(anlage.text_content)
+    if parsed:
+        logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
+        questions = {
+            str(i): {
+                "answer": parsed.get(str(i)),
+                "ok": None,
+                "note": "Geparst",
+            }
+            for i in range(1, 10)
+        }
+        data = {
+            "task": "check_anlage1",
+            "source": "parser",
+            "questions": questions,
+        }
+        anlage.analysis_json = data
+        anlage.save(update_fields=["analysis_json"])
+        return data
+
     default_prompt = (
-        "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
-        "Frage 1: Extrahiere alle Unternehmen als Liste.\n"
-        "Frage 2: Extrahiere alle Fachbereiche als Liste.\n"
-        "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-        "Frage 3: Liste alle Hersteller und Produktnamen auf.\n"
-        "Frage 4: Lege den Textblock als question4_raw ab.\n"
-        "Frage 5: Fasse den Zweck des Systems in einem Satz.\n"
-        "Frage 6: Extrahiere Web-URLs.\n"
-        "Frage 7: Extrahiere ersetzte Systeme.\n"
-        "Frage 8: Extrahiere Legacy-Funktionen.\n"
-        "Frage 9: Lege den Text als question9_raw ab.\n"
-        "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
-    )
+            "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
+            "Frage 1: Extrahiere alle Unternehmen als Liste.\n"
+            "Frage 2: Extrahiere alle Fachbereiche als Liste.\n"
+            "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
+            "Frage 3: Liste alle Hersteller und Produktnamen auf.\n"
+            "Frage 4: Lege den Textblock als question4_raw ab.\n"
+            "Frage 5: Fasse den Zweck des Systems in einem Satz.\n"
+            "Frage 6: Extrahiere Web-URLs.\n"
+            "Frage 7: Extrahiere ersetzte Systeme.\n"
+            "Frage 8: Extrahiere Legacy-Funktionen.\n"
+            "Frage 9: Lege den Text als question9_raw ab.\n"
+            "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
+        )
 
     prefix = get_prompt("check_anlage1", default_prompt)
     prompt = prefix + anlage.text_content
