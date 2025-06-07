@@ -3,7 +3,8 @@ from django.urls import reverse
 from django.test import TestCase
 
 
-from .models import BVProject, BVProjectFile, Prompt
+from django.apps import apps
+from .models import BVProject, BVProjectFile, Prompt, LLMConfig
 from .docx_utils import extract_text
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -20,6 +21,7 @@ from .llm_tasks import (
 )
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
+from django.test import override_settings
 import json
 
 
@@ -485,3 +487,44 @@ class ProjektFileCheckResultTests(TestCase):
 
 
 
+
+class LLMConfigTests(TestCase):
+    @override_settings(GOOGLE_API_KEY="x")
+    @patch("google.generativeai.list_models")
+    @patch("google.generativeai.configure")
+    def test_ready_populates_models(self, mock_conf, mock_list):
+        mock_list.return_value = [type("M", (), {"name": "m1"})(), type("M", (), {"name": "m2"})()]
+        apps.get_app_config("core").ready()
+        cfg = LLMConfig.objects.first()
+        self.assertIsNotNone(cfg)
+        self.assertEqual(cfg.available_models, ["m1", "m2"])
+
+
+class AdminModelsViewTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("amodel", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="amodel", password="pass")
+        self.cfg = LLMConfig.objects.create(
+            default_model="a",
+            gutachten_model="a",
+            anlagen_model="a",
+            available_models=["a", "b"],
+        )
+
+    def test_update_models(self):
+        url = reverse("admin_models")
+        resp = self.client.post(
+            url,
+            {
+                "default_model": "b",
+                "gutachten_model": "b",
+                "anlagen_model": "b",
+            },
+        )
+        self.assertRedirects(resp, url)
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.default_model, "b")
+        self.assertEqual(self.cfg.gutachten_model, "b")
+        self.assertEqual(self.cfg.anlagen_model, "b")

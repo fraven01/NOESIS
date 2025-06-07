@@ -20,9 +20,13 @@ def _timestamp() -> str:
     return datetime.utcnow().isoformat()
 
 
-def query_llm(prompt: str, model_name: str | None = None) -> str:
+def query_llm(prompt: str, model_name: str | None = None, model_type: str = "default") -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
+    from .models import LLMConfig
+
     correlation_id = str(uuid.uuid4())
+    if model_name is None:
+        model_name = LLMConfig.get_default(model_type)
 
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
         logger.error(
@@ -38,7 +42,7 @@ def query_llm(prompt: str, model_name: str | None = None) -> str:
         # Du brauchst keinen manuellen Endpoint.
             genai.configure(api_key=settings.GOOGLE_API_KEY)
 
-            name = model_name or settings.GOOGLE_LLM_MODEL
+            name = model_name
             model = genai.GenerativeModel(name)
         
             logger.debug(
@@ -80,7 +84,7 @@ def query_llm(prompt: str, model_name: str | None = None) -> str:
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
-    openai_model = model_name or settings.OPENAI_LLM_MODEL
+    openai_model = model_name
     payload = {"model": openai_model, "messages": [{"role": "user", "content": prompt}]}
     logger.debug(
         "[%s] [%s] Request to %s payload=%s",

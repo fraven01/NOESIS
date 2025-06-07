@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}LLM Modelle{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">LLM Modelle</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Typ</th>
+                <th class="py-2">Modell</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">Standard</td>
+                <td class="py-1">
+                {% for m in models %}
+                    <label class="ml-2">
+                        <input type="radio" name="default_model" value="{{ m }}" {% if m == config.default_model %}checked{% endif %}>
+                        {{ m }}
+                    </label>
+                {% endfor %}
+                </td>
+            </tr>
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">Gutachten</td>
+                <td class="py-1">
+                {% for m in models %}
+                    <label class="ml-2">
+                        <input type="radio" name="gutachten_model" value="{{ m }}" {% if m == config.gutachten_model %}checked{% endif %}>
+                        {{ m }}
+                    </label>
+                {% endfor %}
+                </td>
+            </tr>
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">Anlagen</td>
+                <td class="py-1">
+                {% for m in models %}
+                    <label class="ml-2">
+                        <input type="radio" name="anlagen_model" value="{{ m }}" {% if m == config.anlagen_model %}checked{% endif %}>
+                        {{ m }}
+                    </label>
+                {% endfor %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

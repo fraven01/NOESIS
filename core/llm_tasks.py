@@ -48,7 +48,7 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
         "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xFCsseln 'kategorie' und 'begruendung' zur\xFCck.\n\n",
     )
     prompt = prefix + _collect_text(projekt)
-    reply = query_llm(prompt, model_name=model_name)
+    reply = query_llm(prompt, model_name=model_name, model_type="default")
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -72,7 +72,7 @@ def generate_gutachten(
             "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
         )
         prompt = prefix + projekt.software_typen
-        text = query_llm(prompt, model_name=model_name)
+        text = query_llm(prompt, model_name=model_name, model_type="gutachten")
     doc = Document()
     for line in text.splitlines():
         doc.add_paragraph(line)
@@ -105,7 +105,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     )
     prompt = prefix + anlage.text_content
 
-    reply = query_llm(prompt, model_name=model_name)
+    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -143,7 +143,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     prefix = get_prompt("check_anlage1", default_prompt)
     prompt = prefix + anlage.text_content
 
-    reply = query_llm(prompt, model_name=model_name)
+    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
