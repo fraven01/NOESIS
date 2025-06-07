@@ -140,6 +140,12 @@ class WorkflowTests(TestCase):
             projekt.refresh_from_db()
             self.assertEqual(projekt.status, status)
 
+    def test_status_gutachten_ok_triggers_checks(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        with patch("core.workflow.run_all_checks") as mock_run:
+            set_project_status(projekt, BVProject.STATUS_GUTACHTEN_OK)
+        mock_run.assert_called_once_with(projekt)
+
 
 class LLMTasksTests(TestCase):
     def test_classify_system(self):
