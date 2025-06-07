@@ -174,3 +174,43 @@ class LLMConfig(models.Model):
         if cfg and cfg.available_models:
             return list(cfg.available_models)
         return settings.GOOGLE_AVAILABLE_MODELS
+
+
+class Tile(models.Model):
+    """Kachel für das Dashboard."""
+
+    PERSONAL = "personal"
+    WORK = "work"
+    BEREICH_CHOICES = [
+        (PERSONAL, "personal"),
+        (WORK, "work"),
+    ]
+
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=100)
+    bereich = models.CharField(max_length=10, choices=BEREICH_CHOICES)
+    url_name = models.CharField(max_length=100)
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="UserTileAccess",
+        related_name="tiles",
+    )
+
+    class Meta:
+        ordering = ["slug"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class UserTileAccess(models.Model):
+    """Verknüpfung zwischen Benutzer und Tile."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tile = models.ForeignKey(Tile, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("user", "tile")]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.user} -> {self.tile}"

@@ -4,7 +4,14 @@ from django.test import TestCase
 
 
 from django.apps import apps
-from .models import BVProject, BVProjectFile, Prompt, LLMConfig
+from .models import (
+    BVProject,
+    BVProjectFile,
+    Prompt,
+    LLMConfig,
+    Tile,
+    UserTileAccess,
+)
 from .docx_utils import extract_text
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -541,6 +548,44 @@ class AdminModelsViewTests(TestCase):
         self.assertEqual(self.cfg.gutachten_model, "b")
         self.assertEqual(self.cfg.anlagen_model, "b")
 
+
+
+class TileVisibilityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("tileuser", password="pass")
+        self.talkdiary = Tile.objects.get_or_create(
+            slug="talkdiary",
+            defaults={
+                "name": "TalkDiary",
+                "bereich": Tile.PERSONAL,
+                "url_name": "talkdiary_personal",
+            },
+        )[0]
+        self.projekt = Tile.objects.get_or_create(
+            slug="projektverwaltung",
+            defaults={
+                "name": "Projektverwaltung",
+                "bereich": Tile.WORK,
+                "url_name": "projekt_list",
+            },
+        )[0]
+        self.client.login(username="tileuser", password="pass")
+
+    def test_personal_without_access(self):
+        resp = self.client.get(reverse("personal"))
+        self.assertNotContains(resp, "TalkDiary")
+
+    def test_personal_with_access(self):
+        UserTileAccess.objects.create(user=self.user, tile=self.talkdiary)
+        resp = self.client.get(reverse("personal"))
+        self.assertContains(resp, "TalkDiary")
+
+    def test_work_with_projekt_access(self):
+        UserTileAccess.objects.create(user=self.user, tile=self.projekt)
+        resp = self.client.get(reverse("work"))
+        self.assertContains(resp, "Projektverwaltung")
+        self.assertNotContains(resp, "TalkDiary")
+
     def test_flag_reset_on_get(self):
         self.cfg.models_changed = True
         self.cfg.save(update_fields=["models_changed"])
@@ -562,4 +607,5 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         resp = self.client.get(reverse("home"))
         msgs = [m.message for m in resp.context["messages"]]
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
+
 

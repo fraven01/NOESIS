@@ -9,6 +9,7 @@
 {# Keine separate Aufnahmekachel mehr notwendig. Die Aufnahme erfolgt direkt im TalkDiary. #}
 {% endif %}
 <div class="grid grid-cols-1 sm:grid-cols-2 mt-6">
+    {% if 'talkdiary' in tile_slugs %}
     <a href="{% url 'talkdiary_personal' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
         <div class="h-32 bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
             <i class="fas fa-book text-white text-4xl"></i>
@@ -18,5 +19,6 @@
             <p class="text-gray-600">Sprachaufzeichnungen &amp; Transkripte</p>
         </div>
     </a>
+    {% endif %}
 </div>
 {% endblock %}

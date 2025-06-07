@@ -52,3 +52,10 @@ python manage.py check_anlage1 <projekt_id>
 
 löst die Gemini-basierte Analyse der Systembeschreibung aus. Das Ergebnis wird
 als JSON in der zugehörigen Anlage gespeichert.
+
+### Kachel-Zugriff verwalten
+
+Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der
+Anmeldung lassen sich diese unter "Users" bearbeiten. Dort erscheint eine
+zusätzliche Inline-Tabelle, über die sich die verfügbaren Tiles wie
+"TalkDiary" oder "Projektverwaltung" auswählen lassen.
