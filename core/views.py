@@ -70,6 +70,11 @@ def _get_whisper_model():
     return _WHISPER_MODEL
 
 
+def get_user_tiles(user, bereich: str) -> list[Tile]:
+    """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
+    return list(Tile.objects.filter(bereich=bereich, users=user))
+
+
 @login_required
 def home(request):
     return render(request, 'home.html')
@@ -78,10 +83,10 @@ def home(request):
 @login_required
 def work(request):
     is_admin = request.user.groups.filter(name='admin').exists()
-    tiles = Tile.objects.filter(bereich=Tile.WORK, users=request.user)
+    tiles = get_user_tiles(request.user, Tile.WORK)
     context = {
         'is_admin': is_admin,
-        'tile_slugs': set(tiles.values_list('slug', flat=True)),
+        'tiles': tiles,
     }
     return render(request, 'work.html', context)
 
@@ -89,10 +94,10 @@ def work(request):
 @login_required
 def personal(request):
     is_admin = request.user.groups.filter(name='admin').exists()
-    tiles = Tile.objects.filter(bereich=Tile.PERSONAL, users=request.user)
+    tiles = get_user_tiles(request.user, Tile.PERSONAL)
     context = {
         'is_admin': is_admin,
-        'tile_slugs': set(tiles.values_list('slug', flat=True)),
+        'tiles': tiles,
     }
     return render(request, 'personal.html', context)
 
