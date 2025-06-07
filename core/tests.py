@@ -11,9 +11,16 @@ from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .workflow import set_project_status
-from .llm_tasks import classify_system, check_anlage2, get_prompt, generate_gutachten
+from .llm_tasks import (
+    classify_system,
+    check_anlage1,
+    check_anlage2,
+    get_prompt,
+    generate_gutachten,
+)
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
+import json
 
 
 
@@ -164,6 +171,41 @@ class LLMTasksTests(TestCase):
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
         self.assertTrue(data["ok"]["value"])
 
+    def test_check_anlage1_new_schema(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+        expected = {
+            "task": "check_anlage1",
+            "version": 1,
+            "anlage": 1,
+            "companies": {"value": ["ACME"], "editable": True},
+            "departments": {"value": ["IT"], "editable": True},
+            "it_integration_summary": {"value": "Summe", "editable": True},
+            "vendors": {"value": [], "editable": True},
+            "question4_raw": {"value": "raw", "editable": False},
+            "purpose_summary": {"value": "Zweck", "editable": True},
+            "purpose_missing": {"value": False, "editable": True},
+            "documentation_links": {"value": [], "editable": True},
+            "replaced_systems": {"value": [], "editable": True},
+            "legacy_functions": {"value": [], "editable": True},
+            "question9_raw": {"value": "", "editable": True},
+            "inconsistencies": {"value": [], "editable": True},
+            "keywords": {"value": [], "editable": True},
+            "plausibility_score": {"value": 0.5, "editable": True},
+            "manual_comments": {"value": {}, "editable": True},
+        }
+        reply = json.dumps(expected)
+        with patch("core.llm_tasks.query_llm", return_value=reply):
+            data = check_anlage1(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=1)
+        self.assertEqual(file_obj.analysis_json, expected)
+        self.assertEqual(data, expected)
+
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
@@ -285,20 +327,22 @@ class ProjektFileCheckViewTests(TestCase):
 
     def test_file_check_endpoint_saves_json(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
-        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+        expected = {"task": "check_anlage1"}
+        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertEqual(file_obj.analysis_json, expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
-        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+        expected = {"task": "check_anlage1"}
+        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj.refresh_from_db()
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertEqual(file_obj.analysis_json, expected)
 
 
 class ProjektFileJSONEditTests(TestCase):
