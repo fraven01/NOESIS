@@ -56,6 +56,7 @@ class BVProject(models.Model):
     STATUS_NEW = "NEW"
     STATUS_CLASSIFIED = "CLASSIFIED"
     STATUS_GUTACHTEN_OK = "GUTACHTEN_OK"
+    STATUS_GUTACHTEN_FREIGEGEBEN = "GUTACHTEN_FREIGEGEBEN"
     STATUS_IN_PRUEFUNG_ANLAGE_X = "IN_PRUEFUNG_ANLAGE_X"
     STATUS_FB_IN_PRUEFUNG = "FB_IN_PRUEFUNG"
     STATUS_ENDGEPRUEFT = "ENDGEPRUEFT"
@@ -64,13 +65,14 @@ class BVProject(models.Model):
         (STATUS_NEW, "Neu"),
         (STATUS_CLASSIFIED, "Klassifiziert"),
         (STATUS_GUTACHTEN_OK, "Gutachten OK"),
+        (STATUS_GUTACHTEN_FREIGEGEBEN, "Gutachten freigegeben"),
         (STATUS_IN_PRUEFUNG_ANLAGE_X, "In Prüfung Anlage X"),
         (STATUS_FB_IN_PRUEFUNG, "FB in Prüfung"),
         (STATUS_ENDGEPRUEFT, "Endgeprüft"),
     ]
     status = models.CharField(
         "Status",
-        max_length=20,
+        max_length=30,
         choices=STATUS_CHOICES,
         default=STATUS_NEW,
     )

@@ -118,8 +118,40 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
 
 
 def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die erste Anlage."""
-    return _check_anlage(projekt_id, 1, model_name)
+    """Pr\xFCft die erste Anlage nach neuem Schema."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=1)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+        raise ValueError("Anlage 1 fehlt") from exc
+
+    default_prompt = (
+        "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
+        "Frage 1: Extrahiere alle Unternehmen als Liste.\n"
+        "Frage 2: Extrahiere alle Fachbereiche als Liste.\n"
+        "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
+        "Frage 3: Liste alle Hersteller und Produktnamen auf.\n"
+        "Frage 4: Lege den Textblock als question4_raw ab.\n"
+        "Frage 5: Fasse den Zweck des Systems in einem Satz.\n"
+        "Frage 6: Extrahiere Web-URLs.\n"
+        "Frage 7: Extrahiere ersetzte Systeme.\n"
+        "Frage 8: Extrahiere Legacy-Funktionen.\n"
+        "Frage 9: Lege den Text als question9_raw ab.\n"
+        "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
+    )
+
+    prefix = get_prompt("check_anlage1", default_prompt)
+    prompt = prefix + anlage.text_content
+
+    reply = query_llm(prompt, model_name=model_name)
+    try:
+        data = json.loads(reply)
+    except Exception:  # noqa: BLE001
+        data = {"raw": reply}
+
+    anlage.analysis_json = data
+    anlage.save(update_fields=["analysis_json"])
+    return data
 
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:

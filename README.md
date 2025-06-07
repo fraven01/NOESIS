@@ -41,3 +41,14 @@ lässt sich prüfen, ob alle Migrationen angewendet wurden.
 2. Nach erfolgreicher Erstellung zeigt `/work/projekte/<pk>/gutachten/view/` den Text an und bietet einen Download-Link.
 3. Über `/work/projekte/<pk>/gutachten/edit/` kann der Text im Browser bearbeitet und erneut gespeichert werden.
 4. Ein POST-Request an `/work/projekte/<pk>/gutachten/delete/` entfernt das Dokument wieder aus dem Projekt.
+
+### Anlage 1 prüfen
+
+Der Aufruf
+
+```bash
+python manage.py check_anlage1 <projekt_id>
+```
+
+löst die Gemini-basierte Analyse der Systembeschreibung aus. Das Ergebnis wird
+als JSON in der zugehörigen Anlage gespeichert.
