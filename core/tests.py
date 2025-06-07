@@ -498,6 +498,18 @@ class LLMConfigTests(TestCase):
         cfg = LLMConfig.objects.first()
         self.assertIsNotNone(cfg)
         self.assertEqual(cfg.available_models, ["m1", "m2"])
+        self.assertTrue(cfg.models_changed)
+
+    @override_settings(GOOGLE_API_KEY="x")
+    @patch("google.generativeai.list_models")
+    @patch("google.generativeai.configure")
+    def test_ready_updates_models(self, mock_conf, mock_list):
+        LLMConfig.objects.create(available_models=["old"])
+        mock_list.return_value = [type("M", (), {"name": "new"})()]
+        apps.get_app_config("core").ready()
+        cfg = LLMConfig.objects.first()
+        self.assertEqual(cfg.available_models, ["new"])
+        self.assertTrue(cfg.models_changed)
 
 
 class AdminModelsViewTests(TestCase):
