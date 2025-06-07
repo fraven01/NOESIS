@@ -26,6 +26,7 @@ from .models import (
     transcript_upload_path,
     Prompt,
     LLMConfig,
+    Tile,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -77,8 +78,10 @@ def home(request):
 @login_required
 def work(request):
     is_admin = request.user.groups.filter(name='admin').exists()
+    tiles = Tile.objects.filter(bereich=Tile.WORK, users=request.user)
     context = {
         'is_admin': is_admin,
+        'tile_slugs': set(tiles.values_list('slug', flat=True)),
     }
     return render(request, 'work.html', context)
 
@@ -86,8 +89,10 @@ def work(request):
 @login_required
 def personal(request):
     is_admin = request.user.groups.filter(name='admin').exists()
+    tiles = Tile.objects.filter(bereich=Tile.PERSONAL, users=request.user)
     context = {
         'is_admin': is_admin,
+        'tile_slugs': set(tiles.values_list('slug', flat=True)),
     }
     return render(request, 'personal.html', context)
 
