@@ -777,6 +777,46 @@ def projekt_file_check_pk(request, pk):
 
 
 @login_required
+def projekt_file_check_view(request, pk):
+    """Pr\xFCft eine Anlage und zeigt das Ergebnis an."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        raise Http404
+
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2,
+        3: check_anlage3,
+        4: check_anlage4,
+        5: check_anlage5,
+        6: check_anlage6,
+    }
+    func = funcs.get(anlage.anlage_nr)
+    if not func:
+        raise Http404
+
+    if request.method == "POST":
+        form = BVProjectFileJSONForm(request.POST, instance=anlage)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Analyse gespeichert")
+            return redirect("projekt_detail", pk=anlage.projekt.pk)
+    else:
+        try:
+            func(anlage.projekt_id)
+        except RuntimeError:
+            messages.error(request, "Missing LLM credentials from environment.")
+        except Exception:
+            logger.exception("LLM Fehler")
+            messages.error(request, "Fehler bei der Anlagenpr\xFCfung")
+        form = BVProjectFileJSONForm(instance=anlage)
+
+    context = {"form": form, "anlage": anlage}
+    return render(request, "projekt_file_check_result.html", context)
+
+
+@login_required
 def projekt_file_edit_json(request, pk):
     """Ermöglicht das Bearbeiten der JSON-Daten einer Anlage."""
     try:
