@@ -6,6 +6,11 @@ import openai
 import google.generativeai as genai
 from django.conf import settings
 
+try:
+    from google.api_core import exceptions as g_exceptions
+except Exception:  # pragma: no cover - Modul fehlt evtl. in Dev-Umgebung
+    g_exceptions = None
+
 logger = logging.getLogger("llm_debug")
 logger.setLevel(logging.DEBUG)
 
@@ -54,6 +59,17 @@ def query_llm(prompt: str, model_name: str | None = None) -> str:
             return resp.text
         
         except Exception as exc:
+            if g_exceptions and isinstance(exc, g_exceptions.NotFound):
+                logger.error(
+                    "[%s] [%s] Unbekanntes Gemini-Modell %s",
+                    _timestamp(),
+                    correlation_id,
+                    name,
+                )
+                raise RuntimeError(
+                    f"Unsupported Gemini model: {name}."
+                ) from exc
+
             logger.error(
                 "[%s] [%s] LLM service error: %s",
                 _timestamp(),
