@@ -18,6 +18,7 @@ from .forms import (
     BVProjectUploadForm,
     BVProjectFileForm,
     BVProjectFileJSONForm,
+    Anlage1ReviewForm,
 )
 from .models import (
     Recording,
@@ -863,16 +864,37 @@ def projekt_file_edit_json(request, pk):
     except BVProjectFile.DoesNotExist:
         raise Http404
 
-    if request.method == "POST":
-        form = BVProjectFileJSONForm(request.POST, instance=anlage)
-        if form.is_valid():
-            form.save()
-            return redirect("projekt_detail", pk=anlage.projekt.pk)
+    if anlage.anlage_nr == 1:
+        if request.method == "POST":
+            form = Anlage1ReviewForm(request.POST)
+            if form.is_valid():
+                anlage.question_review = form.get_json()
+                anlage.save(update_fields=["question_review"])
+                return redirect("projekt_detail", pk=anlage.projekt.pk)
+        else:
+            form = Anlage1ReviewForm(initial=anlage.question_review)
+        template = "projekt_file_anlage1_review.html"
+        answers = {}
+        q_data = anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
+        for i in range(1, 10):
+            answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
+        qa = [
+            (i, answers.get(str(i), ""), form[f"q{i}_ok"], form[f"q{i}_note"]) for i in range(1, 10)
+        ]
     else:
-        form = BVProjectFileJSONForm(instance=anlage)
+        if request.method == "POST":
+            form = BVProjectFileJSONForm(request.POST, instance=anlage)
+            if form.is_valid():
+                form.save()
+                return redirect("projekt_detail", pk=anlage.projekt.pk)
+        else:
+            form = BVProjectFileJSONForm(instance=anlage)
+        template = "projekt_file_json_form.html"
 
     context = {"form": form, "anlage": anlage}
-    return render(request, "projekt_file_json_form.html", context)
+    if anlage.anlage_nr == 1:
+        context["qa"] = qa
+    return render(request, template, context)
 
 
 def _validate_llm_output(text: str) -> tuple[bool, str]:

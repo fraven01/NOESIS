@@ -141,3 +141,35 @@ class BVProjectFileJSONForm(forms.ModelForm):
             ),
         }
 
+
+class Anlage1ReviewForm(forms.Form):
+    """Manuelle Prüfung der Fragen aus Anlage 1."""
+
+    def __init__(self, *args, initial=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        data = initial or {}
+        for i in range(1, 10):
+            self.fields[f"q{i}_ok"] = forms.BooleanField(
+                required=False,
+                label=f"Frage {i} ok",
+                widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+            )
+            self.fields[f"q{i}_note"] = forms.CharField(
+                required=False,
+                label=f"Frage {i} Kommentar",
+                widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+            )
+            self.initial[f"q{i}_ok"] = data.get(str(i), {}).get("ok", False)
+            self.initial[f"q{i}_note"] = data.get(str(i), {}).get("note", "")
+
+    def get_json(self) -> dict:
+        out = {}
+        if not self.is_valid():
+            return out
+        for i in range(1, 10):
+            out[str(i)] = {
+                "ok": self.cleaned_data.get(f"q{i}_ok", False),
+                "note": self.cleaned_data.get(f"q{i}_note", ""),
+            }
+        return out
+

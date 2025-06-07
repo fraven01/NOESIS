@@ -207,6 +207,17 @@ class LLMTasksTests(TestCase):
             "keywords": {"value": [], "editable": True},
             "plausibility_score": {"value": 0.5, "editable": True},
             "manual_comments": {"value": {}, "editable": True},
+            "questions": {
+                "1": {"answer": ["ACME"], "ok": None, "note": ""},
+                "2": {"answer": ["IT"], "ok": None, "note": ""},
+                "3": {"answer": [], "ok": None, "note": ""},
+                "4": {"answer": "raw", "ok": None, "note": ""},
+                "5": {"answer": "Zweck", "ok": True, "note": ""},
+                "6": {"answer": [], "ok": None, "note": ""},
+                "7": {"answer": [], "ok": None, "note": ""},
+                "8": {"answer": [], "ok": None, "note": ""},
+                "9": {"answer": "", "ok": None, "note": ""},
+            },
         }
         reply = json.dumps(expected)
         with patch("core.llm_tasks.query_llm", return_value=reply):
@@ -336,7 +347,10 @@ class ProjektFileCheckViewTests(TestCase):
 
     def test_file_check_endpoint_saves_json(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
-        expected = {"task": "check_anlage1"}
+        expected = {
+            "task": "check_anlage1",
+            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
+        }
         with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
@@ -346,7 +360,10 @@ class ProjektFileCheckViewTests(TestCase):
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
-        expected = {"task": "check_anlage1"}
+        expected = {
+            "task": "check_anlage1",
+            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
+        }
         with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
@@ -361,10 +378,17 @@ class ProjektFileJSONEditTests(TestCase):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
-            anlage_nr=1,
+            anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
             analysis_json={"old": {"value": True, "editable": True}},
+        )
+        self.anlage1 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+            text_content="Text",
+            analysis_json={"questions": {"1": {"answer": "foo"}}},
         )
 
     def test_edit_json_updates_and_reports(self):
@@ -398,6 +422,17 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
         self.assertEqual(self.file.analysis_json, {"old": {"value": True, "editable": True}})
+
+    def test_question_review_saved(self):
+        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
+        resp = self.client.post(
+            url,
+            {"q1_ok": "on", "q1_note": "Hinweis"},
+        )
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.anlage1.refresh_from_db()
+        self.assertTrue(self.anlage1.question_review["1"]["ok"])
+        self.assertEqual(self.anlage1.question_review["1"]["note"], "Hinweis")
 
 
 class ProjektGutachtenViewTests(TestCase):
@@ -479,7 +514,10 @@ class ProjektFileCheckResultTests(TestCase):
 
     def test_get_runs_check_and_shows_form(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        expected = {"task": "check_anlage1"}
+        expected = {
+            "task": "check_anlage1",
+            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
+        }
         with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
             resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)

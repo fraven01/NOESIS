@@ -149,6 +149,35 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
 
+    def _val(key):
+        if isinstance(data.get(key), dict) and "value" in data[key]:
+            return data[key]["value"]
+        return data.get(key)
+
+    questions = {
+        "1": {"answer": _val("companies"), "ok": None, "note": ""},
+        "2": {"answer": _val("departments"), "ok": None, "note": ""},
+        "3": {"answer": _val("vendors"), "ok": None, "note": ""},
+        "4": {"answer": _val("question4_raw"), "ok": None, "note": ""},
+        "5": {"answer": _val("purpose_summary"), "ok": None, "note": ""},
+        "6": {"answer": _val("documentation_links"), "ok": None, "note": ""},
+        "7": {"answer": _val("replaced_systems"), "ok": None, "note": ""},
+        "8": {"answer": _val("legacy_functions"), "ok": None, "note": ""},
+        "9": {"answer": _val("question9_raw"), "ok": None, "note": ""},
+    }
+
+    def _is_purpose(text: str) -> bool:
+        if not text:
+            return False
+        lowered = text.lower()
+        return any(k in lowered for k in ["zweck", "dient", " um ", " zur ", " f\u00fcr "])
+
+    q5 = questions.get("5")
+    if q5:
+        q5["ok"] = _is_purpose(str(q5.get("answer", "")))
+
+    data["questions"] = questions
+
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
