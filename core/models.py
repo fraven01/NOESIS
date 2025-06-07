@@ -117,6 +117,7 @@ class BVProjectFile(models.Model):
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
     manual_comment = models.TextField("Kommentar", blank=True)
+    question_review = models.JSONField(blank=True, null=True)
 
     class Meta:
         ordering = ["anlage_nr"]
