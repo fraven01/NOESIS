@@ -190,6 +190,8 @@ class Tile(models.Model):
     name = models.CharField(max_length=100)
     bereich = models.CharField(max_length=10, choices=BEREICH_CHOICES)
     url_name = models.CharField(max_length=100)
+    icon = models.CharField(max_length=50, blank=True)
+    description = models.CharField(max_length=200, blank=True)
     users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="UserTileAccess",

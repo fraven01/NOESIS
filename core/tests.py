@@ -552,7 +552,9 @@ class AdminModelsViewTests(TestCase):
 
 class TileVisibilityTests(TestCase):
     def setUp(self):
+        admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("tileuser", password="pass")
+        self.user.groups.add(admin_group)
         self.talkdiary = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
@@ -569,6 +571,7 @@ class TileVisibilityTests(TestCase):
                 "url_name": "projekt_list",
             },
         )[0]
+        self.cfg = LLMConfig.objects.first() or LLMConfig.objects.create(models_changed=False)
         self.client.login(username="tileuser", password="pass")
 
     def test_personal_without_access(self):
