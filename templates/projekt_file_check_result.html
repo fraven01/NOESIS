@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Pr\u00fcfergebnis{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Pr\u00fcfergebnis f\u00fcr Anlage {{ anlage.anlage_nr }}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.analysis_json.label_tag }}<br>
+        {{ form.analysis_json }}
+        {{ form.analysis_json.errors }}
+    </div>
+    <div>
+        {{ form.manual_analysis_json.label_tag }}<br>
+        {{ form.manual_analysis_json }}
+        {{ form.manual_analysis_json.errors }}
+    </div>
+    <div class="space-x-2">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+        <a href="{% url 'projekt_detail' anlage.projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zur\u00fcck</a>
+        <button type="button" id="copy-email" class="bg-green-600 text-white px-4 py-2 rounded">E-Mail kopieren</button>
+    </div>
+</form>
+<script>
+document.getElementById('copy-email').addEventListener('click', function(){
+    const analysis = document.getElementById('{{ form.analysis_json.id_for_label }}').value;
+    const manual = document.getElementById('{{ form.manual_analysis_json.id_for_label }}').value;
+    const text = `Pr\u00fcfergebnis Anlage {{ anlage.anlage_nr }}\n\nAnalyse:\n${analysis}\n\nManuelle Analyse:\n${manual}`;
+    navigator.clipboard.writeText(text).then(()=>alert('In Zwischenablage kopiert'));
+});
+</script>
+{% endblock %}

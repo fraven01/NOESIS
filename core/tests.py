@@ -456,4 +456,32 @@ class GutachtenEditDeleteTests(TestCase):
         self.assertFalse(path.exists())
 
 
+class ProjektFileCheckResultTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("vuser", password="pass")
+        self.client.login(username="vuser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_get_runs_check_and_shows_form(self):
+        url = reverse("projekt_file_check_view", args=[self.file.pk])
+        expected = {"task": "check_anlage1"}
+        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
+            resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.analysis_json, expected)
+        self.assertContains(resp, "name=\"analysis_json\"")
+
+    def test_post_updates_and_redirects(self):
+        url = reverse("projekt_file_check_view", args=[self.file.pk])
+        resp = self.client.post(url, {"analysis_json": "{}", "manual_analysis_json": "{}"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+
+
 

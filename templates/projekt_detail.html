@@ -39,7 +39,7 @@
     <li class="mb-2">
         Anlage {{ a.anlage_nr }}:
         <a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a>
-        <button data-url="{% url 'projekt_file_check_pk' a.pk %}" class="anlage-check-btn bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</button>
+        <a href="{% url 'projekt_file_check_view' a.pk %}" class="bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</a>
         <a href="{% url 'projekt_file_edit_json' a.pk %}" class="text-blue-700 underline ml-2">Analyse bearbeiten</a>
         {% if a.manual_comment %}<div class="italic">{{ a.manual_comment }}</div>{% endif %}
     </li>
@@ -117,16 +117,5 @@ function sendCheck(payload){
 }
 
 document.addEventListener('DOMContentLoaded',loadLLM);
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.anlage-check-btn').forEach(btn=>{
-    btn.addEventListener('click',ev=>{
-      ev.preventDefault();
-      fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}})
-      .then(r=>r.json()).then(d=>{
-        if(d.status==='ok'){alert('Anlage geprüft');}else{alert('Fehler bei der Anlagenprüfung');}
-      }).catch(()=>alert('Fehler bei der Anlagenprüfung'));
-    });
-  });
-});
 </script>
 {% endblock %}

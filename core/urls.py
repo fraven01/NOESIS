@@ -32,6 +32,7 @@ urlpatterns = [
     path('work/projekte/<int:pk>/status/', views.projekt_status_update, name='projekt_status_update'),
     path('work/projekte/<int:pk>/anlage/<int:nr>/check/', views.projekt_file_check, name='projekt_file_check'),
     path('work/anlage/<int:pk>/check/', views.projekt_file_check_pk, name='projekt_file_check_pk'),
+    path('work/anlage/<int:pk>/check-view/', views.projekt_file_check_view, name='projekt_file_check_view'),
     path('work/anlage/<int:pk>/edit-json/', views.projekt_file_edit_json, name='projekt_file_edit_json'),
     path('work/projekte/<int:pk>/gap-analysis/', views.projekt_gap_analysis, name='projekt_gap_analysis'),
     path('work/projekte/<int:pk>/summary/', views.projekt_management_summary, name='projekt_management_summary'),
