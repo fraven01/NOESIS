@@ -43,7 +43,7 @@ from .llm_tasks import (
     get_prompt,
 )
 
-from .decorators import admin_required
+from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
 
 import logging
@@ -374,6 +374,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
 
 
 @login_required
+@tile_required("talkdiary")
 def talkdiary(request, bereich):
     if bereich not in ["work", "personal"]:
         return redirect("home")
@@ -394,6 +395,7 @@ def talkdiary(request, bereich):
 
 
 @login_required
+@tile_required("talkdiary")
 def talkdiary_detail(request, pk):
     try:
         rec = Recording.objects.get(pk=pk, user=request.user)
@@ -614,6 +616,7 @@ def admin_models(request):
 
 
 @login_required
+@tile_required("projektverwaltung")
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
     context = {

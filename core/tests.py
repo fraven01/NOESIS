@@ -598,6 +598,62 @@ class TileVisibilityTests(TestCase):
         self.assertFalse(self.cfg.models_changed)
 
 
+class TileAccessTests(TestCase):
+    def setUp(self):
+        self.talkdiary = Tile.objects.get_or_create(
+            slug="talkdiary",
+            defaults={
+                "name": "TalkDiary",
+                "bereich": Tile.PERSONAL,
+                "url_name": "talkdiary_personal",
+            },
+        )[0]
+        self.projekt = Tile.objects.get_or_create(
+            slug="projektverwaltung",
+            defaults={
+                "name": "Projektverwaltung",
+                "bereich": Tile.WORK,
+                "url_name": "projekt_list",
+            },
+        )[0]
+
+    def _login(self, name: str) -> User:
+        """Erzeugt einen Benutzer und loggt ihn ein."""
+        user = User.objects.create_user(name, password="pass")
+        self.client.login(username=name, password="pass")
+        return user
+
+    def test_talkdiary_access_denied_without_tile(self):
+        self._login("nodiac")
+        resp = self.client.get(reverse("personal"))
+        self.assertNotContains(resp, "TalkDiary")
+        resp = self.client.get(reverse("talkdiary_personal"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_talkdiary_access_allowed_with_tile(self):
+        user = self._login("withdia")
+        UserTileAccess.objects.create(user=user, tile=self.talkdiary)
+        resp = self.client.get(reverse("personal"))
+        self.assertContains(resp, "TalkDiary")
+        resp = self.client.get(reverse("talkdiary_personal"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_projekt_access_denied_without_tile(self):
+        self._login("noproj")
+        resp = self.client.get(reverse("work"))
+        self.assertNotContains(resp, "Projektverwaltung")
+        resp = self.client.get(reverse("projekt_list"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_projekt_access_allowed_with_tile(self):
+        user = self._login("withproj")
+        UserTileAccess.objects.create(user=user, tile=self.projekt)
+        resp = self.client.get(reverse("work"))
+        self.assertContains(resp, "Projektverwaltung")
+        resp = self.client.get(reverse("projekt_list"))
+        self.assertEqual(resp.status_code, 200)
+
+
 class LLMConfigNoticeMiddlewareTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
