@@ -16,6 +16,13 @@ from docx import Document
 logger = logging.getLogger(__name__)
 
 
+def _add_editable_flags(data: dict) -> dict:
+    """Ergänzt jedes Feld eines Dictionaries um ein ``editable``-Flag."""
+    if isinstance(data, dict):
+        return {k: {"value": v, "editable": True} for k, v in data.items()}
+    return data
+
+
 def get_prompt(name: str, default: str) -> str:
     """Lade einen Prompt-Text aus der Datenbank."""
     try:
@@ -47,6 +54,7 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     except Exception:  # noqa: BLE001
         logger.warning("LLM Antwort kein JSON: %s", reply)
         data = {"raw": reply}
+    data = _add_editable_flags(data)
     projekt.classification_json = data
     projekt.status = BVProject.STATUS_CLASSIFIED
     projekt.save(update_fields=["classification_json", "status"])
@@ -103,6 +111,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
 
+    data = _add_editable_flags(data)
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data

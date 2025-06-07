@@ -146,9 +146,9 @@ class LLMTasksTests(TestCase):
         with patch("core.llm_tasks.query_llm", return_value='{"kategorie":"X","begruendung":"ok"}'):
             data = classify_system(projekt.pk)
         projekt.refresh_from_db()
-        self.assertEqual(projekt.classification_json["kategorie"], "X")
+        self.assertEqual(projekt.classification_json["kategorie"]["value"], "X")
         self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
-        self.assertEqual(data["kategorie"], "X")
+        self.assertEqual(data["kategorie"]["value"], "X")
 
     def test_check_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -161,8 +161,8 @@ class LLMTasksTests(TestCase):
         with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
             data = check_anlage2(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(file_obj.analysis_json["ok"])
-        self.assertTrue(data["ok"])
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertTrue(data["ok"]["value"])
 
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -217,7 +217,7 @@ class ReportingTests(TestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
-            analysis_json={"ok": True},
+            analysis_json={"ok": {"value": True, "editable": True}},
         )
         path = generate_gap_analysis(projekt)
         try:
@@ -249,7 +249,7 @@ class ReportingTests(TestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
-            analysis_json={"foo": "orig"},
+            analysis_json={"foo": {"value": "orig", "editable": True}},
             manual_analysis_json={"foo": "manual"},
         )
         path1 = generate_gap_analysis(projekt)
@@ -289,7 +289,7 @@ class ProjektFileCheckViewTests(TestCase):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
-        self.assertTrue(file_obj.analysis_json["ok"])
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
@@ -298,7 +298,7 @@ class ProjektFileCheckViewTests(TestCase):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj.refresh_from_db()
-        self.assertTrue(file_obj.analysis_json["ok"])
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
 
 class ProjektFileJSONEditTests(TestCase):
@@ -311,7 +311,7 @@ class ProjektFileJSONEditTests(TestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            analysis_json={"old": True},
+            analysis_json={"old": {"value": True, "editable": True}},
         )
 
     def test_edit_json_updates_and_reports(self):
@@ -344,7 +344,7 @@ class ProjektFileJSONEditTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json, {"old": True})
+        self.assertEqual(self.file.analysis_json, {"old": {"value": True, "editable": True}})
 
 
 class ProjektGutachtenViewTests(TestCase):
