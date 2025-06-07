@@ -549,6 +549,7 @@ class AdminModelsViewTests(TestCase):
         self.assertEqual(self.cfg.anlagen_model, "b")
 
 
+
 class TileVisibilityTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("tileuser", password="pass")
@@ -584,3 +585,27 @@ class TileVisibilityTests(TestCase):
         resp = self.client.get(reverse("work"))
         self.assertContains(resp, "Projektverwaltung")
         self.assertNotContains(resp, "TalkDiary")
+
+    def test_flag_reset_on_get(self):
+        self.cfg.models_changed = True
+        self.cfg.save(update_fields=["models_changed"])
+        url = reverse("admin_models")
+        self.client.get(url)
+        self.cfg.refresh_from_db()
+        self.assertFalse(self.cfg.models_changed)
+
+
+class LLMConfigNoticeMiddlewareTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("llmadmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="llmadmin", password="pass")
+        LLMConfig.objects.create(models_changed=True)
+
+    def test_message_shown(self):
+        resp = self.client.get(reverse("home"))
+        msgs = [m.message for m in resp.context["messages"]]
+        self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
+
+
