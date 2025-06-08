@@ -28,6 +28,13 @@ ANLAGE1_QUESTIONS = [
     "Frage 9: Lege den Text als question9_raw ab.",
 ]
 
+# Vorlage für die Bewertung einzelner Antworten.
+_ANLAGE1_EVAL = (
+    "Bewerte die Antwort auf Frage {num}. Mögliche Status: 'ok', 'unklar',"
+    " 'unvollständig'. Gib ein JSON mit den Schlüsseln 'status',"
+    " 'hinweis' und optional 'vorschlag' zurück.\n\nFrage: {question}\nAntwort: {answer}"
+)
+
 _ANLAGE1_INTRO = (
     "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
 )
@@ -206,76 +213,78 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 1 fehlt") from exc
 
     parsed = parse_anlage1_questions(anlage.text_content)
+    answers: dict[str, str | list | None]
+    data: dict
+
     if parsed:
         logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-        questions = {
-            str(i): {
-                "answer": parsed.get(str(i)),
-                "ok": None,
-                "note": "Geparst",
-            }
-            for i in range(1, 10)
-        }
-        data = {
-            "task": "check_anlage1",
-            "source": "parser",
-            "questions": questions,
-        }
-        anlage.analysis_json = data
-        anlage.save(update_fields=["analysis_json"])
-        return data
+        answers = {str(i): parsed.get(str(i)) for i in range(1, 10)}
+        data = {"task": "check_anlage1", "source": "parser"}
+    else:
+        cfg = Anlage1Config.objects.first()
+        parts = [_ANLAGE1_INTRO]
+        for i, qtext in enumerate(ANLAGE1_QUESTIONS, start=1):
+            enabled = getattr(cfg, f"enable_q{i}", True) if cfg else True
+            if enabled:
+                parts.append(get_prompt(f"anlage1_q{i}", qtext) + "\n")
+        insert_at = 3 if len(parts) > 2 else len(parts)
+        parts.insert(insert_at, _ANLAGE1_IT)
+        parts.append(_ANLAGE1_SUFFIX)
+        prefix = "".join(parts)
+        prompt = prefix + anlage.text_content
 
+        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        try:
+            data = json.loads(reply)
+        except Exception:  # noqa: BLE001
+            data = {"raw": reply}
+
+        def _val(key: str):
+            if isinstance(data.get(key), dict) and "value" in data[key]:
+                return data[key]["value"]
+            return data.get(key)
+
+        answers = {
+            "1": _val("companies"),
+            "2": _val("departments"),
+            "3": _val("vendors"),
+            "4": _val("question4_raw"),
+            "5": _val("purpose_summary"),
+            "6": _val("documentation_links"),
+            "7": _val("replaced_systems"),
+            "8": _val("legacy_functions"),
+            "9": _val("question9_raw"),
+        }
+        data["questions"] = {}
     cfg = Anlage1Config.objects.first()
-    parts = [_ANLAGE1_INTRO]
-    for i, qtext in enumerate(ANLAGE1_QUESTIONS, start=1):
+
+    questions: dict[str, dict] = {}
+    for i in range(1, 10):
+        key = str(i)
+        ans = answers.get(key)
+        if ans in (None, "", []):
+            ans = "leer"
+        q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
         enabled = getattr(cfg, f"enable_q{i}", True) if cfg else True
         if enabled:
-            parts.append(get_prompt(f"anlage1_q{i}", qtext) + "\n")
-    insert_at = 3 if len(parts) > 2 else len(parts)
-    parts.insert(insert_at, _ANLAGE1_IT)
-    parts.append(_ANLAGE1_SUFFIX)
-    prefix = "".join(parts)
-    prompt = prefix + anlage.text_content
-
-    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
-    try:
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        data = {"raw": reply}
-
-    def _val(key):
-        if isinstance(data.get(key), dict) and "value" in data[key]:
-            return data[key]["value"]
-        return data.get(key)
-
-    questions = {
-        "1": {"answer": _val("companies"), "ok": None, "note": ""},
-        "2": {"answer": _val("departments"), "ok": None, "note": ""},
-        "3": {"answer": _val("vendors"), "ok": None, "note": ""},
-        "4": {"answer": _val("question4_raw"), "ok": None, "note": ""},
-        "5": {"answer": _val("purpose_summary"), "ok": None, "note": ""},
-        "6": {"answer": _val("documentation_links"), "ok": None, "note": ""},
-        "7": {"answer": _val("replaced_systems"), "ok": None, "note": ""},
-        "8": {"answer": _val("legacy_functions"), "ok": None, "note": ""},
-        "9": {"answer": _val("question9_raw"), "ok": None, "note": ""},
-    }
-
-    def _is_purpose(text: str) -> bool:
-        if not text:
-            return False
-        lowered = text.lower()
-        return any(k in lowered for k in ["zweck", "dient", " um ", " zur ", " f\u00fcr "])
-
-    q5 = questions.get("5")
-    if q5:
-        q5["ok"] = _is_purpose(str(q5.get("answer", "")))
+            prompt = _ANLAGE1_EVAL.format(
+                num=i, question=ANLAGE1_QUESTIONS[i - 1], answer=ans
+            )
+            try:
+                reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+                fb = json.loads(reply)
+            except Exception:  # noqa: BLE001
+                fb = {"status": "unklar", "hinweis": "LLM Fehler"}
+            q_data["status"] = fb.get("status")
+            q_data["hinweis"] = fb.get("hinweis", "")
+            q_data["vorschlag"] = fb.get("vorschlag", "")
+        questions[key] = q_data
 
     data["questions"] = questions
 
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
-
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die zweite Anlage."""
