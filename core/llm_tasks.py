@@ -10,7 +10,7 @@ from pathlib import Path
 
 from django.conf import settings
 
-from .models import BVProject, BVProjectFile, Prompt, Anlage1Config
+from .models import BVProject, BVProjectFile, Prompt, Anlage1Config, Anlage1Question
 from .llm_utils import query_llm
 from docx import Document
 
@@ -94,35 +94,26 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
     if not text_content:
         return None
 
-    questions = {
-        "1": "Frage 1: Extrahiere alle Unternehmen als Liste.",
-        "2": "Frage 2: Extrahiere alle Fachbereiche als Liste.",
-        "3": "Frage 3: Liste alle Hersteller und Produktnamen auf.",
-        "4": "Frage 4: Lege den Textblock als question4_raw ab.",
-        "5": "Frage 5: Fasse den Zweck des Systems in einem Satz.",
-        "6": "Frage 6: Extrahiere Web-URLs.",
-        "7": "Frage 7: Extrahiere ersetzte Systeme.",
-        "8": "Frage 8: Extrahiere Legacy-Funktionen.",
-        "9": "Frage 9: Lege den Text als question9_raw ab.",
-    }
+    numbers = [str(q.num) for q in Anlage1Question.objects.order_by("num")]
+    if not numbers:
+        numbers = [str(i) for i in range(1, len(ANLAGE1_QUESTIONS) + 1)]
 
-    positions: list[tuple[int, str]] = []
-    for num, phrase in questions.items():
-        pos = text_content.find(phrase)
-        if pos != -1:
-            positions.append((pos, num))
-
-    if not positions:
+    pattern = re.compile(r"^(\d+)\.")
+    lines = [line.strip() for line in text_content.split("\u00b6")]
+    indices: list[tuple[int, str]] = []
+    for idx, line in enumerate(lines):
+        m = pattern.match(line)
+        if m and m.group(1) in numbers:
+            indices.append((idx, m.group(1)))
+    if not indices:
         return None
 
-    positions.sort()
     parsed: dict[str, str | None] = {}
-    for idx, (pos, num) in enumerate(positions):
-        start = pos + len(questions[num])
-        end = positions[idx + 1][0] if idx + 1 < len(positions) else len(text_content)
-        block = text_content[start:end]
-        block = block.strip().strip("\u00b6").replace("\u00b6", "\n").strip()
-        parsed[num] = block or None
+    for pos, num in indices:
+        start = pos + 1
+        next_idx = next((i for i, _ in indices if i > pos), len(lines))
+        ans_lines = [l for l in lines[start:next_idx] if l]
+        parsed[num] = "\n".join(ans_lines).strip() or None
 
     return parsed if parsed else None
 
@@ -212,21 +203,32 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
 
+    question_objs = list(Anlage1Question.objects.order_by("num"))
+    if not question_objs:
+        question_objs = [
+            Anlage1Question(num=i, text=t, enabled=True)
+            for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
+        ]
+
     parsed = parse_anlage1_questions(anlage.text_content)
     answers: dict[str, str | list | None]
     data: dict
 
     if parsed:
         logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-        answers = {str(i): parsed.get(str(i)) for i in range(1, 10)}
+        answers = {str(q.num): parsed.get(str(q.num)) for q in question_objs}
         data = {"task": "check_anlage1", "source": "parser"}
     else:
         cfg = Anlage1Config.objects.first()
         parts = [_ANLAGE1_INTRO]
-        for i, qtext in enumerate(ANLAGE1_QUESTIONS, start=1):
-            enabled = getattr(cfg, f"enable_q{i}", True) if cfg else True
+        for q in question_objs:
+            enabled = q.enabled
+            if cfg:
+                field = f"enable_q{q.num}"
+                if hasattr(cfg, field):
+                    enabled = getattr(cfg, field)
             if enabled:
-                parts.append(get_prompt(f"anlage1_q{i}", qtext) + "\n")
+                parts.append(get_prompt(f"anlage1_q{q.num}", q.text) + "\n")
         insert_at = 3 if len(parts) > 2 else len(parts)
         parts.insert(insert_at, _ANLAGE1_IT)
         parts.append(_ANLAGE1_SUFFIX)
@@ -246,7 +248,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
                 return data[key]["value"]
             return data.get(key)
 
-        answers = {
+        base_answers = {
             "1": _val("companies"),
             "2": _val("departments"),
             "3": _val("vendors"),
@@ -257,20 +259,25 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             "8": _val("legacy_functions"),
             "9": _val("question9_raw"),
         }
+        answers = {str(q.num): base_answers.get(str(q.num)) for q in question_objs}
         data["questions"] = {}
     cfg = Anlage1Config.objects.first()
 
     questions: dict[str, dict] = {}
-    for i in range(1, 10):
-        key = str(i)
+    for q in question_objs:
+        key = str(q.num)
         ans = answers.get(key)
         if ans in (None, "", []):
             ans = "leer"
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
-        enabled = getattr(cfg, f"enable_q{i}", True) if cfg else True
+        enabled = q.enabled
+        if cfg:
+            field = f"enable_q{q.num}"
+            if hasattr(cfg, field):
+                enabled = getattr(cfg, field)
         if enabled:
             prompt = _ANLAGE1_EVAL.format(
-                num=i, question=ANLAGE1_QUESTIONS[i - 1], answer=ans
+                num=q.num, question=q.text, answer=ans
             )
             try:
                 reply = query_llm(prompt, model_name=model_name, model_type="anlagen")

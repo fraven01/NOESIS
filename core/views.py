@@ -19,6 +19,7 @@ from .forms import (
     BVProjectFileForm,
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
+    get_anlage1_numbers,
 )
 from .models import (
     Recording,
@@ -43,7 +44,6 @@ from .llm_tasks import (
     check_anlage6,
     generate_gutachten,
     get_prompt,
-    ANLAGE1_QUESTIONS,
 )
 
 from .decorators import admin_required, tile_required
@@ -622,21 +622,18 @@ def admin_models(request):
 @admin_required
 def admin_anlage1(request):
     """Konfiguriert Fragen für Anlage 1."""
-    cfg = Anlage1Config.objects.first() or Anlage1Config.objects.create()
-    items = []
-    for i in range(1, 10):
-        p, _ = Prompt.objects.get_or_create(
-            name=f"anlage1_q{i}", defaults={"text": ANLAGE1_QUESTIONS[i-1]}
-        )
-        items.append((i, p, getattr(cfg, f"enable_q{i}")))
+    questions = list(Anlage1Question.objects.all().order_by("num"))
     if request.method == "POST":
-        for num, p, _ in items:
-            setattr(cfg, f"enable_q{num}", bool(request.POST.get(f"enable_q{num}")))
-            p.text = request.POST.get(f"text{num}", p.text)
-            p.save(update_fields=["text"])
-        cfg.save()
+        for q in questions:
+            q.enabled = bool(request.POST.get(f"enabled{q.id}"))
+            q.text = request.POST.get(f"text{q.id}", q.text)
+            q.save()
+        new_text = request.POST.get("new_text")
+        if new_text:
+            num = questions[-1].num + 1 if questions else 1
+            Anlage1Question.objects.create(num=num, text=new_text, enabled=bool(request.POST.get("new_enabled")))
         return redirect("admin_anlage1")
-    context = {"config": cfg, "items": items}
+    context = {"questions": questions}
     return render(request, "admin_anlage1.html", context)
 
 
@@ -899,8 +896,9 @@ def projekt_file_edit_json(request, pk):
             form = Anlage1ReviewForm(initial=anlage.question_review)
         template = "projekt_file_anlage1_review.html"
         answers = {}
+        numbers = get_anlage1_numbers()
         q_data = anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
-        for i in range(1, 10):
+        for i in numbers:
             answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
         qa = [
             (
@@ -912,7 +910,7 @@ def projekt_file_edit_json(request, pk):
                 form[f"q{i}_ok"],
                 form[f"q{i}_note"],
             )
-            for i in range(1, 10)
+            for i in numbers
         ]
     else:
         if request.method == "POST":

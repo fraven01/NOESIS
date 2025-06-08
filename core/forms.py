@@ -1,6 +1,7 @@
 from django import forms
 from pathlib import Path
-from .models import Recording, BVProject, BVProjectFile
+from .models import Recording, BVProject, BVProjectFile, Anlage1Question
+from .llm_tasks import ANLAGE1_QUESTIONS
 
 
 # Auswahloptionen für die Bewertung einer Frage in Anlage 1
@@ -9,6 +10,14 @@ REVIEW_STATUS_CHOICES = [
     ("unklar", "unklar"),
     ("unvollständig", "unvollständig"),
 ]
+
+
+def get_anlage1_numbers() -> list[int]:
+    """Gibt die vorhandenen Fragen-Nummern zurück."""
+    qs = list(Anlage1Question.objects.order_by("num"))
+    if qs:
+        return [q.num for q in qs]
+    return list(range(1, len(ANLAGE1_QUESTIONS) + 1))
 
 
 class RecordingForm(forms.ModelForm):
@@ -156,7 +165,7 @@ class Anlage1ReviewForm(forms.Form):
     def __init__(self, *args, initial=None, **kwargs):
         super().__init__(*args, **kwargs)
         data = initial or {}
-        for i in range(1, 10):
+        for i in get_anlage1_numbers():
             self.fields[f"q{i}_ok"] = forms.BooleanField(
                 required=False,
                 label=f"Frage {i} ok",
@@ -193,7 +202,7 @@ class Anlage1ReviewForm(forms.Form):
         out = {}
         if not self.is_valid():
             return out
-        for i in range(1, 10):
+        for i in get_anlage1_numbers():
             key = str(i)
             q_data: dict[str, object] = {
                 "status": self.cleaned_data.get(f"q{i}_status", ""),
