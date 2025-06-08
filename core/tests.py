@@ -232,8 +232,8 @@ class LLMTasksTests(TestCase):
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
-            "1. Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
-            "2. Extrahiere alle Fachbereiche als Liste.\u00b6A2"
+            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
+            "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
         )
         BVProjectFile.objects.create(
             projekt=projekt,
@@ -268,8 +268,8 @@ class LLMTasksTests(TestCase):
         Anlage1Question.objects.create(num=10, text="Frage 10: Test?", enabled=True)
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
-            "1. Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
-            "10. Testfrage\u00b6A10"
+            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
+            "Frage 10: Test?\u00b6A10"
         )
         BVProjectFile.objects.create(
             projekt=projekt,

@@ -90,41 +90,54 @@ def parse_structured_anlage(text_content: str) -> dict | None:
 
 
 def parse_anlage1_questions(text_content: str) -> dict | None:
-    """Parst ausgeschriebene Fragen in Anlage 1."""
-    logger.debug("parse_anlage1_questions: Aufruf mit text_content=%r", text_content[:200] if text_content else None)
+    """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
+    logger.debug(
+        "parse_anlage1_questions: Aufruf mit text_content=%r",
+        text_content[:200] if text_content else None,
+    )
     if not text_content:
         logger.debug("parse_anlage1_questions: Kein Text übergeben.")
         return None
 
-    numbers = [str(q.num) for q in Anlage1Question.objects.order_by("num")]
-    logger.debug("parse_anlage1_questions: Gefundene Nummern aus DB: %r", numbers)
-    if not numbers:
-        numbers = [str(i) for i in range(1, len(ANLAGE1_QUESTIONS) + 1)]
-        logger.debug("parse_anlage1_questions: Fallback auf Standardnummern: %r", numbers)
-
-    pattern = re.compile(r"^(\d+)\.")
-    # Zeilen jetzt nach \n splitten und leere Zeilen filtern
-    lines = [line.strip() for line in text_content.split("\n") if line.strip()]
-    logger.debug("parse_anlage1_questions: Zeilenanzahl nach Split: %d", len(lines))
-    indices: list[tuple[int, str]] = []
-    for idx, line in enumerate(lines):
-        m = pattern.match(line)
-        if m and m.group(1) in numbers:
-            indices.append((idx, m.group(1)))
-            logger.debug("parse_anlage1_questions: Frage gefunden: Nummer=%s an Zeile %d", m.group(1), idx)
-    if not indices:
-        logger.debug("parse_anlage1_questions: Keine Fragen-Indizes gefunden.")
+    questions = list(
+        Anlage1Question.objects.filter(enabled=True).order_by("num")
+    )
+    if not questions:
+        logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
         return None
 
-    parsed: dict[str, str | None] = {}
-    for pos, num in indices:
-        start = pos + 1
-        next_idx = next((i for i, _ in indices if i > pos), len(lines))
-        ans_lines = [l for l in lines[start:next_idx] if l]
-        parsed[num] = "\n".join(ans_lines).strip() or None
-        logger.debug("parse_anlage1_questions: Antwort für Frage %s: %r", num, parsed[num])
+    matches: list[tuple[int, int, int]] = []
+    for q in questions:
+        pattern = re.escape(q.text)
+        m = re.search(pattern, text_content)
+        if m:
+            matches.append((m.start(), m.end(), q.num))
+            logger.debug(
+                "parse_anlage1_questions: Frage %s gefunden an Position %d",
+                q.num,
+                m.start(),
+            )
 
-    logger.debug("parse_anlage1_questions: Ergebnis: %r", parsed if parsed else None)
+    if not matches:
+        logger.debug("parse_anlage1_questions: Keine Fragen im Text gefunden.")
+        return None
+
+    matches.sort(key=lambda x: x[0])
+    parsed: dict[str, str | None] = {}
+    for idx, (start, end, num) in enumerate(matches):
+        next_start = matches[idx + 1][0] if idx + 1 < len(matches) else len(text_content)
+        ans = text_content[end:next_start].replace("\u00b6", "").strip() or None
+        parsed[str(num)] = ans
+        logger.debug(
+            "parse_anlage1_questions: Antwort f\xFCr Frage %s: %r",
+            num,
+            parsed[str(num)],
+        )
+
+    logger.debug(
+        "parse_anlage1_questions: Ergebnis: %r",
+        parsed if parsed else None,
+    )
     return parsed if parsed else None
 
 
