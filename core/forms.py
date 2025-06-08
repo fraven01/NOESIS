@@ -168,12 +168,12 @@ class Anlage1ReviewForm(forms.Form):
         for i in get_anlage1_numbers():
             self.fields[f"q{i}_ok"] = forms.BooleanField(
                 required=False,
-                label=f"Frage {i} ok",
+                label=f"Frage {i} geprüft und in Ordnung",
                 widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
             )
             self.fields[f"q{i}_note"] = forms.CharField(
                 required=False,
-                label=f"Frage {i} Kommentar",
+                label=f"Frage {i} Kommentar intern",
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.fields[f"q{i}_status"] = forms.ChoiceField(
@@ -184,12 +184,12 @@ class Anlage1ReviewForm(forms.Form):
             )
             self.fields[f"q{i}_hinweis"] = forms.CharField(
                 required=False,
-                label=f"Frage {i} Hinweis",
+                label=f"Frage {i} Hinweise PMO",
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.fields[f"q{i}_vorschlag"] = forms.CharField(
                 required=False,
-                label=f"Frage {i} Vorschlag",
+                label=f"Frage {i} Vorschlag an Fachbereich",
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.initial[f"q{i}_ok"] = data.get(str(i), {}).get("ok", False)

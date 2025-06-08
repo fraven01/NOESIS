@@ -36,6 +36,7 @@ urlpatterns = [
     path('work/anlage/<int:pk>/check/', views.projekt_file_check_pk, name='projekt_file_check_pk'),
     path('work/anlage/<int:pk>/check-view/', views.projekt_file_check_view, name='projekt_file_check_view'),
     path('work/anlage/<int:pk>/edit-json/', views.projekt_file_edit_json, name='projekt_file_edit_json'),
+    path('work/anlage/<int:pk>/email/', views.anlage1_generate_email, name='anlage1_generate_email'),
     path('work/projekte/<int:pk>/gap-analysis/', views.projekt_gap_analysis, name='projekt_gap_analysis'),
     path('work/projekte/<int:pk>/summary/', views.projekt_management_summary, name='projekt_management_summary'),
     path('work/projekte/<int:pk>/gutachten/', views.projekt_gutachten, name='projekt_gutachten'),
