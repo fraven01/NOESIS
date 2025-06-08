@@ -48,8 +48,8 @@
     <tbody>
     {% for a in projekt.anlagen.all %}
         <tr class="border-t">
-            <td class="px-2 py-1">{{ forloop.counter }}</td>
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a></td>
+            <td class="px-2 py-1">{{ a.anlage_nr }}</td>
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
             <td class="px-2 py-1 text-center">
                 <a href="{% url 'projekt_file_check_view' a.pk %}"
                    class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
