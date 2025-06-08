@@ -903,7 +903,16 @@ def projekt_file_edit_json(request, pk):
         for i in range(1, 10):
             answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
         qa = [
-            (i, answers.get(str(i), ""), form[f"q{i}_ok"], form[f"q{i}_note"]) for i in range(1, 10)
+            (
+                i,
+                answers.get(str(i), ""),
+                form[f"q{i}_status"],
+                form[f"q{i}_hinweis"],
+                form[f"q{i}_vorschlag"],
+                form[f"q{i}_ok"],
+                form[f"q{i}_note"],
+            )
+            for i in range(1, 10)
         ]
     else:
         if request.method == "POST":

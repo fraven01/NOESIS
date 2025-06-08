@@ -238,6 +238,8 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
             data = {"raw": reply}
+        if data.get("task") != "check_anlage1":
+            data = {"task": "check_anlage1"}
 
         def _val(key: str):
             if isinstance(data.get(key), dict) and "value" in data[key]:

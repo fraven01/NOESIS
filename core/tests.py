@@ -489,6 +489,23 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertTrue(self.anlage1.question_review["1"]["ok"])
         self.assertEqual(self.anlage1.question_review["1"]["note"], "Hinweis")
 
+    def test_question_review_extended_fields_saved(self):
+        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
+        resp = self.client.post(
+            url,
+            {
+                "q1_status": "unvollst\u00e4ndig",
+                "q1_hinweis": "Fehlt",
+                "q1_vorschlag": "Mehr Infos",
+            },
+        )
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.anlage1.refresh_from_db()
+        data = self.anlage1.question_review["1"]
+        self.assertEqual(data["status"], "unvollst\u00e4ndig")
+        self.assertEqual(data["hinweis"], "Fehlt")
+        self.assertEqual(data["vorschlag"], "Mehr Infos")
+
 
 class ProjektGutachtenViewTests(TestCase):
     def setUp(self):
