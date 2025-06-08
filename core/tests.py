@@ -356,7 +356,8 @@ class LLMTasksTests(TestCase):
             data = check_anlage1(projekt.pk)
         prompt = mock_q.call_args_list[0].args[0]
         self.assertNotIn("Frage 1", prompt)
-        self.assertNotIn("1", data["questions"])
+        self.assertIn("1", data["questions"])
+        self.assertIsNone(data["questions"]["1"]["status"])
 
 
 class PromptTests(TestCase):
