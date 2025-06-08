@@ -259,15 +259,14 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
     cfg = Anlage1Config.objects.first()
 
-    # Eine Frage gilt nur dann als aktiv, wenn sowohl ``q.llm_enabled`` als auch
-    # das entsprechende Flag in ``Anlage1Config`` gesetzt sind.
-    def _is_enabled(q: Anlage1Question) -> bool:
+    # Ermittele separat, welche Fragen für das LLM aktiviert sind.
+    def _llm_enabled(q: Anlage1Question) -> bool:
         enabled = q.llm_enabled
         if cfg:
             enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
         return enabled
 
-    question_objs = [q for q in question_objs if _is_enabled(q)]
+    llm_questions = [q for q in question_objs if _llm_enabled(q)]
 
     # Debug-Log für den zu parsenden Text
     logger.debug("check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r", anlage.text_content[:500] if anlage.text_content else None)
@@ -282,7 +281,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         data = {"task": "check_anlage1", "source": "parser"}
     else:
         parts = [_ANLAGE1_INTRO]
-        for q in question_objs:
+        for q in llm_questions:
             parts.append(get_prompt(f"anlage1_q{q.num}", q.text) + "\n")
         insert_at = 3 if len(parts) > 2 else len(parts)
         parts.insert(insert_at, _ANLAGE1_IT)
@@ -326,10 +325,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         if ans in (None, "", []):
             ans = "leer"
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
-        enabled = q.llm_enabled
-        if cfg:
-            enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
-        if enabled:
+        if _llm_enabled(q):
             prompt = _ANLAGE1_EVAL.format(
                 num=q.num, question=q.text, answer=ans
             )
