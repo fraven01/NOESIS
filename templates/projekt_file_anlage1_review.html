@@ -7,6 +7,7 @@
     <table class="table-auto w-full border">
         <thead>
             <tr>
+                <th class="border px-2">Nr.</th>
                 <th class="border px-2">Frage</th>
                 <th class="border px-2">Antwort</th>
                 <th class="border px-2">Status</th>
@@ -17,9 +18,10 @@
             </tr>
         </thead>
         <tbody>
-        {% for num, ans, status_field, hinweis_field, vorschlag_field, ok_field, note_field in qa %}
+        {% for num, question, ans, status_field, hinweis_field, vorschlag_field, ok_field, note_field in qa %}
             <tr>
                 <td class="border px-2">{{ num }}</td>
+                <td class="border px-2">{{ question }}</td>
                 <td class="border px-2">{{ ans }}</td>
                 <td class="border px-2">{{ status_field }}</td>
                 <td class="border px-2">{{ hinweis_field }}</td>

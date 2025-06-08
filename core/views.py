@@ -45,6 +45,7 @@ from .llm_tasks import (
     check_anlage6,
     generate_gutachten,
     get_prompt,
+    ANLAGE1_QUESTIONS,
 )
 
 from .decorators import admin_required, tile_required
@@ -896,14 +897,24 @@ def projekt_file_edit_json(request, pk):
         else:
             form = Anlage1ReviewForm(initial=anlage.question_review)
         template = "projekt_file_anlage1_review.html"
-        answers = {}
+        answers: dict[str, str] = {}
         numbers = get_anlage1_numbers()
         q_data = anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
         for i in numbers:
             answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
+
+        question_objs = list(Anlage1Question.objects.order_by("num"))
+        if not question_objs:
+            question_objs = [
+                Anlage1Question(num=i, text=t, enabled=True)
+                for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
+            ]
+        questions = {q.num: q.text for q in question_objs}
+
         qa = [
             (
                 i,
+                questions.get(i, ""),
                 answers.get(str(i), ""),
                 form[f"q{i}_status"],
                 form[f"q{i}_hinweis"],
