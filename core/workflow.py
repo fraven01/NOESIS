@@ -1,4 +1,4 @@
-from .models import BVProject
+from .models import BVProject, BVProjectStatusHistory
 
 
 def set_project_status(projekt: BVProject, status: str) -> None:
@@ -13,3 +13,4 @@ def set_project_status(projekt: BVProject, status: str) -> None:
         raise ValueError("Ungültiger Status")
     projekt.status = status
     projekt.save(update_fields=["status"])
+    BVProjectStatusHistory.objects.create(projekt=projekt, status=status)

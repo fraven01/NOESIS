@@ -2,6 +2,8 @@
 {% block title %}Projekt {{ projekt.title }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
+<div class="lg:flex lg:space-x-4">
+<div class="lg:w-2/3">
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.get_status_display }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
@@ -34,21 +36,56 @@
     <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>
 </p>
 <h2 class="text-xl font-semibold mt-4">Anlagen</h2>
-<ul class="list-disc pl-5 mb-4">
+<table class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Nr.</th>
+            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">Prüfen</th>
+            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for a in projekt.anlagen.all %}
-    <li class="mb-2">
-        Anlage {{ a.anlage_nr }}:
-        <a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a>
-        <a href="{% url 'projekt_file_check_view' a.pk %}" class="bg-green-600 text-white px-2 py-1 rounded ml-2">Prüfen</a>
-        <a href="{% url 'projekt_file_edit_json' a.pk %}" class="text-blue-700 underline ml-2">Analyse bearbeiten</a>
-        {% if a.manual_comment %}<div class="italic">{{ a.manual_comment }}</div>{% endif %}
-    </li>
+        <tr class="border-t">
+            <td class="px-2 py-1">{{ forloop.counter }}</td>
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name }}</a></td>
+            <td class="px-2 py-1 text-center">
+                <a href="{% url 'projekt_file_check_view' a.pk %}"
+                   class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
+            </td>
+            <td class="px-2 py-1 text-center">
+            {% if a.analysis_json %}
+                <a href="{% url 'projekt_file_edit_json' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+            {% endif %}
+            </td>
+        </tr>
     {% empty %}
-    <li>Keine Anlagen vorhanden</li>
+        <tr><td colspan="4">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
-</ul>
+    </tbody>
+</table>
 <a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Anlage hochladen</a>
 <div id="llm-section" class="mt-4"></div>
+</div>
+<div class="lg:w-1/3 mt-4 lg:mt-0">
+  <div class="bg-gray-100 p-4 rounded">
+    <h3 class="font-semibold mb-2">Projektinfo</h3>
+    <p><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
+    <p class="mt-1"><strong>Software:</strong> {{ projekt.software_typen }}</p>
+    <p class="mt-1"><strong>Anlagen:</strong> {{ num_attachments }}</p>
+    <p class="mt-1"><strong>Gutachten vorhanden:</strong> {% if projekt.gutachten_file %}Ja{% else %}Nein{% endif %}</p>
+    <p class="mt-1"><strong>Geprüft:</strong> {{ num_reviewed }} / {{ num_attachments }}</p>
+    <h4 class="font-semibold mt-2">Status-Historie</h4>
+    <ul class="list-disc pl-5">
+    {% for h in history %}
+      <li>{{ h.get_status_display }} - {{ h.changed_at|date:"d.m.Y H:i" }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+</div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 
