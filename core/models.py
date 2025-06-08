@@ -198,7 +198,11 @@ class Anlage1Config(models.Model):
 
 
 class Anlage1Question(models.Model):
-    """Frage aus Anlage 1."""
+    """Frage aus Anlage 1.
+
+    Eine Frage wird nur ber\xFCcksichtigt, wenn sowohl dieses ``enabled``-Flag
+    als auch das entsprechende Feld in :class:`Anlage1Config` gesetzt sind.
+    """
 
     num = models.PositiveSmallIntegerField(unique=True)
     text = models.TextField()

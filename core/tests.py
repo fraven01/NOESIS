@@ -319,6 +319,30 @@ class LLMTasksTests(TestCase):
         finally:
             second.unlink(missing_ok=True)
 
+    def test_check_anlage1_ignores_disabled_questions(self):
+        Anlage1Config.objects.create()  # Standardwerte
+        q1 = Anlage1Question.objects.get(num=1)
+        q1.enabled = False
+        q1.save(update_fields=["enabled"])
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        enabled_count = Anlage1Question.objects.filter(enabled=True).count()
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["{\"task\": \"check_anlage1\"}"]
+            + [eval_reply] * enabled_count,
+        ) as mock_q:
+            data = check_anlage1(projekt.pk)
+        prompt = mock_q.call_args_list[0].args[0]
+        self.assertNotIn("Frage 1", prompt)
+        self.assertNotIn("1", data["questions"])
+
 
 class PromptTests(TestCase):
     def test_get_prompt_returns_default(self):
