@@ -68,3 +68,9 @@ Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der
 Anmeldung lassen sich diese unter "Users" bearbeiten. Dort erscheint eine
 zusätzliche Inline-Tabelle, über die sich die verfügbaren Tiles wie
 "TalkDiary" oder "Projektverwaltung" auswählen lassen.
+
+### Modernisiertes Admin-Interface
+
+Das Django-Admin wurde optisch überarbeitet. Eine Seitenleiste listet alle
+Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
+`static/css/admin.css` steuert das Layout.

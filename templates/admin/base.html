@@ -1,16 +1,40 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{# Basisvorlage für Admin-Seiten. Übernimmt Header, Footer und Styles aus base.html #}
+{# Modernisierte Basisvorlage für Admin-Seiten mit Sidebar und Suche #}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
 
 {% block content %}
-    {% if messages %}
-    <div class="mb-4 space-y-2">
-        {% for message in messages %}
-        <div class="p-2 rounded bg-blue-100 text-blue-800 {{ message.tags }}">
-            {{ message }}
+<div class="admin-container">
+    <aside class="admin-sidebar">
+        <form method="get" class="admin-search">
+            <input type="search" name="q" placeholder="Suchen..." value="{{ request.GET.q }}">
+        </form>
+        {% if available_apps %}
+        <nav class="admin-nav">
+            {% for app in available_apps %}
+                <p class="font-semibold mt-4">{{ app.name }}</p>
+                {% for model in app.models %}
+                    <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                {% endfor %}
+            {% endfor %}
+        </nav>
+        {% endif %}
+    </aside>
+    <section class="admin-content">
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+            <div class="p-2 rounded bg-blue-100 text-blue-800 {{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% block admin_content %}{% endblock %}
+        {% endif %}
+        {% block admin_content %}{% endblock %}
+    </section>
+</div>
 {% endblock %}
