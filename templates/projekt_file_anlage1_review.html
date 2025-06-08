@@ -9,15 +9,21 @@
             <tr>
                 <th class="border px-2">Frage</th>
                 <th class="border px-2">Antwort</th>
+                <th class="border px-2">Status</th>
+                <th class="border px-2">Hinweis</th>
+                <th class="border px-2">Vorschlag</th>
                 <th class="border px-2">OK</th>
                 <th class="border px-2">Kommentar</th>
             </tr>
         </thead>
         <tbody>
-        {% for num, ans, ok_field, note_field in qa %}
+        {% for num, ans, status_field, hinweis_field, vorschlag_field, ok_field, note_field in qa %}
             <tr>
                 <td class="border px-2">{{ num }}</td>
                 <td class="border px-2">{{ ans }}</td>
+                <td class="border px-2">{{ status_field }}</td>
+                <td class="border px-2">{{ hinweis_field }}</td>
+                <td class="border px-2">{{ vorschlag_field }}</td>
                 <td class="border px-2">{{ ok_field }}</td>
                 <td class="border px-2">{{ note_field }}</td>
             </tr>
