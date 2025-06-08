@@ -89,6 +89,15 @@ def parse_structured_anlage(text_content: str) -> dict | None:
     return parsed if parsed else None
 
 
+def _clean_text(text: str) -> str:
+    """Bereinigt Sonderzeichen vor dem Parsen."""
+    text = text.replace("\\n", " ")
+    text = text.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+    text = text.replace("\u00b6", " ")
+    text = re.sub(r" {2,}", " ", text)
+    return text.strip()
+
+
 def parse_anlage1_questions(text_content: str) -> dict | None:
     """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
     logger.debug(
@@ -99,6 +108,8 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
         logger.debug("parse_anlage1_questions: Kein Text übergeben.")
         return None
 
+    text_content = _clean_text(text_content)
+
     questions = list(
         Anlage1Question.objects.filter(enabled=True).order_by("num")
     )
@@ -108,7 +119,7 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
 
     matches: list[tuple[int, int, int]] = []
     for q in questions:
-        pattern = re.escape(q.text)
+        pattern = re.escape(_clean_text(q.text))
         m = re.search(pattern, text_content)
         if m:
             matches.append((m.start(), m.end(), q.num))
