@@ -27,6 +27,7 @@ from .models import (
     transcript_upload_path,
     Prompt,
     LLMConfig,
+    Anlage1Config,
     Tile,
 )
 from .docx_utils import extract_text
@@ -42,6 +43,7 @@ from .llm_tasks import (
     check_anlage6,
     generate_gutachten,
     get_prompt,
+    ANLAGE1_QUESTIONS,
 )
 
 from .decorators import admin_required, tile_required
@@ -614,6 +616,28 @@ def admin_models(request):
         cfg.save(update_fields=["models_changed"])
     context = {"config": cfg, "models": LLMConfig.get_available()}
     return render(request, "admin_models.html", context)
+
+
+@login_required
+@admin_required
+def admin_anlage1(request):
+    """Konfiguriert Fragen für Anlage 1."""
+    cfg = Anlage1Config.objects.first() or Anlage1Config.objects.create()
+    items = []
+    for i in range(1, 10):
+        p, _ = Prompt.objects.get_or_create(
+            name=f"anlage1_q{i}", defaults={"text": ANLAGE1_QUESTIONS[i-1]}
+        )
+        items.append((i, p, getattr(cfg, f"enable_q{i}")))
+    if request.method == "POST":
+        for num, p, _ in items:
+            setattr(cfg, f"enable_q{num}", bool(request.POST.get(f"enable_q{num}")))
+            p.text = request.POST.get(f"text{num}", p.text)
+            p.save(update_fields=["text"])
+        cfg.save()
+        return redirect("admin_anlage1")
+    context = {"config": cfg, "items": items}
+    return render(request, "admin_anlage1.html", context)
 
 
 @login_required

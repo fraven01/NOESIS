@@ -177,6 +177,26 @@ class LLMConfig(models.Model):
         return settings.GOOGLE_AVAILABLE_MODELS
 
 
+class Anlage1Config(models.Model):
+    """Steuert die Aktivierung einzelner Fragen in Anlage 1."""
+
+    enable_q1 = models.BooleanField(default=True)
+    enable_q2 = models.BooleanField(default=True)
+    enable_q3 = models.BooleanField(default=True)
+    enable_q4 = models.BooleanField(default=True)
+    enable_q5 = models.BooleanField(default=True)
+    enable_q6 = models.BooleanField(default=True)
+    enable_q7 = models.BooleanField(default=True)
+    enable_q8 = models.BooleanField(default=True)
+    enable_q9 = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Anlage1 Konfiguration"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return "Anlage1Config"
+
+
 class Tile(models.Model):
     """Kachel für das Dashboard."""
 

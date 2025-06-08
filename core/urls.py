@@ -23,6 +23,7 @@ urlpatterns = [
     path('projects-admin/<int:pk>/delete/', views.admin_project_delete, name='admin_project_delete'),
     path('projects-admin/prompts/', views.admin_prompts, name='admin_prompts'),
     path('projects-admin/models/', views.admin_models, name='admin_models'),
+    path('projects-admin/anlage1/', views.admin_anlage1, name='admin_anlage1'),
     path('work/projekte/', views.projekt_list, name='projekt_list'),
     path('work/projekte/neu/', views.projekt_create, name='projekt_create'),
     path('work/projekte/upload/', views.projekt_upload, name='projekt_upload'),
