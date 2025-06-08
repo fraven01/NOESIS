@@ -299,6 +299,15 @@ class LLMTasksTests(TestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": "A1", "2": "A2"})
 
+    def test_parse_anlage1_questions_with_newlines(self):
+        """Extraktion funktioniert trotz Zeilenumbr\u00fcche."""
+        text = (
+            "Frage 1:\nExtrahiere alle Unternehmen als Liste.\nA1\n"
+            "Frage 2:\nExtrahiere alle Fachbereiche als Liste.\nA2"
+        )
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {"1": "A1", "2": "A2"})
+
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
