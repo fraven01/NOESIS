@@ -10,12 +10,33 @@ from pathlib import Path
 
 from django.conf import settings
 
-from .models import BVProject, BVProjectFile, Prompt
+from .models import BVProject, BVProjectFile, Prompt, Anlage1Config
 from .llm_utils import query_llm
 from docx import Document
 
 logger = logging.getLogger(__name__)
 
+ANLAGE1_QUESTIONS = [
+    "Frage 1: Extrahiere alle Unternehmen als Liste.",
+    "Frage 2: Extrahiere alle Fachbereiche als Liste.",
+    "Frage 3: Liste alle Hersteller und Produktnamen auf.",
+    "Frage 4: Lege den Textblock als question4_raw ab.",
+    "Frage 5: Fasse den Zweck des Systems in einem Satz.",
+    "Frage 6: Extrahiere Web-URLs.",
+    "Frage 7: Extrahiere ersetzte Systeme.",
+    "Frage 8: Extrahiere Legacy-Funktionen.",
+    "Frage 9: Lege den Text als question9_raw ab.",
+]
+
+_ANLAGE1_INTRO = (
+    "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
+)
+_ANLAGE1_IT = (
+    "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
+)
+_ANLAGE1_SUFFIX = (
+    "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
+)
 
 def _add_editable_flags(data: dict) -> dict:
     """Ergänzt jedes Feld eines Dictionaries um ein ``editable``-Flag."""
@@ -204,22 +225,16 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         anlage.save(update_fields=["analysis_json"])
         return data
 
-    default_prompt = (
-            "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
-            "Frage 1: Extrahiere alle Unternehmen als Liste.\n"
-            "Frage 2: Extrahiere alle Fachbereiche als Liste.\n"
-            "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-            "Frage 3: Liste alle Hersteller und Produktnamen auf.\n"
-            "Frage 4: Lege den Textblock als question4_raw ab.\n"
-            "Frage 5: Fasse den Zweck des Systems in einem Satz.\n"
-            "Frage 6: Extrahiere Web-URLs.\n"
-            "Frage 7: Extrahiere ersetzte Systeme.\n"
-            "Frage 8: Extrahiere Legacy-Funktionen.\n"
-            "Frage 9: Lege den Text als question9_raw ab.\n"
-            "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
-        )
-
-    prefix = get_prompt("check_anlage1", default_prompt)
+    cfg = Anlage1Config.objects.first()
+    parts = [_ANLAGE1_INTRO]
+    for i, qtext in enumerate(ANLAGE1_QUESTIONS, start=1):
+        enabled = getattr(cfg, f"enable_q{i}", True) if cfg else True
+        if enabled:
+            parts.append(get_prompt(f"anlage1_q{i}", qtext) + "\n")
+    insert_at = 3 if len(parts) > 2 else len(parts)
+    parts.insert(insert_at, _ANLAGE1_IT)
+    parts.append(_ANLAGE1_SUFFIX)
+    prefix = "".join(parts)
     prompt = prefix + anlage.text_content
 
     reply = query_llm(prompt, model_name=model_name, model_type="anlagen")

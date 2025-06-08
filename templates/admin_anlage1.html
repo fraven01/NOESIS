@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Anlage 1 Fragen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 1 Fragen</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Frage</th>
+                <th class="py-2">Aktiv</th>
+                <th class="py-2">Prompt</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for num, p, enabled in items %}
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">{{ num }}</td>
+                <td class="py-1 text-center">
+                    <input type="checkbox" name="enable_q{{ num }}" {% if enabled %}checked{% endif %}>
+                </td>
+                <td class="py-1">
+                    <textarea name="text{{ num }}" rows="2" class="border rounded p-2 w-full">{{ p.text }}</textarea>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}
