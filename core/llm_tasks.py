@@ -134,6 +134,7 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
         return None
 
     matches.sort(key=lambda x: x[0])
+    logger.debug("parse_anlage1_questions: Gefundene Matches: %r", matches)
     parsed: dict[str, str | None] = {}
     for idx, (start, end, num) in enumerate(matches):
         next_start = matches[idx + 1][0] if idx + 1 < len(matches) else len(text_content)
