@@ -114,7 +114,7 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
     questions_all = list(Anlage1Question.objects.order_by("num"))
     questions = []
     for q in questions_all:
-        enabled = q.enabled
+        enabled = q.parser_enabled
         if cfg:
             enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
         if enabled:
@@ -247,16 +247,22 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     question_objs = list(Anlage1Question.objects.order_by("num"))
     if not question_objs:
         question_objs = [
-            Anlage1Question(num=i, text=t, enabled=True)
+            Anlage1Question(
+                num=i,
+                text=t,
+                enabled=True,
+                parser_enabled=True,
+                llm_enabled=True,
+            )
             for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
         ]
 
     cfg = Anlage1Config.objects.first()
 
-    # Eine Frage gilt nur dann als aktiv, wenn sowohl ``q.enabled`` als auch das
-    # entsprechende Flag in ``Anlage1Config`` gesetzt sind.
+    # Eine Frage gilt nur dann als aktiv, wenn sowohl ``q.llm_enabled`` als auch
+    # das entsprechende Flag in ``Anlage1Config`` gesetzt sind.
     def _is_enabled(q: Anlage1Question) -> bool:
-        enabled = q.enabled
+        enabled = q.llm_enabled
         if cfg:
             enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
         return enabled
@@ -320,7 +326,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         if ans in (None, "", []):
             ans = "leer"
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
-        enabled = q.enabled
+        enabled = q.llm_enabled
         if cfg:
             enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
         if enabled:

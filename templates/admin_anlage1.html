@@ -8,7 +8,8 @@
         <thead>
             <tr class="border-b text-left">
                 <th class="py-2">Frage</th>
-                <th class="py-2">Aktiv</th>
+                <th class="py-2">Parser</th>
+                <th class="py-2">LLM</th>
                 <th class="py-2">Prompt</th>
             </tr>
         </thead>
@@ -17,7 +18,10 @@
             <tr class="border-b align-top text-sm">
                 <td class="py-1 font-semibold">{{ q.num }}</td>
                 <td class="py-1 text-center">
-                    <input type="checkbox" name="enabled{{ q.id }}" {% if q.enabled %}checked{% endif %}>
+                    <input type="checkbox" name="parser_enabled{{ q.id }}" {% if q.parser_enabled %}checked{% endif %}>
+                </td>
+                <td class="py-1 text-center">
+                    <input type="checkbox" name="llm_enabled{{ q.id }}" {% if q.llm_enabled %}checked{% endif %}>
                 </td>
                 <td class="py-1">
                     <textarea name="text{{ q.id }}" rows="2" class="border rounded p-2 w-full">{{ q.text }}</textarea>
@@ -27,7 +31,10 @@
         <tr class="border-b align-top text-sm">
             <td class="py-1 font-semibold">neu</td>
             <td class="py-1 text-center">
-                <input type="checkbox" name="new_enabled" checked>
+                <input type="checkbox" name="new_parser_enabled" checked>
+            </td>
+            <td class="py-1 text-center">
+                <input type="checkbox" name="new_llm_enabled" checked>
             </td>
             <td class="py-1">
                 <textarea name="new_text" rows="2" class="border rounded p-2 w-full"></textarea>
