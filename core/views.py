@@ -627,13 +627,19 @@ def admin_anlage1(request):
     questions = list(Anlage1Question.objects.all().order_by("num"))
     if request.method == "POST":
         for q in questions:
-            q.enabled = bool(request.POST.get(f"enabled{q.id}"))
+            q.parser_enabled = bool(request.POST.get(f"parser_enabled{q.id}"))
+            q.llm_enabled = bool(request.POST.get(f"llm_enabled{q.id}"))
             q.text = request.POST.get(f"text{q.id}", q.text)
             q.save()
         new_text = request.POST.get("new_text")
         if new_text:
             num = questions[-1].num + 1 if questions else 1
-            Anlage1Question.objects.create(num=num, text=new_text, enabled=bool(request.POST.get("new_enabled")))
+            Anlage1Question.objects.create(
+                num=num,
+                text=new_text,
+                parser_enabled=bool(request.POST.get("new_parser_enabled")),
+                llm_enabled=bool(request.POST.get("new_llm_enabled")),
+            )
         return redirect("admin_anlage1")
     context = {"questions": questions}
     return render(request, "admin_anlage1.html", context)
@@ -906,7 +912,13 @@ def projekt_file_edit_json(request, pk):
         question_objs = list(Anlage1Question.objects.order_by("num"))
         if not question_objs:
             question_objs = [
-                Anlage1Question(num=i, text=t, enabled=True)
+                Anlage1Question(
+                    num=i,
+                    text=t,
+                    enabled=True,
+                    parser_enabled=True,
+                    llm_enabled=True,
+                )
                 for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
             ]
         questions = {q.num: q.text for q in question_objs}

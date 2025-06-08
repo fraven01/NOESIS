@@ -59,6 +59,10 @@ der Antwort die Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich
 nachträglich im Webinterface anpassen und dokumentieren die manuelle
 Bewertung.
 
+Im Admin-Bereich kann pro Frage separat festgelegt werden, ob sie beim
+Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
+(`llm_enabled`) berücksichtigt wird.
+
 ### Kachel-Zugriff verwalten
 
 Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der

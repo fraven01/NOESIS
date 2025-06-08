@@ -207,6 +207,8 @@ class Anlage1Question(models.Model):
     num = models.PositiveSmallIntegerField(unique=True)
     text = models.TextField()
     enabled = models.BooleanField(default=True)
+    parser_enabled = models.BooleanField(default=True)
+    llm_enabled = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["num"]
