@@ -61,6 +61,44 @@ def parse_structured_anlage(text_content: str) -> dict | None:
     return parsed if parsed else None
 
 
+def parse_anlage1_questions(text_content: str) -> dict | None:
+    """Parst ausgeschriebene Fragen in Anlage 1."""
+    if not text_content:
+        return None
+
+    questions = {
+        "1": "Frage 1: Extrahiere alle Unternehmen als Liste.",
+        "2": "Frage 2: Extrahiere alle Fachbereiche als Liste.",
+        "3": "Frage 3: Liste alle Hersteller und Produktnamen auf.",
+        "4": "Frage 4: Lege den Textblock als question4_raw ab.",
+        "5": "Frage 5: Fasse den Zweck des Systems in einem Satz.",
+        "6": "Frage 6: Extrahiere Web-URLs.",
+        "7": "Frage 7: Extrahiere ersetzte Systeme.",
+        "8": "Frage 8: Extrahiere Legacy-Funktionen.",
+        "9": "Frage 9: Lege den Text als question9_raw ab.",
+    }
+
+    positions: list[tuple[int, str]] = []
+    for num, phrase in questions.items():
+        pos = text_content.find(phrase)
+        if pos != -1:
+            positions.append((pos, num))
+
+    if not positions:
+        return None
+
+    positions.sort()
+    parsed: dict[str, str | None] = {}
+    for idx, (pos, num) in enumerate(positions):
+        start = pos + len(questions[num])
+        end = positions[idx + 1][0] if idx + 1 < len(positions) else len(text_content)
+        block = text_content[start:end]
+        block = block.strip().strip("\u00b6").replace("\u00b6", "\n").strip()
+        parsed[num] = block or None
+
+    return parsed if parsed else None
+
+
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -146,7 +184,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
 
-    parsed = parse_structured_anlage(anlage.text_content)
+    parsed = parse_anlage1_questions(anlage.text_content)
     if parsed:
         logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
         questions = {

@@ -228,7 +228,10 @@ class LLMTasksTests(TestCase):
 
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        text = "1.->Q1?\u00b6A1\u00b62.->Q2?\u00b6A2"
+        text = (
+            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
+            "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
+        )
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
