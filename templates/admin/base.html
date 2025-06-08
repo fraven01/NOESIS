@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{# Basisvorlage für Admin-Seiten. Übernimmt Header, Footer und Styles aus base.html #}
+
+{% block content %}
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="p-2 rounded bg-blue-100 text-blue-800 {{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% block admin_content %}{% endblock %}
+{% endblock %}
