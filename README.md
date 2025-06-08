@@ -47,16 +47,17 @@ lässt sich prüfen, ob alle Migrationen angewendet wurden.
 Der Aufruf
 
 ```bash
-python manage.py check_anlage1 <projekt_id>
+python manage.py check_anlage1 42
 ```
 
-führt eine hybride Analyse der Systembeschreibung durch. Zuerst versucht ein
-einfacher Parser, strukturierte Frage-Antwort-Formate direkt auszulesen. Nur
-wenn das fehlschlägt, wird die Gemini-basierte LLM-Analyse gestartet. Das
-Ergebnis wird als JSON in der zugehörigen Anlage gespeichert.
-Das JSON enthält für jede der neun Fragen neben der Antwort nun zusätzliche
-Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich nachträglich
-im Webinterface anpassen und dokumentieren die manuelle Bewertung.
+führt eine hybride Analyse der Systembeschreibung durch. Der Parser sucht dabei
+nach jeder im Admin hinterlegten Frage im Text und verwendet den
+darauffolgenden Abschnitt als Antwort. Nur wenn dieser Ansatz scheitert, wird
+die Gemini‑basierte LLM-Analyse gestartet. Das Ergebnis wird als JSON in der
+zugehörigen Anlage gespeichert. Das JSON enthält für jede der neun Fragen neben
+der Antwort die Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich
+nachträglich im Webinterface anpassen und dokumentieren die manuelle
+Bewertung.
 
 ### Kachel-Zugriff verwalten
 
