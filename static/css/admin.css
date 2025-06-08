@@ -1,0 +1,6 @@
+/* Styles für das moderne Admin-Layout */
+.admin-container { @apply flex flex-col md:flex-row; }
+.admin-sidebar { @apply bg-gray-100 md:w-64 p-4 border-r; }
+.admin-content { @apply flex-1 p-4; }
+.admin-search input { @apply w-full border rounded px-2 py-1 mb-4; }
+.admin-nav a { @apply block py-1 text-blue-700 hover:underline; }
