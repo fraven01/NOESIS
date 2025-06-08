@@ -753,6 +753,26 @@ class AdminModelsViewTests(TestCase):
         self.assertEqual(self.cfg.anlagen_model, "b")
 
 
+class Anlage1EmailTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("emailer", password="pass")
+        self.client.login(username="emailer", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            question_review={"1": {"vorschlag": "Text"}},
+        )
+
+    def test_generate_email(self):
+        url = reverse("anlage1_generate_email", args=[self.file.pk])
+        with patch("core.views.query_llm", return_value="Mail"):
+            resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["text"], "Mail")
+
+
 
 class TileVisibilityTests(TestCase):
     def setUp(self):

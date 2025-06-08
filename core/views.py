@@ -952,6 +952,40 @@ def projekt_file_edit_json(request, pk):
     return render(request, template, context)
 
 
+@login_required
+@require_http_methods(["POST"])
+def anlage1_generate_email(request, pk):
+    """Erstellt einen E-Mail-Text aus den Vorschlägen."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        return JsonResponse({"error": "not found"}, status=404)
+    if anlage.anlage_nr != 1:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    review = anlage.question_review or {}
+    suggestions: list[str] = []
+    for i in get_anlage1_numbers():
+        text = review.get(str(i), {}).get("vorschlag")
+        if text:
+            suggestions.append(text)
+
+    prefix = get_prompt(
+        "anlage1_email",
+        "Formuliere eine freundliche E-Mail an den Fachbereich. Bitte fasse die folgenden Vorschläge zusammen:\n\n",
+    )
+    prompt = prefix + "\n".join(f"- {s}" for s in suggestions)
+    try:
+        text = query_llm(prompt, model_type="default")
+    except RuntimeError:
+        return JsonResponse({"error": "llm"}, status=500)
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"error": "llm"}, status=502)
+
+    return JsonResponse({"text": text})
+
+
 def _validate_llm_output(text: str) -> tuple[bool, str]:
     """Prüfe, ob die LLM-Antwort technisch brauchbar ist."""
     if not text:
