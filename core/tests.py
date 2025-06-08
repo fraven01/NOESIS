@@ -443,7 +443,11 @@ class ProjektFileJSONEditTests(TestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",
-            analysis_json={"questions": {"1": {"answer": "foo"}}},
+            analysis_json={
+                "questions": {
+                    "1": {"answer": "foo", "status": None, "hinweis": "", "vorschlag": ""}
+                }
+            },
         )
 
     def test_edit_json_updates_and_reports(self):
