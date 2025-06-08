@@ -659,9 +659,14 @@ def projekt_list(request):
 @login_required
 def projekt_detail(request, pk):
     projekt = BVProject.objects.get(pk=pk)
+    anh = projekt.anlagen.all()
+    reviewed = anh.filter(analysis_json__isnull=False).count()
     context = {
         "projekt": projekt,
         "status_choices": BVProject.STATUS_CHOICES,
+        "history": projekt.status_history.all(),
+        "num_attachments": anh.count(),
+        "num_reviewed": reviewed,
     }
     return render(request, "projekt_detail.html", context)
 

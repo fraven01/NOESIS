@@ -94,10 +94,31 @@ class BVProject(models.Model):
             cleaned = ", ".join([s.strip() for s in self.software_typen.split(",") if s.strip()])
             self.software_typen = cleaned
             self.title = cleaned
+        is_new = self._state.adding
         super().save(*args, **kwargs)
+        if is_new:
+            BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
 
     def __str__(self) -> str:
         return self.title
+
+
+class BVProjectStatusHistory(models.Model):
+    """Historie der Projektstatus."""
+
+    projekt = models.ForeignKey(
+        BVProject,
+        on_delete=models.CASCADE,
+        related_name="status_history",
+    )
+    status = models.CharField(max_length=30, choices=BVProject.STATUS_CHOICES)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["changed_at"]
+
+    def __str__(self) -> str:
+        return f"{self.projekt} -> {self.get_status_display()}"
 
 
 class BVProjectFile(models.Model):

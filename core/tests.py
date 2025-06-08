@@ -152,6 +152,12 @@ class WorkflowTests(TestCase):
             projekt.refresh_from_db()
             self.assertEqual(projekt.status, status)
 
+    def test_status_history_created(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.assertEqual(projekt.status_history.count(), 1)
+        set_project_status(projekt, BVProject.STATUS_CLASSIFIED)
+        self.assertEqual(projekt.status_history.count(), 2)
+
 
 class LLMTasksTests(TestCase):
     maxDiff = None
