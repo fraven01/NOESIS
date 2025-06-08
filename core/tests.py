@@ -207,22 +207,22 @@ class LLMTasksTests(TestCase):
             "keywords": {"value": [], "editable": True},
             "plausibility_score": {"value": 0.5, "editable": True},
             "manual_comments": {"value": {}, "editable": True},
-            "questions": {
-                "1": {"answer": ["ACME"], "ok": None, "note": ""},
-                "2": {"answer": ["IT"], "ok": None, "note": ""},
-                "3": {"answer": [], "ok": None, "note": ""},
-                "4": {"answer": "raw", "ok": None, "note": ""},
-                "5": {"answer": "Zweck", "ok": True, "note": ""},
-                "6": {"answer": [], "ok": None, "note": ""},
-                "7": {"answer": [], "ok": None, "note": ""},
-                "8": {"answer": [], "ok": None, "note": ""},
-                "9": {"answer": "", "ok": None, "note": ""},
-            },
         }
-        reply = json.dumps(expected)
-        with patch("core.llm_tasks.query_llm", return_value=reply):
+        llm_reply = json.dumps({**expected, "questions": {}})
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9):
             data = check_anlage1(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=1)
+        answers = ["ACME", "IT", [], "raw", "Zweck", [], [], [], ""]
+        expected["questions"] = {
+            str(i): {
+                "answer": answers[i - 1],
+                "status": "ok",
+                "hinweis": "",
+                "vorschlag": "",
+            }
+            for i in range(1, 10)
+        }
         self.assertEqual(file_obj.analysis_json, expected)
         self.assertEqual(data, expected)
 
@@ -238,13 +238,22 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
         )
-        with patch("core.llm_tasks.query_llm", side_effect=AssertionError("LLM should not be called")):
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
             data = check_anlage1(projekt.pk)
-        expected_questions = {
-            str(i): {"answer": None, "ok": None, "note": "Geparst"} for i in range(1, 10)
+        answers = {
+            "1": "A1",
+            "2": "A2",
         }
-        expected_questions["1"]["answer"] = "A1"
-        expected_questions["2"]["answer"] = "A2"
+        expected_questions = {
+            str(i): {
+                "answer": answers.get(str(i), "leer"),
+                "status": "ok",
+                "hinweis": "",
+                "vorschlag": "",
+            }
+            for i in range(1, 10)
+        }
         file_obj = projekt.anlagen.get(anlage_nr=1)
         self.assertEqual(
             file_obj.analysis_json,
@@ -393,25 +402,27 @@ class ProjektFileCheckViewTests(TestCase):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         expected = {
             "task": "check_anlage1",
-            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
         }
-        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
+        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
         self.assertEqual(file_obj.analysis_json, expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
-        expected = {
-            "task": "check_anlage1",
-            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
-        }
-        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
+        expected = {"task": "check_anlage1"}
+        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj.refresh_from_db()
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
         self.assertEqual(file_obj.analysis_json, expected)
 
 
@@ -558,14 +569,14 @@ class ProjektFileCheckResultTests(TestCase):
 
     def test_get_runs_check_and_shows_form(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        expected = {
-            "task": "check_anlage1",
-            "questions": {str(i): {"answer": None, "ok": False if i == 5 else None, "note": ""} for i in range(1,10)}
-        }
-        with patch("core.llm_tasks.query_llm", return_value=json.dumps(expected)):
+        expected = {"task": "check_anlage1"}
+        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
             resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
         self.assertEqual(self.file.analysis_json, expected)
         self.assertContains(resp, "name=\"analysis_json\"")
 
