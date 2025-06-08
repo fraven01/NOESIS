@@ -148,3 +148,51 @@ GOOGLE_AVAILABLE_MODELS = [
 GOOGLE_LLM_MODEL = GOOGLE_AVAILABLE_MODELS[0]
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_LLM_MODEL = "gpt-4o"
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',  # Wichtig: Der Handler muss DEBUG-Meldungen verarbeiten
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        '': {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
+            'handlers': ['console'],
+            'level': 'DEBUG', # Wichtig: Der Root-Logger muss DEBUG-Meldungen abfangen
+            'propagate': False,
+        },
+        'django': { # Der Django-spezifische Logger
+            'handlers': ['console'],
+            'level': 'INFO', # Django selbst loggt nicht alles auf DEBUG standardmäßig, INFO ist oft ausreichend
+            'propagate': False,
+        },
+        'deine_app_name': { # Füge einen Logger für deine spezifische App hinzu (ersetze 'deine_app_name')
+            'handlers': ['console'],
+            'level': 'DEBUG', # Hier setzt du den Loglevel für DEINE App auf DEBUG
+            'propagate': False,
+        },
+        # Wenn du den Namen deines Loggers in deinem Skript genau matchen möchtest:
+        # Dein Skript verwendet: logger = logging.getLogger(__name__)
+        # Wenn dein Skript z.B. in myapp/utils.py liegt, wäre __name__ 'myapp.utils'
+        'bv_project_tasks': { # Passe dies an den tatsächlichen Modulnamen an, wenn du nur diesen spezifischen Logger debuggen möchtest
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    }
+}

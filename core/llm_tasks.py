@@ -91,21 +91,29 @@ def parse_structured_anlage(text_content: str) -> dict | None:
 
 def parse_anlage1_questions(text_content: str) -> dict | None:
     """Parst ausgeschriebene Fragen in Anlage 1."""
+    logger.debug("parse_anlage1_questions: Aufruf mit text_content=%r", text_content[:200] if text_content else None)
     if not text_content:
+        logger.debug("parse_anlage1_questions: Kein Text übergeben.")
         return None
 
     numbers = [str(q.num) for q in Anlage1Question.objects.order_by("num")]
+    logger.debug("parse_anlage1_questions: Gefundene Nummern aus DB: %r", numbers)
     if not numbers:
         numbers = [str(i) for i in range(1, len(ANLAGE1_QUESTIONS) + 1)]
+        logger.debug("parse_anlage1_questions: Fallback auf Standardnummern: %r", numbers)
 
     pattern = re.compile(r"^(\d+)\.")
-    lines = [line.strip() for line in text_content.split("\u00b6")]
+    # Zeilen jetzt nach \n splitten und leere Zeilen filtern
+    lines = [line.strip() for line in text_content.split("\n") if line.strip()]
+    logger.debug("parse_anlage1_questions: Zeilenanzahl nach Split: %d", len(lines))
     indices: list[tuple[int, str]] = []
     for idx, line in enumerate(lines):
         m = pattern.match(line)
         if m and m.group(1) in numbers:
             indices.append((idx, m.group(1)))
+            logger.debug("parse_anlage1_questions: Frage gefunden: Nummer=%s an Zeile %d", m.group(1), idx)
     if not indices:
+        logger.debug("parse_anlage1_questions: Keine Fragen-Indizes gefunden.")
         return None
 
     parsed: dict[str, str | None] = {}
@@ -114,7 +122,9 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
         next_idx = next((i for i, _ in indices if i > pos), len(lines))
         ans_lines = [l for l in lines[start:next_idx] if l]
         parsed[num] = "\n".join(ans_lines).strip() or None
+        logger.debug("parse_anlage1_questions: Antwort für Frage %s: %r", num, parsed[num])
 
+    logger.debug("parse_anlage1_questions: Ergebnis: %r", parsed if parsed else None)
     return parsed if parsed else None
 
 
@@ -210,6 +220,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
         ]
 
+    # Debug-Log für den zu parsenden Text
+    logger.debug("check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r", anlage.text_content[:500] if anlage.text_content else None)
+
     parsed = parse_anlage1_questions(anlage.text_content)
     answers: dict[str, str | list | None]
     data: dict
@@ -235,7 +248,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         prefix = "".join(parts)
         prompt = prefix + anlage.text_content
 
+        logger.debug("check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r", prompt[:500])
         reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -261,6 +276,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         }
         answers = {str(q.num): base_answers.get(str(q.num)) for q in question_objs}
         data["questions"] = {}
+
     cfg = Anlage1Config.objects.first()
 
     questions: dict[str, dict] = {}
@@ -279,8 +295,10 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             prompt = _ANLAGE1_EVAL.format(
                 num=q.num, question=q.text, answer=ans
             )
+            logger.debug("check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r", q.num, prompt)
             try:
                 reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+                logger.debug("check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply)
                 fb = json.loads(reply)
             except Exception:  # noqa: BLE001
                 fb = {"status": "unklar", "hinweis": "LLM Fehler"}
@@ -294,6 +312,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
+
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die zweite Anlage."""
