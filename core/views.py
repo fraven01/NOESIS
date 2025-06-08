@@ -29,6 +29,7 @@ from .models import (
     Prompt,
     LLMConfig,
     Anlage1Config,
+    Anlage1Question,
     Tile,
 )
 from .docx_utils import extract_text
