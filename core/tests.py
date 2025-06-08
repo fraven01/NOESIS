@@ -12,6 +12,7 @@ from .models import (
     Tile,
     UserTileAccess,
     Anlage1Question,
+    Anlage1Config,
 )
 from .docx_utils import extract_text
 from pathlib import Path
@@ -266,7 +267,13 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json, data)
 
     def test_parse_anlage1_questions_extra(self):
-        Anlage1Question.objects.create(num=10, text="Frage 10: Test?", enabled=True)
+        Anlage1Question.objects.create(
+            num=10,
+            text="Frage 10: Test?",
+            enabled=True,
+            parser_enabled=True,
+            llm_enabled=True,
+        )
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
             "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
@@ -308,6 +315,14 @@ class LLMTasksTests(TestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": "A1", "2": "A2"})
 
+    def test_parse_anlage1_questions_respects_parser_enabled(self):
+        q2 = Anlage1Question.objects.get(num=2)
+        q2.parser_enabled = False
+        q2.save(update_fields=["parser_enabled"])
+        text = "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1"
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {"1": "A1"})
+
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
@@ -322,8 +337,8 @@ class LLMTasksTests(TestCase):
     def test_check_anlage1_ignores_disabled_questions(self):
         Anlage1Config.objects.create()  # Standardwerte
         q1 = Anlage1Question.objects.get(num=1)
-        q1.enabled = False
-        q1.save(update_fields=["enabled"])
+        q1.llm_enabled = False
+        q1.save(update_fields=["llm_enabled"])
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
@@ -332,7 +347,7 @@ class LLMTasksTests(TestCase):
             text_content="Text",
         )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        enabled_count = Anlage1Question.objects.filter(enabled=True).count()
+        enabled_count = Anlage1Question.objects.filter(llm_enabled=True).count()
         with patch(
             "core.llm_tasks.query_llm",
             side_effect=["{\"task\": \"check_anlage1\"}"]
