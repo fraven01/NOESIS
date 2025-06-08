@@ -54,6 +54,9 @@ führt eine hybride Analyse der Systembeschreibung durch. Zuerst versucht ein
 einfacher Parser, strukturierte Frage-Antwort-Formate direkt auszulesen. Nur
 wenn das fehlschlägt, wird die Gemini-basierte LLM-Analyse gestartet. Das
 Ergebnis wird als JSON in der zugehörigen Anlage gespeichert.
+Das JSON enthält für jede der neun Fragen neben der Antwort nun zusätzliche
+Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich nachträglich
+im Webinterface anpassen und dokumentieren die manuelle Bewertung.
 
 ### Kachel-Zugriff verwalten
 
