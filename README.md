@@ -50,14 +50,13 @@ Der Aufruf
 python manage.py check_anlage1 42
 ```
 
-führt eine hybride Analyse der Systembeschreibung durch. Der Parser sucht dabei
-nach jeder im Admin hinterlegten Frage im Text und verwendet den
-darauffolgenden Abschnitt als Antwort. Nur wenn dieser Ansatz scheitert, wird
-die Gemini‑basierte LLM-Analyse gestartet. Das Ergebnis wird als JSON in der
-zugehörigen Anlage gespeichert. Das JSON enthält für jede der neun Fragen neben
-der Antwort die Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich
-nachträglich im Webinterface anpassen und dokumentieren die manuelle
-Bewertung.
+führt eine hybride Analyse der Systembeschreibung durch. Zunächst versucht der
+Parser zu jeder im Admin hinterlegten Frage eine Antwort direkt aus dem Text zu
+extrahieren. Anschließend werden – abhängig von den Einstellungen – einzelne
+Fragen zusätzlich einem LLM vorgelegt. Das Ergebnis wird als JSON in der
+zugehörigen Anlage gespeichert. Für jede Frage enthält es neben der Antwort die
+Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich nachträglich im
+Webinterface anpassen und dokumentieren die manuelle Bewertung.
 
 Im Admin-Bereich kann pro Frage separat festgelegt werden, ob sie beim
 Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
