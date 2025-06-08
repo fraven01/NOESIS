@@ -110,9 +110,15 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
 
     text_content = _clean_text(text_content)
 
-    questions = list(
-        Anlage1Question.objects.filter(enabled=True).order_by("num")
-    )
+    cfg = Anlage1Config.objects.first()
+    questions_all = list(Anlage1Question.objects.order_by("num"))
+    questions = []
+    for q in questions_all:
+        enabled = q.enabled
+        if cfg:
+            enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
+        if enabled:
+            questions.append(q)
     if not questions:
         logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
         return None
@@ -245,6 +251,18 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
         ]
 
+    cfg = Anlage1Config.objects.first()
+
+    # Eine Frage gilt nur dann als aktiv, wenn sowohl ``q.enabled`` als auch das
+    # entsprechende Flag in ``Anlage1Config`` gesetzt sind.
+    def _is_enabled(q: Anlage1Question) -> bool:
+        enabled = q.enabled
+        if cfg:
+            enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
+        return enabled
+
+    question_objs = [q for q in question_objs if _is_enabled(q)]
+
     # Debug-Log für den zu parsenden Text
     logger.debug("check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r", anlage.text_content[:500] if anlage.text_content else None)
 
@@ -257,16 +275,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         answers = {str(q.num): parsed.get(str(q.num)) for q in question_objs}
         data = {"task": "check_anlage1", "source": "parser"}
     else:
-        cfg = Anlage1Config.objects.first()
         parts = [_ANLAGE1_INTRO]
         for q in question_objs:
-            enabled = q.enabled
-            if cfg:
-                field = f"enable_q{q.num}"
-                if hasattr(cfg, field):
-                    enabled = getattr(cfg, field)
-            if enabled:
-                parts.append(get_prompt(f"anlage1_q{q.num}", q.text) + "\n")
+            parts.append(get_prompt(f"anlage1_q{q.num}", q.text) + "\n")
         insert_at = 3 if len(parts) > 2 else len(parts)
         parts.insert(insert_at, _ANLAGE1_IT)
         parts.append(_ANLAGE1_SUFFIX)
@@ -302,8 +313,6 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         answers = {str(q.num): base_answers.get(str(q.num)) for q in question_objs}
         data["questions"] = {}
 
-    cfg = Anlage1Config.objects.first()
-
     questions: dict[str, dict] = {}
     for q in question_objs:
         key = str(q.num)
@@ -313,9 +322,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
         enabled = q.enabled
         if cfg:
-            field = f"enable_q{q.num}"
-            if hasattr(cfg, field):
-                enabled = getattr(cfg, field)
+            enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
         if enabled:
             prompt = _ANLAGE1_EVAL.format(
                 num=q.num, question=q.text, answer=ans
