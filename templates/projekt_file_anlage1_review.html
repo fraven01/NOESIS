@@ -36,18 +36,23 @@
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
         <button type="button" id="generate-email" class="bg-green-600 text-white px-4 py-2 rounded">E-Mail generieren</button>
     </div>
+    <textarea id="email-text" rows="8" class="border rounded w-full p-2 mt-4 hidden"></textarea>
 </form>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.getElementById('generate-email').addEventListener('click', function(){
+const emailField=document.getElementById('email-text');
+document.getElementById('generate-email').addEventListener('click',function(){
     const btn=this;btn.disabled=true;
-    fetch('{% url "anlage1_generate_email" anlage.pk %}', {
+    fetch('{% url "anlage1_generate_email" anlage.pk %}',{
         method:'POST',
         headers:{'X-CSRFToken':getCookie('csrftoken')}
     }).then(r=>r.json()).then(data=>{
         btn.disabled=false;
-        if(data.text){navigator.clipboard.writeText(data.text).then(()=>alert('E-Mail Text kopiert'));}
-        else if(data.error){alert('Fehler: '+data.error);}
+        if(data.text){
+            emailField.classList.remove('hidden');
+            emailField.value=data.text;
+            navigator.clipboard.writeText(data.text).then(()=>alert('E-Mail Text kopiert'));
+        }else if(data.error){alert('Fehler: '+data.error);}
     }).catch(()=>{btn.disabled=false;alert('Fehler bei der Generierung');});
 });
 </script>
