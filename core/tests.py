@@ -213,7 +213,7 @@ class LLMTasksTests(TestCase):
         with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9):
             data = check_anlage1(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=1)
-        answers = ["ACME", "IT", [], "raw", "Zweck", [], [], [], ""]
+        answers = [["ACME"], ["IT"], "leer", "raw", "Zweck", "leer", "leer", "leer", "leer"]
         expected["questions"] = {
             str(i): {
                 "answer": answers[i - 1],
