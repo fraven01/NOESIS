@@ -11,6 +11,7 @@ from .models import (
     LLMConfig,
     Tile,
     UserTileAccess,
+    Anlage1Question,
 )
 from .docx_utils import extract_text
 from pathlib import Path
@@ -151,6 +152,7 @@ class WorkflowTests(TestCase):
 
 
 class LLMTasksTests(TestCase):
+    maxDiff = None
     def test_classify_system(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -214,6 +216,7 @@ class LLMTasksTests(TestCase):
             data = check_anlage1(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=1)
         answers = [["ACME"], ["IT"], "leer", "raw", "Zweck", "leer", "leer", "leer", "leer"]
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
             str(i): {
                 "answer": answers[i - 1],
@@ -221,7 +224,7 @@ class LLMTasksTests(TestCase):
                 "hinweis": "",
                 "vorschlag": "",
             }
-            for i in range(1, 10)
+            for i in nums
         }
         self.assertEqual(file_obj.analysis_json, expected)
         self.assertEqual(data, expected)
@@ -229,8 +232,8 @@ class LLMTasksTests(TestCase):
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
-            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
-            "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
+            "1. Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
+            "2. Extrahiere alle Fachbereiche als Liste.\u00b6A2"
         )
         BVProjectFile.objects.create(
             projekt=projekt,
@@ -245,6 +248,7 @@ class LLMTasksTests(TestCase):
             "1": "A1",
             "2": "A2",
         }
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected_questions = {
             str(i): {
                 "answer": answers.get(str(i), "leer"),
@@ -252,14 +256,33 @@ class LLMTasksTests(TestCase):
                 "hinweis": "",
                 "vorschlag": "",
             }
-            for i in range(1, 10)
+            for i in nums
         }
         file_obj = projekt.anlagen.get(anlage_nr=1)
-        self.assertEqual(
-            file_obj.analysis_json,
-            {"task": "check_anlage1", "source": "parser", "questions": expected_questions},
+        self.assertEqual(data["source"], "parser")
+        self.assertEqual(data["questions"]["1"]["answer"], "A1")
+        self.assertEqual(data["questions"]["2"]["answer"], "A2")
+        self.assertEqual(file_obj.analysis_json, data)
+
+    def test_parse_anlage1_questions_extra(self):
+        Anlage1Question.objects.create(num=10, text="Frage 10: Test?", enabled=True)
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        text = (
+            "1. Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
+            "10. Testfrage\u00b6A10"
         )
-        self.assertEqual(data, file_obj.analysis_json)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content=text,
+        )
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
+        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * len(nums)):
+            data = check_anlage1(projekt.pk)
+        q_data = data["questions"]
+        self.assertEqual(q_data["10"]["answer"], "A10")
 
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -409,7 +432,8 @@ class ProjektFileCheckViewTests(TestCase):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
         self.assertEqual(file_obj.analysis_json, expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
@@ -422,7 +446,8 @@ class ProjektFileCheckViewTests(TestCase):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj.refresh_from_db()
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
         self.assertEqual(file_obj.analysis_json, expected)
 
 
@@ -597,7 +622,8 @@ class ProjektFileCheckResultTests(TestCase):
             resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in range(1,10)}
+        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
+        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
         self.assertEqual(self.file.analysis_json, expected)
         self.assertContains(resp, "name=\"analysis_json\"")
 

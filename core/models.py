@@ -197,6 +197,20 @@ class Anlage1Config(models.Model):
         return "Anlage1Config"
 
 
+class Anlage1Question(models.Model):
+    """Frage aus Anlage 1."""
+
+    num = models.PositiveSmallIntegerField(unique=True)
+    text = models.TextField()
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["num"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"Frage {self.num}"
+
+
 class Tile(models.Model):
     """Kachel für das Dashboard."""
 

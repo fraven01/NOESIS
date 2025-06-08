@@ -13,17 +13,26 @@
             </tr>
         </thead>
         <tbody>
-        {% for num, p, enabled in items %}
+        {% for q in questions %}
             <tr class="border-b align-top text-sm">
-                <td class="py-1 font-semibold">{{ num }}</td>
+                <td class="py-1 font-semibold">{{ q.num }}</td>
                 <td class="py-1 text-center">
-                    <input type="checkbox" name="enable_q{{ num }}" {% if enabled %}checked{% endif %}>
+                    <input type="checkbox" name="enabled{{ q.id }}" {% if q.enabled %}checked{% endif %}>
                 </td>
                 <td class="py-1">
-                    <textarea name="text{{ num }}" rows="2" class="border rounded p-2 w-full">{{ p.text }}</textarea>
+                    <textarea name="text{{ q.id }}" rows="2" class="border rounded p-2 w-full">{{ q.text }}</textarea>
                 </td>
             </tr>
         {% endfor %}
+        <tr class="border-b align-top text-sm">
+            <td class="py-1 font-semibold">neu</td>
+            <td class="py-1 text-center">
+                <input type="checkbox" name="new_enabled" checked>
+            </td>
+            <td class="py-1">
+                <textarea name="new_text" rows="2" class="border rounded p-2 w-full"></textarea>
+            </td>
+        </tr>
         </tbody>
     </table>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
