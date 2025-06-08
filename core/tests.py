@@ -26,6 +26,7 @@ from .llm_tasks import (
     check_anlage2,
     get_prompt,
     generate_gutachten,
+    parse_anlage1_questions,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch
@@ -283,6 +284,20 @@ class LLMTasksTests(TestCase):
             data = check_anlage1(projekt.pk)
         q_data = data["questions"]
         self.assertEqual(q_data["10"]["answer"], "A10")
+
+    def test_parse_anlage1_questions_without_numbers(self):
+        """Prüft die Extraktion ohne nummerierte Fragen."""
+        # Frage-Texte ohne Präfix "Frage X:" speichern
+        q1 = Anlage1Question.objects.get(num=1)
+        q2 = Anlage1Question.objects.get(num=2)
+        q1.text = q1.text.split(": ", 1)[1]
+        q2.text = q2.text.split(": ", 1)[1]
+        q1.save(update_fields=["text"])
+        q2.save(update_fields=["text"])
+
+        text = f"{q1.text}\u00b6A1\u00b6{q2.text}\u00b6A2"
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {"1": "A1", "2": "A2"})
 
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
