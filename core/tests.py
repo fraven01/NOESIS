@@ -671,6 +671,27 @@ class GutachtenEditDeleteTests(TestCase):
         self.assertFalse(path.exists())
 
 
+class ProjektFileDeleteTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("deluser", password="pass")
+        self.client.login(username="deluser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_delete_removes_file(self):
+        path = Path(self.file.upload.path)
+        url = reverse("projekt_file_delete", args=[self.file.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertFalse(BVProjectFile.objects.filter(pk=self.file.pk).exists())
+        self.assertFalse(path.exists())
+
+
 class ProjektFileCheckResultTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")

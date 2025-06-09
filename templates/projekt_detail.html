@@ -43,6 +43,7 @@
             <th class="px-2 py-1">Datei</th>
             <th class="px-2 py-1 text-center">Prüfen</th>
             <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
+            <th class="px-2 py-1 text-center">Löschen</th>
         </tr>
     </thead>
     <tbody>
@@ -60,9 +61,15 @@
                    class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
             {% endif %}
             </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'projekt_file_delete' a.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-700 underline">Löschen</button>
+                </form>
+            </td>
         </tr>
     {% empty %}
-        <tr><td colspan="4">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>

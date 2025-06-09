@@ -991,6 +991,21 @@ def anlage1_generate_email(request, pk):
     return JsonResponse({"text": text})
 
 
+@login_required
+@require_http_methods(["POST"])
+def projekt_file_delete(request, pk):
+    """Löscht eine Anlage und entfernt die Datei."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        raise Http404
+    path = Path(settings.MEDIA_ROOT) / anlage.upload.name
+    path.unlink(missing_ok=True)
+    projekt_pk = anlage.projekt.pk
+    anlage.delete()
+    return redirect("projekt_detail", pk=projekt_pk)
+
+
 def _validate_llm_output(text: str) -> tuple[bool, str]:
     """Prüfe, ob die LLM-Antwort technisch brauchbar ist."""
     if not text:
