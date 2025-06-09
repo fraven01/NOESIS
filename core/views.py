@@ -30,6 +30,7 @@ from .models import (
     LLMConfig,
     Anlage1Config,
     Anlage1Question,
+    Anlage1QuestionVariant,
     Tile,
 )
 from .docx_utils import extract_text
@@ -624,13 +625,26 @@ def admin_models(request):
 @admin_required
 def admin_anlage1(request):
     """Konfiguriert Fragen für Anlage 1."""
-    questions = list(Anlage1Question.objects.all().order_by("num"))
+    questions = list(
+        Anlage1Question.objects.all()
+        .prefetch_related("variants")
+        .order_by("num")
+    )
     if request.method == "POST":
         for q in questions:
             q.parser_enabled = bool(request.POST.get(f"parser_enabled{q.id}"))
             q.llm_enabled = bool(request.POST.get(f"llm_enabled{q.id}"))
             q.text = request.POST.get(f"text{q.id}", q.text)
             q.save()
+            for v in list(q.variants.all()):
+                if request.POST.get(f"delvar{v.id}"):
+                    v.delete()
+                    continue
+                v.text = request.POST.get(f"variant{v.id}", v.text)
+                v.save()
+            new_var = request.POST.get(f"new_variant{q.id}")
+            if new_var:
+                Anlage1QuestionVariant.objects.create(question=q, text=new_var)
         new_text = request.POST.get("new_text")
         if new_text:
             num = questions[-1].num + 1 if questions else 1

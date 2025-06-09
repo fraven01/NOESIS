@@ -11,15 +11,21 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 mt-6">
     {% for tile in tiles %}
     <a href="{% url tile.url_name %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
-        {% if tile.slug == 'talkdiary' %}
+        {% if tile.image %}
+        <img src="{{ tile.image.url }}" class="h-32 w-full object-cover" alt="{{ tile.name }}">
+        {% elif tile.slug == 'talkdiary' %}
         <div class="h-32 bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
-        {% elif tile.slug == 'projektverwaltung' %}
-        <div class="h-32 bg-gradient-to-r from-green-600 to-green-800 flex items-center justify-center">
-        {% else %}
-        <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
-        {% endif %}
             <i class="{{ tile.icon }} text-white text-4xl"></i>
         </div>
+        {% elif tile.slug == 'projektverwaltung' %}
+        <div class="h-32 bg-gradient-to-r from-green-600 to-green-800 flex items-center justify-center">
+            <i class="{{ tile.icon }} text-white text-4xl"></i>
+        </div>
+        {% else %}
+        <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
+            <i class="{{ tile.icon }} text-white text-4xl"></i>
+        </div>
+        {% endif %}
         <div class="p-4 bg-white">
             <h3 class="text-lg font-semibold mb-2">{{ tile.name }}</h3>
             <p class="text-gray-600">{{ tile.description }}</p>
