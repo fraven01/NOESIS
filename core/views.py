@@ -505,6 +505,26 @@ def transcribe_recording(request, pk):
 
 
 @login_required
+@require_http_methods(["POST"])
+def recording_delete(request, pk):
+    """Löscht eine Aufnahme des angemeldeten Benutzers."""
+    try:
+        rec = Recording.objects.get(pk=pk, user=request.user)
+    except Recording.DoesNotExist:
+        raise Http404
+
+    if rec.audio_file:
+        (Path(settings.MEDIA_ROOT) / rec.audio_file.name).unlink(missing_ok=True)
+    if rec.transcript_file:
+        (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(missing_ok=True)
+
+    bereich = rec.bereich
+    rec.delete()
+    messages.success(request, "Aufnahme gelöscht")
+    return redirect("talkdiary_%s" % bereich)
+
+
+@login_required
 @admin_required
 def admin_talkdiary(request):
     recordings = list(Recording.objects.all().order_by("-created_at"))
