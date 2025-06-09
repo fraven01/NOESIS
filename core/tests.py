@@ -21,6 +21,7 @@ from tempfile import NamedTemporaryFile
 from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from .forms import BVProjectForm, BVProjectUploadForm
 from .workflow import set_project_status
 from .llm_tasks import (
     classify_system,
@@ -82,6 +83,25 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertIn("Das ist ein Test", text)
+
+
+class BVProjectFormTests(TestCase):
+    def test_project_form_docx_validation(self):
+        data = {
+            "beschreibung": "",
+            "software_typen": "A",
+            "status": BVProject.STATUS_NEW,
+        }
+        valid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
+        self.assertTrue(valid.is_valid())
+        invalid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
+        self.assertFalse(invalid.is_valid())
+
+    def test_upload_form_docx_validation(self):
+        valid = BVProjectUploadForm({}, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
+        self.assertTrue(valid.is_valid())
+        invalid = BVProjectUploadForm({}, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
+        self.assertFalse(invalid.is_valid())
 
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):

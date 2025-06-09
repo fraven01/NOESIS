@@ -64,7 +64,18 @@ class TranscriptUploadForm(forms.Form):
         return f
 
 
-class BVProjectForm(forms.ModelForm):
+class DocxValidationMixin:
+    """Mixin mit Validierung für DOCX-Dateien."""
+
+    def clean_docx_file(self):
+        """Erlaubt nur Dateien mit der Endung .docx."""
+        f = self.cleaned_data.get("docx_file")
+        if f and not f.name.lower().endswith(".docx"):
+            raise forms.ValidationError("Nur .docx Dateien erlaubt")
+        return f
+
+
+class BVProjectForm(DocxValidationMixin, forms.ModelForm):
     docx_file = forms.FileField(
         required=False,
         label="DOCX-Datei",
@@ -94,24 +105,14 @@ class BVProjectForm(forms.ModelForm):
         cleaned = ", ".join(names)
         return cleaned
 
-    def clean_docx_file(self):
-        f = self.cleaned_data.get("docx_file")
-        if f and not f.name.lower().endswith(".docx"):
-            raise forms.ValidationError("Nur .docx Dateien erlaubt")
-        return f
 
 
-class BVProjectUploadForm(forms.Form):
+class BVProjectUploadForm(DocxValidationMixin, forms.Form):
     docx_file = forms.FileField(
         label="DOCX-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
-    def clean_docx_file(self):
-        f = self.cleaned_data.get("docx_file")
-        if f and not f.name.lower().endswith(".docx"):
-            raise forms.ValidationError("Nur .docx Dateien erlaubt")
-        return f
 
 
 class BVProjectFileForm(forms.ModelForm):
