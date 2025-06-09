@@ -8,3 +8,4 @@ openai
 google-generativeai
 python-dotenv
 python-docx
+Pillow
