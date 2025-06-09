@@ -2,3 +2,8 @@
 .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
 }
+
+/* Stil für Zurück-Link im Header */
+.back-link {
+    margin-right: 0.5rem;
+}
