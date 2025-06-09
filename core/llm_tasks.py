@@ -111,7 +111,9 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
     text_content = _clean_text(text_content)
 
     cfg = Anlage1Config.objects.first()
-    questions_all = list(Anlage1Question.objects.order_by("num"))
+    questions_all = list(
+        Anlage1Question.objects.prefetch_related("variants").order_by("num")
+    )
     questions = []
     for q in questions_all:
         enabled = q.parser_enabled
@@ -125,14 +127,19 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
 
     matches: list[tuple[int, int, int]] = []
     for q in questions:
-        pattern = re.escape(_clean_text(q.text))
-        m = re.search(pattern, text_content)
-        if m:
-            matches.append((m.start(), m.end(), q.num))
+        best: tuple[int, int] | None = None
+        variants = [q.text] + [v.text for v in q.variants.all()]
+        for var in variants:
+            pattern = re.escape(_clean_text(var))
+            m = re.search(pattern, text_content)
+            if m and (best is None or m.start() < best[0]):
+                best = (m.start(), m.end())
+        if best:
+            matches.append((best[0], best[1], q.num))
             logger.debug(
                 "parse_anlage1_questions: Frage %s gefunden an Position %d",
                 q.num,
-                m.start(),
+                best[0],
             )
 
     if not matches:
