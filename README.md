@@ -61,6 +61,8 @@ Webinterface anpassen und dokumentieren die manuelle Bewertung.
 Im Admin-Bereich kann pro Frage separat festgelegt werden, ob sie beim
 Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
 (`llm_enabled`) berücksichtigt wird.
+Für jede Frage lassen sich mehrere Varianten hinterlegen, die der Parser beim
+Extrahieren berücksichtigt.
 
 ### Kachel-Zugriff verwalten
 

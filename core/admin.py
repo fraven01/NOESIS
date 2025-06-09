@@ -16,7 +16,7 @@ class PromptAdmin(admin.ModelAdmin):
 
 @admin.register(Tile)
 class TileAdmin(admin.ModelAdmin):
-    list_display = ("slug", "name", "bereich", "url_name")
+    list_display = ("slug", "name", "bereich", "url_name", "image")
 
 
 @admin.register(UserTileAccess)

@@ -237,6 +237,30 @@ class Anlage1Question(models.Model):
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"Frage {self.num}"
 
+    def save(self, *args, **kwargs) -> None:
+        """Speichert die Frage und legt ggf. eine erste Variante an."""
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if is_new and not self.variants.exists():
+            Anlage1QuestionVariant.objects.create(question=self, text=self.text)
+
+
+class Anlage1QuestionVariant(models.Model):
+    """Alternative Formulierungen für eine Frage aus Anlage 1."""
+
+    question = models.ForeignKey(
+        Anlage1Question,
+        on_delete=models.CASCADE,
+        related_name="variants",
+    )
+    text = models.TextField()
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"Variante zu Frage {self.question_id}"
+
 
 class Tile(models.Model):
     """Kachel für das Dashboard."""
@@ -254,6 +278,7 @@ class Tile(models.Model):
     url_name = models.CharField(max_length=100)
     icon = models.CharField(max_length=50, blank=True)
     description = models.CharField(max_length=200, blank=True)
+    image = models.ImageField(upload_to="tile_images/", blank=True, null=True)
     users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="UserTileAccess",

@@ -307,10 +307,23 @@ class LLMTasksTests(TestCase):
         q2.text = q2.text.split(": ", 1)[1]
         q1.save(update_fields=["text"])
         q2.save(update_fields=["text"])
+        v1 = q1.variants.first()
+        v2 = q2.variants.first()
+        v1.text = q1.text
+        v2.text = q2.text
+        v1.save()
+        v2.save()
 
         text = f"{q1.text}\u00b6A1\u00b6{q2.text}\u00b6A2"
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": "A1", "2": "A2"})
+
+    def test_parse_anlage1_questions_with_variant(self):
+        q1 = Anlage1Question.objects.get(num=1)
+        q1.variants.create(text="Alternative Frage 1?")
+        text = "Alternative Frage 1?\u00b6A1"
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {"1": "A1"})
 
     def test_parse_anlage1_questions_with_newlines(self):
         """Extraktion funktioniert trotz Zeilenumbr\u00fcche."""
@@ -812,6 +825,16 @@ class TileVisibilityTests(TestCase):
         UserTileAccess.objects.create(user=self.user, tile=self.talkdiary)
         resp = self.client.get(reverse("personal"))
         self.assertContains(resp, "TalkDiary")
+
+    def test_personal_with_image(self):
+        UserTileAccess.objects.create(user=self.user, tile=self.talkdiary)
+        self.talkdiary.image.save(
+            "img.png",
+            SimpleUploadedFile("img.png", b"data"),
+            save=True,
+        )
+        resp = self.client.get(reverse("personal"))
+        self.assertContains(resp, "<img", html=False)
 
     def test_work_with_projekt_access(self):
         UserTileAccess.objects.create(user=self.user, tile=self.projekt)
