@@ -10,6 +10,7 @@
                 <th class="py-2">Frage</th>
                 <th class="py-2">Parser</th>
                 <th class="py-2">LLM</th>
+                <th class="py-2">Löschen</th>
                 <th class="py-2">Prompt</th>
             </tr>
         </thead>
@@ -22,6 +23,9 @@
                 </td>
                 <td class="py-1 text-center">
                     <input type="checkbox" name="llm_enabled{{ q.id }}" {% if q.llm_enabled %}checked{% endif %}>
+                </td>
+                <td class="py-1 text-center">
+                    <input type="checkbox" name="delete{{ q.id }}">
                 </td>
                 <td class="py-1">
                     <textarea name="text{{ q.id }}" rows="2" class="border rounded p-2 w-full">{{ q.text }}</textarea>
@@ -47,6 +51,7 @@
             <td class="py-1 text-center">
                 <input type="checkbox" name="new_llm_enabled" checked>
             </td>
+            <td class="py-1 text-center"></td>
             <td class="py-1">
                 <textarea name="new_text" rows="2" class="border rounded p-2 w-full"></textarea>
             </td>

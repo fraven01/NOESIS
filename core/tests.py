@@ -921,3 +921,29 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
 
 
+class AdminAnlage1ViewTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("a1admin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="a1admin", password="pass")
+
+    def test_delete_question(self):
+        url = reverse("admin_anlage1")
+        questions = list(Anlage1Question.objects.all())
+        q = questions[0]
+        data = {}
+        for question in questions:
+            if question.id == q.id:
+                data[f"delete{question.id}"] = "on"
+            if question.parser_enabled:
+                data[f"parser_enabled{question.id}"] = "on"
+            if question.llm_enabled:
+                data[f"llm_enabled{question.id}"] = "on"
+            data[f"text{question.id}"] = question.text
+        resp = self.client.post(url, data)
+        self.assertRedirects(resp, url)
+        self.assertFalse(Anlage1Question.objects.filter(id=q.id).exists())
+        self.assertEqual(Anlage1Question.objects.count(), len(questions) - 1)
+
+
