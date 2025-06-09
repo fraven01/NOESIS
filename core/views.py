@@ -627,6 +627,9 @@ def admin_anlage1(request):
     questions = list(Anlage1Question.objects.all().order_by("num"))
     if request.method == "POST":
         for q in questions:
+            if request.POST.get(f"delete{q.id}"):
+                q.delete()
+                continue
             q.parser_enabled = bool(request.POST.get(f"parser_enabled{q.id}"))
             q.llm_enabled = bool(request.POST.get(f"llm_enabled{q.id}"))
             q.text = request.POST.get(f"text{q.id}", q.text)
