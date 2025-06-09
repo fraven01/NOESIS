@@ -7,6 +7,7 @@ from django.apps import apps
 from .models import (
     BVProject,
     BVProjectFile,
+    Recording,
     Prompt,
     LLMConfig,
     Tile,
@@ -921,6 +922,58 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
 
 
+
+class RecordingDeleteTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("recuser", password="pass")
+        self.client.login(username="recuser", password="pass")
+        self.tile = Tile.objects.get_or_create(
+            slug="talkdiary",
+            defaults={
+                "name": "TalkDiary",
+                "bereich": Tile.PERSONAL,
+                "url_name": "talkdiary_personal",
+            },
+        )[0]
+        UserTileAccess.objects.create(user=self.user, tile=self.tile)
+        audio = SimpleUploadedFile("a.wav", b"data")
+        transcript = SimpleUploadedFile("a.md", b"text")
+        self.rec = Recording.objects.create(
+            user=self.user,
+            bereich=Recording.PERSONAL,
+            audio_file=audio,
+            transcript_file=transcript,
+        )
+        self.audio_path = Path(self.rec.audio_file.path)
+        self.trans_path = Path(self.rec.transcript_file.path)
+
+    def test_delete_own_recording(self):
+        url = reverse("recording_delete", args=[self.rec.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("talkdiary_personal"))
+        self.assertFalse(Recording.objects.filter(pk=self.rec.pk).exists())
+        self.assertFalse(self.audio_path.exists())
+        self.assertFalse(self.trans_path.exists())
+
+    def test_delete_requires_post(self):
+        url = reverse("recording_delete", args=[self.rec.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 405)
+        self.assertTrue(Recording.objects.filter(pk=self.rec.pk).exists())
+
+    def test_delete_other_user_recording(self):
+        other = User.objects.create_user("other", password="pass")
+        rec = Recording.objects.create(
+            user=other,
+            bereich=Recording.PERSONAL,
+            audio_file=SimpleUploadedFile("b.wav", b"d"),
+            transcript_file=SimpleUploadedFile("b.md", b"t"),
+        )
+        url = reverse("recording_delete", args=[rec.pk])
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Recording.objects.filter(pk=rec.pk).exists())
+
 class AdminAnlage1ViewTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -945,5 +998,6 @@ class AdminAnlage1ViewTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(Anlage1Question.objects.filter(id=q.id).exists())
         self.assertEqual(Anlage1Question.objects.count(), len(questions) - 1)
+
 
 

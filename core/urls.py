@@ -18,6 +18,7 @@ urlpatterns = [
     path('work/talkdiary/', views.talkdiary, {'bereich': 'work'}, name='talkdiary_work'),
     path('talkdiary/<int:pk>/', views.talkdiary_detail, name='talkdiary_detail'),
     path('transcribe/<int:pk>/', views.transcribe_recording, name='transcribe_recording'),
+    path('recording/delete/<int:pk>/', views.recording_delete, name='recording_delete'),
     path('talkdiary-admin/', views.admin_talkdiary, name='admin_talkdiary'),
     path('projects-admin/', views.admin_projects, name='admin_projects'),
     path('projects-admin/<int:pk>/delete/', views.admin_project_delete, name='admin_project_delete'),

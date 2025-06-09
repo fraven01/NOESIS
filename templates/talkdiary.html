@@ -45,6 +45,10 @@
             {% if rec.transcript_file %}
             <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-green-600 text-white rounded">Transcript</a>
             {% endif %}
+            <form action="{% url 'recording_delete' rec.pk %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Aufnahme wirklich löschen?');">Löschen</button>
+            </form>
         </div>
         <p class="mt-1 flex items-center break-all">
             <i class="fas fa-microphone text-blue-600 mr-2"></i>
