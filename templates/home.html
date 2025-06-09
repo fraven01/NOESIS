@@ -5,18 +5,26 @@
 {% block content %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
     <a href="{% url 'work' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        {% if work_area and work_area.image %}
+        <img src="{{ work_area.image.url }}" class="h-48 w-full object-cover" alt="{{ work_area.name }}">
+        {% else %}
         <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0052A5, #00B2FF);">
             <i class="fas fa-briefcase text-white text-5xl"></i>
         </div>
+        {% endif %}
         <div class="p-4">
             <h3 class="text-xl font-semibold mb-2">Arbeitsassistent</h3>
             <p class="text-gray-600">Organisieren Sie Ihre beruflichen Aufgaben und Termine.</p>
         </div>
     </a>
     <a href="{% url 'personal' %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
+        {% if personal_area and personal_area.image %}
+        <img src="{{ personal_area.image.url }}" class="h-48 w-full object-cover" alt="{{ personal_area.name }}">
+        {% else %}
         <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0070D1, #6EB5FF);">
             <i class="fas fa-user text-white text-5xl"></i>
         </div>
+        {% endif %}
         <div class="p-4">
             <h3 class="text-xl font-semibold mb-2">Persönlicher Bereich</h3>
             <p class="text-gray-600">Verwalten Sie Ihre persönlichen Erinnerungen und Notizen.</p>

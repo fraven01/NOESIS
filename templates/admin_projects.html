@@ -29,6 +29,7 @@
                 <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
                 <td class="py-1 text-center">
                     <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded mr-2">Bearbeiten</a>
+                    <a href="{% url 'admin_project_cleanup' p.pk %}" class="px-2 py-1 bg-yellow-600 text-white rounded mr-2">Bereinigen</a>
                     <form action="{% url 'admin_project_delete' p.pk %}" method="post" class="inline">
                         {% csrf_token %}
                         <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
