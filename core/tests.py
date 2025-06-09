@@ -21,6 +21,7 @@ from tempfile import NamedTemporaryFile
 from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from .forms import BVProjectForm, BVProjectUploadForm
 from .workflow import set_project_status
 from .llm_tasks import (
@@ -68,6 +69,65 @@ class AdminProjectsTests(TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 405)
         self.assertTrue(BVProject.objects.filter(id=self.p1.id).exists())
+
+
+class AdminProjectCleanupTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("admin2", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="admin2", password="pass")
+
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_delete_file(self):
+        path = Path(self.file.upload.path)
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_file", "file_id": self.file.id})
+        self.assertRedirects(resp, url)
+        self.assertFalse(BVProjectFile.objects.filter(id=self.file.id).exists())
+        self.assertFalse(path.exists())
+
+    def test_delete_gutachten(self):
+        gpath = generate_gutachten(self.projekt.pk, text="foo")
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_gutachten"})
+        self.assertRedirects(resp, url)
+        self.projekt.refresh_from_db()
+        self.assertEqual(self.projekt.gutachten_file.name, "")
+        self.assertFalse(gpath.exists())
+
+    def test_delete_classification(self):
+        self.projekt.classification_json = {"a": 1}
+        self.projekt.save()
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_classification"})
+        self.assertRedirects(resp, url)
+        self.projekt.refresh_from_db()
+        self.assertIsNone(self.projekt.classification_json)
+
+    def test_delete_summary(self):
+        self.projekt.llm_initial_output = "x"
+        self.projekt.llm_antwort = "y"
+        self.projekt.llm_geprueft = True
+        self.projekt.llm_geprueft_am = timezone.now()
+        self.projekt.llm_validated = True
+        self.projekt.save()
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_summary"})
+        self.assertRedirects(resp, url)
+        self.projekt.refresh_from_db()
+        self.assertEqual(self.projekt.llm_initial_output, "")
+        self.assertEqual(self.projekt.llm_antwort, "")
+        self.assertFalse(self.projekt.llm_geprueft)
+        self.assertIsNone(self.projekt.llm_geprueft_am)
+        self.assertFalse(self.projekt.llm_validated)
 
 
 

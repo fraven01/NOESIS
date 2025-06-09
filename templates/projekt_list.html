@@ -3,7 +3,6 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Projektverwaltung</h1>
 <a href="{% url 'projekt_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Neues Projekt</a>
-<a href="{% url 'projekt_upload' %}" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">DOCX Upload</a>
 {% if is_admin %}
 <a href="{% url 'admin_projects' %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Admin</a>
 {% endif %}
