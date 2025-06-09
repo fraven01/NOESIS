@@ -337,14 +337,17 @@ class LLMTasksTests(TestCase):
 
         text = f"{q1.text}\u00b6A1\u00b6{q2.text}\u00b6A2"
         parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": "A1", "2": "A2"})
+        self.assertEqual(
+            parsed,
+            {"1": {"answer": "A1", "found_num": None}, "2": {"answer": "A2", "found_num": None}},
+        )
 
     def test_parse_anlage1_questions_with_variant(self):
         q1 = Anlage1Question.objects.get(num=1)
         q1.variants.create(text="Alternative Frage 1?")
         text = "Alternative Frage 1?\u00b6A1"
         parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": "A1"})
+        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
 
     def test_parse_anlage1_questions_with_newlines(self):
         """Extraktion funktioniert trotz Zeilenumbr\u00fcche."""
@@ -353,7 +356,10 @@ class LLMTasksTests(TestCase):
             "Frage 2:\nExtrahiere alle Fachbereiche als Liste.\nA2"
         )
         parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": "A1", "2": "A2"})
+        self.assertEqual(
+            parsed,
+            {"1": {"answer": "A1", "found_num": "1"}, "2": {"answer": "A2", "found_num": "2"}},
+        )
 
     def test_parse_anlage1_questions_respects_parser_enabled(self):
         q2 = Anlage1Question.objects.get(num=2)
@@ -361,7 +367,23 @@ class LLMTasksTests(TestCase):
         q2.save(update_fields=["parser_enabled"])
         text = "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1"
         parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": "A1"})
+        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
+
+    def test_wrong_question_number_sets_hint(self):
+        """Hinweis wird gesetzt, wenn die Nummer nicht passt."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content=text,
+        )
+        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
+            analysis = check_anlage1(projekt.pk)
+        hint = analysis["questions"]["1"]["hinweis"]
+        self.assertIn("Frage 1.2 statt 1", hint)
 
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
