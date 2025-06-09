@@ -1,5 +1,5 @@
 from pathlib import Path
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest, Http404
 from django.core.files.storage import default_storage
@@ -595,6 +595,59 @@ def admin_project_delete(request, pk):
         raise Http404
     projekt.delete()
     return redirect("admin_projects")
+
+
+@login_required
+@admin_required
+def admin_project_cleanup(request, pk):
+    """Bietet Löschfunktionen für Projektdaten."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete_file":
+            file_id = request.POST.get("file_id")
+            try:
+                anlage = projekt.anlagen.get(pk=file_id)
+            except BVProjectFile.DoesNotExist:
+                raise Http404
+            if anlage.upload:
+                (Path(settings.MEDIA_ROOT) / anlage.upload.name).unlink(missing_ok=True)
+            anlage.delete()
+            messages.success(request, "Anlage gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
+        if action == "delete_gutachten":
+            if projekt.gutachten_file:
+                path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+                path.unlink(missing_ok=True)
+                projekt.gutachten_file = ""
+                projekt.save(update_fields=["gutachten_file"])
+            messages.success(request, "Gutachten gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
+        if action == "delete_classification":
+            projekt.classification_json = None
+            projekt.save(update_fields=["classification_json"])
+            messages.success(request, "Bewertung gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
+        if action == "delete_summary":
+            projekt.llm_initial_output = ""
+            projekt.llm_antwort = ""
+            projekt.llm_geprueft = False
+            projekt.llm_geprueft_am = None
+            projekt.llm_validated = False
+            projekt.save(
+                update_fields=[
+                    "llm_initial_output",
+                    "llm_antwort",
+                    "llm_geprueft",
+                    "llm_geprueft_am",
+                    "llm_validated",
+                ]
+            )
+            messages.success(request, "Summary gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
+
+    context = {"projekt": projekt, "files": projekt.anlagen.all()}
+    return render(request, "admin_project_cleanup.html", context)
 
 
 @login_required
