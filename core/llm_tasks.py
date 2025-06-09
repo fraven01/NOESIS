@@ -98,7 +98,7 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
-def parse_anlage1_questions(text_content: str) -> dict | None:
+def parse_anlage1_questions(text_content: str) -> dict[str, dict[str, str | None]] | None:
     """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
     logger.debug(
         "parse_anlage1_questions: Aufruf mit text_content=%r",
@@ -125,17 +125,25 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
         logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
         return None
 
-    matches: list[tuple[int, int, int]] = []
+    matches: list[tuple[int, int, int, str]] = []
     for q in questions:
-        best: tuple[int, int] | None = None
+        best: tuple[int, int, str] | None = None
         variants = [q.text] + [v.text for v in q.variants.all()]
         for var in variants:
-            pattern = re.escape(_clean_text(var))
-            m = re.search(pattern, text_content)
+            clean_var = _clean_text(var)
+            m_start = re.match(r"Frage\s+\d+(?:\.\d+)?[:.]?\s*(.*)", clean_var)
+            if m_start:
+                rest = m_start.group(1)
+                pattern = re.compile(
+                    r"Frage\s+\d+(?:\.\d+)?[:.]?\s*" + re.escape(_clean_text(rest))
+                )
+            else:
+                pattern = re.compile(re.escape(clean_var))
+            m = pattern.search(text_content)
             if m and (best is None or m.start() < best[0]):
-                best = (m.start(), m.end())
+                best = (m.start(), m.end(), m.group(0))
         if best:
-            matches.append((best[0], best[1], q.num))
+            matches.append((best[0], best[1], q.num, best[2]))
             logger.debug(
                 "parse_anlage1_questions: Frage %s gefunden an Position %d",
                 q.num,
@@ -147,15 +155,17 @@ def parse_anlage1_questions(text_content: str) -> dict | None:
         return None
 
     matches.sort(key=lambda x: x[0])
-    parsed: dict[str, str | None] = {}
-    for idx, (start, end, num) in enumerate(matches):
+    parsed: dict[str, dict[str, str | None]] = {}
+    for idx, (start, end, num, matched_text) in enumerate(matches):
         next_start = matches[idx + 1][0] if idx + 1 < len(matches) else len(text_content)
         ans = text_content[end:next_start].replace("\u00b6", "").strip() or None
-        parsed[str(num)] = ans
+        found = re.search(r"Frage\s+(\d+(?:\.\d+)?)", matched_text)
+        found_num = found.group(1) if found else None
+        parsed[str(num)] = {"answer": ans, "found_num": found_num}
         logger.debug(
             "parse_anlage1_questions: Antwort f\xFCr Frage %s: %r",
             num,
-            parsed[str(num)],
+            parsed[str(num)]["answer"],
         )
 
     logger.debug(
@@ -279,11 +289,13 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
     parsed = parse_anlage1_questions(anlage.text_content)
     answers: dict[str, str | list | None]
+    found_nums: dict[str, str | None] = {}
     data: dict
 
     if parsed:
         logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-        answers = {str(q.num): parsed.get(str(q.num)) for q in question_objs}
+        answers = {str(q.num): parsed.get(str(q.num), {}).get("answer") for q in question_objs}
+        found_nums = {str(q.num): parsed.get(str(q.num), {}).get("found_num") for q in question_objs}
         data = {"task": "check_anlage1", "source": "parser"}
     else:
         parts = [_ANLAGE1_INTRO]
@@ -345,6 +357,11 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             q_data["status"] = fb.get("status")
             q_data["hinweis"] = fb.get("hinweis", "")
             q_data["vorschlag"] = fb.get("vorschlag", "")
+        found_num = found_nums.get(key)
+        if found_num and str(found_num) != key:
+            q_data["hinweis"] = (
+                f"Entspricht nicht den Frage Anforderungen der IT Rahmen 2.0: Frage {found_num} statt {q.num}."
+            )
         questions[key] = q_data
 
     data["questions"] = questions
