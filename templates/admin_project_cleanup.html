@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Projekt bereinigen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Projekt {{ projekt.title }} bereinigen</h1>
+
+<h2 class="text-xl font-semibold mt-4">Anlagen</h2>
+<table class="min-w-full mb-4">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Nr.</th>
+            <th class="py-2">Datei</th>
+            <th class="py-2 text-center">Löschen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for f in files %}
+        <tr class="border-b text-sm">
+            <td class="py-1">{{ f.anlage_nr }}</td>
+            <td class="py-1">{{ f.upload.name }}</td>
+            <td class="py-1 text-center">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_file">
+                    <input type="hidden" name="file_id" value="{{ f.id }}">
+                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Anlage wirklich löschen?');">Löschen</button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">Keine Anlagen vorhanden</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="text-xl font-semibold mt-4">Gutachten</h2>
+{% if projekt.gutachten_file %}
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_gutachten">
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Gutachten wirklich löschen?');">Gutachten löschen</button>
+</form>
+{% else %}
+<p class="mb-4">Kein Gutachten vorhanden.</p>
+{% endif %}
+
+<h2 class="text-xl font-semibold mt-4">Bewertung</h2>
+{% if projekt.classification_json %}
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_classification">
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Bewertung wirklich löschen?');">Bewertung löschen</button>
+</form>
+{% else %}
+<p class="mb-4">Keine Bewertung vorhanden.</p>
+{% endif %}
+
+<h2 class="text-xl font-semibold mt-4">Summary</h2>
+{% if projekt.llm_initial_output or projekt.llm_antwort %}
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_summary">
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Summary wirklich löschen?');">Summary löschen</button>
+</form>
+{% else %}
+<p class="mb-4">Keine Summary vorhanden.</p>
+{% endif %}
+
+{% endblock %}
