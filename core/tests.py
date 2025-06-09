@@ -964,6 +964,25 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
 
 
+class HomeRedirectTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("redir", password="pass")
+        tile = Tile.objects.get_or_create(
+            slug="talkdiary",
+            defaults={
+                "name": "TalkDiary",
+                "bereich": Tile.PERSONAL,
+                "url_name": "talkdiary_personal",
+            },
+        )[0]
+        UserTileAccess.objects.create(user=self.user, tile=tile)
+        self.client.login(username="redir", password="pass")
+
+    def test_redirect_personal(self):
+        resp = self.client.get(reverse("home"))
+        self.assertRedirects(resp, reverse("personal"))
+
+
 
 class RecordingDeleteTests(TestCase):
     def setUp(self):

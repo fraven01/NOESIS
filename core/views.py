@@ -83,7 +83,15 @@ def get_user_tiles(user, bereich: str) -> list[Tile]:
 
 @login_required
 def home(request):
-    return render(request, 'home.html')
+    tiles_personal = get_user_tiles(request.user, Tile.PERSONAL)
+    tiles_work = get_user_tiles(request.user, Tile.WORK)
+
+    if tiles_personal and not tiles_work:
+        return redirect("personal")
+    if tiles_work and not tiles_personal:
+        return redirect("work")
+
+    return render(request, "home.html")
 
 
 @login_required
