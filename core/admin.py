@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import Recording, Prompt, Tile, UserTileAccess
+from .models import Recording, Prompt, Tile, UserTileAccess, Area
 
 
 @admin.register(Recording)
@@ -22,6 +22,11 @@ class TileAdmin(admin.ModelAdmin):
 @admin.register(UserTileAccess)
 class UserTileAccessAdmin(admin.ModelAdmin):
     list_display = ("user", "tile")
+
+
+@admin.register(Area)
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ("slug", "name", "image")
 
 
 class UserTileAccessInline(admin.TabularInline):

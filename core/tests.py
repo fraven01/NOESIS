@@ -14,6 +14,7 @@ from .models import (
     UserTileAccess,
     Anlage1Question,
     Anlage1Config,
+    Area,
 )
 from .docx_utils import extract_text
 from pathlib import Path
@@ -1022,6 +1023,48 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         resp = self.client.get(reverse("home"))
         msgs = [m.message for m in resp.context["messages"]]
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
+
+
+
+class HomeRedirectTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("redir", password="pass")
+        tile = Tile.objects.get_or_create(
+            slug="talkdiary",
+            defaults={
+                "name": "TalkDiary",
+                "bereich": Tile.PERSONAL,
+                "url_name": "talkdiary_personal",
+            },
+        )[0]
+        UserTileAccess.objects.create(user=self.user, tile=tile)
+        self.client.login(username="redir", password="pass")
+
+    def test_redirect_personal(self):
+        resp = self.client.get(reverse("home"))
+        self.assertRedirects(resp, reverse("personal"))
+
+class AreaImageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("areauser", password="pass")
+        self.client.login(username="areauser", password="pass")
+
+    def test_home_without_images(self):
+        Area.objects.create(slug="work", name="Work")
+        Area.objects.create(slug="personal", name="Personal")
+        resp = self.client.get(reverse("home"))
+        self.assertNotContains(resp, 'alt="Work"', html=False)
+        self.assertNotContains(resp, 'alt="Personal"', html=False)
+
+    def test_home_with_images(self):
+        work = Area.objects.create(slug="work", name="Work")
+        personal = Area.objects.create(slug="personal", name="Personal")
+        work.image.save("w.png", SimpleUploadedFile("w.png", b"d"), save=True)
+        personal.image.save("p.png", SimpleUploadedFile("p.png", b"d"), save=True)
+        resp = self.client.get(reverse("home"))
+        self.assertContains(resp, f'alt="{work.name}"', html=False)
+        self.assertContains(resp, f'alt="{personal.name}"', html=False)
+
 
 
 

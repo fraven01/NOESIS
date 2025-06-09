@@ -160,6 +160,20 @@ class Prompt(models.Model):
         return self.name
 
 
+class Area(models.Model):
+    """Bereich wie 'work' oder 'personal'."""
+
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to="area_images/", blank=True, null=True)
+
+    class Meta:
+        ordering = ["slug"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 
 class LLMConfig(models.Model):
     """Konfiguration der LLM-Modelle."""

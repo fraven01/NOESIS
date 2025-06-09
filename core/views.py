@@ -32,6 +32,7 @@ from .models import (
     Anlage1Question,
     Anlage1QuestionVariant,
     Tile,
+    Area,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -83,7 +84,24 @@ def get_user_tiles(user, bereich: str) -> list[Tile]:
 
 @login_required
 def home(request):
-    return render(request, 'home.html')
+    # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
+    # Assuming get_user_tiles is defined elsewhere and correctly retrieves tiles
+    tiles_personal = get_user_tiles(request.user, Tile.PERSONAL)
+    tiles_work = get_user_tiles(request.user, Tile.WORK)
+
+    if tiles_personal and not tiles_work:
+        return redirect("personal")
+    if tiles_work and not tiles_personal:
+        return redirect("work")
+
+    # Logic from main
+    work_area = Area.objects.filter(slug="work").first()
+    personal_area = Area.objects.filter(slug="personal").first()
+    context = {
+        "work_area": work_area,
+        "personal_area": personal_area,
+    }
+    return render(request, "home.html", context)
 
 
 @login_required
