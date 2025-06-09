@@ -1,4 +1,4 @@
-"""LLM-gest\xFCtzte Aufgaben f\xFCr BV-Projekte."""
+"""LLM-gest\xfctzte Aufgaben f\xfcr BV-Projekte."""
 
 from __future__ import annotations
 
@@ -35,15 +35,12 @@ _ANLAGE1_EVAL = (
     " 'hinweis' und optional 'vorschlag' zurück.\n\nFrage: {question}\nAntwort: {answer}"
 )
 
-_ANLAGE1_INTRO = (
-    "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
-)
-_ANLAGE1_IT = (
-    "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-)
+_ANLAGE1_INTRO = "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
+_ANLAGE1_IT = "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
 _ANLAGE1_SUFFIX = (
     "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
 )
+
 
 def _add_editable_flags(data: dict) -> dict:
     """Ergänzt jedes Feld eines Dictionaries um ein ``editable``-Flag."""
@@ -98,7 +95,9 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
-def parse_anlage1_questions(text_content: str) -> dict[str, dict[str, str | None]] | None:
+def parse_anlage1_questions(
+    text_content: str,
+) -> dict[str, dict[str, str | None]] | None:
     """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
     logger.debug(
         "parse_anlage1_questions: Aufruf mit text_content=%r",
@@ -157,13 +156,15 @@ def parse_anlage1_questions(text_content: str) -> dict[str, dict[str, str | None
     matches.sort(key=lambda x: x[0])
     parsed: dict[str, dict[str, str | None]] = {}
     for idx, (start, end, num, matched_text) in enumerate(matches):
-        next_start = matches[idx + 1][0] if idx + 1 < len(matches) else len(text_content)
+        next_start = (
+            matches[idx + 1][0] if idx + 1 < len(matches) else len(text_content)
+        )
         ans = text_content[end:next_start].replace("\u00b6", "").strip() or None
         found = re.search(r"Frage\s+(\d+(?:\.\d+)?)", matched_text)
         found_num = found.group(1) if found else None
         parsed[str(num)] = {"answer": ans, "found_num": found_num}
         logger.debug(
-            "parse_anlage1_questions: Antwort f\xFCr Frage %s: %r",
+            "parse_anlage1_questions: Antwort f\xfcr Frage %s: %r",
             num,
             parsed[str(num)]["answer"],
         )
@@ -180,7 +181,7 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     projekt = BVProject.objects.get(pk=projekt_id)
     prefix = get_prompt(
         "classify_system",
-        "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xFCsseln 'kategorie' und 'begruendung' zur\xFCck.\n\n",
+        "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xfcsseln 'kategorie' und 'begruendung' zur\xfcck.\n\n",
     )
     prompt = prefix + _collect_text(projekt)
     reply = query_llm(prompt, model_name=model_name, model_type="default")
@@ -227,23 +228,25 @@ def generate_gutachten(
 
 
 def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft eine Anlage und speichert das Ergebnis."""
+    """Pr\xfcft eine Anlage und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=nr)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
+    except (
+        BVProjectFile.DoesNotExist
+    ) as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
         raise ValueError(f"Anlage {nr} fehlt") from exc
 
     prefix = get_prompt(
         f"check_anlage{nr}",
-        "Pr\xFCfe die folgende Anlage auf Vollst\xE4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xFCck:\n\n",
+        "Pr\xfcfe die folgende Anlage auf Vollst\xe4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xfcck:\n\n",
     )
     prompt = prefix + anlage.text_content
 
     reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
     try:
         data = json.loads(reply)
-    except Exception:  # noqa: BLE001
+    except Exception as _:
         data = {"raw": reply}
 
     data = _add_editable_flags(data)
@@ -253,11 +256,13 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
 
 
 def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die erste Anlage nach neuem Schema."""
+    """Pr\xfcft die erste Anlage nach neuem Schema."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=1)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+    except (
+        BVProjectFile.DoesNotExist
+    ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
 
     question_objs = list(Anlage1Question.objects.order_by("num"))
@@ -285,7 +290,10 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     llm_questions = [q for q in question_objs if _llm_enabled(q)]
 
     # Debug-Log für den zu parsenden Text
-    logger.debug("check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r", anlage.text_content[:500] if anlage.text_content else None)
+    logger.debug(
+        "check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r",
+        anlage.text_content[:500] if anlage.text_content else None,
+    )
 
     parsed = parse_anlage1_questions(anlage.text_content)
     answers: dict[str, str | list | None]
@@ -294,8 +302,13 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
     if parsed:
         logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-        answers = {str(q.num): parsed.get(str(q.num), {}).get("answer") for q in question_objs}
-        found_nums = {str(q.num): parsed.get(str(q.num), {}).get("found_num") for q in question_objs}
+        answers = {
+            str(q.num): parsed.get(str(q.num), {}).get("answer") for q in question_objs
+        }
+        found_nums = {
+            str(q.num): parsed.get(str(q.num), {}).get("found_num")
+            for q in question_objs
+        }
         data = {"task": "check_anlage1", "source": "parser"}
     else:
         parts = [_ANLAGE1_INTRO]
@@ -307,7 +320,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         prefix = "".join(parts)
         prompt = prefix + anlage.text_content
 
-        logger.debug("check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r", prompt[:500])
+        logger.debug(
+            "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r", prompt[:500]
+        )
         reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
         logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
         try:
@@ -344,13 +359,17 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             ans = "leer"
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
         if _llm_enabled(q):
-            prompt = _ANLAGE1_EVAL.format(
-                num=q.num, question=q.text, answer=ans
+            prompt = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
+            logger.debug(
+                "check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r",
+                q.num,
+                prompt,
             )
-            logger.debug("check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r", q.num, prompt)
             try:
                 reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
-                logger.debug("check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply)
+                logger.debug(
+                    "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
+                )
                 fb = json.loads(reply)
             except Exception:  # noqa: BLE001
                 fb = {"status": "unklar", "hinweis": "LLM Fehler"}
@@ -372,25 +391,25 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die zweite Anlage."""
+    """Pr\xfcft die zweite Anlage."""
     return _check_anlage(projekt_id, 2, model_name)
 
 
 def check_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die dritte Anlage."""
+    """Pr\xfcft die dritte Anlage."""
     return _check_anlage(projekt_id, 3, model_name)
 
 
 def check_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die vierte Anlage."""
+    """Pr\xfcft die vierte Anlage."""
     return _check_anlage(projekt_id, 4, model_name)
 
 
 def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die f\xFCnfte Anlage."""
+    """Pr\xfcft die f\xfcnfte Anlage."""
     return _check_anlage(projekt_id, 5, model_name)
 
 
 def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xFCft die sechste Anlage."""
+    """Pr\xfcft die sechste Anlage."""
     return _check_anlage(projekt_id, 6, model_name)

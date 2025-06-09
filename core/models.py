@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 from pathlib import Path
 
 
@@ -50,9 +49,7 @@ class BVProject(models.Model):
 
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
-    software_typen = models.CharField(
-        "Software-Typen", max_length=200, blank=True
-    )
+    software_typen = models.CharField("Software-Typen", max_length=200, blank=True)
     STATUS_NEW = "NEW"
     STATUS_CLASSIFIED = "CLASSIFIED"
     STATUS_GUTACHTEN_OK = "GUTACHTEN_OK"
@@ -91,7 +88,9 @@ class BVProject(models.Model):
     def save(self, *args, **kwargs):
         """Speichert das Projekt und setzt den Titel aus den Software-Namen."""
         if self.software_typen:
-            cleaned = ", ".join([s.strip() for s in self.software_typen.split(",") if s.strip()])
+            cleaned = ", ".join(
+                [s.strip() for s in self.software_typen.split(",") if s.strip()]
+            )
             self.software_typen = cleaned
             self.title = cleaned
         is_new = self._state.adding
@@ -174,7 +173,6 @@ class Area(models.Model):
         return self.name
 
 
-
 class LLMConfig(models.Model):
     """Konfiguration der LLM-Modelle."""
 
@@ -194,6 +192,7 @@ class LLMConfig(models.Model):
     def get_default(cls, kind: str = "default") -> str:
         """Gibt das Standardmodell für einen Typ zurück."""
         from django.conf import settings
+
         cfg = cls.objects.first()
         if not cfg:
             return settings.GOOGLE_LLM_MODEL
@@ -206,6 +205,7 @@ class LLMConfig(models.Model):
     @classmethod
     def get_available(cls) -> list[str]:
         from django.conf import settings
+
         cfg = cls.objects.first()
         if cfg and cfg.available_models:
             return list(cfg.available_models)
@@ -235,7 +235,7 @@ class Anlage1Config(models.Model):
 class Anlage1Question(models.Model):
     """Frage aus Anlage 1.
 
-    Eine Frage wird nur ber\xFCcksichtigt, wenn sowohl dieses ``enabled``-Flag
+    Eine Frage wird nur ber\xfccksichtigt, wenn sowohl dieses ``enabled``-Flag
     als auch das entsprechende Feld in :class:`Anlage1Config` gesetzt sind.
     """
 

@@ -1,12 +1,13 @@
+import os
 from pathlib import Path
 
 import time
 
 import obsws_python as obs
 
-HOST = 'localhost'
+HOST = "localhost"
 PORT = 4455
-PASSWORD = 'BpJznpdkIZC2pevm'
+PASSWORD = os.getenv("OBS_PASSWORD", "")
 
 
 def _connect() -> obs.ReqClient:
@@ -18,14 +19,13 @@ def start_recording(bereich: str, base_dir: Path) -> None:
     """Start OBS recording. OBS must already be configured with the correct
     record directory for the given ``bereich``. The directory is created if it
     does not exist so that the path exists on the filesystem."""
-    directory = base_dir / 'recordings' / bereich
+    directory = base_dir / "recordings" / bereich
     directory.mkdir(parents=True, exist_ok=True)
     ws = _connect()
     try:
         ws.start_record()
     finally:
         pass  # no disconnect needed for ReqClient
-
 
 
 def stop_recording(wait: bool = True, timeout: float = 10.0) -> None:

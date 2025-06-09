@@ -39,9 +39,6 @@ from django.test import override_settings
 import json
 
 
-
-
-
 class AdminProjectsTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -131,7 +128,6 @@ class AdminProjectCleanupTests(TestCase):
         self.assertFalse(self.projekt.llm_validated)
 
 
-
 class DocxExtractTests(TestCase):
     def test_extract_text(self):
         doc = Document()
@@ -159,10 +155,15 @@ class BVProjectFormTests(TestCase):
         self.assertFalse(invalid.is_valid())
 
     def test_upload_form_docx_validation(self):
-        valid = BVProjectUploadForm({}, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
+        valid = BVProjectUploadForm(
+            {}, {"docx_file": SimpleUploadedFile("t.docx", b"d")}
+        )
         self.assertTrue(valid.is_valid())
-        invalid = BVProjectUploadForm({}, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
+        invalid = BVProjectUploadForm(
+            {}, {"docx_file": SimpleUploadedFile("t.txt", b"d")}
+        )
         self.assertFalse(invalid.is_valid())
+
 
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):
@@ -176,7 +177,9 @@ class BVProjectFileTests(TestCase):
                 text_content="data",
             )
         self.assertEqual(projekt.anlagen.count(), 3)
-        self.assertListEqual(list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3])
+        self.assertListEqual(
+            list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3]
+        )
 
 
 class ProjektFileUploadTests(TestCase):
@@ -243,6 +246,7 @@ class WorkflowTests(TestCase):
 
 class LLMTasksTests(TestCase):
     maxDiff = None
+
     def test_classify_system(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -251,7 +255,10 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
         )
-        with patch("core.llm_tasks.query_llm", return_value='{"kategorie":"X","begruendung":"ok"}'):
+        with patch(
+            "core.llm_tasks.query_llm",
+            return_value='{"kategorie":"X","begruendung":"ok"}',
+        ):
             data = classify_system(projekt.pk)
         projekt.refresh_from_db()
         self.assertEqual(projekt.classification_json["kategorie"]["value"], "X")
@@ -302,10 +309,22 @@ class LLMTasksTests(TestCase):
         }
         llm_reply = json.dumps({**expected, "questions": {}})
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9):
+        with patch(
+            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
+        ):
             data = check_anlage1(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=1)
-        answers = [["ACME"], ["IT"], "leer", "raw", "Zweck", "leer", "leer", "leer", "leer"]
+        answers = [
+            ["ACME"],
+            ["IT"],
+            "leer",
+            "raw",
+            "Zweck",
+            "leer",
+            "leer",
+            "leer",
+            "leer",
+        ]
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
             str(i): {
@@ -400,7 +419,10 @@ class LLMTasksTests(TestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(
             parsed,
-            {"1": {"answer": "A1", "found_num": None}, "2": {"answer": "A2", "found_num": None}},
+            {
+                "1": {"answer": "A1", "found_num": None},
+                "2": {"answer": "A2", "found_num": None},
+            },
         )
 
     def test_parse_anlage1_questions_with_variant(self):
@@ -419,7 +441,10 @@ class LLMTasksTests(TestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(
             parsed,
-            {"1": {"answer": "A1", "found_num": "1"}, "2": {"answer": "A2", "found_num": "2"}},
+            {
+                "1": {"answer": "A1", "found_num": "1"},
+                "2": {"answer": "A2", "found_num": "2"},
+            },
         )
 
     def test_parse_anlage1_questions_respects_parser_enabled(self):
@@ -473,8 +498,7 @@ class LLMTasksTests(TestCase):
         enabled_count = Anlage1Question.objects.filter(llm_enabled=True).count()
         with patch(
             "core.llm_tasks.query_llm",
-            side_effect=["{\"task\": \"check_anlage1\"}"]
-            + [eval_reply] * enabled_count,
+            side_effect=['{"task": "check_anlage1"}'] + [eval_reply] * enabled_count,
         ) as mock_q:
             data = check_anlage1(projekt.pk)
         prompt = mock_q.call_args_list[0].args[0]
@@ -488,7 +512,9 @@ class PromptTests(TestCase):
         self.assertEqual(get_prompt("unknown", "foo"), "foo")
 
     def test_get_prompt_returns_db_value(self):
-        p, _ = Prompt.objects.get_or_create(name="classify_system", defaults={"text": "orig"})
+        p, _ = Prompt.objects.get_or_create(
+            name="classify_system", defaults={"text": "orig"}
+        )
         p.text = "DB"
         p.save()
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
@@ -522,7 +548,9 @@ class AdminPromptsViewTests(TestCase):
 
     def test_update_prompt(self):
         url = reverse("admin_prompts")
-        resp = self.client.post(url, {"pk": self.prompt.id, "text": "neu", "action": "save"})
+        resp = self.client.post(
+            url, {"pk": self.prompt.id, "text": "neu", "action": "save"}
+        )
         self.assertRedirects(resp, url)
         self.prompt.refresh_from_db()
         self.assertEqual(self.prompt.text, "neu")
@@ -613,28 +641,62 @@ class ProjektFileCheckViewTests(TestCase):
         expected = {
             "task": "check_anlage1",
         }
-        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        llm_reply = json.dumps(
+            {
+                "companies": None,
+                "departments": None,
+                "vendors": None,
+                "question4_raw": None,
+                "purpose_summary": None,
+                "documentation_links": None,
+                "replaced_systems": None,
+                "legacy_functions": None,
+                "question9_raw": None,
+            }
+        )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
+        with patch(
+            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
+        ):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
+        expected["questions"] = {
+            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
+            for i in nums
+        }
         self.assertEqual(file_obj.analysis_json, expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
         expected = {"task": "check_anlage1"}
-        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        llm_reply = json.dumps(
+            {
+                "companies": None,
+                "departments": None,
+                "vendors": None,
+                "question4_raw": None,
+                "purpose_summary": None,
+                "documentation_links": None,
+                "replaced_systems": None,
+                "legacy_functions": None,
+                "question9_raw": None,
+            }
+        )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
+        with patch(
+            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
+        ):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         file_obj.refresh_from_db()
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
+        expected["questions"] = {
+            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
+            for i in nums
+        }
         self.assertEqual(file_obj.analysis_json, expected)
 
 
@@ -657,7 +719,12 @@ class ProjektFileJSONEditTests(TestCase):
             text_content="Text",
             analysis_json={
                 "questions": {
-                    "1": {"answer": "foo", "status": None, "hinweis": "", "vorschlag": ""}
+                    "1": {
+                        "answer": "foo",
+                        "status": None,
+                        "hinweis": "",
+                        "vorschlag": "",
+                    }
                 }
             },
         )
@@ -667,8 +734,8 @@ class ProjektFileJSONEditTests(TestCase):
         resp = self.client.post(
             url,
             {
-                "analysis_json": "{\"new\": 1}",
-                "manual_analysis_json": "{\"manual\": 2}",
+                "analysis_json": '{"new": 1}',
+                "manual_analysis_json": '{"manual": 2}',
             },
         )
         self.assertEqual(resp.status_code, 302)
@@ -692,7 +759,9 @@ class ProjektFileJSONEditTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json, {"old": {"value": True, "editable": True}})
+        self.assertEqual(
+            self.file.analysis_json, {"old": {"value": True, "editable": True}}
+        )
 
     def test_question_review_saved(self):
         url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
@@ -757,7 +826,9 @@ class GutachtenEditDeleteTests(TestCase):
         doc.save(tmp.name)
         tmp.close()
         with open(tmp.name, "rb") as fh:
-            self.projekt.gutachten_file.save("g.docx", SimpleUploadedFile("g.docx", fh.read()))
+            self.projekt.gutachten_file.save(
+                "g.docx", SimpleUploadedFile("g.docx", fh.read())
+            )
         Path(tmp.name).unlink(missing_ok=True)
 
     def test_view_shows_content(self):
@@ -803,23 +874,40 @@ class ProjektFileCheckResultTests(TestCase):
     def test_get_runs_check_and_shows_form(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
         expected = {"task": "check_anlage1"}
-        llm_reply = json.dumps({"companies": None, "departments": None, "vendors": None, "question4_raw": None, "purpose_summary": None, "documentation_links": None, "replaced_systems": None, "legacy_functions": None, "question9_raw": None})
+        llm_reply = json.dumps(
+            {
+                "companies": None,
+                "departments": None,
+                "vendors": None,
+                "question4_raw": None,
+                "purpose_summary": None,
+                "documentation_links": None,
+                "replaced_systems": None,
+                "legacy_functions": None,
+                "question9_raw": None,
+            }
+        )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply]*9):
+        with patch(
+            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
+        ):
             resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""} for i in nums}
+        expected["questions"] = {
+            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
+            for i in nums
+        }
         self.assertEqual(self.file.analysis_json, expected)
-        self.assertContains(resp, "name=\"analysis_json\"")
+        self.assertContains(resp, 'name="analysis_json"')
 
     def test_post_updates_and_redirects(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        resp = self.client.post(url, {"analysis_json": "{}", "manual_analysis_json": "{}"})
+        resp = self.client.post(
+            url, {"analysis_json": "{}", "manual_analysis_json": "{}"}
+        )
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
-
-
 
 
 class LLMConfigTests(TestCase):
@@ -827,7 +915,10 @@ class LLMConfigTests(TestCase):
     @patch("google.generativeai.list_models")
     @patch("google.generativeai.configure")
     def test_ready_populates_models(self, mock_conf, mock_list):
-        mock_list.return_value = [type("M", (), {"name": "m1"})(), type("M", (), {"name": "m2"})()]
+        mock_list.return_value = [
+            type("M", (), {"name": "m1"})(),
+            type("M", (), {"name": "m2"})(),
+        ]
         apps.get_app_config("core").ready()
         cfg = LLMConfig.objects.first()
         self.assertIsNotNone(cfg)
@@ -896,7 +987,6 @@ class Anlage1EmailTests(TestCase):
         self.assertEqual(resp.json()["text"], "Mail")
 
 
-
 class TileVisibilityTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -918,7 +1008,9 @@ class TileVisibilityTests(TestCase):
                 "url_name": "projekt_list",
             },
         )[0]
-        self.cfg = LLMConfig.objects.first() or LLMConfig.objects.create(models_changed=False)
+        self.cfg = LLMConfig.objects.first() or LLMConfig.objects.create(
+            models_changed=False
+        )
         self.client.login(username="tileuser", password="pass")
 
     def test_personal_without_access(self):
@@ -1025,7 +1117,6 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
 
 
-
 class HomeRedirectTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("redir", password="pass")
@@ -1043,6 +1134,7 @@ class HomeRedirectTests(TestCase):
     def test_redirect_personal(self):
         resp = self.client.get(reverse("home"))
         self.assertRedirects(resp, reverse("personal"))
+
 
 class AreaImageTests(TestCase):
     def setUp(self):
@@ -1064,8 +1156,6 @@ class AreaImageTests(TestCase):
         resp = self.client.get(reverse("home"))
         self.assertContains(resp, f'alt="{work.name}"', html=False)
         self.assertContains(resp, f'alt="{personal.name}"', html=False)
-
-
 
 
 class RecordingDeleteTests(TestCase):
@@ -1119,6 +1209,7 @@ class RecordingDeleteTests(TestCase):
         self.assertEqual(resp.status_code, 404)
         self.assertTrue(Recording.objects.filter(pk=rec.pk).exists())
 
+
 class AdminAnlage1ViewTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -1143,6 +1234,3 @@ class AdminAnlage1ViewTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(Anlage1Question.objects.filter(id=q.id).exists())
         self.assertEqual(Anlage1Question.objects.count(), len(questions) - 1)
-
-
-
