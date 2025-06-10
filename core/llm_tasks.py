@@ -20,6 +20,7 @@ from .models import (
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
+from .docx_utils import parse_anlage2_table
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -233,43 +234,15 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
-    anlage1_text = ""
-    try:
-        anlage1 = projekt.anlagen.get(anlage_nr=1)
-        anlage1_text = anlage1.text_content or ""
-    except BVProjectFile.DoesNotExist:
-        pass
-
-    text = "\n\n".join(
-        part for part in [projekt.beschreibung, anlage1_text, anlage2.text_content] if part
-    )
-
-    prompt = get_prompt(
-        "analyse_anlage2",
-        (
-            "Analysiere den folgenden Text und gib eine JSON-Liste von Objekten mit den "
-            "Schl\xFCsseln 'funktion', 'technisch_vorhanden', 'einsatz_bei_telefonica', "
-            "'zur_lv_kontrolle' und 'ki_beteiligung' zur\xFCck:\n\n"
-        ),
-    ) + text
-
-    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
-    try:
-        llm_data = json.loads(reply)
-        if not isinstance(llm_data, list):
-            raise ValueError
-    except Exception:  # noqa: BLE001
-        logger.warning("analyse_anlage2: LLM Antwort kein JSON: %s", reply)
-        llm_data = []
-
-    llm_names = [d.get("funktion") for d in llm_data if isinstance(d, dict)]
+    table_data = parse_anlage2_table(Path(anlage2.upload.path))
+    table_names = [d.get("funktion") for d in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
 
-    missing = [f for f in anlage_funcs if f not in llm_names]
-    additional = [f for f in llm_names if f not in anlage_funcs]
+    missing = [f for f in anlage_funcs if f not in table_names]
+    additional = [f for f in table_names if f not in anlage_funcs]
 
     result = {
-        "llm_functions": llm_data,
+        "table_functions": table_data,
         "anlage2_functions": anlage_funcs,
         "missing": missing,
         "additional": additional,
