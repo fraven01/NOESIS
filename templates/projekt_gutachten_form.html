@@ -6,11 +6,11 @@
     {% csrf_token %}
     <textarea name="prompt" rows="15" class="w-full border rounded p-2">{{ prompt }}</textarea>
     <div>
-        <label for="model" class="font-semibold">LLM-Modell:</label>
-        {% for m in models %}
+        <label for="model_category" class="font-semibold">LLM-Modell:</label>
+        {% for key, data in categories.items %}
             <label class="ml-2">
-                <input type="radio" name="model" value="{{ m }}" {% if m == model %}checked{% endif %}>
-                {{ m }}
+                <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                {{ data.label }}
             </label>
         {% endfor %}
     </div>

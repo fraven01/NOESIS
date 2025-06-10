@@ -210,6 +210,24 @@ class LLMConfig(models.Model):
             return list(cfg.available_models)
         return settings.GOOGLE_AVAILABLE_MODELS
 
+    @classmethod
+    def get_categories(cls) -> dict[str, dict[str, str]]:
+        """Mapping von Modellkategorien auf Modellnamen und Labels."""
+        return {
+            "default": {
+                "model": cls.get_default("default"),
+                "label": "Standard",
+            },
+            "gutachten": {
+                "model": cls.get_default("gutachten"),
+                "label": "Gutachten",
+            },
+            "anlagen": {
+                "model": cls.get_default("anlagen"),
+                "label": "Anlagen",
+            },
+        }
+
 
 class Anlage1Config(models.Model):
     """Steuert die Aktivierung einzelner Fragen in Anlage 1."""

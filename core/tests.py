@@ -1261,21 +1261,47 @@ class ModelSelectionTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
         )
+        LLMConfig.objects.create(
+            default_model="d",
+            gutachten_model="g",
+            anlagen_model="a",
+        )
 
-    def test_projekt_check_uses_model(self):
+    def test_projekt_check_uses_category(self):
         url = reverse("projekt_check", args=[self.projekt.pk])
         with patch("core.views.query_llm", return_value="ok") as mock_q:
-            resp = self.client.post(url, {"model": "m1"})
+            resp = self.client.post(url, {"model_category": "gutachten"})
         self.assertEqual(resp.status_code, 200)
-        mock_q.assert_called_with(ANY, model_name="m1", model_type="default")
+        mock_q.assert_called_with(ANY, model_name="g", model_type="default")
 
-    def test_file_check_uses_model(self):
+    def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         with patch("core.views.check_anlage1") as mock_func:
             mock_func.return_value = {"task": "check_anlage1"}
-            resp = self.client.post(url, {"model": "m2"})
+            resp = self.client.post(url, {"model_category": "anlagen"})
         self.assertEqual(resp.status_code, 200)
-        mock_func.assert_called_with(self.projekt.pk, model_name="m2")
+        mock_func.assert_called_with(self.projekt.pk, model_name="a")
+
+    def test_forms_show_categories(self):
+        edit_url = reverse("projekt_edit", args=[self.projekt.pk])
+        resp = self.client.get(edit_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
+
+        view_url = reverse("projekt_file_check_view", args=[self.projekt.anlagen.first().pk])
+        with patch("core.views.check_anlage1") as mock_func:
+            mock_func.return_value = {"task": "check_anlage1"}
+            resp = self.client.get(view_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
+
+        gutachten_url = reverse("projekt_gutachten", args=[self.projekt.pk])
+        resp = self.client.get(gutachten_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
 
 
 class CommandModelTests(TestCase):

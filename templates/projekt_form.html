@@ -29,10 +29,10 @@
     {% if projekt %}
     <div class="mt-4">
         <label class="font-semibold">LLM-Modell:</label>
-        {% for m in models %}
+        {% for key, data in categories.items %}
             <label class="ml-2">
-                <input type="radio" name="llm_model" value="{{ m }}" {% if m == model %}checked{% endif %}>
-                {{ m }}
+                <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                {{ data.label }}
             </label>
         {% endfor %}
         <button type="button" data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded ml-2">
@@ -43,6 +43,6 @@
 </form>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="llm_model"]:checked');const body=new URLSearchParams();if(m){body.append('model',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
+document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="model_category"]:checked');const body=new URLSearchParams();if(m){body.append('model_category',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
 </script>
 {% endblock %}
