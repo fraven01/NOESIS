@@ -88,24 +88,37 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         labels = {
             "title": "Name",
             "beschreibung": "Beschreibung",
-            "software_typen": "Software-Typen (kommagetrennt)",
+            "software_typen": "Software-Typen",
             "status": "Status",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded p-2"}),
             "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2"}),
-            "software_typen": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "software_typen": forms.HiddenInput(),
             "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.data:
+            self.software_list = [s.strip() for s in self.data.getlist("software") if s.strip()]
+        else:
+            raw = self.initial.get("software_typen") or getattr(self.instance, "software_typen", "")
+            self.software_list = [s.strip() for s in raw.split(",") if s.strip()]
+
     def clean_software_typen(self) -> str:
         """Bereinigt die Eingabe und stellt sicher, dass sie nicht leer ist."""
-        raw = self.cleaned_data.get("software_typen", "")
-        names = [s.strip() for s in raw.split(",") if s.strip()]
+        raw_list = self.data.getlist("software")
+        if raw_list:
+            names = [s.strip() for s in raw_list if s.strip()]
+        else:
+            raw = self.cleaned_data.get("software_typen", "")
+            names = [s.strip() for s in raw.split(",") if s.strip()]
         if not names:
             raise forms.ValidationError(
                 "Software-Typen dürfen nicht leer sein.")
         cleaned = ", ".join(names)
+        self.software_list = names
         return cleaned
 
 

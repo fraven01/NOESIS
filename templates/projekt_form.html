@@ -16,7 +16,22 @@
         {{ form.beschreibung.errors }}
     </div>
     <div>
-        {{ form.software_typen.label_tag }}<br>
+        <label>Software</label><br>
+        <div id="software-container">
+        {% for name in form.software_list %}
+            <div class="software-item mb-2 flex items-center">
+                <input type="text" name="software" value="{{ name }}" class="border rounded p-2 mr-2">
+                <button type="button" class="remove-software text-red-600">-</button>
+            </div>
+        {% endfor %}
+        {% if not form.software_list %}
+            <div class="software-item mb-2 flex items-center">
+                <input type="text" name="software" class="border rounded p-2 mr-2">
+                <button type="button" class="remove-software text-red-600">-</button>
+            </div>
+        {% endif %}
+        </div>
+        <button type="button" id="add-software" class="bg-gray-300 px-2 py-1 rounded">+</button>
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
     </div>
@@ -49,5 +64,7 @@
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="model_category"]:checked');const body=new URLSearchParams();if(m){body.append('model_category',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
+document.getElementById('add-software').addEventListener('click',()=>{const c=document.getElementById('software-container');const d=document.createElement('div');d.className='software-item mb-2 flex items-center';d.innerHTML='<input type="text" name="software" class="border rounded p-2 mr-2"><button type="button" class="remove-software text-red-600">-</button>';c.appendChild(d);});
+document.getElementById('software-container').addEventListener('click',e=>{if(e.target.classList.contains('remove-software')){e.target.parentElement.remove();}});
 </script>
 {% endblock %}
