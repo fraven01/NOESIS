@@ -371,6 +371,53 @@ class LLMTasksTests(TestCase):
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
         self.assertTrue(data["ok"]["value"])
 
+    def test_check_anlage2_parser(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("b.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        with patch("core.llm_tasks.query_llm") as mock_q:
+            data = check_anlage2(projekt.pk)
+        mock_q.assert_not_called()
+        expected = {
+            "task": "check_anlage2",
+            "source": "parser",
+            "functions": [
+                {
+                    "funktion": "Login",
+                    "technisch_vorhanden": True,
+                    "einsatz_bei_telefonica": False,
+                    "zur_lv_kontrolle": False,
+                    "ki_beteiligung": True,
+                }
+            ],
+        }
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertEqual(data, expected)
+        self.assertEqual(file_obj.analysis_json, expected)
+
     def test_analyse_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
         BVProjectFile.objects.create(

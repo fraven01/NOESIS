@@ -470,6 +470,19 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xfcft die zweite Anlage."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=2)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+        raise ValueError("Anlage 2 fehlt") from exc
+
+    funcs = parse_anlage2_table(Path(anlage.upload.path))
+    if funcs:
+        data = {"task": "check_anlage2", "source": "parser", "functions": funcs}
+        anlage.analysis_json = data
+        anlage.save(update_fields=["analysis_json"])
+        return data
+
     return _check_anlage(projekt_id, 2, model_name)
 
 
