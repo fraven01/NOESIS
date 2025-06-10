@@ -77,6 +77,17 @@ von einem LLM nach Funktionen durchsucht. Die erkannten Funktionen werden mit
 den Angaben aus Anlage 2 verglichen. Fehlende oder zusätzliche Funktionen werden
 als JSON in Anlage 2 gespeichert.
 
+### Anlage 2 prüfen
+
+Um eine hochgeladene zweite Anlage auf Vollständigkeit zu prüfen, dient
+
+```bash
+python manage.py check_anlage2 <projekt_id>
+```
+
+Der Befehl liest den Text der Datei aus und speichert das Ergebnis als JSON im
+zugehörigen Datenbankeintrag der Anlage.
+
 ### Kachel-Zugriff verwalten
 
 Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der
