@@ -1596,6 +1596,29 @@ class FunctionImportExportTests(TestCase):
         self.assertRedirects(resp, reverse("anlage2_function_list"))
         self.assertTrue(Anlage2Function.objects.filter(name="Login").exists())
 
+    def test_import_accepts_german_keys(self):
+        payload = json.dumps([
+            {
+                "funktion": "Anwesenheit",
+                "unterfragen": [
+                    {"frage": "Testfrage"}
+                ],
+            }
+        ])
+        file = SimpleUploadedFile("func_de.json", payload.encode("utf-8"))
+        url = reverse("anlage2_function_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("anlage2_function_list"))
+        self.assertTrue(Anlage2Function.objects.filter(name="Anwesenheit").exists())
+        self.assertEqual(
+            Anlage2SubQuestion.objects.filter(funktion__name="Anwesenheit").count(),
+            1,
+        )
+
 
 
 
