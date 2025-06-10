@@ -175,6 +175,11 @@ urlpatterns = [
         views.gutachten_delete,
         name="gutachten_delete",
     ),
+    path(
+        "work/projekte/<int:pk>/gutachten/llm-check/",
+        views.gutachten_llm_check,
+        name="gutachten_llm_check",
+    ),
     path("projects/<int:pk>/", views.project_detail_api, name="project_detail_api"),
     path(
         "projects/<int:pk>/llm-check/",

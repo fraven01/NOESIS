@@ -80,6 +80,9 @@ class BVProject(models.Model):
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
     classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
+    gutachten_function_note = models.TextField(
+        "LLM-Hinweis Gutachten", blank=True
+    )
 
     class Meta:
         ordering = ["-created_at"]
