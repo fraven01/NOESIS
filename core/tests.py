@@ -159,7 +159,6 @@ class BVProjectFormTests(TestCase):
         data.update({
             "title": "",
             "beschreibung": "",
-            "status": BVProject.STATUS_NEW,
         })
         data.setlist("software", ["A"])
         valid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
@@ -178,13 +177,13 @@ class BVProjectFormTests(TestCase):
         data.update({
             "title": "Mein Projekt",
             "beschreibung": "",
-            "status": BVProject.STATUS_NEW,
         })
         data.setlist("software", ["A"])
         form = BVProjectForm(data)
         self.assertTrue(form.is_valid())
         projekt = form.save()
         self.assertEqual(projekt.title, "Mein Projekt")
+        self.assertEqual(projekt.status, BVProject.STATUS_NEW)
 
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):

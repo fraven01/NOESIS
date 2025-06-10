@@ -100,10 +100,16 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance or not self.instance.pk:
+            self.fields.pop("status", None)
         if self.data:
-            self.software_list = [s.strip() for s in self.data.getlist("software") if s.strip()]
+            self.software_list = [
+                s.strip() for s in self.data.getlist("software") if s.strip()
+            ]
         else:
-            raw = self.initial.get("software_typen") or getattr(self.instance, "software_typen", "")
+            raw = self.initial.get("software_typen") or getattr(
+                self.instance, "software_typen", ""
+            )
             self.software_list = [s.strip() for s in raw.split(",") if s.strip()]
 
     def clean_software_typen(self) -> str:

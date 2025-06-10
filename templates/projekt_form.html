@@ -35,11 +35,13 @@
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
     </div>
+    {% if 'status' in form.fields %}
     <div>
         {{ form.status.label_tag }}<br>
         {{ form.status }}
         {{ form.status.errors }}
     </div>
+    {% endif %}
     <div>
         {{ form.docx_file.label_tag }}<br>
         {{ form.docx_file }}
