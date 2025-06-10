@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load recording_extras %}
+{% block title %}Anlage 2 Review{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <table class="table-auto w-full border">
+        <thead>
+            <tr>
+                <th class="border px-2">Funktion</th>
+                {% for label in labels %}
+                <th class="border px-2">{{ label }} (Analyse)</th>
+                {% endfor %}
+                {% for label in labels %}
+                <th class="border px-2">{{ label }} (Review)</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+            <tr>
+                <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
+                {% for field in fields %}
+                <td class="border px-2 text-center">{{ row.analysis|get_item:field }}</td>
+                {% endfor %}
+                {% for field in row.form_fields %}
+                <td class="border px-2 text-center">{{ field }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Speichern</button>
+</form>
+{% endblock %}
