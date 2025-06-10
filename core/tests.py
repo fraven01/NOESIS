@@ -17,6 +17,7 @@ from .models import (
     Anlage1Config,
     Area,
     Anlage2Function,
+    Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
 from .docx_utils import extract_text
@@ -1562,6 +1563,39 @@ class ProjektDetailAdminButtonTests(TestCase):
         self.client.login(username="puser", password="pass")
         resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
         self.assertNotContains(resp, reverse("admin_projects"))
+
+
+class FunctionImportExportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("adminie", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="adminie", password="pass")
+
+    def test_export_returns_json(self):
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
+        url = reverse("anlage2_function_export")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertEqual(data[0]["name"], "Login")
+        self.assertEqual(data[0]["subquestions"][0]["frage_text"], "Warum?")
+
+    def test_import_creates_functions(self):
+        payload = json.dumps([
+            {"name": "Login", "subquestions": ["Frage"]}
+        ])
+        file = SimpleUploadedFile("func.json", payload.encode("utf-8"))
+        url = reverse("anlage2_function_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("anlage2_function_list"))
+        self.assertTrue(Anlage2Function.objects.filter(name="Login").exists())
+
 
 
 

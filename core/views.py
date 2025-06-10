@@ -1,7 +1,7 @@
 from pathlib import Path
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest, Http404
+from django.http import HttpResponseBadRequest, Http404, HttpResponse
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
@@ -11,6 +11,7 @@ import os
 import subprocess
 import whisper
 import torch
+import json
 
 from .forms import (
     RecordingForm,
@@ -20,6 +21,7 @@ from .forms import (
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
     Anlage2FunctionForm,
+    Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
 )
@@ -854,6 +856,83 @@ def anlage2_function_delete(request, pk):
     funktion = get_object_or_404(Anlage2Function, pk=pk)
     funktion.delete()
     return redirect("anlage2_function_list")
+
+
+@login_required
+@admin_required
+def anlage2_function_import(request):
+    """Importiert den Funktionskatalog aus einer JSON-Datei."""
+    form = Anlage2FunctionImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(data)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("anlage2_function_import")
+        if form.cleaned_data["clear_first"]:
+            Anlage2SubQuestion.objects.all().delete()
+            Anlage2Function.objects.all().delete()
+        for entry in items:
+            func, _ = Anlage2Function.objects.get_or_create(name=entry.get("name", ""))
+            for field in [
+                "technisch_vorhanden",
+                "einsatz_bei_telefonica",
+                "zur_lv_kontrolle",
+                "ki_beteiligung",
+            ]:
+                if field in entry:
+                    setattr(func, field, entry.get(field))
+            func.save()
+            for sub in entry.get("subquestions", []):
+                if isinstance(sub, dict):
+                    text = sub.get("frage_text", "")
+                    vals = sub
+                else:
+                    text = str(sub)
+                    vals = {}
+                Anlage2SubQuestion.objects.create(
+                    funktion=func,
+                    frage_text=text,
+                    technisch_vorhanden=vals.get("technisch_vorhanden"),
+                    einsatz_bei_telefonica=vals.get("einsatz_bei_telefonica"),
+                    zur_lv_kontrolle=vals.get("zur_lv_kontrolle"),
+                    ki_beteiligung=vals.get("ki_beteiligung"),
+                )
+        messages.success(request, "Funktionskatalog importiert")
+        return redirect("anlage2_function_list")
+    return render(request, "anlage2/function_import.html", {"form": form})
+
+
+@login_required
+@admin_required
+def anlage2_function_export(request):
+    """Exportiert den aktuellen Funktionskatalog als JSON."""
+    functions = []
+    for f in Anlage2Function.objects.all().order_by("name"):
+        item = {
+            "name": f.name,
+            "technisch_vorhanden": f.technisch_vorhanden,
+            "einsatz_bei_telefonica": f.einsatz_bei_telefonica,
+            "zur_lv_kontrolle": f.zur_lv_kontrolle,
+            "ki_beteiligung": f.ki_beteiligung,
+            "subquestions": [],
+        }
+        for q in f.anlage2subquestion_set.all().order_by("id"):
+            item["subquestions"].append(
+                {
+                    "frage_text": q.frage_text,
+                    "technisch_vorhanden": q.technisch_vorhanden,
+                    "einsatz_bei_telefonica": q.einsatz_bei_telefonica,
+                    "zur_lv_kontrolle": q.zur_lv_kontrolle,
+                    "ki_beteiligung": q.ki_beteiligung,
+                }
+            )
+        functions.append(item)
+    content = json.dumps(functions, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=anlage2_functions.json"
+    return resp
 
 
 @login_required
