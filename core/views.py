@@ -874,7 +874,8 @@ def anlage2_function_import(request):
             Anlage2SubQuestion.objects.all().delete()
             Anlage2Function.objects.all().delete()
         for entry in items:
-            func, _ = Anlage2Function.objects.get_or_create(name=entry.get("name", ""))
+            name = entry.get("name") or entry.get("funktion") or ""
+            func, _ = Anlage2Function.objects.get_or_create(name=name)
             for field in [
                 "technisch_vorhanden",
                 "einsatz_bei_telefonica",
@@ -884,9 +885,10 @@ def anlage2_function_import(request):
                 if field in entry:
                     setattr(func, field, entry.get(field))
             func.save()
-            for sub in entry.get("subquestions", []):
+            subs = entry.get("subquestions") or entry.get("unterfragen") or []
+            for sub in subs:
                 if isinstance(sub, dict):
-                    text = sub.get("frage_text", "")
+                    text = sub.get("frage_text") or sub.get("frage") or ""
                     vals = sub
                 else:
                     text = str(sub)
