@@ -6,6 +6,11 @@
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div>
+        {{ form.title.label_tag }}<br>
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
+    <div>
         {{ form.beschreibung.label_tag }}<br>
         {{ form.beschreibung }}
         {{ form.beschreibung.errors }}

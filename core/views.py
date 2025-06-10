@@ -807,6 +807,7 @@ def projekt_create(request):
         form = BVProjectForm(request.POST, request.FILES)
         if form.is_valid():
             projekt = form.save(commit=False)
+            projekt.title = form.cleaned_data.get("title", "")
             docx_file = form.cleaned_data.get("docx_file")
             if docx_file:
                 from tempfile import NamedTemporaryFile

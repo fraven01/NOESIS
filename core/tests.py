@@ -155,6 +155,7 @@ class DocxExtractTests(TestCase):
 class BVProjectFormTests(TestCase):
     def test_project_form_docx_validation(self):
         data = {
+            "title": "",
             "beschreibung": "",
             "software_typen": "A",
             "status": BVProject.STATUS_NEW,
@@ -169,6 +170,18 @@ class BVProjectFormTests(TestCase):
         self.assertTrue(valid.is_valid())
         invalid = BVProjectUploadForm({}, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
         self.assertFalse(invalid.is_valid())
+
+    def test_form_saves_title(self):
+        data = {
+            "title": "Mein Projekt",
+            "beschreibung": "",
+            "software_typen": "A",
+            "status": BVProject.STATUS_NEW,
+        }
+        form = BVProjectForm(data)
+        self.assertTrue(form.is_valid())
+        projekt = form.save()
+        self.assertEqual(projekt.title, "Mein Projekt")
 
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):
@@ -211,6 +224,16 @@ class ProjektFileUploadTests(TestCase):
         file_obj = self.projekt.anlagen.first()
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
+
+
+class BVProjectModelTests(TestCase):
+    def test_title_auto_set_from_software(self):
+        projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
+        self.assertEqual(projekt.title, "A, B")
+
+    def test_title_preserved_when_set(self):
+        projekt = BVProject.objects.create(title="X", software_typen="A", beschreibung="x")
+        self.assertEqual(projekt.title, "X")
 
 
 class WorkflowTests(TestCase):
