@@ -27,13 +27,22 @@
     </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
     {% if projekt %}
-    <button type="button" data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded ml-2">
-        {% if projekt.llm_geprueft %}LLM-Prüfung wiederholen{% else %}System per LLM prüfen{% endif %}
-    </button>
+    <div class="mt-4">
+        <label class="font-semibold">LLM-Modell:</label>
+        {% for m in models %}
+            <label class="ml-2">
+                <input type="radio" name="llm_model" value="{{ m }}" {% if m == model %}checked{% endif %}>
+                {{ m }}
+            </label>
+        {% endfor %}
+        <button type="button" data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded ml-2">
+            {% if projekt.llm_geprueft %}LLM-Prüfung wiederholen{% else %}System per LLM prüfen{% endif %}
+        </button>
+    </div>
     {% endif %}
 </form>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
+document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="llm_model"]:checked');const body=new URLSearchParams();if(m){body.append('model',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
 </script>
 {% endblock %}

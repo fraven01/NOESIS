@@ -2,6 +2,16 @@
 {% block title %}Pr\u00fcfergebnis{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Pr\u00fcfergebnis f\u00fcr Anlage {{ anlage.anlage_nr }}</h1>
+<form method="get" class="mb-4">
+    <label class="font-semibold">LLM-Modell:</label>
+    {% for m in models %}
+        <label class="ml-2">
+            <input type="radio" name="model" value="{{ m }}" {% if m == model %}checked{% endif %}>
+            {{ m }}
+        </label>
+    {% endfor %}
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Neu prüfen</button>
+</form>
 <form method="post" class="space-y-4">
     {% csrf_token %}
     {{ form.non_field_errors }}

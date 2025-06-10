@@ -832,7 +832,13 @@ def projekt_edit(request, pk):
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)
-    return render(request, "projekt_form.html", {"form": form, "projekt": projekt})
+    context = {
+        "form": form,
+        "projekt": projekt,
+        "models": LLMConfig.get_available(),
+        "model": LLMConfig.get_default(),
+    }
+    return render(request, "projekt_form.html", context)
 
 
 @login_required
@@ -878,8 +884,9 @@ def projekt_check(request, pk):
         "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
         + projekt.beschreibung
     )
+    model = request.POST.get("model")
     try:
-        reply = query_llm(prompt)
+        reply = query_llm(prompt, model_name=model, model_type="default")
     except RuntimeError:
         return JsonResponse(
             {"error": "Missing LLM credentials from environment."}, status=500
@@ -916,8 +923,9 @@ def projekt_file_check(request, pk, nr):
     func = funcs.get(nr_int)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
+    model = request.POST.get("model")
     try:
-        func(pk)
+        func(pk, model_name=model)
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=404)
     except RuntimeError:
@@ -948,8 +956,9 @@ def projekt_file_check_pk(request, pk):
     func = funcs.get(anlage.anlage_nr)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
+    model = request.POST.get("model")
     try:
-        func(anlage.projekt_id)
+        func(anlage.projekt_id, model_name=model)
     except RuntimeError:
         return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
     except Exception:
@@ -978,6 +987,7 @@ def projekt_file_check_view(request, pk):
     if not func:
         raise Http404
 
+    model = None
     if request.method == "POST":
         form = BVProjectFileJSONForm(request.POST, instance=anlage)
         if form.is_valid():
@@ -985,8 +995,9 @@ def projekt_file_check_view(request, pk):
             messages.success(request, "Analyse gespeichert")
             return redirect("projekt_detail", pk=anlage.projekt.pk)
     else:
+        model = request.GET.get("model")
         try:
-            func(anlage.projekt_id)
+            func(anlage.projekt_id, model_name=model)
         except RuntimeError:
             messages.error(request, "Missing LLM credentials from environment.")
         except Exception:
@@ -994,7 +1005,12 @@ def projekt_file_check_view(request, pk):
             messages.error(request, "Fehler bei der Anlagenpr\xFCfung")
         form = BVProjectFileJSONForm(instance=anlage)
 
-    context = {"form": form, "anlage": anlage}
+    context = {
+        "form": form,
+        "anlage": anlage,
+        "models": LLMConfig.get_available(),
+        "model": model or LLMConfig.get_default("anlagen"),
+    }
     return render(request, "projekt_file_check_result.html", context)
 
 
