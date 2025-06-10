@@ -1223,6 +1223,7 @@ def project_llm_check(request, pk):
         projekt.llm_geprueft = True
         valid, msg = _validate_llm_output(edited)
         projekt.llm_validated = valid
+        projekt.llm_geprueft_am = timezone.now()
         if not valid:
             projekt.llm_geprueft = False
         projekt.save()
