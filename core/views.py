@@ -28,7 +28,6 @@ from .models import (
     transcript_upload_path,
     Prompt,
     LLMConfig,
-    Anlage1Config,
     Anlage1Question,
     Anlage1QuestionVariant,
     Tile,
@@ -108,68 +107,65 @@ def home(request):
 
 @login_required
 def work(request):
-    is_admin = request.user.groups.filter(name='admin').exists()
+    is_admin = request.user.groups.filter(name="admin").exists()
     tiles = get_user_tiles(request.user, Tile.WORK)
     context = {
-        'is_admin': is_admin,
-        'tiles': tiles,
+        "is_admin": is_admin,
+        "tiles": tiles,
     }
-    return render(request, 'work.html', context)
+    return render(request, "work.html", context)
 
 
 @login_required
 def personal(request):
-    is_admin = request.user.groups.filter(name='admin').exists()
+    is_admin = request.user.groups.filter(name="admin").exists()
     tiles = get_user_tiles(request.user, Tile.PERSONAL)
     context = {
-        'is_admin': is_admin,
-        'tiles': tiles,
+        "is_admin": is_admin,
+        "tiles": tiles,
     }
-    return render(request, 'personal.html', context)
+    return render(request, "personal.html", context)
 
 
 @login_required
 def account(request):
-    return render(request, 'account.html')
+    return render(request, "account.html")
 
 
 @login_required
 @admin_required
 def recording_page(request, bereich):
     if bereich not in ["work", "personal"]:
-        return redirect('home')
-    rec_dir = Path(settings.MEDIA_ROOT) / 'recordings' / bereich
+        return redirect("home")
+    rec_dir = Path(settings.MEDIA_ROOT) / "recordings" / bereich
     files = []
     if rec_dir.exists():
         for f in sorted(rec_dir.iterdir(), reverse=True):
-            files.append({
-                'name': f.name,
-                'mtime': f.stat().st_mtime
-            })
+            files.append({"name": f.name, "mtime": f.stat().st_mtime})
     context = {
-        'bereich': bereich,
-        'is_recording': is_recording(),
-        'recordings': files,
+        "bereich": bereich,
+        "is_recording": is_recording(),
+        "recordings": files,
     }
-    return render(request, 'recording.html', context)
+    return render(request, "recording.html", context)
 
 
 @login_required
 def start_recording_view(request, bereich):
     if bereich not in ["work", "personal"]:
-        return redirect('home')
+        return redirect("home")
     start_recording(bereich, Path(settings.MEDIA_ROOT))
-    return redirect('recording_page', bereich=bereich)
+    return redirect("recording_page", bereich=bereich)
 
 
 @login_required
 def stop_recording_view(request, bereich):
     if bereich not in ["work", "personal"]:
-        return redirect('home')
+        return redirect("home")
     stop_recording()
     time.sleep(1)
     _process_recordings_for_user(bereich, request.user)
-    return redirect('recording_page', bereich=bereich)
+    return redirect("recording_page", bereich=bereich)
 
 
 @login_required
@@ -204,7 +200,9 @@ def upload_recording(request):
         if form.is_valid():
             bereich = form.cleaned_data["bereich"]
             uploaded = form.cleaned_data["audio_file"]
-            logger.debug("Upload erhalten: %s f\u00fcr Bereich %s", uploaded.name, bereich)
+            logger.debug(
+                "Upload erhalten: %s f\u00fcr Bereich %s", uploaded.name, bereich
+            )
 
             rel_path = Path("recordings") / bereich / uploaded.name
             storage_name = default_storage.get_available_name(str(rel_path))
@@ -217,8 +215,14 @@ def upload_recording(request):
             abs_path = default_storage.path(file_path)
             final_rel = file_path
             if Path(abs_path).suffix.lower() == ".mkv":
-                ffmpeg = Path(settings.BASE_DIR) / "tools" / (
-                    "ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+                ffmpeg = (
+                    Path(settings.BASE_DIR)
+                    / "tools"
+                    / (
+                        "ffmpeg.exe"
+                        if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists()
+                        else "ffmpeg"
+                    )
                 )
                 if not ffmpeg.exists():
                     ffmpeg = "ffmpeg"
@@ -227,13 +231,17 @@ def upload_recording(request):
                 wav_abs = default_storage.path(wav_storage)
                 try:
                     logger.debug("Konvertiere %s nach %s", abs_path, wav_abs)
-                    subprocess.run([str(ffmpeg), "-y", "-i", abs_path, wav_abs], check=True)
+                    subprocess.run(
+                        [str(ffmpeg), "-y", "-i", abs_path, wav_abs], check=True
+                    )
                     Path(abs_path).unlink(missing_ok=True)
                     final_rel = wav_storage
                 except Exception:
                     return HttpResponseBadRequest("Konvertierung fehlgeschlagen")
 
-            if Recording.objects.filter(audio_file=final_rel, user=request.user).exists():
+            if Recording.objects.filter(
+                audio_file=final_rel, user=request.user
+            ).exists():
                 messages.info(request, "Aufnahme bereits in der Datenbank.")
                 return redirect("dashboard")
 
@@ -243,7 +251,9 @@ def upload_recording(request):
                 audio_file=final_rel,
             )
 
-            out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich.slug}"
+            out_dir = (
+                Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich.slug}"
+            )
             out_dir.mkdir(parents=True, exist_ok=True)
 
             model = _get_whisper_model()
@@ -303,14 +313,15 @@ def upload_transcript(request):
     return render(request, "upload_transcript.html", {"form": form})
 
 
-
 def _process_recordings_for_user(bereich: str, user) -> list:
     """Convert and transcribe recordings for ``bereich`` and ``user``.
 
     Returns a list of :class:`Recording` objects found or created.
     """
 
-    logger.debug("Beginne Verarbeitung f\u00fcr Bereich '%s' und Benutzer '%s'", bereich, user)
+    logger.debug(
+        "Beginne Verarbeitung f\u00fcr Bereich '%s' und Benutzer '%s'", bereich, user
+    )
     media_root = Path(settings.MEDIA_ROOT)
     base_dir = Path(settings.BASE_DIR)
     rec_dir = media_root / "recordings" / bereich
@@ -319,8 +330,10 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     rec_dir.mkdir(parents=True, exist_ok=True)
     trans_dir.mkdir(parents=True, exist_ok=True)
 
-    ffmpeg = base_dir / "tools" / (
-        "ffmpeg.exe" if (base_dir / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+    ffmpeg = (
+        base_dir
+        / "tools"
+        / ("ffmpeg.exe" if (base_dir / "tools" / "ffmpeg.exe").exists() else "ffmpeg")
     )
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
@@ -331,16 +344,16 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     if tools_dir not in current_path.split(os.pathsep):
         os.environ["PATH"] = current_path + os.pathsep + tools_dir
 
-
     logger.debug("Konvertiere mkv-Dateien")
     # convert mkv to wav and remove mkv
     for mkv in list(rec_dir.glob("*.mkv")) + list(rec_dir.glob("*.MKV")):
-
         wav = mkv.with_suffix(".wav")
         if not wav.exists() and mkv.exists():
             try:
                 logger.debug("ffmpeg %s -> %s", mkv, wav)
-                subprocess.run([str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True)
+                subprocess.run(
+                    [str(ffmpeg), "-y", "-i", str(mkv), str(wav)], check=True
+                )
 
                 mkv.unlink(missing_ok=True)
 
@@ -350,7 +363,6 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     logger.debug("Transkribiere wav-Dateien")
 
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
-
         if not wav.exists():
             continue
 
@@ -370,7 +382,6 @@ def _process_recordings_for_user(bereich: str, user) -> list:
     recordings = []
 
     for wav in list(rec_dir.glob("*.wav")) + list(rec_dir.glob("*.WAV")):
-
         md = trans_dir / f"{wav.stem}.md"
         excerpt = ""
         if md.exists():
@@ -379,13 +390,11 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         rel_wav = Path("recordings") / bereich / wav.name
         rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
         rec_obj, _ = Recording.objects.get_or_create(
-
             user=user,
             bereich=Area.objects.get(slug=bereich),
             audio_file=str(rel_wav),
         )
         if rel_md and not rec_obj.transcript_file:
-
             with md.open("rb") as f:
                 rec_obj.transcript_file.save(md.name, f, save=False)
         if excerpt:
@@ -393,7 +402,6 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         rec_obj.save()
         logger.debug("Recording verarbeitet: %s", rec_obj)
         recordings.append(rec_obj)
-
 
     logger.debug("Verarbeitung abgeschlossen")
     return recordings
@@ -408,14 +416,15 @@ def talkdiary(request, bereich):
     # always process new recordings; manual rescan available via query param
     _process_recordings_for_user(bereich, request.user)
 
-    recordings = Recording.objects.filter(user=request.user, bereich__slug=bereich).order_by("-created_at")
+    recordings = Recording.objects.filter(
+        user=request.user, bereich__slug=bereich
+    ).order_by("-created_at")
 
     context = {
         "bereich": bereich,
         "recordings": recordings,
         "is_recording": is_recording(),
         "is_admin": request.user.groups.filter(name="admin").exists(),
-
     }
     return render(request, "talkdiary.html", context)
 
@@ -465,13 +474,23 @@ def transcribe_recording(request, pk):
 
     track = int(request.POST.get("track", "1"))
 
-    ffmpeg = Path(settings.BASE_DIR) / "tools" / (
-        "ffmpeg.exe" if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists() else "ffmpeg"
+    ffmpeg = (
+        Path(settings.BASE_DIR)
+        / "tools"
+        / (
+            "ffmpeg.exe"
+            if (Path(settings.BASE_DIR) / "tools" / "ffmpeg.exe").exists()
+            else "ffmpeg"
+        )
     )
     if not ffmpeg.exists():
         ffmpeg = "ffmpeg"
 
-    source = audio_path if audio_path.suffix.lower() == ".mkv" else audio_path.with_suffix(".mkv")
+    source = (
+        audio_path
+        if audio_path.suffix.lower() == ".mkv"
+        else audio_path.with_suffix(".mkv")
+    )
 
     if track != 1 or source.suffix.lower() == ".mkv":
         if not source.exists():
@@ -480,15 +499,18 @@ def transcribe_recording(request, pk):
         wav_path = source.with_name(f"{source.stem}_track{track}.wav")
         try:
             logger.debug("Extrahiere Spur %s: %s -> %s", track, source, wav_path)
-            subprocess.run([
-                str(ffmpeg),
-                "-y",
-                "-i",
-                str(source),
-                "-map",
-                f"0:a:{track - 1}",
-                str(wav_path),
-            ], check=True)
+            subprocess.run(
+                [
+                    str(ffmpeg),
+                    "-y",
+                    "-i",
+                    str(source),
+                    "-map",
+                    f"0:a:{track - 1}",
+                    str(wav_path),
+                ],
+                check=True,
+            )
         except Exception as exc:
             logger.error("ffmpeg failed: %s", exc)
             messages.error(request, "Konvertierung fehlgeschlagen")
@@ -560,8 +582,8 @@ def admin_talkdiary(request):
             else None
         )
         rec.audio_missing = not audio_path.exists()
-        rec.transcript_missing = (
-            rec.transcript_file == "" or (transcript_path and not transcript_path.exists())
+        rec.transcript_missing = rec.transcript_file == "" or (
+            transcript_path and not transcript_path.exists()
         )
         rec.incomplete = rec.audio_missing or rec.transcript_missing
 
@@ -577,9 +599,13 @@ def admin_talkdiary(request):
         ids = request.POST.getlist("delete")
         for rec in Recording.objects.filter(id__in=ids):
             if rec.audio_file:
-                (Path(settings.MEDIA_ROOT) / rec.audio_file.name).unlink(missing_ok=True)
+                (Path(settings.MEDIA_ROOT) / rec.audio_file.name).unlink(
+                    missing_ok=True
+                )
             if rec.transcript_file:
-                (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(missing_ok=True)
+                (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(
+                    missing_ok=True
+                )
             rec.delete()
         return redirect("admin_talkdiary")
 
@@ -756,9 +782,7 @@ def admin_models(request):
 def admin_anlage1(request):
     """Konfiguriert Fragen für Anlage 1."""
     questions = list(
-        Anlage1Question.objects.all()
-        .prefetch_related("variants")
-        .order_by("num")
+        Anlage1Question.objects.all().prefetch_related("variants").order_by("num")
     )
     if request.method == "POST":
         for q in questions:
@@ -827,6 +851,7 @@ def projekt_upload(request):
         if form.is_valid():
             docx_file = form.cleaned_data["docx_file"]
             from tempfile import NamedTemporaryFile
+
             tmp = NamedTemporaryFile(delete=False, suffix=".docx")
             for chunk in docx_file.chunks():
                 tmp.write(chunk)
@@ -850,6 +875,7 @@ def projekt_create(request):
             docx_file = form.cleaned_data.get("docx_file")
             if docx_file:
                 from tempfile import NamedTemporaryFile
+
                 tmp = NamedTemporaryFile(delete=False, suffix=".docx")
                 for chunk in docx_file.chunks():
                     tmp.write(chunk)
@@ -974,7 +1000,9 @@ def projekt_file_check(request, pk, nr):
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=404)
     except RuntimeError:
-        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+        return JsonResponse(
+            {"error": "Missing LLM credentials from environment."}, status=500
+        )
     except Exception:
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
@@ -1007,7 +1035,9 @@ def projekt_file_check_pk(request, pk):
     try:
         func(anlage.projekt_id, model_name=model)
     except RuntimeError:
-        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+        return JsonResponse(
+            {"error": "Missing LLM credentials from environment."}, status=500
+        )
     except Exception:
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
@@ -1016,7 +1046,7 @@ def projekt_file_check_pk(request, pk):
 
 @login_required
 def projekt_file_check_view(request, pk):
-    """Pr\xFCft eine Anlage und zeigt das Ergebnis an."""
+    """Pr\xfcft eine Anlage und zeigt das Ergebnis an."""
     try:
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
@@ -1052,7 +1082,7 @@ def projekt_file_check_view(request, pk):
             messages.error(request, "Missing LLM credentials from environment.")
         except Exception:
             logger.exception("LLM Fehler")
-            messages.error(request, "Fehler bei der Anlagenpr\xFCfung")
+            messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
         form = BVProjectFileJSONForm(instance=anlage)
 
     context = {
@@ -1084,7 +1114,9 @@ def projekt_file_edit_json(request, pk):
         template = "projekt_file_anlage1_review.html"
         answers: dict[str, str] = {}
         numbers = get_anlage1_numbers()
-        q_data = anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
+        q_data = (
+            anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
+        )
         for i in numbers:
             answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
 
@@ -1198,7 +1230,7 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
 @require_http_methods(["GET"])
 def project_detail_api(request, pk):
     projekt = BVProject.objects.get(pk=pk)
-    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
     data = {
         "id": projekt.pk,
         "title": projekt.title,
@@ -1237,10 +1269,12 @@ def project_llm_check(request, pk):
             resp["error"] = msg
         return JsonResponse(resp)
 
-    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
     if not software_list:
         return JsonResponse(
-            {"error": "Software-Typen field cannot be empty. Please provide one or more software names, comma-separated."},
+            {
+                "error": "Software-Typen field cannot be empty. Please provide one or more software names, comma-separated."
+            },
             status=400,
         )
 
@@ -1250,11 +1284,15 @@ def project_llm_check(request, pk):
         try:
             reply, valid = _run_llm_check(name, additional)
         except RuntimeError:
-            return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+            return JsonResponse(
+                {"error": "Missing LLM credentials from environment."}, status=500
+            )
         except Exception:
             logger.exception("LLM Fehler")
             return JsonResponse(
-                {"error": f"LLM service error during check for software {name}. Check server logs for details."},
+                {
+                    "error": f"LLM service error during check for software {name}. Check server logs for details."
+                },
                 status=502,
             )
         llm_responses.append({"software": name, "output": reply, "validated": valid})
