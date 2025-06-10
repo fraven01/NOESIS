@@ -290,3 +290,17 @@ class Anlage2SubQuestionForm(forms.ModelForm):
             "zur_lv_kontrolle": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "ki_beteiligung": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
+
+
+class Anlage2FunctionImportForm(forms.Form):
+    """Formular für den JSON-Import des Funktionskatalogs."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+    clear_first = forms.BooleanField(
+        required=False,
+        label="Datenbank vorher leeren",
+        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )

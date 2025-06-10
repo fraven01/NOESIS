@@ -76,6 +76,16 @@ urlpatterns = [
         name="anlage2_function_delete",
     ),
     path(
+        "projects-admin/anlage2/import/",
+        views.anlage2_function_import,
+        name="anlage2_function_import",
+    ),
+    path(
+        "projects-admin/anlage2/export/",
+        views.anlage2_function_export,
+        name="anlage2_function_export",
+    ),
+    path(
         "projects-admin/anlage2/<int:function_pk>/subquestion/new/",
         views.anlage2_subquestion_form,
         name="anlage2_subquestion_new",
