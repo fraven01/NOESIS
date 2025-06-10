@@ -330,3 +330,35 @@ class UserTileAccess(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.user} -> {self.tile}"
+
+
+class Anlage2Function(models.Model):
+    """Funktion aus Anlage 2."""
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
+
+
+class Anlage2FunctionResult(models.Model):
+    """Speichert das Prüfergebnis einer Anlage-2-Funktion."""
+
+    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
+    technisch_verfuegbar = models.BooleanField(null=True)
+    einsatz_telefonica = models.BooleanField(null=True)
+    zur_lv_kontrolle = models.BooleanField(null=True)
+    ki_beteiligung = models.BooleanField(null=True)
+    raw_json = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("projekt", "funktion")]
+        ordering = ["funktion__name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.projekt} - {self.funktion}"
