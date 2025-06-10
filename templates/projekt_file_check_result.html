@@ -4,10 +4,10 @@
 <h1 class="text-2xl font-semibold mb-4">Pr\u00fcfergebnis f\u00fcr Anlage {{ anlage.anlage_nr }}</h1>
 <form method="get" class="mb-4">
     <label class="font-semibold">LLM-Modell:</label>
-    {% for m in models %}
+    {% for key, data in categories.items %}
         <label class="ml-2">
-            <input type="radio" name="model" value="{{ m }}" {% if m == model %}checked{% endif %}>
-            {{ m }}
+            <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+            {{ data.label }}
         </label>
     {% endfor %}
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Neu prüfen</button>

@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import Recording, Prompt, Tile, UserTileAccess, Area
+from .models import (
+    Recording,
+    Prompt,
+    Tile,
+    UserTileAccess,
+    Area,
+    Anlage2Function,
+    Anlage2FunctionResult,
+)
 
 
 @admin.register(Recording)
@@ -40,3 +48,20 @@ class CustomUserAdmin(BaseUserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(Anlage2Function)
+class Anlage2FunctionAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+
+
+@admin.register(Anlage2FunctionResult)
+class Anlage2FunctionResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "projekt",
+        "funktion",
+        "technisch_verfuegbar",
+        "einsatz_telefonica",
+        "zur_lv_kontrolle",
+        "ki_beteiligung",
+    )

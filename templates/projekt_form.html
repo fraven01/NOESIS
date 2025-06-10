@@ -6,20 +6,42 @@
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div>
+        {{ form.title.label_tag }}<br>
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
+    <div>
         {{ form.beschreibung.label_tag }}<br>
         {{ form.beschreibung }}
         {{ form.beschreibung.errors }}
     </div>
     <div>
-        {{ form.software_typen.label_tag }}<br>
+        <label>Software</label><br>
+        <div id="software-container">
+        {% for name in form.software_list %}
+            <div class="software-item mb-2 flex items-center">
+                <input type="text" name="software" value="{{ name }}" class="border rounded p-2 mr-2">
+                <button type="button" class="remove-software text-red-600">-</button>
+            </div>
+        {% endfor %}
+        {% if not form.software_list %}
+            <div class="software-item mb-2 flex items-center">
+                <input type="text" name="software" class="border rounded p-2 mr-2">
+                <button type="button" class="remove-software text-red-600">-</button>
+            </div>
+        {% endif %}
+        </div>
+        <button type="button" id="add-software" class="bg-gray-300 px-2 py-1 rounded">+</button>
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
     </div>
+    {% if 'status' in form.fields %}
     <div>
         {{ form.status.label_tag }}<br>
         {{ form.status }}
         {{ form.status.errors }}
     </div>
+    {% endif %}
     <div>
         {{ form.docx_file.label_tag }}<br>
         {{ form.docx_file }}
@@ -29,10 +51,10 @@
     {% if projekt %}
     <div class="mt-4">
         <label class="font-semibold">LLM-Modell:</label>
-        {% for m in models %}
+        {% for key, data in categories.items %}
             <label class="ml-2">
-                <input type="radio" name="llm_model" value="{{ m }}" {% if m == model %}checked{% endif %}>
-                {{ m }}
+                <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                {{ data.label }}
             </label>
         {% endfor %}
         <button type="button" data-url="{% url 'projekt_check' projekt.pk %}" class="llm-check-btn bg-green-600 text-white px-4 py-2 rounded ml-2">
@@ -43,6 +65,8 @@
 </form>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="llm_model"]:checked');const body=new URLSearchParams();if(m){body.append('model',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
+document.querySelectorAll('.llm-check-btn').forEach(btn=>{btn.addEventListener('click',ev=>{ev.preventDefault();const m=document.querySelector('input[name="model_category"]:checked');const body=new URLSearchParams();if(m){body.append('model_category',m.value);}fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body}).then(r=>r.json()).then(data=>{if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}}).catch(()=>alert('Fehler bei der LLM-Prüfung'));});});
+document.getElementById('add-software').addEventListener('click',()=>{const c=document.getElementById('software-container');const d=document.createElement('div');d.className='software-item mb-2 flex items-center';d.innerHTML='<input type="text" name="software" class="border rounded p-2 mr-2"><button type="button" class="remove-software text-red-600">-</button>';c.appendChild(d);});
+document.getElementById('software-container').addEventListener('click',e=>{if(e.target.classList.contains('remove-software')){e.target.parentElement.remove();}});
 </script>
 {% endblock %}

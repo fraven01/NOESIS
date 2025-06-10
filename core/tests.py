@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
+from django.http import QueryDict
 
 
 from django.apps import apps
@@ -15,6 +16,8 @@ from .models import (
     Anlage1Question,
     Anlage1Config,
     Area,
+    Anlage2Function,
+    Anlage2FunctionResult,
 )
 from .docx_utils import extract_text
 from pathlib import Path
@@ -30,6 +33,7 @@ from .llm_tasks import (
     check_anlage1,
     check_anlage2,
     analyse_anlage2,
+    check_anlage2_functions,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
@@ -147,11 +151,14 @@ class DocxExtractTests(TestCase):
 
 class BVProjectFormTests(TestCase):
     def test_project_form_docx_validation(self):
-        data = {
-            "beschreibung": "",
-            "software_typen": "A",
-            "status": BVProject.STATUS_NEW,
-        }
+        data = QueryDict(mutable=True)
+        data.update(
+            {
+                "title": "",
+                "beschreibung": "",
+            }
+        )
+        data.setlist("software", ["A"])
         valid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
         self.assertTrue(valid.is_valid())
         invalid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
@@ -211,6 +218,18 @@ class ProjektFileUploadTests(TestCase):
         file_obj = self.projekt.anlagen.first()
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
+
+
+class BVProjectModelTests(TestCase):
+    def test_title_auto_set_from_software(self):
+        projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
+        self.assertEqual(projekt.title, "A, B")
+
+    def test_title_preserved_when_set(self):
+        projekt = BVProject.objects.create(
+            title="X", software_typen="A", beschreibung="x"
+        )
+        self.assertEqual(projekt.title, "X")
 
 
 class WorkflowTests(TestCase):
@@ -278,6 +297,39 @@ class LLMTasksTests(TestCase):
         )
         with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
             data = check_anlage2(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertTrue(data["ok"]["value"])
+
+    def test_check_anlage2_llm_receives_text(self):
+        """Der LLM-Prompt enthält den bekannten Text."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testinhalt Anlage2",
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}') as mock_q:
+            data = check_anlage2(projekt.pk)
+        self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0])
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertTrue(data["ok"]["value"])
+
+    def test_check_anlage2_prompt_contains_text(self):
+        """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testinhalt Anlage2",
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}') as mock_q:
+            data = check_anlage2(projekt.pk)
+        prompt = mock_q.call_args_list[0].args[0]
+        self.assertIn("Testinhalt Anlage2", prompt)
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
         self.assertTrue(data["ok"]["value"])
@@ -1353,21 +1405,57 @@ class ModelSelectionTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
         )
+        LLMConfig.objects.create(
+            default_model="d",
+            gutachten_model="g",
+            anlagen_model="a",
+        )
 
-    def test_projekt_check_uses_model(self):
+    def test_projekt_check_uses_category(self):
         url = reverse("projekt_check", args=[self.projekt.pk])
         with patch("core.views.query_llm", return_value="ok") as mock_q:
-            resp = self.client.post(url, {"model": "m1"})
+            resp = self.client.post(url, {"model_category": "gutachten"})
         self.assertEqual(resp.status_code, 200)
-        mock_q.assert_called_with(ANY, model_name="m1", model_type="default")
+        mock_q.assert_called_with(ANY, model_name="g", model_type="default")
 
-    def test_file_check_uses_model(self):
+    def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         with patch("core.views.check_anlage1") as mock_func:
             mock_func.return_value = {"task": "check_anlage1"}
-            resp = self.client.post(url, {"model": "m2"})
+            resp = self.client.post(url, {"model_category": "anlagen"})
         self.assertEqual(resp.status_code, 200)
-        mock_func.assert_called_with(self.projekt.pk, model_name="m2")
+        mock_func.assert_called_with(self.projekt.pk, model_name="a")
+
+    def test_forms_show_categories(self):
+        edit_url = reverse("projekt_edit", args=[self.projekt.pk])
+        resp = self.client.get(edit_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
+
+        view_url = reverse(
+            "projekt_file_check_view", args=[self.projekt.anlagen.first().pk]
+        )
+        with patch("core.views.check_anlage1") as mock_func:
+            mock_func.return_value = {"task": "check_anlage1"}
+            resp = self.client.get(view_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
+
+        gutachten_url = reverse("projekt_gutachten", args=[self.projekt.pk])
+        resp = self.client.get(gutachten_url)
+        self.assertContains(resp, "Standard")
+        self.assertContains(resp, "Gutachten")
+        self.assertContains(resp, "Anlagen")
+
+    def test_functions_check_uses_model(self):
+        url = reverse("projekt_functions_check", args=[self.projekt.pk])
+        with patch("core.views.check_anlage2_functions") as mock_func:
+            mock_func.return_value = []
+            resp = self.client.post(url, {"model": "mf"})
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name="mf")
 
 
 class CommandModelTests(TestCase):

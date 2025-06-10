@@ -71,6 +71,11 @@ urlpatterns = [
         name="projekt_status_update",
     ),
     path(
+        "work/projekte/<int:pk>/functions-check/",
+        views.projekt_functions_check,
+        name="projekt_functions_check",
+    ),
+    path(
         "work/projekte/<int:pk>/anlage/<int:nr>/check/",
         views.projekt_file_check,
         name="projekt_file_check",
