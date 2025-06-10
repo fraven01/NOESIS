@@ -1415,4 +1415,23 @@ class CommandFunctionsTests(TestCase):
         mock_func.assert_called_with(projekt.pk, model_name="m5")
 
 
+class ProjektDetailAdminButtonTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.admin = User.objects.create_user("padmin", password="pass")
+        self.admin.groups.add(admin_group)
+        self.user = User.objects.create_user("puser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_admin_user_sees_link(self):
+        self.client.login(username="padmin", password="pass")
+        resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertContains(resp, reverse("admin_projects"))
+
+    def test_regular_user_hides_link(self):
+        self.client.login(username="puser", password="pass")
+        resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertNotContains(resp, reverse("admin_projects"))
+
+
 
