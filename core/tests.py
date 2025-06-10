@@ -275,6 +275,22 @@ class LLMTasksTests(TestCase):
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
         self.assertTrue(data["ok"]["value"])
 
+    def test_check_anlage2_llm_receives_text(self):
+        """Der LLM-Prompt enthält den bekannten Text."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Testinhalt Anlage2",
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}') as mock_q:
+            data = check_anlage2(projekt.pk)
+        self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0])
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+        self.assertTrue(data["ok"]["value"])
+
     def test_check_anlage2_prompt_contains_text(self):
         """Der Prompt enth\u00E4lt den gesamten Anlagentext."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
