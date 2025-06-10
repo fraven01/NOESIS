@@ -836,8 +836,8 @@ def projekt_edit(request, pk):
     context = {
         "form": form,
         "projekt": projekt,
-        "models": LLMConfig.get_available(),
-        "model": LLMConfig.get_default(),
+        "categories": LLMConfig.get_categories(),
+        "category": "default",
     }
     return render(request, "projekt_form.html", context)
 
@@ -885,7 +885,8 @@ def projekt_check(request, pk):
         "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
         + projekt.beschreibung
     )
-    model = request.POST.get("model")
+    category = request.POST.get("model_category")
+    model = LLMConfig.get_default(category) if category else None
     try:
         reply = query_llm(prompt, model_name=model, model_type="default")
     except RuntimeError:
@@ -925,7 +926,8 @@ def projekt_file_check(request, pk, nr):
     func = funcs.get(nr_int)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
-    model = request.POST.get("model")
+    category = request.POST.get("model_category")
+    model = LLMConfig.get_default(category) if category else None
     try:
         func(pk, model_name=model)
     except ValueError as exc:
@@ -959,7 +961,8 @@ def projekt_file_check_pk(request, pk):
     func = funcs.get(anlage.anlage_nr)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
-    model = request.POST.get("model")
+    category = request.POST.get("model_category")
+    model = LLMConfig.get_default(category) if category else None
     try:
         func(anlage.projekt_id, model_name=model)
     except RuntimeError:
@@ -991,6 +994,7 @@ def projekt_file_check_view(request, pk):
     if not func:
         raise Http404
 
+    category = None
     model = None
     if request.method == "POST":
         form = BVProjectFileJSONForm(request.POST, instance=anlage)
@@ -999,7 +1003,8 @@ def projekt_file_check_view(request, pk):
             messages.success(request, "Analyse gespeichert")
             return redirect("projekt_detail", pk=anlage.projekt.pk)
     else:
-        model = request.GET.get("model")
+        category = request.GET.get("model_category")
+        model = LLMConfig.get_default(category) if category else None
         try:
             func(anlage.projekt_id, model_name=model)
         except RuntimeError:
@@ -1012,8 +1017,8 @@ def projekt_file_check_view(request, pk):
     context = {
         "form": form,
         "anlage": anlage,
-        "models": LLMConfig.get_available(),
-        "model": model or LLMConfig.get_default("anlagen"),
+        "categories": LLMConfig.get_categories(),
+        "category": category or "anlagen",
     }
     return render(request, "projekt_file_check_result.html", context)
 
@@ -1279,11 +1284,13 @@ def projekt_gutachten(request, pk):
     default_prompt = prefix + projekt.software_typen
     prompt = default_prompt
     cfg_model = LLMConfig.get_default("gutachten")
-    model = request.POST.get("model", cfg_model)
+    category = request.POST.get("model_category")
+    model = LLMConfig.get_default(category) if category else cfg_model
 
     if request.method == "POST":
         prompt = request.POST.get("prompt", default_prompt)
-        model = request.POST.get("model") or None
+        category = request.POST.get("model_category")
+        model = LLMConfig.get_default(category) if category else None
         try:
             text = query_llm(prompt, model_name=model, model_type="gutachten")
             generate_gutachten(projekt.pk, text, model_name=model)
@@ -1298,8 +1305,8 @@ def projekt_gutachten(request, pk):
     context = {
         "projekt": projekt,
         "prompt": prompt,
-        "model": model,
-        "models": LLMConfig.get_available(),
+        "category": category or "gutachten",
+        "categories": LLMConfig.get_categories(),
     }
     return render(request, "projekt_gutachten_form.html", context)
 
