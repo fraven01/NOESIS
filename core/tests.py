@@ -903,11 +903,13 @@ class TileVisibilityTests(TestCase):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("tileuser", password="pass")
         self.user.groups.add(admin_group)
+        work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        self.personal = Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})[0]
         self.talkdiary = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -915,7 +917,7 @@ class TileVisibilityTests(TestCase):
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": Tile.WORK,
+                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
@@ -958,11 +960,13 @@ class TileVisibilityTests(TestCase):
 
 class TileAccessTests(TestCase):
     def setUp(self):
+        work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        personal = Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})[0]
         self.talkdiary = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -970,7 +974,7 @@ class TileAccessTests(TestCase):
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": Tile.WORK,
+                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
@@ -1030,11 +1034,12 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
 class HomeRedirectTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("redir", password="pass")
+        personal = Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})[0]
         tile = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1051,15 +1056,15 @@ class AreaImageTests(TestCase):
         self.client.login(username="areauser", password="pass")
 
     def test_home_without_images(self):
-        Area.objects.create(slug="work", name="Work")
-        Area.objects.create(slug="personal", name="Personal")
+        Area.objects.get_or_create(slug="work", defaults={"name": "Work"})
+        Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})
         resp = self.client.get(reverse("home"))
         self.assertNotContains(resp, 'alt="Work"', html=False)
         self.assertNotContains(resp, 'alt="Personal"', html=False)
 
     def test_home_with_images(self):
-        work = Area.objects.create(slug="work", name="Work")
-        personal = Area.objects.create(slug="personal", name="Personal")
+        work, _ = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})
+        personal, _ = Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})
         work.image.save("w.png", SimpleUploadedFile("w.png", b"d"), save=True)
         personal.image.save("p.png", SimpleUploadedFile("p.png", b"d"), save=True)
         resp = self.client.get(reverse("home"))
@@ -1073,11 +1078,12 @@ class RecordingDeleteTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("recuser", password="pass")
         self.client.login(username="recuser", password="pass")
+        self.personal = Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})[0]
         self.tile = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1086,7 +1092,7 @@ class RecordingDeleteTests(TestCase):
         transcript = SimpleUploadedFile("a.md", b"text")
         self.rec = Recording.objects.create(
             user=self.user,
-            bereich=Recording.PERSONAL,
+            bereich=self.personal,
             audio_file=audio,
             transcript_file=transcript,
         )
@@ -1111,7 +1117,7 @@ class RecordingDeleteTests(TestCase):
         other = User.objects.create_user("other", password="pass")
         rec = Recording.objects.create(
             user=other,
-            bereich=Recording.PERSONAL,
+            bereich=self.personal,
             audio_file=SimpleUploadedFile("b.wav", b"d"),
             transcript_file=SimpleUploadedFile("b.md", b"t"),
         )
