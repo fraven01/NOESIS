@@ -248,6 +248,62 @@ class Anlage1ReviewForm(forms.Form):
         return out
 
 
+ANLAGE2_FIELDS = [
+    ("technisch_vorhanden", "Technisch vorhanden"),
+    ("einsatz_bei_telefonica", "Einsatz bei Telef\xf3nica"),
+    ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
+    ("ki_beteiligung", "KI-Beteiligung"),
+]
+
+
+class Anlage2ReviewForm(forms.Form):
+    """Manuelle Pr\xfcfung der Funktionen aus Anlage 2."""
+
+    def __init__(self, *args, initial=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        data = (initial or {}).get("functions", {})
+        for func in Anlage2Function.objects.order_by("name"):
+            f_data = data.get(str(func.id), {})
+            for field, _ in ANLAGE2_FIELDS:
+                name = f"func{func.id}_{field}"
+                self.fields[name] = forms.BooleanField(
+                    required=False,
+                    widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+                )
+                self.initial[name] = f_data.get(field, False)
+            for sub in func.anlage2subquestion_set.all().order_by("id"):
+                s_data = f_data.get("subquestions", {}).get(str(sub.id), {})
+                for field, _ in ANLAGE2_FIELDS:
+                    name = f"sub{sub.id}_{field}"
+                    self.fields[name] = forms.BooleanField(
+                        required=False,
+                        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+                    )
+                    self.initial[name] = s_data.get(field, False)
+
+    def get_json(self) -> dict:
+        out = {"functions": {}}
+        if not self.is_valid():
+            return out
+        for func in Anlage2Function.objects.order_by("name"):
+            item: dict[str, object] = {}
+            for field, _ in ANLAGE2_FIELDS:
+                item[field] = self.cleaned_data.get(
+                    f"func{func.id}_{field}", False
+                )
+            sub_dict: dict[str, dict] = {}
+            for sub in func.anlage2subquestion_set.all().order_by("id"):
+                sub_item = {
+                    field: self.cleaned_data.get(f"sub{sub.id}_{field}", False)
+                    for field, _ in ANLAGE2_FIELDS
+                }
+                sub_dict[str(sub.id)] = sub_item
+            if sub_dict:
+                item["subquestions"] = sub_dict
+            out["functions"][str(func.id)] = item
+        return out
+
+
 
 class Anlage2FunctionForm(forms.ModelForm):
     """Formular für eine Funktion aus Anlage 2."""

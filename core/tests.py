@@ -898,7 +898,7 @@ class ProjektFileJSONEditTests(TestCase):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
-            anlage_nr=2,
+            anlage_nr=3,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
             analysis_json={"old": {"value": True, "editable": True}},
@@ -981,6 +981,54 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(data["status"], "unvollst\u00e4ndig")
         self.assertEqual(data["hinweis"], "Fehlt")
         self.assertEqual(data["vorschlag"], "Mehr Infos")
+
+
+class Anlage2ReviewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("rev", password="pass")
+        self.client.login(username="rev", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("c.txt", b"d"),
+            text_content="Text",
+            analysis_json={
+                "functions": [
+                    {
+                        "funktion": "Login",
+                        "technisch_vorhanden": True,
+                        "einsatz_bei_telefonica": False,
+                        "zur_lv_kontrolle": False,
+                        "ki_beteiligung": True,
+                    }
+                ]
+            },
+        )
+        self.func = Anlage2Function.objects.create(name="Login")
+        self.sub = Anlage2SubQuestion.objects.create(funktion=self.func, frage_text="Warum?")
+
+    def test_get_shows_table(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Login")
+        self.assertContains(resp, "Warum?")
+        self.assertContains(resp, f"name=\"func{self.func.id}_technisch_vorhanden\"")
+
+    def test_post_saves_data(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.post(
+            url,
+            {
+                f"func{self.func.id}_technisch_vorhanden": "on",
+                f"sub{self.sub.id}_ki_beteiligung": "on",
+            },
+        )
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.file.refresh_from_db()
+        data = self.file.manual_analysis_json["functions"][str(self.func.id)]
+        self.assertTrue(data["technisch_vorhanden"])
+        self.assertTrue(data["subquestions"][str(self.sub.id)]["ki_beteiligung"])
 
 
 class ProjektGutachtenViewTests(TestCase):

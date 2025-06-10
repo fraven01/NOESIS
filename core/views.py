@@ -20,6 +20,8 @@ from .forms import (
     BVProjectFileForm,
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
+    Anlage2ReviewForm,
+    ANLAGE2_FIELDS,
     Anlage2FunctionForm,
     Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
@@ -1298,6 +1300,38 @@ def projekt_file_edit_json(request, pk):
             )
             for i in numbers
         ]
+    elif anlage.anlage_nr == 2:
+        if request.method == "POST":
+            form = Anlage2ReviewForm(request.POST)
+            if form.is_valid():
+                anlage.manual_analysis_json = form.get_json()
+                anlage.save(update_fields=["manual_analysis_json"])
+                return redirect("projekt_detail", pk=anlage.projekt.pk)
+        else:
+            form = Anlage2ReviewForm(initial=anlage.manual_analysis_json)
+        template = "projekt_file_anlage2_review.html"
+        answers: dict[str, dict] = {}
+        for item in (anlage.analysis_json.get("functions") if anlage.analysis_json else []) or []:
+            name = item.get("funktion") or item.get("name")
+            if name:
+                answers[name] = item
+        rows = []
+        for func in Anlage2Function.objects.order_by("name"):
+            fields = [form[f"func{func.id}_{field}"] for field, _ in ANLAGE2_FIELDS]
+            rows.append({
+                "name": func.name,
+                "analysis": answers.get(func.name, {}),
+                "form_fields": fields,
+                "sub": False,
+            })
+            for sub in func.anlage2subquestion_set.all().order_by("id"):
+                s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in ANLAGE2_FIELDS]
+                rows.append({
+                    "name": sub.frage_text,
+                    "analysis": {},
+                    "form_fields": s_fields,
+                    "sub": True,
+                })
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
@@ -1311,6 +1345,8 @@ def projekt_file_edit_json(request, pk):
     context = {"form": form, "anlage": anlage}
     if anlage.anlage_nr == 1:
         context["qa"] = qa
+    elif anlage.anlage_nr == 2:
+        context.update({"rows": rows, "fields": [f[0] for f in ANLAGE2_FIELDS], "labels": [f[1] for f in ANLAGE2_FIELDS]})
     return render(request, template, context)
 
 
