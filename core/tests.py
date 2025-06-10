@@ -1416,3 +1416,24 @@ class CommandFunctionsTests(TestCase):
 
 
 
+
+class ProjektLLMCheckTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("llmuser", password="pass")
+        self.client.login(username="llmuser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
+
+    def test_multiple_responses_saved(self):
+        url = reverse("project_llm_check", args=[self.projekt.pk])
+        replies = [
+            "This is answer A for test",
+            "This is answer B for test",
+        ]
+        with patch("core.views.query_llm", side_effect=replies) as mock_q:
+            resp = self.client.post(url, {})
+        self.assertEqual(resp.status_code, 200)
+        self.projekt.refresh_from_db()
+        self.assertIn(replies[0], self.projekt.llm_initial_output)
+        self.assertIn(replies[1], self.projekt.llm_initial_output)
+        self.assertEqual(mock_q.call_count, 2)
+
