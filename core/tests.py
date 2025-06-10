@@ -34,7 +34,8 @@ from .llm_tasks import (
     parse_anlage1_questions,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch
+from unittest.mock import patch, ANY
+from django.core.management import call_command
 from django.test import override_settings
 import json
 
@@ -1181,6 +1182,49 @@ class AdminAnlage1ViewTests(TestCase):
         q = Anlage1Question.objects.order_by("-num").first()
         self.assertFalse(q.parser_enabled)
         self.assertFalse(q.llm_enabled)
+
+
+class ModelSelectionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("modeluser", password="pass")
+        self.client.login(username="modeluser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_projekt_check_uses_model(self):
+        url = reverse("projekt_check", args=[self.projekt.pk])
+        with patch("core.views.query_llm", return_value="ok") as mock_q:
+            resp = self.client.post(url, {"model": "m1"})
+        self.assertEqual(resp.status_code, 200)
+        mock_q.assert_called_with(ANY, model_name="m1", model_type="default")
+
+    def test_file_check_uses_model(self):
+        url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
+        with patch("core.views.check_anlage1") as mock_func:
+            mock_func.return_value = {"task": "check_anlage1"}
+            resp = self.client.post(url, {"model": "m2"})
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name="m2")
+
+
+class CommandModelTests(TestCase):
+    def test_command_passes_model(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"d"),
+            text_content="Text",
+        )
+        with patch("core.management.commands.check_anlage2.check_anlage2") as mock_func:
+            mock_func.return_value = {"ok": True}
+            call_command("check_anlage2", str(projekt.pk), "--model", "m3")
+        mock_func.assert_called_with(projekt.pk, model_name="m3")
 
 
 

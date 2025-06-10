@@ -6,7 +6,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("projekt_id", type=int)
+        parser.add_argument("--model", dest="model", default=None)
 
-    def handle(self, projekt_id, **options):
-        data = check_anlage3(projekt_id)
+    def handle(self, projekt_id, model=None, **options):
+        data = check_anlage3(projekt_id, model_name=model)
         self.stdout.write(self.style.SUCCESS(str(data)))
