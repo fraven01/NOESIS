@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
+from django.http import QueryDict
 
 
 from django.apps import apps
@@ -154,12 +155,13 @@ class DocxExtractTests(TestCase):
 
 class BVProjectFormTests(TestCase):
     def test_project_form_docx_validation(self):
-        data = {
+        data = QueryDict(mutable=True)
+        data.update({
             "title": "",
             "beschreibung": "",
-            "software_typen": "A",
             "status": BVProject.STATUS_NEW,
-        }
+        })
+        data.setlist("software", ["A"])
         valid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
         self.assertTrue(valid.is_valid())
         invalid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
@@ -172,12 +174,13 @@ class BVProjectFormTests(TestCase):
         self.assertFalse(invalid.is_valid())
 
     def test_form_saves_title(self):
-        data = {
+        data = QueryDict(mutable=True)
+        data.update({
             "title": "Mein Projekt",
             "beschreibung": "",
-            "software_typen": "A",
             "status": BVProject.STATUS_NEW,
-        }
+        })
+        data.setlist("software", ["A"])
         form = BVProjectForm(data)
         self.assertTrue(form.is_valid())
         projekt = form.save()
