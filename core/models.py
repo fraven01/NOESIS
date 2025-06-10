@@ -359,6 +359,7 @@ class Anlage2FunctionResult(models.Model):
     zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     raw_json = models.JSONField(null=True, blank=True)
+    source = models.CharField(max_length=10, default="llm")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -235,7 +235,7 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     table_data = parse_anlage2_table(Path(anlage2.upload.path))
-    table_names = [d.get("funktion") for d in table_data]
+    table_names = list(table_data.keys())
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
 
     missing = [f for f in anlage_funcs if f not in table_names]
@@ -476,14 +476,78 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
-    funcs = parse_anlage2_table(Path(anlage.upload.path))
-    if funcs:
-        data = {"task": "check_anlage2", "source": "parser", "functions": funcs}
-        anlage.analysis_json = data
-        anlage.save(update_fields=["analysis_json"])
-        return data
+    table = parse_anlage2_table(Path(anlage.upload.path))
+    text = _collect_text(projekt)
+    prompt_base = get_prompt(
+        "check_anlage2_function",
+        (
+            "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
+            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar', "
+            "'einsatz_telefonica', 'zur_lv_kontrolle' und "
+            "'ki_beteiligung' zur\u00fcck.\n\n"
+        ),
+    )
 
-    return _check_anlage(projekt_id, 2, model_name)
+    results: list[dict] = []
+    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set").order_by("name"):
+        row = table.get(func.name)
+        if row and all(v is not None for v in row.values()):
+            vals = row
+            source = "parser"
+            raw = row
+        else:
+            prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+            reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            try:
+                raw = json.loads(reply)
+            except Exception:  # noqa: BLE001
+                raw = {"raw": reply}
+            vals = {
+                "technisch_verfuegbar": raw.get("technisch_verfuegbar"),
+                "einsatz_telefonica": raw.get("einsatz_telefonica"),
+                "zur_lv_kontrolle": raw.get("zur_lv_kontrolle"),
+                "ki_beteiligung": raw.get("ki_beteiligung"),
+            }
+            source = "llm"
+        Anlage2FunctionResult.objects.update_or_create(
+            projekt=projekt,
+            funktion=func,
+            defaults={
+                "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
+                "einsatz_telefonica": vals.get("einsatz_telefonica"),
+                "zur_lv_kontrolle": vals.get("zur_lv_kontrolle"),
+                "ki_beteiligung": vals.get("ki_beteiligung"),
+                "raw_json": raw,
+                "source": source,
+            },
+        )
+        entry = {"funktion": func.name, **vals, "source": source}
+        sub_list: list[dict] = []
+        for sub in func.anlage2subquestion_set.all().order_by("id"):
+            prompt = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
+            reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            try:
+                s_raw = json.loads(reply)
+            except Exception:  # noqa: BLE001
+                s_raw = {"raw": reply}
+            sub_list.append(
+                {
+                    "frage_text": sub.frage_text,
+                    "technisch_verfuegbar": s_raw.get("technisch_verfuegbar"),
+                    "einsatz_telefonica": s_raw.get("einsatz_telefonica"),
+                    "zur_lv_kontrolle": s_raw.get("zur_lv_kontrolle"),
+                    "ki_beteiligung": s_raw.get("ki_beteiligung"),
+                    "source": "llm",
+                }
+            )
+        if sub_list:
+            entry["subquestions"] = sub_list
+        results.append(entry)
+
+    data = {"task": "check_anlage2", "functions": results}
+    anlage.analysis_json = data
+    anlage.save(update_fields=["analysis_json"])
+    return data
 
 
 def check_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
@@ -536,7 +600,8 @@ def check_anlage2_functions(projekt_id: int, model_name: str | None = None) -> l
                 "zur_lv_kontrolle": data.get("zur_lv_kontrolle"),
                 "ki_beteiligung": data.get("ki_beteiligung"),
                 "raw_json": data,
+                "source": "llm",
             },
         )
-        results.append(data)
+        results.append({**data, "source": "llm", "funktion": func.name})
     return results
