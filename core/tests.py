@@ -20,7 +20,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
-from .docx_utils import extract_text
+from .docx_utils import extract_text, parse_anlage2_table
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -148,6 +148,42 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertIn("Das ist ein Test", text)
+
+    def test_parse_anlage2_table(self):
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_vorhanden": True,
+                    "einsatz_bei_telefonica": False,
+                    "zur_lv_kontrolle": False,
+                    "ki_beteiligung": True,
+                }
+            ],
+        )
 
 
 class BVProjectFormTests(TestCase):
@@ -343,25 +379,32 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text A1",
         )
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("b.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
-            upload=SimpleUploadedFile("b.txt", b"data"),
+            upload=upload,
             text_content="- Login",
         )
-        llm_reply = json.dumps(
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_vorhanden": True,
-                    "einsatz_bei_telefonica": False,
-                    "zur_lv_kontrolle": True,
-                    "ki_beteiligung": True,
-                }
-            ]
-        )
-        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
-            data = analyse_anlage2(projekt.pk)
+
+        data = analyse_anlage2(projekt.pk)
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertEqual(data["missing"]["value"], [])
         self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
