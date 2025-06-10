@@ -1301,7 +1301,9 @@ def project_llm_check(request, pk):
             validated_all = False
 
     sections = [f"**{r['software']}**\n{r['output']}" for r in llm_responses]
-    combined = "### LLM Initial Responses for Each Software\n" + "\n\n".join(sections)
+    combined = "Die Initialprüfung für jede Software hat ergeben: \n" + "\n\n".join(
+        sections
+    )
 
     orig_desc = projekt.beschreibung
     summary = (
@@ -1348,7 +1350,9 @@ def projekt_functions_check(request, pk):
     try:
         check_anlage2_functions(pk, model_name=model)
     except RuntimeError:
-        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+        return JsonResponse(
+            {"error": "Missing LLM credentials from environment."}, status=500
+        )
     except Exception:
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
