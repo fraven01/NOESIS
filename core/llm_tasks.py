@@ -216,6 +216,62 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
     return functions or None
 
 
+def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
+    """Analysiert Anlage 2 im Kontext der Systembeschreibung."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage2 = projekt.anlagen.get(anlage_nr=2)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+        raise ValueError("Anlage 2 fehlt") from exc
+
+    anlage1_text = ""
+    try:
+        anlage1 = projekt.anlagen.get(anlage_nr=1)
+        anlage1_text = anlage1.text_content or ""
+    except BVProjectFile.DoesNotExist:
+        pass
+
+    text = "\n\n".join(
+        part for part in [projekt.beschreibung, anlage1_text, anlage2.text_content] if part
+    )
+
+    prompt = get_prompt(
+        "analyse_anlage2",
+        (
+            "Analysiere den folgenden Text und gib eine JSON-Liste von Objekten mit den "
+            "Schl\xFCsseln 'funktion', 'technisch_vorhanden', 'einsatz_bei_telefonica', "
+            "'zur_lv_kontrolle' und 'ki_beteiligung' zur\xFCck:\n\n"
+        ),
+    ) + text
+
+    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+    try:
+        llm_data = json.loads(reply)
+        if not isinstance(llm_data, list):
+            raise ValueError
+    except Exception:  # noqa: BLE001
+        logger.warning("analyse_anlage2: LLM Antwort kein JSON: %s", reply)
+        llm_data = []
+
+    llm_names = [d.get("funktion") for d in llm_data if isinstance(d, dict)]
+    anlage_funcs = _parse_anlage2(anlage2.text_content) or []
+
+    missing = [f for f in anlage_funcs if f not in llm_names]
+    additional = [f for f in llm_names if f not in anlage_funcs]
+
+    result = {
+        "llm_functions": llm_data,
+        "anlage2_functions": anlage_funcs,
+        "missing": missing,
+        "additional": additional,
+    }
+
+    result = _add_editable_flags(result)
+    anlage2.analysis_json = result
+    anlage2.save(update_fields=["analysis_json"])
+    return result
+
+
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)

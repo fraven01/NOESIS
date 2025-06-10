@@ -40,6 +40,7 @@ from .workflow import set_project_status
 from .reporting import generate_gap_analysis, generate_management_summary
 from .llm_tasks import (
     check_anlage1,
+    analyse_anlage2,
     check_anlage2,
     check_anlage3,
     check_anlage4,
@@ -912,9 +913,10 @@ def projekt_file_check(request, pk, nr):
     except (TypeError, ValueError):
         return JsonResponse({"error": "invalid"}, status=400)
 
+    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
     funcs = {
         1: check_anlage1,
-        2: check_anlage2,
+        2: analyse_anlage2 if use_new else check_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
@@ -945,9 +947,10 @@ def projekt_file_check_pk(request, pk):
     except BVProjectFile.DoesNotExist:
         return JsonResponse({"error": "not found"}, status=404)
 
+    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
     funcs = {
         1: check_anlage1,
-        2: check_anlage2,
+        2: analyse_anlage2 if use_new else check_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
@@ -975,9 +978,10 @@ def projekt_file_check_view(request, pk):
     except BVProjectFile.DoesNotExist:
         raise Http404
 
+    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
     funcs = {
         1: check_anlage1,
-        2: check_anlage2,
+        2: analyse_anlage2 if use_new else check_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
