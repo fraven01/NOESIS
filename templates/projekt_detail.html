@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Projekt {{ projekt.title }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}</h1>
+<h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}
+{% if is_admin %}
+<a href="{% url 'admin_projects' %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Admin</a>
+{% endif %}
+</h1>
 <div class="lg:flex lg:space-x-4">
 <div class="lg:w-2/3">
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.get_status_display }}</p>
@@ -112,6 +116,9 @@ function renderLLM(data){
    sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Show/Hide Initial LLM Response</button>
    <pre id="output" class="whitespace-pre-wrap bg-gray-100 p-2 rounded hidden">${data.llm_initial_output}</pre>`;
  }
+ if(data.llm_initial_output){
+   sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Recheck (Initial)</button>`;
+ }
  attachHandlers();
 }
 
@@ -135,10 +142,12 @@ function attachHandlers(){
  }
  const toggle=document.getElementById('toggle');
  if(toggle){
-   toggle.addEventListener('click',()=>{
-     document.getElementById('output').classList.toggle('hidden');
-   });
- }
+  toggle.addEventListener('click',()=>{
+    document.getElementById('output').classList.toggle('hidden');
+  });
+}
+ const recheck=document.getElementById('recheck');
+ if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
 }
 
 function sendCheck(payload){

@@ -8,7 +8,7 @@ from django.conf import settings
 
 try:
     from google.api_core import exceptions as g_exceptions
-except Exception:  # pragma: no cover - Modul fehlt evtl. in Dev-Umgebung
+except ModuleNotFoundError:
     g_exceptions = None
 
 logger = logging.getLogger("llm_debug")
@@ -20,7 +20,9 @@ def _timestamp() -> str:
     return datetime.utcnow().isoformat()
 
 
-def query_llm(prompt: str, model_name: str | None = None, model_type: str = "default") -> str:
+def query_llm(
+    prompt: str, model_name: str | None = None, model_type: str = "default"
+) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
     from .models import LLMConfig
 
@@ -38,22 +40,22 @@ def query_llm(prompt: str, model_name: str | None = None, model_type: str = "def
 
     if settings.GOOGLE_API_KEY:
         try:
-        # Hier konfigurierst und nutzt du das SDK. 
-        # Du brauchst keinen manuellen Endpoint.
+            # Hier konfigurierst und nutzt du das SDK.
+            # Du brauchst keinen manuellen Endpoint.
             genai.configure(api_key=settings.GOOGLE_API_KEY)
 
             name = model_name
             model = genai.GenerativeModel(name)
-        
+
             logger.debug(
                 "[%s] [%s] Request to Google Gemini model=%s",
                 _timestamp(),
                 correlation_id,
                 name,  # Logge den Modellnamen, nicht einen alten Endpoint.
             )
-        
+
             resp = model.generate_content(prompt)
-        
+
             logger.debug(
                 "[%s] [%s] Response 200 %s",
                 _timestamp(),
@@ -61,7 +63,7 @@ def query_llm(prompt: str, model_name: str | None = None, model_type: str = "def
                 repr(resp.text)[:200],
             )
             return resp.text
-        
+
         except Exception as exc:
             if g_exceptions and isinstance(exc, g_exceptions.NotFound):
                 logger.error(
@@ -70,9 +72,7 @@ def query_llm(prompt: str, model_name: str | None = None, model_type: str = "def
                     correlation_id,
                     name,
                 )
-                raise RuntimeError(
-                    f"Unsupported Gemini model: {name}."
-                ) from exc
+                raise RuntimeError(f"Unsupported Gemini model: {name}.") from exc
 
             logger.error(
                 "[%s] [%s] LLM service error: %s",
@@ -116,4 +116,3 @@ def query_llm(prompt: str, model_name: str | None = None, model_type: str = "def
             exc_info=True,
         )
         raise
-
