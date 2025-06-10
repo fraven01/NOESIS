@@ -19,6 +19,8 @@ from .forms import (
     BVProjectFileForm,
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
+    Anlage2FunctionForm,
+    Anlage2SubQuestionForm,
     get_anlage1_numbers,
 )
 from .models import (
@@ -30,6 +32,8 @@ from .models import (
     LLMConfig,
     Anlage1Question,
     Anlage1QuestionVariant,
+    Anlage2Function,
+    Anlage2SubQuestion,
     Tile,
     Area,
 )
@@ -814,6 +818,72 @@ def admin_anlage1(request):
         return redirect("admin_anlage1")
     context = {"questions": questions}
     return render(request, "admin_anlage1.html", context)
+
+
+@login_required
+@admin_required
+def anlage2_function_list(request):
+    """Zeigt alle Anlage-2-Funktionen."""
+    functions = list(Anlage2Function.objects.all().order_by("name"))
+    context = {"functions": functions}
+    return render(request, "anlage2/function_list.html", context)
+
+
+@login_required
+@admin_required
+def anlage2_function_form(request, pk=None):
+    """Erstellt oder bearbeitet eine Anlage-2-Funktion."""
+    funktion = get_object_or_404(Anlage2Function, pk=pk) if pk else None
+    form = Anlage2FunctionForm(request.POST or None, instance=funktion)
+    if request.method == "POST" and form.is_valid():
+        funktion = form.save()
+        return redirect("anlage2_function_edit", funktion.pk)
+    subquestions = (
+        list(funktion.anlage2subquestion_set.all()) if funktion else []
+    )
+    context = {"form": form, "funktion": funktion, "subquestions": subquestions}
+    return render(request, "anlage2/function_form.html", context)
+
+
+@login_required
+@admin_required
+def anlage2_function_delete(request, pk):
+    """Löscht eine Anlage-2-Funktion."""
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+    funktion = get_object_or_404(Anlage2Function, pk=pk)
+    funktion.delete()
+    return redirect("anlage2_function_list")
+
+
+@login_required
+@admin_required
+def anlage2_subquestion_form(request, function_pk=None, pk=None):
+    """Erstellt oder bearbeitet eine Unterfrage."""
+    if pk:
+        subquestion = get_object_or_404(Anlage2SubQuestion, pk=pk)
+        funktion = subquestion.funktion
+    else:
+        funktion = get_object_or_404(Anlage2Function, pk=function_pk)
+        subquestion = Anlage2SubQuestion(funktion=funktion)
+    form = Anlage2SubQuestionForm(request.POST or None, instance=subquestion)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("anlage2_function_edit", funktion.pk)
+    context = {"form": form, "funktion": funktion, "subquestion": subquestion if pk else None}
+    return render(request, "anlage2/subquestion_form.html", context)
+
+
+@login_required
+@admin_required
+def anlage2_subquestion_delete(request, pk):
+    """Löscht eine Unterfrage."""
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+    sub = get_object_or_404(Anlage2SubQuestion, pk=pk)
+    func_pk = sub.funktion_id
+    sub.delete()
+    return redirect("anlage2_function_edit", func_pk)
 
 
 @login_required

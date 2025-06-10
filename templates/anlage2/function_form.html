@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}{% if funktion %}Funktion bearbeiten{% else %}Neue Funktion{% endif %}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{% if funktion %}Funktion bearbeiten{% else %}Neue Funktion{% endif %}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.name.label_tag }}<br>
+        {{ form.name }}
+        {{ form.name.errors }}
+    </div>
+    <div>
+        <label class="mr-2">{{ form.technisch_vorhanden }} Technisch vorhanden</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.einsatz_bei_telefonica }} Einsatz bei Telefónica</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.zur_lv_kontrolle }} Zur LV-Kontrolle</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.ki_beteiligung }} KI-Beteiligung</label>
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% if funktion %}
+<h2 class="text-xl font-semibold mt-8 mb-2">Unterfragen</h2>
+<a href="{% url 'anlage2_subquestion_new' funktion.id %}" class="inline-block mb-2 px-3 py-1 bg-green-600 text-white rounded">Neue Unterfrage</a>
+<table class="min-w-full">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Frage</th>
+            <th class="py-2 text-center">Bearbeiten</th>
+            <th class="py-2 text-center">Löschen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for q in subquestions %}
+        <tr class="border-b text-sm">
+            <td class="py-1">{{ q.frage_text|truncatechars:80 }}</td>
+            <td class="py-1 text-center">
+                <a href="{% url 'anlage2_subquestion_edit' q.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
+            </td>
+            <td class="py-1 text-center">
+                <form action="{% url 'anlage2_subquestion_delete' q.id %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Unterfrage wirklich löschen?');">Löschen</button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3" class="py-2">Keine Unterfragen vorhanden.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

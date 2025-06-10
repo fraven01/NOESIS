@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{% if subquestion %}Unterfrage bearbeiten{% else %}Neue Unterfrage{% endif %}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{% if subquestion %}Unterfrage bearbeiten{% else %}Neue Unterfrage{% endif %}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.frage_text.label_tag }}<br>
+        {{ form.frage_text }}
+        {{ form.frage_text.errors }}
+    </div>
+    <div>
+        <label class="mr-2">{{ form.technisch_vorhanden }} Technisch vorhanden</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.einsatz_bei_telefonica }} Einsatz bei Telefónica</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.zur_lv_kontrolle }} Zur LV-Kontrolle</label>
+    </div>
+    <div>
+        <label class="mr-2">{{ form.ki_beteiligung }} KI-Beteiligung</label>
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

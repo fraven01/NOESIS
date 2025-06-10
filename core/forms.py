@@ -1,6 +1,14 @@
 from django import forms
 from pathlib import Path
-from .models import Recording, BVProject, BVProjectFile, Anlage1Question, Area
+from .models import (
+    Recording,
+    BVProject,
+    BVProjectFile,
+    Anlage1Question,
+    Anlage2Function,
+    Anlage2SubQuestion,
+    Area,
+)
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -239,3 +247,46 @@ class Anlage1ReviewForm(forms.Form):
             out[key] = q_data
         return out
 
+
+
+class Anlage2FunctionForm(forms.ModelForm):
+    """Formular für eine Funktion aus Anlage 2."""
+
+    class Meta:
+        model = Anlage2Function
+        fields = [
+            "name",
+            "technisch_vorhanden",
+            "einsatz_bei_telefonica",
+            "zur_lv_kontrolle",
+            "ki_beteiligung",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "technisch_vorhanden": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "einsatz_bei_telefonica": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "zur_lv_kontrolle": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "ki_beteiligung": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
+
+
+class Anlage2SubQuestionForm(forms.ModelForm):
+    """Formular für eine Unterfrage zu Anlage 2."""
+
+    class Meta:
+        model = Anlage2SubQuestion
+        fields = [
+            "frage_text",
+            "technisch_vorhanden",
+            "einsatz_bei_telefonica",
+            "zur_lv_kontrolle",
+            "ki_beteiligung",
+        ]
+        labels = {"frage_text": "Frage"}
+        widgets = {
+            "frage_text": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 3}),
+            "technisch_vorhanden": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "einsatz_bei_telefonica": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "zur_lv_kontrolle": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "ki_beteiligung": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
