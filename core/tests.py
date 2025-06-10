@@ -174,15 +174,14 @@ class DocxExtractTests(TestCase):
 
         self.assertEqual(
             data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_vorhanden": True,
-                    "einsatz_bei_telefonica": False,
+            {
+                "Login": {
+                    "technisch_verfuegbar": True,
+                    "einsatz_telefonica": False,
                     "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                 }
-            ],
+            },
         )
 
 
@@ -332,11 +331,16 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Anlagetext",
         )
-        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}'):
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({"technisch_verfuegbar": True})
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
+        mock_q.assert_called()
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
-        self.assertTrue(data["ok"]["value"])
+        self.assertTrue(data["functions"][0]["technisch_verfuegbar"])
+        self.assertEqual(data["functions"][0]["source"], "llm")
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertEqual(res.source, "llm")
 
     def test_check_anlage2_llm_receives_text(self):
         """Der LLM-Prompt enthält den bekannten Text."""
@@ -347,12 +351,13 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
         )
-        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}') as mock_q:
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({"technisch_verfuegbar": False})
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
         self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0])
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
-        self.assertTrue(data["ok"]["value"])
+        self.assertEqual(data["functions"][0]["funktion"], "Login")
 
     def test_check_anlage2_prompt_contains_text(self):
         """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
@@ -363,13 +368,14 @@ class LLMTasksTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
         )
-        with patch("core.llm_tasks.query_llm", return_value='{"ok": true}') as mock_q:
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({"technisch_verfuegbar": False})
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
         prompt = mock_q.call_args_list[0].args[0]
         self.assertIn("Testinhalt Anlage2", prompt)
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
-        self.assertTrue(data["ok"]["value"])
+        self.assertEqual(data["functions"][0]["funktion"], "Login")
 
     def test_check_anlage2_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -397,20 +403,21 @@ class LLMTasksTests(TestCase):
             upload=upload,
             text_content="ignored",
         )
+        func = Anlage2Function.objects.create(name="Login")
 
         with patch("core.llm_tasks.query_llm") as mock_q:
             data = check_anlage2(projekt.pk)
         mock_q.assert_not_called()
         expected = {
             "task": "check_anlage2",
-            "source": "parser",
             "functions": [
                 {
                     "funktion": "Login",
-                    "technisch_vorhanden": True,
-                    "einsatz_bei_telefonica": False,
+                    "technisch_verfuegbar": True,
+                    "einsatz_telefonica": False,
                     "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
+                    "source": "parser",
                 }
             ],
         }
