@@ -92,7 +92,8 @@ class BVProject(models.Model):
         if self.software_typen:
             cleaned = ", ".join([s.strip() for s in self.software_typen.split(",") if s.strip()])
             self.software_typen = cleaned
-            self.title = cleaned
+            if not self.title:
+                self.title = cleaned
         is_new = self._state.adding
         super().save(*args, **kwargs)
         if is_new:
