@@ -1240,6 +1240,7 @@ def project_detail_api(request, pk):
         "ist_llm_geprueft": projekt.llm_geprueft,
         "llm_validated": projekt.llm_validated,
         "llm_initial_output": projekt.llm_initial_output,
+        "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
         "llm_initial_output_combined": projekt.llm_initial_output,
     }
     return JsonResponse(data)
@@ -1265,6 +1266,7 @@ def project_llm_check(request, pk):
             "ist_llm_geprueft": projekt.llm_geprueft,
             "llm_validated": valid,
             "llm_initial_output": projekt.llm_initial_output,
+            "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
         }
         if not valid:
             resp["error"] = msg
@@ -1325,6 +1327,7 @@ def project_llm_check(request, pk):
         "ist_llm_geprueft": True,
         "llm_validated": validated_all,
         "llm_initial_output": projekt.llm_initial_output,
+        "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
     }
     return JsonResponse(resp)
 
@@ -1424,7 +1427,12 @@ def gutachten_view(request, pk):
     if not path.exists():
         raise Http404
     text = extract_text(path)
-    return render(request, "gutachten_view.html", {"projekt": projekt, "text": text})
+    html = markdown.markdown(text)
+    return render(
+        request,
+        "gutachten_view.html",
+        {"projekt": projekt, "text_html": html},
+    )
 
 
 @login_required
