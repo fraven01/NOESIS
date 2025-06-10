@@ -1521,27 +1521,29 @@ class CommandFunctionsTests(TestCase):
 
 
 
-class ProjectLLMCheckTests(TestCase):
+
+
+class ProjektLLMCheckTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("llmuser", password="pass")
         self.client.login(username="llmuser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="")
+        self.projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
 
-    def test_multiple_checks_overwrite_fields(self):
+    def test_multiple_responses_saved(self):
         url = reverse("project_llm_check", args=[self.projekt.pk])
-        with patch("core.views._run_llm_check", return_value=("OUT1", True)):
-            resp1 = self.client.post(url)
-        self.assertEqual(resp1.status_code, 200)
+        replies = [
+            "This is answer A for test",
+            "This is answer B for test",
+        ]
+        with patch("core.views.query_llm", side_effect=replies) as mock_q:
+            resp = self.client.post(url, {})
+        self.assertEqual(resp.status_code, 200)
         self.projekt.refresh_from_db()
-        first_out = self.projekt.llm_initial_output
-        first_time = self.projekt.llm_geprueft_am
+        self.assertIn(replies[0], self.projekt.llm_initial_output)
+        self.assertIn(replies[1], self.projekt.llm_initial_output)
+        self.assertEqual(mock_q.call_count, 2)
 
-        with patch("core.views._run_llm_check", return_value=("OUT2", True)):
-            resp2 = self.client.post(url)
-        self.assertEqual(resp2.status_code, 200)
-        self.projekt.refresh_from_db()
-        self.assertNotEqual(self.projekt.llm_initial_output, first_out)
-        self.assertTrue(self.projekt.llm_geprueft_am > first_time)
+
 
 class ProjektDetailAdminButtonTests(TestCase):
     def setUp(self):
@@ -1560,6 +1562,7 @@ class ProjektDetailAdminButtonTests(TestCase):
         self.client.login(username="puser", password="pass")
         resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
         self.assertNotContains(resp, reverse("admin_projects"))
+
 
 
 
