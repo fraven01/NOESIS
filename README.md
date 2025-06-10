@@ -64,6 +64,19 @@ Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
 Für jede Frage lassen sich mehrere Varianten hinterlegen, die der Parser beim
 Extrahieren berücksichtigt.
 
+### Anlage 2 analysieren
+
+Mit
+
+```bash
+python manage.py analyse_anlage2 42
+```
+
+wird der Text der Systembeschreibung und der Anlagen 1 und 2 zusammengeführt und
+von einem LLM nach Funktionen durchsucht. Die erkannten Funktionen werden mit
+den Angaben aus Anlage 2 verglichen. Fehlende oder zusätzliche Funktionen werden
+als JSON in Anlage 2 gespeichert.
+
 ### Kachel-Zugriff verwalten
 
 Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der

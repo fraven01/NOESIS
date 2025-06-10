@@ -29,9 +29,11 @@ from .llm_tasks import (
     classify_system,
     check_anlage1,
     check_anlage2,
+    analyse_anlage2,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
+    _parse_anlage2,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY
@@ -280,6 +282,37 @@ class LLMTasksTests(TestCase):
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
         self.assertTrue(data["ok"]["value"])
 
+    def test_analyse_anlage2(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text A1",
+        )
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+            text_content="- Login",
+        )
+        llm_reply = json.dumps(
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_vorhanden": True,
+                    "einsatz_bei_telefonica": False,
+                    "zur_lv_kontrolle": True,
+                    "ki_beteiligung": True,
+                }
+            ]
+        )
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
+            data = analyse_anlage2(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertEqual(data["missing"]["value"], [])
+        self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
+
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -506,6 +539,20 @@ class LLMTasksTests(TestCase):
         self.assertNotIn("Frage 1", prompt)
         self.assertIn("1", data["questions"])
         self.assertIsNone(data["questions"]["1"]["status"])
+
+    def test_parse_anlage2_question_list(self):
+        text = "Welche Funktionen bietet das System?\u00b6- Login\u00b6- Suche"
+        parsed = _parse_anlage2(text)
+        self.assertEqual(parsed, ["Login", "Suche"])
+
+    def test_parse_anlage2_table_llm(self):
+        text = "Funktion | Beschreibung\u00b6Login | a\u00b6Suche | b"
+        with patch(
+            "core.llm_tasks.query_llm", return_value='["Login", "Suche"]'
+        ) as mock_q:
+            parsed = _parse_anlage2(text)
+        mock_q.assert_called_once()
+        self.assertEqual(parsed, ["Login", "Suche"])
 
 
 class PromptTests(TestCase):
@@ -1336,3 +1383,18 @@ class CommandModelTests(TestCase):
             mock_func.return_value = {"ok": True}
             call_command("check_anlage2", str(projekt.pk), "--model", "m3")
         mock_func.assert_called_with(projekt.pk, model_name="m3")
+
+    def test_analyse_command_passes_model(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"d"),
+            text_content="- Login",
+        )
+        with patch(
+            "core.management.commands.analyse_anlage2.analyse_anlage2"
+        ) as mock_func:
+            mock_func.return_value = {"missing": [], "additional": []}
+            call_command("analyse_anlage2", str(projekt.pk), "--model", "m4")
+        mock_func.assert_called_with(projekt.pk, model_name="m4")
