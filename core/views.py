@@ -675,6 +675,31 @@ def admin_project_cleanup(request, pk):
 def admin_prompts(request):
     """Verwaltet die gespeicherten Prompts."""
     prompts = list(Prompt.objects.all().order_by("name"))
+    groups = {
+        "general": [],
+        "anlage1": [],
+        "anlage2": [],
+        "anlage3": [],
+        "anlage4": [],
+        "anlage5": [],
+        "anlage6": [],
+    }
+    for p in prompts:
+        name = p.name.lower()
+        if "anlage1" in name:
+            groups["anlage1"].append(p)
+        elif "anlage2" in name:
+            groups["anlage2"].append(p)
+        elif "anlage3" in name:
+            groups["anlage3"].append(p)
+        elif "anlage4" in name:
+            groups["anlage4"].append(p)
+        elif "anlage5" in name:
+            groups["anlage5"].append(p)
+        elif "anlage6" in name:
+            groups["anlage6"].append(p)
+        else:
+            groups["general"].append(p)
 
     if request.method == "POST":
         pk = request.POST.get("pk")
@@ -691,7 +716,19 @@ def admin_prompts(request):
                 prompt.save(update_fields=["text"])
         return redirect("admin_prompts")
 
-    context = {"prompts": prompts}
+    labels = [
+        ("general", "Allgemeine Projektprompts"),
+        ("anlage1", "Anlage 1 Prompts"),
+        ("anlage2", "Anlage 2 Prompts"),
+        ("anlage3", "Anlage 3 Prompts"),
+        ("anlage4", "Anlage 4 Prompts"),
+        ("anlage5", "Anlage 5 Prompts"),
+        ("anlage6", "Anlage 6 Prompts"),
+    ]
+
+    grouped = [(key, label, groups[key]) for key, label in labels]
+
+    context = {"grouped": grouped}
     return render(request, "admin_prompts.html", context)
 
 
@@ -1137,10 +1174,14 @@ def _validate_llm_output(text: str) -> tuple[bool, str]:
 
 def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]:
     """Führt die LLM-Abfrage für eine einzelne Software durch."""
-    prompt = (
-        f"Do you know software {name}? Provide a short, technically correct "
-        "description of what it does and how it is typically used."
+    base = get_prompt(
+        "initial_llm_check",
+        (
+            "Do you know software {name}? Provide a short, technically correct "
+            "description of what it does and how it is typically used."
+        ),
     )
+    prompt = base.format(name=name)
     if additional:
         prompt += " " + additional
 
