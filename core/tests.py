@@ -1144,5 +1144,43 @@ class AdminAnlage1ViewTests(TestCase):
         self.assertFalse(Anlage1Question.objects.filter(id=q.id).exists())
         self.assertEqual(Anlage1Question.objects.count(), len(questions) - 1)
 
+    def _build_post_data(self, *, new=False, parser=True, llm=True):
+        """Hilfsfunktion zum Erstellen der POST-Daten."""
+        data = {}
+        for q in Anlage1Question.objects.all():
+            if q.parser_enabled:
+                data[f"parser_enabled{q.id}"] = "on"
+            if q.llm_enabled:
+                data[f"llm_enabled{q.id}"] = "on"
+            data[f"text{q.id}"] = q.text
+        if new:
+            data["new_text"] = "Neue Frage?"
+            if parser:
+                data["new_parser_enabled"] = "on"
+            if llm:
+                data["new_llm_enabled"] = "on"
+        return data
+
+    def test_add_new_question_with_flags(self):
+        url = reverse("admin_anlage1")
+        count = Anlage1Question.objects.count()
+        resp = self.client.post(url, self._build_post_data(new=True, parser=True, llm=False))
+        self.assertRedirects(resp, url)
+        self.assertEqual(Anlage1Question.objects.count(), count + 1)
+        q = Anlage1Question.objects.order_by("-num").first()
+        self.assertEqual(q.text, "Neue Frage?")
+        self.assertTrue(q.parser_enabled)
+        self.assertFalse(q.llm_enabled)
+
+    def test_add_new_question_unchecked(self):
+        url = reverse("admin_anlage1")
+        count = Anlage1Question.objects.count()
+        resp = self.client.post(url, self._build_post_data(new=True, parser=False, llm=False))
+        self.assertRedirects(resp, url)
+        self.assertEqual(Anlage1Question.objects.count(), count + 1)
+        q = Anlage1Question.objects.order_by("-num").first()
+        self.assertFalse(q.parser_enabled)
+        self.assertFalse(q.llm_enabled)
+
 
 
