@@ -32,6 +32,7 @@ from .llm_tasks import (
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
+    _parse_anlage2,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY
@@ -482,6 +483,18 @@ class LLMTasksTests(TestCase):
         self.assertNotIn("Frage 1", prompt)
         self.assertIn("1", data["questions"])
         self.assertIsNone(data["questions"]["1"]["status"])
+
+    def test_parse_anlage2_question_list(self):
+        text = "Welche Funktionen bietet das System?\u00b6- Login\u00b6- Suche"
+        parsed = _parse_anlage2(text)
+        self.assertEqual(parsed, ["Login", "Suche"])
+
+    def test_parse_anlage2_table_llm(self):
+        text = "Funktion | Beschreibung\u00b6Login | a\u00b6Suche | b"
+        with patch("core.llm_tasks.query_llm", return_value='["Login", "Suche"]') as mock_q:
+            parsed = _parse_anlage2(text)
+        mock_q.assert_called_once()
+        self.assertEqual(parsed, ["Login", "Suche"])
 
 
 class PromptTests(TestCase):

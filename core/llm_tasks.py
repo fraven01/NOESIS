@@ -175,6 +175,47 @@ def parse_anlage1_questions(text_content: str) -> dict[str, dict[str, str | None
     return parsed if parsed else None
 
 
+def _parse_anlage2(text_content: str) -> list[str] | None:
+    """Extrahiert Funktionslisten aus Anlage 2."""
+    if not text_content:
+        return None
+    text = text_content.replace("\u00b6", "\n")
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    table_like = any(("|" in line and line.count("|") >= 1) or "\t" in line for line in lines)
+    if table_like:
+        prompt = get_prompt(
+            "anlage2_table",
+            "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n",
+        )
+        reply = query_llm(prompt + text_content, model_name=None, model_type="anlagen")
+        try:
+            data = json.loads(reply)
+            if isinstance(data, list):
+                return [str(x) for x in data]
+        except Exception:  # noqa: BLE001
+            logger.warning("_parse_anlage2: LLM Antwort kein JSON: %s", reply)
+        return None
+
+    bullet_re = re.compile(r"^(?:[-*]|\d+[.)]|[a-z]\))\s*(.+)$", re.I)
+    functions: list[str] = []
+    capture = False
+    for line in lines:
+        lower = line.lower()
+        if not capture and "funktion" in lower and "?" in line:
+            capture = True
+            continue
+        m = bullet_re.match(line)
+        if capture and m:
+            functions.append(m.group(1).strip())
+            continue
+        if capture and not m:
+            break
+        if not capture and m:
+            functions.append(m.group(1).strip())
+    return functions or None
+
+
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
