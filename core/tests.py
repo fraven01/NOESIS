@@ -1486,3 +1486,58 @@ class CommandModelTests(TestCase):
             mock_func.return_value = {"missing": [], "additional": []}
             call_command("analyse_anlage2", str(projekt.pk), "--model", "m4")
         mock_func.assert_called_with(projekt.pk, model_name="m4")
+
+
+
+class Anlage2FunctionTests(TestCase):
+    def test_check_anlage2_functions_creates_result(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({
+            "technisch_verfuegbar": True,
+            "einsatz_telefonica": False,
+            "zur_lv_kontrolle": True,
+            "ki_beteiligung": False,
+        })
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
+            data = check_anlage2_functions(projekt.pk)
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertTrue(res.technisch_verfuegbar)
+        self.assertFalse(res.einsatz_telefonica)
+        self.assertTrue(res.zur_lv_kontrolle)
+        self.assertEqual(data[0]["technisch_verfuegbar"], True)
+
+
+class CommandFunctionsTests(TestCase):
+    def test_functions_command_passes_model(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        Anlage2Function.objects.create(name="Login")
+        with patch(
+            "core.management.commands.check_anlage2_functions.check_anlage2_functions"
+        ) as mock_func:
+            mock_func.return_value = []
+            call_command("check_anlage2_functions", str(projekt.pk), "--model", "m5")
+        mock_func.assert_called_with(projekt.pk, model_name="m5")
+
+
+class ProjektDetailAdminButtonTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.admin = User.objects.create_user("padmin", password="pass")
+        self.admin.groups.add(admin_group)
+        self.user = User.objects.create_user("puser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_admin_user_sees_link(self):
+        self.client.login(username="padmin", password="pass")
+        resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertContains(resp, reverse("admin_projects"))
+
+    def test_regular_user_hides_link(self):
+        self.client.login(username="puser", password="pass")
+        resp = self.client.get(reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertNotContains(resp, reverse("admin_projects"))
+
+
+
+
