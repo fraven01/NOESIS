@@ -55,6 +55,41 @@ urlpatterns = [
     path("projects-admin/prompts/", views.admin_prompts, name="admin_prompts"),
     path("projects-admin/models/", views.admin_models, name="admin_models"),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
+    path(
+        "projects-admin/anlage2/",
+        views.anlage2_function_list,
+        name="anlage2_function_list",
+    ),
+    path(
+        "projects-admin/anlage2/new/",
+        views.anlage2_function_form,
+        name="anlage2_function_new",
+    ),
+    path(
+        "projects-admin/anlage2/<int:pk>/edit/",
+        views.anlage2_function_form,
+        name="anlage2_function_edit",
+    ),
+    path(
+        "projects-admin/anlage2/<int:pk>/delete/",
+        views.anlage2_function_delete,
+        name="anlage2_function_delete",
+    ),
+    path(
+        "projects-admin/anlage2/<int:function_pk>/subquestion/new/",
+        views.anlage2_subquestion_form,
+        name="anlage2_subquestion_new",
+    ),
+    path(
+        "projects-admin/anlage2/subquestion/<int:pk>/edit/",
+        views.anlage2_subquestion_form,
+        name="anlage2_subquestion_edit",
+    ),
+    path(
+        "projects-admin/anlage2/subquestion/<int:pk>/delete/",
+        views.anlage2_subquestion_delete,
+        name="anlage2_subquestion_delete",
+    ),
     path("work/projekte/", views.projekt_list, name="projekt_list"),
     path("work/projekte/neu/", views.projekt_create, name="projekt_create"),
     path("work/projekte/<int:pk>/", views.projekt_detail, name="projekt_detail"),
