@@ -46,6 +46,7 @@ from .llm_tasks import (
     check_anlage4,
     check_anlage5,
     check_anlage6,
+    check_anlage2_functions,
     generate_gutachten,
     get_prompt,
     ANLAGE1_QUESTIONS,
@@ -1249,6 +1250,21 @@ def projekt_status_update(request, pk):
     except ValueError:
         pass
     return redirect("projekt_detail", pk=projekt.pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def projekt_functions_check(request, pk):
+    """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
+    model = request.POST.get("model")
+    try:
+        check_anlage2_functions(pk, model_name=model)
+    except RuntimeError:
+        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"status": "error"}, status=502)
+    return JsonResponse({"status": "ok"})
 
 
 @login_required

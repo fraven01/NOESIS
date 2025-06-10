@@ -10,7 +10,15 @@ from pathlib import Path
 
 from django.conf import settings
 
-from .models import BVProject, BVProjectFile, Prompt, Anlage1Config, Anlage1Question
+from .models import (
+    BVProject,
+    BVProjectFile,
+    Prompt,
+    Anlage1Config,
+    Anlage1Question,
+    Anlage2Function,
+    Anlage2FunctionResult,
+)
 from .llm_utils import query_llm
 from docx import Document
 
@@ -491,3 +499,39 @@ def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
 def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xFCft die sechste Anlage."""
     return _check_anlage(projekt_id, 6, model_name)
+
+
+def check_anlage2_functions(projekt_id: int, model_name: str | None = None) -> list[dict]:
+    """Pr\xFCft alle Funktionen aus Anlage 2 einzeln."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    text = _collect_text(projekt)
+    prompt_base = get_prompt(
+        "check_anlage2_function",
+        (
+            "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
+            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar', "
+            "'einsatz_telefonica', 'zur_lv_kontrolle' und "
+            "'ki_beteiligung' zur\u00fcck.\n\n"
+        ),
+    )
+    results: list[dict] = []
+    for func in Anlage2Function.objects.order_by("name"):
+        prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        try:
+            data = json.loads(reply)
+        except Exception:  # noqa: BLE001
+            data = {"raw": reply}
+        Anlage2FunctionResult.objects.update_or_create(
+            projekt=projekt,
+            funktion=func,
+            defaults={
+                "technisch_verfuegbar": data.get("technisch_verfuegbar"),
+                "einsatz_telefonica": data.get("einsatz_telefonica"),
+                "zur_lv_kontrolle": data.get("zur_lv_kontrolle"),
+                "ki_beteiligung": data.get("ki_beteiligung"),
+                "raw_json": data,
+            },
+        )
+        results.append(data)
+    return results

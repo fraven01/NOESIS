@@ -33,6 +33,7 @@ urlpatterns = [
     path('work/projekte/<int:pk>/anlage/', views.projekt_file_upload, name='projekt_file_upload'),
     path('work/projekte/<int:pk>/check/', views.projekt_check, name='projekt_check'),
     path('work/projekte/<int:pk>/status/', views.projekt_status_update, name='projekt_status_update'),
+    path('work/projekte/<int:pk>/functions-check/', views.projekt_functions_check, name='projekt_functions_check'),
     path('work/projekte/<int:pk>/anlage/<int:nr>/check/', views.projekt_file_check, name='projekt_file_check'),
     path('work/anlage/<int:pk>/check/', views.projekt_file_check_pk, name='projekt_file_check_pk'),
     path('work/anlage/<int:pk>/check-view/', views.projekt_file_check_view, name='projekt_file_check_view'),

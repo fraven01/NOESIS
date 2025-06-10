@@ -15,6 +15,8 @@ from .models import (
     Anlage1Question,
     Anlage1Config,
     Area,
+    Anlage2Function,
+    Anlage2FunctionResult,
 )
 from .docx_utils import extract_text
 from pathlib import Path
@@ -30,6 +32,7 @@ from .llm_tasks import (
     check_anlage1,
     check_anlage2,
     analyse_anlage2,
+    check_anlage2_functions,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
@@ -1293,6 +1296,14 @@ class ModelSelectionTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         mock_func.assert_called_with(self.projekt.pk, model_name="m2")
 
+    def test_functions_check_uses_model(self):
+        url = reverse("projekt_functions_check", args=[self.projekt.pk])
+        with patch("core.views.check_anlage2_functions") as mock_func:
+            mock_func.return_value = []
+            resp = self.client.post(url, {"model": "mf"})
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name="mf")
+
 
 class CommandModelTests(TestCase):
     def test_command_passes_model(self):
@@ -1320,6 +1331,37 @@ class CommandModelTests(TestCase):
             mock_func.return_value = {"missing": [], "additional": []}
             call_command("analyse_anlage2", str(projekt.pk), "--model", "m4")
         mock_func.assert_called_with(projekt.pk, model_name="m4")
+
+
+class Anlage2FunctionTests(TestCase):
+    def test_check_anlage2_functions_creates_result(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({
+            "technisch_verfuegbar": True,
+            "einsatz_telefonica": False,
+            "zur_lv_kontrolle": True,
+            "ki_beteiligung": False,
+        })
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
+            data = check_anlage2_functions(projekt.pk)
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertTrue(res.technisch_verfuegbar)
+        self.assertFalse(res.einsatz_telefonica)
+        self.assertTrue(res.zur_lv_kontrolle)
+        self.assertEqual(data[0]["technisch_verfuegbar"], True)
+
+
+class CommandFunctionsTests(TestCase):
+    def test_functions_command_passes_model(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        Anlage2Function.objects.create(name="Login")
+        with patch(
+            "core.management.commands.check_anlage2_functions.check_anlage2_functions"
+        ) as mock_func:
+            mock_func.return_value = []
+            call_command("check_anlage2_functions", str(projekt.pk), "--model", "m5")
+        mock_func.assert_called_with(projekt.pk, model_name="m5")
 
 
 
