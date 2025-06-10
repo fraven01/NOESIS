@@ -79,7 +79,7 @@ def _get_whisper_model():
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
     """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
-    return list(Tile.objects.filter(bereich=bereich, users=user))
+    return list(Tile.objects.filter(bereich__slug=bereich, users=user))
 
 
 @login_required
@@ -237,11 +237,11 @@ def upload_recording(request):
 
             recording = Recording.objects.create(
                 user=request.user,
-                bereich=bereich,
+                bereich=Area.objects.get(slug=bereich),
                 audio_file=final_rel,
             )
 
-            out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich}"
+            out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich.slug}"
             out_dir.mkdir(parents=True, exist_ok=True)
 
             model = _get_whisper_model()
@@ -379,7 +379,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         rec_obj, _ = Recording.objects.get_or_create(
 
             user=user,
-            bereich=bereich,
+            bereich=Area.objects.get(slug=bereich),
             audio_file=str(rel_wav),
         )
         if rel_md and not rec_obj.transcript_file:
@@ -406,7 +406,7 @@ def talkdiary(request, bereich):
     # always process new recordings; manual rescan available via query param
     _process_recordings_for_user(bereich, request.user)
 
-    recordings = Recording.objects.filter(user=request.user, bereich=bereich).order_by("-created_at")
+    recordings = Recording.objects.filter(user=request.user, bereich__slug=bereich).order_by("-created_at")
 
     context = {
         "bereich": bereich,
@@ -537,7 +537,7 @@ def recording_delete(request, pk):
     if rec.transcript_file:
         (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(missing_ok=True)
 
-    bereich = rec.bereich
+    bereich = rec.bereich.slug if hasattr(rec.bereich, "slug") else rec.bereich
     rec.delete()
     messages.success(request, "Aufnahme gelöscht")
     return redirect("talkdiary_%s" % bereich)
