@@ -113,8 +113,8 @@ function renderLLM(data){
      <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Additional Context & Recheck (Initial)</button>
    </div>`;
  }else if(data.ist_llm_geprueft && data.llm_validated){
-   sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Show/Hide Initial LLM Response</button>
-   <pre id="output" class="whitespace-pre-wrap bg-gray-100 p-2 rounded hidden">${data.llm_initial_output}</pre>`;
+  sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Show/Hide Initial LLM Response</button>
+  <div id="output" class="prose max-w-none bg-gray-100 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
  }
  if(data.llm_initial_output){
    sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Recheck (Initial)</button>`;

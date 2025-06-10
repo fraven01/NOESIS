@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from core.llm_tasks import generate_gutachten
+from core.cli_utils import print_markdown
 
 class Command(BaseCommand):
     """Erzeugt ein Gutachten für ein BVProject."""
@@ -10,4 +11,4 @@ class Command(BaseCommand):
 
     def handle(self, projekt_id, model=None, **options):
         path = generate_gutachten(projekt_id, model_name=model)
-        self.stdout.write(self.style.SUCCESS(str(path)))
+        print_markdown(str(path))

@@ -35,6 +35,12 @@ python manage.py showmigrations
 
 lässt sich prüfen, ob alle Migrationen angewendet wurden.
 
+## Markdown-Verarbeitung
+
+Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
+`markdown.markdown()` zu HTML umgewandelt. In der Kommandozeile übernimmt
+`rich` die Darstellung über `rich.markdown.Markdown`.
+
 ### Gutachten verwalten
 
 1. Öffne `/work/projekte/<pk>/gutachten/` und ersetze `<pk>` durch die ID des Projekts. Dort lässt sich mithilfe eines LLM ein Gutachten erzeugen.
