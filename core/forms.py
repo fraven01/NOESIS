@@ -1,6 +1,6 @@
 from django import forms
 from pathlib import Path
-from .models import Recording, BVProject, BVProjectFile, Anlage1Question
+from .models import Recording, BVProject, BVProjectFile, Anlage1Question, Area
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -21,14 +21,15 @@ def get_anlage1_numbers() -> list[int]:
 
 
 class RecordingForm(forms.ModelForm):
+    bereich = forms.ModelChoiceField(
+        queryset=Area.objects.all(),
+        widget=forms.Select(attrs={"class": "border rounded p-2"}),
+    )
+
     class Meta:
         model = Recording
         fields = ["bereich", "audio_file"]
         widgets = {
-            "bereich": forms.Select(
-                choices=Recording.BEREICH_CHOICES,
-                attrs={"class": "border rounded p-2"},
-            ),
             "audio_file": forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
         }
 

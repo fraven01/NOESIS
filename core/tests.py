@@ -34,7 +34,8 @@ from .llm_tasks import (
     parse_anlage1_questions,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch
+from unittest.mock import patch, ANY
+from django.core.management import call_command
 from django.test import override_settings
 import json
 
@@ -992,11 +993,15 @@ class TileVisibilityTests(TestCase):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("tileuser", password="pass")
         self.user.groups.add(admin_group)
+        work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        self.personal = Area.objects.get_or_create(
+            slug="personal", defaults={"name": "Personal"}
+        )[0]
         self.talkdiary = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1004,7 +1009,7 @@ class TileVisibilityTests(TestCase):
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": Tile.WORK,
+                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
@@ -1049,11 +1054,15 @@ class TileVisibilityTests(TestCase):
 
 class TileAccessTests(TestCase):
     def setUp(self):
+        work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        personal = Area.objects.get_or_create(
+            slug="personal", defaults={"name": "Personal"}
+        )[0]
         self.talkdiary = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1061,7 +1070,7 @@ class TileAccessTests(TestCase):
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": Tile.WORK,
+                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
@@ -1120,11 +1129,14 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
 class HomeRedirectTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("redir", password="pass")
+        personal = Area.objects.get_or_create(
+            slug="personal", defaults={"name": "Personal"}
+        )[0]
         tile = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1142,15 +1154,17 @@ class AreaImageTests(TestCase):
         self.client.login(username="areauser", password="pass")
 
     def test_home_without_images(self):
-        Area.objects.create(slug="work", name="Work")
-        Area.objects.create(slug="personal", name="Personal")
+        Area.objects.get_or_create(slug="work", defaults={"name": "Work"})
+        Area.objects.get_or_create(slug="personal", defaults={"name": "Personal"})
         resp = self.client.get(reverse("home"))
         self.assertNotContains(resp, 'alt="Work"', html=False)
         self.assertNotContains(resp, 'alt="Personal"', html=False)
 
     def test_home_with_images(self):
-        work = Area.objects.create(slug="work", name="Work")
-        personal = Area.objects.create(slug="personal", name="Personal")
+        work, _ = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})
+        personal, _ = Area.objects.get_or_create(
+            slug="personal", defaults={"name": "Personal"}
+        )
         work.image.save("w.png", SimpleUploadedFile("w.png", b"d"), save=True)
         personal.image.save("p.png", SimpleUploadedFile("p.png", b"d"), save=True)
         resp = self.client.get(reverse("home"))
@@ -1162,11 +1176,14 @@ class RecordingDeleteTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("recuser", password="pass")
         self.client.login(username="recuser", password="pass")
+        self.personal = Area.objects.get_or_create(
+            slug="personal", defaults={"name": "Personal"}
+        )[0]
         self.tile = Tile.objects.get_or_create(
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": Tile.PERSONAL,
+                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
@@ -1175,7 +1192,7 @@ class RecordingDeleteTests(TestCase):
         transcript = SimpleUploadedFile("a.md", b"text")
         self.rec = Recording.objects.create(
             user=self.user,
-            bereich=Recording.PERSONAL,
+            bereich=self.personal,
             audio_file=audio,
             transcript_file=transcript,
         )
@@ -1200,7 +1217,7 @@ class RecordingDeleteTests(TestCase):
         other = User.objects.create_user("other", password="pass")
         rec = Recording.objects.create(
             user=other,
-            bereich=Recording.PERSONAL,
+            bereich=self.personal,
             audio_file=SimpleUploadedFile("b.wav", b"d"),
             transcript_file=SimpleUploadedFile("b.md", b"t"),
         )
@@ -1234,3 +1251,88 @@ class AdminAnlage1ViewTests(TestCase):
         self.assertRedirects(resp, url)
         self.assertFalse(Anlage1Question.objects.filter(id=q.id).exists())
         self.assertEqual(Anlage1Question.objects.count(), len(questions) - 1)
+
+    def _build_post_data(self, *, new=False, parser=True, llm=True):
+        """Hilfsfunktion zum Erstellen der POST-Daten."""
+        data = {}
+        for q in Anlage1Question.objects.all():
+            if q.parser_enabled:
+                data[f"parser_enabled{q.id}"] = "on"
+            if q.llm_enabled:
+                data[f"llm_enabled{q.id}"] = "on"
+            data[f"text{q.id}"] = q.text
+        if new:
+            data["new_text"] = "Neue Frage?"
+            if parser:
+                data["new_parser_enabled"] = "on"
+            if llm:
+                data["new_llm_enabled"] = "on"
+        return data
+
+    def test_add_new_question_with_flags(self):
+        url = reverse("admin_anlage1")
+        count = Anlage1Question.objects.count()
+        resp = self.client.post(
+            url, self._build_post_data(new=True, parser=True, llm=False)
+        )
+        self.assertRedirects(resp, url)
+        self.assertEqual(Anlage1Question.objects.count(), count + 1)
+        q = Anlage1Question.objects.order_by("-num").first()
+        self.assertEqual(q.text, "Neue Frage?")
+        self.assertTrue(q.parser_enabled)
+        self.assertFalse(q.llm_enabled)
+
+    def test_add_new_question_unchecked(self):
+        url = reverse("admin_anlage1")
+        count = Anlage1Question.objects.count()
+        resp = self.client.post(
+            url, self._build_post_data(new=True, parser=False, llm=False)
+        )
+        self.assertRedirects(resp, url)
+        self.assertEqual(Anlage1Question.objects.count(), count + 1)
+        q = Anlage1Question.objects.order_by("-num").first()
+        self.assertFalse(q.parser_enabled)
+        self.assertFalse(q.llm_enabled)
+
+
+class ModelSelectionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("modeluser", password="pass")
+        self.client.login(username="modeluser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="Text",
+        )
+
+    def test_projekt_check_uses_model(self):
+        url = reverse("projekt_check", args=[self.projekt.pk])
+        with patch("core.views.query_llm", return_value="ok") as mock_q:
+            resp = self.client.post(url, {"model": "m1"})
+        self.assertEqual(resp.status_code, 200)
+        mock_q.assert_called_with(ANY, model_name="m1", model_type="default")
+
+    def test_file_check_uses_model(self):
+        url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
+        with patch("core.views.check_anlage1") as mock_func:
+            mock_func.return_value = {"task": "check_anlage1"}
+            resp = self.client.post(url, {"model": "m2"})
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name="m2")
+
+
+class CommandModelTests(TestCase):
+    def test_command_passes_model(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"d"),
+            text_content="Text",
+        )
+        with patch("core.management.commands.check_anlage2.check_anlage2") as mock_func:
+            mock_func.return_value = {"ok": True}
+            call_command("check_anlage2", str(projekt.pk), "--model", "m3")
+        mock_func.assert_called_with(projekt.pk, model_name="m3")

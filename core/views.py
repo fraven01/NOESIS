@@ -78,7 +78,7 @@ def _get_whisper_model():
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
     """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
-    return list(Tile.objects.filter(bereich=bereich, users=user))
+    return list(Tile.objects.filter(bereich__slug=bereich, users=user))
 
 
 @login_required
@@ -245,11 +245,13 @@ def upload_recording(request):
 
             recording = Recording.objects.create(
                 user=request.user,
-                bereich=bereich,
+                bereich=Area.objects.get(slug=bereich),
                 audio_file=final_rel,
             )
 
-            out_dir = Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich}"
+            out_dir = (
+                Path(settings.MEDIA_ROOT) / f"transcripts/{recording.bereich.slug}"
+            )
             out_dir.mkdir(parents=True, exist_ok=True)
 
             model = _get_whisper_model()
@@ -387,7 +389,7 @@ def _process_recordings_for_user(bereich: str, user) -> list:
         rel_md = Path("transcripts") / bereich / md.name if md.exists() else None
         rec_obj, _ = Recording.objects.get_or_create(
             user=user,
-            bereich=bereich,
+            bereich=Area.objects.get(slug=bereich),
             audio_file=str(rel_wav),
         )
         if rel_md and not rec_obj.transcript_file:
@@ -412,9 +414,9 @@ def talkdiary(request, bereich):
     # always process new recordings; manual rescan available via query param
     _process_recordings_for_user(bereich, request.user)
 
-    recordings = Recording.objects.filter(user=request.user, bereich=bereich).order_by(
-        "-created_at"
-    )
+    recordings = Recording.objects.filter(
+        user=request.user, bereich__slug=bereich
+    ).order_by("-created_at")
 
     context = {
         "bereich": bereich,
@@ -557,7 +559,7 @@ def recording_delete(request, pk):
     if rec.transcript_file:
         (Path(settings.MEDIA_ROOT) / rec.transcript_file.name).unlink(missing_ok=True)
 
-    bereich = rec.bereich
+    bereich = rec.bereich.slug if hasattr(rec.bereich, "slug") else rec.bereich
     rec.delete()
     messages.success(request, "Aufnahme gelöscht")
     return redirect("talkdiary_%s" % bereich)
@@ -856,7 +858,13 @@ def projekt_edit(request, pk):
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)
-    return render(request, "projekt_form.html", {"form": form, "projekt": projekt})
+    context = {
+        "form": form,
+        "projekt": projekt,
+        "models": LLMConfig.get_available(),
+        "model": LLMConfig.get_default(),
+    }
+    return render(request, "projekt_form.html", context)
 
 
 @login_required
@@ -902,8 +910,9 @@ def projekt_check(request, pk):
         "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
         + projekt.beschreibung
     )
+    model = request.POST.get("model")
     try:
-        reply = query_llm(prompt)
+        reply = query_llm(prompt, model_name=model, model_type="default")
     except RuntimeError:
         return JsonResponse(
             {"error": "Missing LLM credentials from environment."}, status=500
@@ -940,8 +949,9 @@ def projekt_file_check(request, pk, nr):
     func = funcs.get(nr_int)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
+    model = request.POST.get("model")
     try:
-        func(pk)
+        func(pk, model_name=model)
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=404)
     except RuntimeError:
@@ -974,8 +984,9 @@ def projekt_file_check_pk(request, pk):
     func = funcs.get(anlage.anlage_nr)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
+    model = request.POST.get("model")
     try:
-        func(anlage.projekt_id)
+        func(anlage.projekt_id, model_name=model)
     except RuntimeError:
         return JsonResponse(
             {"error": "Missing LLM credentials from environment."}, status=500
@@ -1006,6 +1017,7 @@ def projekt_file_check_view(request, pk):
     if not func:
         raise Http404
 
+    model = None
     if request.method == "POST":
         form = BVProjectFileJSONForm(request.POST, instance=anlage)
         if form.is_valid():
@@ -1013,8 +1025,9 @@ def projekt_file_check_view(request, pk):
             messages.success(request, "Analyse gespeichert")
             return redirect("projekt_detail", pk=anlage.projekt.pk)
     else:
+        model = request.GET.get("model")
         try:
-            func(anlage.projekt_id)
+            func(anlage.projekt_id, model_name=model)
         except RuntimeError:
             messages.error(request, "Missing LLM credentials from environment.")
         except Exception:
@@ -1022,7 +1035,12 @@ def projekt_file_check_view(request, pk):
             messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
         form = BVProjectFileJSONForm(instance=anlage)
 
-    context = {"form": form, "anlage": anlage}
+    context = {
+        "form": form,
+        "anlage": anlage,
+        "models": LLMConfig.get_available(),
+        "model": model or LLMConfig.get_default("anlagen"),
+    }
     return render(request, "projekt_file_check_result.html", context)
 
 
