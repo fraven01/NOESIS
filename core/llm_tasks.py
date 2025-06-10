@@ -20,7 +20,7 @@ from .models import (
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
-from .docx_utils import parse_anlage2_table
+from .docx_utils import parse_anlage2_table, extract_text
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -605,3 +605,26 @@ def check_anlage2_functions(projekt_id: int, model_name: str | None = None) -> l
         )
         results.append({**data, "source": "llm", "funktion": func.name})
     return results
+
+
+def check_gutachten_functions(
+    projekt_id: int, model_name: str | None = None
+) -> str:
+    """Prüft das Gutachten auf fehlende Funktionen."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    if not projekt.gutachten_file:
+        raise ValueError("kein Gutachten")
+    path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+    text = extract_text(path)
+    prefix = get_prompt(
+        "check_gutachten_functions",
+        (
+            "Prüfe das folgende Gutachten auf weitere Funktionen, die nach "
+            "\xa7 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. "
+            "Gib eine kurze Empfehlung als Text zurück.\n\n"
+        ),
+    )
+    reply = query_llm(prefix + text, model_name=model_name, model_type="gutachten")
+    projekt.gutachten_function_note = reply
+    projekt.save(update_fields=["gutachten_function_note"])
+    return reply

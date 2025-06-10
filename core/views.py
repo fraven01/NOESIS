@@ -54,6 +54,7 @@ from .llm_tasks import (
     check_anlage5,
     check_anlage6,
     check_anlage2_functions,
+    check_gutachten_functions,
     generate_gutachten,
     get_prompt,
     ANLAGE1_QUESTIONS,
@@ -1134,10 +1135,10 @@ def projekt_file_check(request, pk, nr):
     except (TypeError, ValueError):
         return JsonResponse({"error": "invalid"}, status=400)
 
-    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
+    use_llm = request.POST.get("llm") or request.GET.get("llm")
     funcs = {
         1: check_anlage1,
-        2: analyse_anlage2 if use_new else check_anlage2,
+        2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
@@ -1171,10 +1172,10 @@ def projekt_file_check_pk(request, pk):
     except BVProjectFile.DoesNotExist:
         return JsonResponse({"error": "not found"}, status=404)
 
-    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
+    use_llm = request.POST.get("llm") or request.GET.get("llm")
     funcs = {
         1: check_anlage1,
-        2: analyse_anlage2 if use_new else check_anlage2,
+        2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
@@ -1205,10 +1206,10 @@ def projekt_file_check_view(request, pk):
     except BVProjectFile.DoesNotExist:
         raise Http404
 
-    use_new = request.POST.get("analyse2") or request.GET.get("analyse2")
+    use_llm = request.POST.get("llm") or request.GET.get("llm")
     funcs = {
         1: check_anlage1,
-        2: analyse_anlage2 if use_new else check_anlage2,
+        2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3,
         4: check_anlage4,
         5: check_anlage5,
@@ -1615,11 +1616,13 @@ def gutachten_view(request, pk):
         raise Http404
     text = extract_text(path)
     html = markdown.markdown(text)
-    return render(
-        request,
-        "gutachten_view.html",
-        {"projekt": projekt, "text_html": html},
-    )
+    context = {
+        "projekt": projekt,
+        "text_html": html,
+        "categories": LLMConfig.get_categories(),
+        "category": "gutachten",
+    }
+    return render(request, "gutachten_view.html", context)
 
 
 @login_required
@@ -1654,3 +1657,23 @@ def gutachten_delete(request, pk):
         projekt.gutachten_file = ""
         projekt.save(update_fields=["gutachten_file"])
     return redirect("projekt_detail", pk=projekt.pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def gutachten_llm_check(request, pk):
+    """Löst den LLM-Funktionscheck für das Gutachten aus."""
+    projekt = BVProject.objects.get(pk=pk)
+    category = request.POST.get("model_category")
+    model = LLMConfig.get_default(category) if category else None
+    try:
+        check_gutachten_functions(projekt.pk, model_name=model)
+        messages.success(request, "Gutachten geprüft")
+    except ValueError:
+        messages.error(request, "Kein Gutachten vorhanden")
+    except RuntimeError:
+        messages.error(request, "Missing LLM credentials from environment.")
+    except Exception:
+        logger.exception("LLM Fehler")
+        messages.error(request, "LLM-Fehler beim Funktionscheck")
+    return redirect("gutachten_view", pk=projekt.pk)

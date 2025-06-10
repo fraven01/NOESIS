@@ -11,6 +11,9 @@
         </label>
     {% endfor %}
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Neu prüfen</button>
+    {% if anlage.anlage_nr == 2 %}
+    <button type="submit" name="llm" value="1" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Check</button>
+    {% endif %}
 </form>
 <form method="post" class="space-y-4">
     {% csrf_token %}
