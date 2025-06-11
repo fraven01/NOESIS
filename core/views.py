@@ -1125,8 +1125,9 @@ def projekt_file_upload(request, pk):
             else:
                 try:
                     content = uploaded.read().decode("utf-8")
-                except Exception:
-                    pass
+                except UnicodeDecodeError as exc:
+                    logger.error("Datei konnte nicht als UTF-8 dekodiert werden: %s", exc)
+                    return HttpResponseBadRequest("Ungültiges Dateiformat")
             obj = form.save(commit=False)
             obj.projekt = projekt
             obj.text_content = content
