@@ -2,6 +2,7 @@ from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
 from django.http import QueryDict
+from django.db import IntegrityError
 
 
 from django.apps import apps
@@ -217,7 +218,7 @@ class DocxExtractTests(TestCase):
         )
 
     def test_parse_anlage2_table_multiple_headers(self):
-        cfg = Anlage2Config.objects.create()
+        cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
             config=cfg, field_name="technisch_vorhanden", text="Verfügbar?"
         )
@@ -258,7 +259,7 @@ class DocxExtractTests(TestCase):
         self.assertTrue(data["Login"]["technisch_verfuegbar"])
 
     def test_parse_anlage2_table_alias_headers(self):
-        cfg = Anlage2Config.objects.create()
+        cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
             config=cfg,
             field_name="technisch_vorhanden",
@@ -310,6 +311,7 @@ class DocxExtractTests(TestCase):
         )
 
     def test_parse_anlage2_table_custom_headers(self):
+        Anlage2Config.get_instance().delete()
         Anlage2Config.objects.create(
             col_technisch_vorhanden="Verf\u00fcgbar?",
             col_einsatz_bei_telefonica="Telefonica Einsatz",
@@ -351,7 +353,7 @@ class DocxExtractTests(TestCase):
         )
 
     def test_parse_anlage2_table_extra_text(self):
-        cfg = Anlage2Config.objects.create()
+        cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
             config=cfg,
             field_name="technisch_vorhanden",
@@ -407,7 +409,7 @@ class DocxExtractTests(TestCase):
         )
 
     def test_parse_anlage2_table_alias_conflict(self):
-        cfg = Anlage2Config.objects.create()
+        cfg = Anlage2Config.get_instance()
         conflict = "Konflikt"
         Anlage2ColumnHeading.objects.create(
             config=cfg, field_name="technisch_vorhanden", text=conflict
@@ -1454,6 +1456,17 @@ class LLMConfigTests(TestCase):
         cfg = LLMConfig.objects.first()
         self.assertEqual(cfg.available_models, ["new"])
         self.assertTrue(cfg.models_changed)
+
+
+
+class Anlage2ConfigSingletonTests(TestCase):
+    def test_single_instance_enforced(self):
+        first = Anlage2Config.get_instance()
+        from django.db import transaction
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Anlage2Config.objects.create()
+        self.assertEqual(Anlage2Config.objects.count(), 1)
 
 
 class AdminModelsViewTests(TestCase):

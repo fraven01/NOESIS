@@ -31,7 +31,7 @@ def get_anlage1_numbers() -> list[int]:
 
 def get_anlage2_fields() -> list[tuple[str, str]]:
     """Liefert die Spaltenüberschriften für Anlage 2."""
-    cfg = Anlage2Config.objects.first()
+    cfg = Anlage2Config.get_instance()
     if cfg:
         out: list[tuple[str, str]] = []
         for field, attr in [

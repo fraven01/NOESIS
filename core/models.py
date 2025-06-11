@@ -300,6 +300,9 @@ class Anlage1QuestionVariant(models.Model):
 class Anlage2Config(models.Model):
     """Konfiguration der Spaltenüberschriften für Anlage 2."""
 
+    #: Hilfsfeld, um nur eine Instanz zuzulassen
+    singleton_enforcer = models.BooleanField(default=True, unique=True, editable=False)
+
     col_technisch_vorhanden = models.CharField(
         max_length=200, default="Technisch vorhanden"
     )
@@ -318,6 +321,11 @@ class Anlage2Config(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return "Anlage2Config"
+
+    @classmethod
+    def get_instance(cls) -> "Anlage2Config":
+        """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
+        return cls.objects.first() or cls.objects.create()
 
 
 class Anlage2ColumnHeading(models.Model):
