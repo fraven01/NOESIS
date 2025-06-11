@@ -156,7 +156,7 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         logger.error(f"Fehler beim Laden der Datei {path}: {e}")
         return {}
 
-    cfg = Anlage2Config.objects.first()
+    cfg = Anlage2Config.get_instance()
     logger.debug("Aktive Anlage2Config: %s", cfg)
     header_map = _build_header_map(cfg)
     logger.debug("Erzeugtes Header-Mapping: %s", header_map)

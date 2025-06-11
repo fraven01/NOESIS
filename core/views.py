@@ -831,7 +831,7 @@ def admin_anlage1(request):
 @admin_required
 def anlage2_config(request):
     """Konfiguriert die Spaltenüberschriften für Anlage 2."""
-    cfg = Anlage2Config.objects.first() or Anlage2Config.objects.create()
+    cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     if request.method == "POST":
         cfg.col_technisch_vorhanden = request.POST.get(
