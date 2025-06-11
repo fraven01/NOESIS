@@ -320,6 +320,62 @@ class DocxExtractTests(TestCase):
             },
         )
 
+    def test_parse_anlage2_table_extra_text(self):
+        cfg = Anlage2Config.objects.create()
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="technisch_vorhanden",
+            text="Steht technisch zur Verf\u00fcgung?",
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="einsatz_bei_telefonica",
+            text="einsatzweise bei telef\u00f3nica: soll die funktion verwendet werden?",
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="zur_lv_kontrolle",
+            text="einsatzweise bei telef\u00f3nica: soll zur \u00fcberwachung von leistung oder verhalten verwendet werden?",
+        )
+
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Steht technisch zur Verf\u00fcgung?\n\nJa/nein"
+        table.cell(0, 2).text = (
+            "einsatzweise bei Telef\u00f3nica: soll die Funktion verwendet werden?\n\nJa/nein"
+        )
+        table.cell(0, 3).text = (
+            "einsatzweise bei Telef\u00f3nica: soll zur \u00dcberwachung von Leistung oder Verhalten verwendet werden?\n\nJa / nein"
+        )
+        table.cell(0, 4).text = "KI-Beteiligung"
+
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertEqual(
+            data,
+            {
+                "Login": {
+                    "technisch_verfuegbar": True,
+                    "einsatz_telefonica": False,
+                    "zur_lv_kontrolle": False,
+                    "ki_beteiligung": True,
+                }
+            },
+        )
+
 
 class BVProjectFormTests(TestCase):
     def test_project_form_docx_validation(self):
