@@ -433,20 +433,10 @@ class DocxExtractTests(TestCase):
         doc.save(tmp.name)
         tmp.close()
         try:
-            data = parse_anlage2_table(Path(tmp.name))
+            with self.assertRaises(ValueError):
+                parse_anlage2_table(Path(tmp.name))
         finally:
             Path(tmp.name).unlink(missing_ok=True)
-
-        self.assertEqual(
-            data,
-            {
-                "Login": {
-                    "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
-                }
-            },
-        )
 
 
 class BVProjectFormTests(TestCase):

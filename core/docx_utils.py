@@ -55,6 +55,17 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     logger = logging.getLogger(__name__)
 
     mapping: dict[str, str] = {"funktion": "funktion"}
+
+    def _add_mapping(key: str, canonical: str) -> None:
+        """Fügt einen Mapping-Eintrag hinzu und prüft auf Konflikte."""
+        if key in mapping and mapping[key] != canonical:
+            msg = (
+                f"Mehrdeutige Überschrift '{key}' "
+                f"für '{mapping[key]}' und '{canonical}'"
+            )
+            logger.warning(msg)
+            raise ValueError(msg)
+        mapping[key] = canonical
     field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
 
     if cfg:
@@ -73,7 +84,7 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         logger.debug("Keine Anlage2Config gefunden, verwende Standardwerte")
 
     for canonical, attr in HEADER_FIELDS.items():
-        mapping[_normalize_header_text(canonical)] = canonical
+        _add_mapping(_normalize_header_text(canonical), canonical)
         headers = set()
         if cfg:
             headers.add(_normalize_header_text(getattr(cfg, attr)))
@@ -84,14 +95,17 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         else:
             headers.add(_normalize_header_text(canonical))
         for header in headers:
-            mapping[header] = canonical
+            _add_mapping(header, canonical)
 
     global_aliases = list(Anlage2ColumnHeading.objects.all())
     for h in global_aliases:
         canonical = field_map.get(h.field_name)
         if canonical:
             norm = _normalize_header_text(h.text)
-            mapping.setdefault(norm, canonical)
+            if norm not in mapping:
+                mapping[norm] = canonical
+            elif mapping[norm] != canonical:
+                _add_mapping(norm, canonical)
 
     logger.debug(
         "Globale Alias-Überschriften: %s",
