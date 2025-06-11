@@ -1,6 +1,8 @@
 from pathlib import Path
 from docx import Document
 
+from .models import Anlage2Config
+
 
 def extract_text(path: Path) -> str:
     """Extrahiert den gesamten Text einer DOCX-Datei."""
@@ -29,30 +31,69 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     except Exception:  # pragma: no cover - ungültige Datei
         return {}
 
+    cfg = Anlage2Config.objects.first()
+
+    col_tech = cfg.col_technisch_vorhanden if cfg else "Technisch vorhanden"
+    col_tel = cfg.col_einsatz_bei_telefonica if cfg else "Einsatz bei Telefónica"
+    col_lv = cfg.col_zur_lv_kontrolle if cfg else "Zur LV-Kontrolle"
+    col_ki = cfg.col_ki_beteiligung if cfg else "KI-Beteiligung"
+
+    def norm(text: str) -> str:
+        return " ".join(text.split()).lower()
+
     results: dict[str, dict[str, bool | None]] = {}
 
-    aliases = {
-        "steht technisch zur verfügung?": "technisch vorhanden",
-        "steht technisch zur verfuegung?": "technisch vorhanden",
-        "einsatz bei telefonica": "einsatz bei telefónica",
-        "einsatz bei telefonica?": "einsatz bei telefónica",
-        "zur lv kontrolle": "zur lv-kontrolle",
-        "zur lv kontrolle?": "zur lv-kontrolle",
-        "ki-beteiligung?": "ki-beteiligung",
-    }
+    tech_name = norm(col_tech)
+    tel_name = norm(col_tel)
+    lv_name = norm(col_lv)
+    ki_name = norm(col_ki)
+
+    aliases: dict[str, str] = {}
+    tech_aliases = [
+        col_tech,
+        "Technisch vorhanden",
+        "Steht technisch zur Verfügung?",
+        "Steht technisch zur Verfuegung?",
+    ]
+    tel_aliases = [
+        col_tel,
+        "Einsatz bei Telefónica",
+        "Einsatz bei Telefonica",
+        "Einsatz bei Telefonica?",
+    ]
+    lv_aliases = [
+        col_lv,
+        "Zur LV-Kontrolle",
+        "Zur LV Kontrolle",
+        "Zur LV Kontrolle?",
+    ]
+    ki_aliases = [
+        col_ki,
+        "KI-Beteiligung",
+        "KI-Beteiligung?",
+    ]
+
+    for a in tech_aliases:
+        aliases[norm(a)] = tech_name
+    for a in tel_aliases:
+        aliases[norm(a)] = tel_name
+    for a in lv_aliases:
+        aliases[norm(a)] = lv_name
+    for a in ki_aliases:
+        aliases[norm(a)] = ki_name
 
     for table in doc.tables:
         raw_headers = [cell.text.replace("\n", " ").replace("\r", " ") for cell in table.rows[0].cells]
-        headers = [" ".join(h.split()).lower() for h in raw_headers]
+        headers = [norm(h) for h in raw_headers]
         normalized = [aliases.get(h, h) for h in headers]
         try:
             idx_func = normalized.index("funktion")
-            idx_tech = normalized.index("technisch vorhanden")
-            idx_tel = normalized.index("einsatz bei telefónica")
-            idx_lv = normalized.index("zur lv-kontrolle")
+            idx_tech = normalized.index(tech_name)
+            idx_tel = normalized.index(tel_name)
+            idx_lv = normalized.index(lv_name)
         except ValueError:
             continue
-        idx_ki = normalized.index("ki-beteiligung") if "ki-beteiligung" in normalized else None
+        idx_ki = normalized.index(ki_name) if ki_name in normalized else None
 
         for row in table.rows[1:]:
             func = row.cells[idx_func].text.strip()
