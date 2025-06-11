@@ -20,7 +20,7 @@ from .models import (
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
-from .docx_utils import parse_anlage2_table
+from .docx_utils import parse_anlage2_table, extract_text
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -497,9 +497,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         "check_anlage2_function",
         (
             "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar', "
-            "'einsatz_telefonica', 'zur_lv_kontrolle' und "
-            "'ki_beteiligung' zur\u00fcck.\n\n"
+            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
+            "und 'ki_beteiligung' zur\u00fcck.\n\n"
         ),
     )
 
@@ -509,8 +508,10 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ).order_by("name"):
         row = table.get(func.name)
         if row and all(v is not None for v in row.values()):
-            # Wenn alle Werte aus der Tabelle vorhanden sind, diese übernehmen
-            vals = row
+            vals = {
+                "technisch_verfuegbar": row.get("technisch_verfuegbar"),
+                "ki_beteiligung": row.get("ki_beteiligung"),
+            }
             source = "parser"
             raw = row
         else:
@@ -523,8 +524,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 raw = {"raw": reply}
             vals = {
                 "technisch_verfuegbar": raw.get("technisch_verfuegbar"),
-                "einsatz_telefonica": raw.get("einsatz_telefonica"),
-                "zur_lv_kontrolle": raw.get("zur_lv_kontrolle"),
                 "ki_beteiligung": raw.get("ki_beteiligung"),
             }
             source = "llm"
@@ -533,8 +532,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             funktion=func,
             defaults={
                 "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
-                "einsatz_telefonica": vals.get("einsatz_telefonica"),
-                "zur_lv_kontrolle": vals.get("zur_lv_kontrolle"),
                 "ki_beteiligung": vals.get("ki_beteiligung"),
                 "raw_json": raw,
                 "source": source,
@@ -554,8 +551,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 {
                     "frage_text": sub.frage_text,
                     "technisch_verfuegbar": s_raw.get("technisch_verfuegbar"),
-                    "einsatz_telefonica": s_raw.get("einsatz_telefonica"),
-                    "zur_lv_kontrolle": s_raw.get("zur_lv_kontrolle"),
                     "ki_beteiligung": s_raw.get("ki_beteiligung"),
                     "source": "llm",
                 }
@@ -600,9 +595,8 @@ def check_anlage2_functions(
         "check_anlage2_function",
         (
             "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar', "
-            "'einsatz_telefonica', 'zur_lv_kontrolle' und "
-            "'ki_beteiligung' zur\u00fcck.\n\n"
+            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
+            "und 'ki_beteiligung' zur\u00fcck.\n\n"
         ),
     )
     results: list[dict] = []
@@ -613,17 +607,40 @@ def check_anlage2_functions(
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
             data = {"raw": reply}
+        vals = {
+            "technisch_verfuegbar": data.get("technisch_verfuegbar"),
+            "ki_beteiligung": data.get("ki_beteiligung"),
+        }
         Anlage2FunctionResult.objects.update_or_create(
             projekt=projekt,
             funktion=func,
             defaults={
-                "technisch_verfuegbar": data.get("technisch_verfuegbar"),
-                "einsatz_telefonica": data.get("einsatz_telefonica"),
-                "zur_lv_kontrolle": data.get("zur_lv_kontrolle"),
-                "ki_beteiligung": data.get("ki_beteiligung"),
+                "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
+                "ki_beteiligung": vals.get("ki_beteiligung"),
                 "raw_json": data,
                 "source": "llm",
             },
         )
-        results.append({**data, "source": "llm", "funktion": func.name})
+        results.append({**vals, "source": "llm", "funktion": func.name})
     return results
+
+
+def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
+    """Prüft das Gutachten auf fehlende Funktionen."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    if not projekt.gutachten_file:
+        raise ValueError("kein Gutachten")
+    path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+    text = extract_text(path)
+    prefix = get_prompt(
+        "check_gutachten_functions",
+        (
+            "Prüfe das folgende Gutachten auf weitere Funktionen, die nach "
+            "\xa7 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. "
+            "Gib eine kurze Empfehlung als Text zurück.\n\n"
+        ),
+    )
+    reply = query_llm(prefix + text, model_name=model_name, model_type="gutachten")
+    projekt.gutachten_function_note = reply
+    projekt.save(update_fields=["gutachten_function_note"])
+    return reply

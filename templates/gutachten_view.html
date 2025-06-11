@@ -8,4 +8,21 @@
     |
     <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
 </p>
+{% if projekt.gutachten_function_note %}
+<div class="mt-4">
+    <label class="font-semibold">LLM-Vorschlag:</label>
+    <textarea class="border rounded w-full p-2" rows="6" readonly>{{ projekt.gutachten_function_note }}</textarea>
+</div>
+{% endif %}
+<form method="post" action="{% url 'gutachten_llm_check' projekt.pk %}" class="mt-4">
+    {% csrf_token %}
+    <label class="font-semibold">LLM-Modell:</label>
+    {% for key, data in categories.items %}
+        <label class="ml-2">
+            <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+            {{ data.label }}
+        </label>
+    {% endfor %}
+    <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Funktionscheck</button>
+</form>
 {% endblock %}

@@ -80,6 +80,9 @@ class BVProject(models.Model):
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
     classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
+    gutachten_function_note = models.TextField(
+        "LLM-Hinweis Gutachten", blank=True
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -355,8 +358,6 @@ class Anlage2FunctionResult(models.Model):
     projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     technisch_verfuegbar = models.BooleanField(null=True)
-    einsatz_telefonica = models.BooleanField(null=True)
-    zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     raw_json = models.JSONField(null=True, blank=True)
     source = models.CharField(max_length=10, default="llm")

@@ -414,8 +414,6 @@ class LLMTasksTests(TestCase):
                 {
                     "funktion": "Login",
                     "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                     "source": "parser",
                 }
@@ -1116,6 +1114,12 @@ class ProjektFileCheckResultTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
         )
+        self.file2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+            text_content="Text2",
+        )
 
     def test_get_runs_check_and_shows_form(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
@@ -1154,6 +1158,22 @@ class ProjektFileCheckResultTests(TestCase):
             url, {"analysis_json": "{}", "manual_analysis_json": "{}"}
         )
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+
+    def test_anlage2_uses_parser_by_default(self):
+        url = reverse("projekt_file_check_view", args=[self.file2.pk])
+        with patch("core.views.analyse_anlage2") as mock_func:
+            mock_func.return_value = {"task": "analyse_anlage2"}
+            resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+
+    def test_llm_param_triggers_full_check(self):
+        url = reverse("projekt_file_check_view", args=[self.file2.pk]) + "?llm=1"
+        with patch("core.views.check_anlage2") as mock_func:
+            mock_func.return_value = {"task": "check_anlage2"}
+            resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
 
 class LLMConfigTests(TestCase):
@@ -1641,17 +1661,15 @@ class Anlage2FunctionTests(TestCase):
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({
             "technisch_verfuegbar": True,
-            "einsatz_telefonica": False,
-            "zur_lv_kontrolle": True,
             "ki_beteiligung": False,
         })
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
             data = check_anlage2_functions(projekt.pk)
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
         self.assertTrue(res.technisch_verfuegbar)
-        self.assertFalse(res.einsatz_telefonica)
-        self.assertTrue(res.zur_lv_kontrolle)
-        self.assertEqual(data[0]["technisch_verfuegbar"], True)
+        self.assertIs(res.ki_beteiligung, False)
+        self.assertTrue(data[0]["technisch_verfuegbar"])
+        self.assertEqual(list(data[0].keys()), ["technisch_verfuegbar", "ki_beteiligung", "source", "funktion"])
 
 
 class CommandFunctionsTests(TestCase):
@@ -1763,6 +1781,23 @@ class FunctionImportExportTests(TestCase):
             Anlage2SubQuestion.objects.filter(funktion__name="Anwesenheit").count(),
             1,
         )
+
+
+class GutachtenLLMCheckTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("gcheck", password="pass")
+        self.client.login(username="gcheck", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        generate_gutachten(self.projekt.pk, text="Test")
+
+    def test_endpoint_updates_note(self):
+        url = reverse("gutachten_llm_check", args=[self.projekt.pk])
+        with patch("core.views.check_gutachten_functions") as mock_func:
+            mock_func.return_value = "Hinweis"
+            resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("gutachten_view", args=[self.projekt.pk]))
+        self.projekt.refresh_from_db()
+        self.assertEqual(self.projekt.gutachten_function_note, "Hinweis")
 
 
 
