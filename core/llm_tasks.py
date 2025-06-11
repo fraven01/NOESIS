@@ -20,7 +20,7 @@ from .models import (
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
-from .docx_utils import parse_anlage2_table, extract_text
+from .docx_utils import parse_anlage2_table, extract_text, _normalize_function_name
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -510,6 +510,12 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ).order_by("name"):
         logger.debug("Pr\u00fcfe Funktion '%s'", func.name)
         row = table.get(func.name)
+        if row is None:
+            norm = _normalize_function_name(func.name)
+            for key, value in table.items():
+                if _normalize_function_name(key) == norm:
+                    row = value
+                    break
         logger.debug("Tabellenzeile: %s", row)
         if row and all(v is not None for v in row.values()):
             vals = {

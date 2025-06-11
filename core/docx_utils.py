@@ -53,6 +53,12 @@ def _normalize_header_text(text: str) -> str:
     return text
 
 
+def _normalize_function_name(name: str) -> str:
+    """Bereinigt Funktionsnamen für Vergleiche."""
+    text = name.replace("\n", " ").strip().lower()
+    return re.sub(r"[ \t]+", " ", text)
+
+
 def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form.
 
