@@ -7,7 +7,7 @@ from .models import Anlage2Config, Anlage2ColumnHeading
 
 # Zuordnung der Standardspalten zu ihren Feldnamen
 HEADER_FIELDS = {
-    "technisch vorhanden": "technisch_vorhanden",
+    "technisch vorhanden": "technisch_vorhanden",  # <-- Der kanonische TEXT-Schlüssel, der gesucht wird
     "einsatz bei telefónica": "einsatz_bei_telefonica",
     "zur lv-kontrolle": "zur_lv_kontrolle",
     "ki-beteiligung": "ki_beteiligung",
@@ -139,9 +139,7 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
         headers = [
-            header_map.get(
-                _normalize_header_text(h), _normalize_header_text(h)
-            )
+            header_map.get(_normalize_header_text(h), _normalize_header_text(h))
             for h in headers_raw
         ]
         logger.debug(
@@ -153,11 +151,11 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             idx_tel = headers.index("einsatz bei telefónica")
             idx_lv = headers.index("zur lv-kontrolle")
         except ValueError as ve:
-            logger.debug(
-                f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}"
-            )
+            logger.debug(f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}")
             continue
-        idx_ki = headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
+        idx_ki = (
+            headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
+        )
 
         for row_idx, row in enumerate(table.rows[1:], start=1):
             func = row.cells[idx_func].text.strip()
