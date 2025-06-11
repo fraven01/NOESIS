@@ -297,6 +297,29 @@ class Anlage1QuestionVariant(models.Model):
         return f"Variante zu Frage {self.question_id}"
 
 
+class Anlage2Config(models.Model):
+    """Konfiguration der Spaltenüberschriften für Anlage 2."""
+
+    col_technisch_vorhanden = models.CharField(
+        max_length=200, default="Technisch vorhanden"
+    )
+    col_einsatz_bei_telefonica = models.CharField(
+        max_length=200, default="Einsatz bei Telefónica"
+    )
+    col_zur_lv_kontrolle = models.CharField(
+        max_length=200, default="Zur LV-Kontrolle"
+    )
+    col_ki_beteiligung = models.CharField(
+        max_length=200, default="KI-Beteiligung"
+    )
+
+    class Meta:
+        verbose_name = "Anlage2 Konfiguration"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return "Anlage2Config"
+
+
 class Tile(models.Model):
     """Kachel für das Dashboard."""
 

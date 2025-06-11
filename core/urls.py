@@ -56,6 +56,11 @@ urlpatterns = [
     path("projects-admin/models/", views.admin_models, name="admin_models"),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
     path(
+        "projects-admin/anlage2/config/",
+        views.anlage2_config,
+        name="anlage2_config",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",
