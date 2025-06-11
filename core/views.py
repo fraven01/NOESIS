@@ -21,7 +21,7 @@ from .forms import (
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
     Anlage2ReviewForm,
-    ANLAGE2_FIELDS,
+    get_anlage2_fields,
     Anlage2FunctionForm,
     Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
@@ -38,6 +38,7 @@ from .models import (
     Anlage1QuestionVariant,
     Anlage2Function,
     Anlage2SubQuestion,
+    Anlage2Config,
     Tile,
     Area,
 )
@@ -827,6 +828,29 @@ def admin_anlage1(request):
 
 @login_required
 @admin_required
+def anlage2_config(request):
+    """Konfiguriert die Spaltenüberschriften für Anlage 2."""
+    cfg = Anlage2Config.objects.first() or Anlage2Config.objects.create()
+    if request.method == "POST":
+        cfg.col_technisch_vorhanden = request.POST.get(
+            "col_technisch_vorhanden", cfg.col_technisch_vorhanden
+        )
+        cfg.col_einsatz_bei_telefonica = request.POST.get(
+            "col_einsatz_bei_telefonica", cfg.col_einsatz_bei_telefonica
+        )
+        cfg.col_zur_lv_kontrolle = request.POST.get(
+            "col_zur_lv_kontrolle", cfg.col_zur_lv_kontrolle
+        )
+        cfg.col_ki_beteiligung = request.POST.get(
+            "col_ki_beteiligung", cfg.col_ki_beteiligung
+        )
+        cfg.save()
+        return redirect("anlage2_config")
+    return render(request, "admin_anlage2_config.html", {"config": cfg})
+
+
+@login_required
+@admin_required
 def anlage2_function_list(request):
     """Zeigt alle Anlage-2-Funktionen."""
     functions = list(Anlage2Function.objects.all().order_by("name"))
@@ -1317,8 +1341,9 @@ def projekt_file_edit_json(request, pk):
             if name:
                 answers[name] = item
         rows = []
+        fields_def = get_anlage2_fields()
         for func in Anlage2Function.objects.order_by("name"):
-            fields = [form[f"func{func.id}_{field}"] for field, _ in ANLAGE2_FIELDS]
+            fields = [form[f"func{func.id}_{field}"] for field, _ in fields_def]
             rows.append({
                 "name": func.name,
                 "analysis": answers.get(func.name, {}),
@@ -1326,7 +1351,7 @@ def projekt_file_edit_json(request, pk):
                 "sub": False,
             })
             for sub in func.anlage2subquestion_set.all().order_by("id"):
-                s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in ANLAGE2_FIELDS]
+                s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in fields_def]
                 rows.append({
                     "name": sub.frage_text,
                     "analysis": {},
@@ -1347,7 +1372,7 @@ def projekt_file_edit_json(request, pk):
     if anlage.anlage_nr == 1:
         context["qa"] = qa
     elif anlage.anlage_nr == 2:
-        context.update({"rows": rows, "fields": [f[0] for f in ANLAGE2_FIELDS], "labels": [f[1] for f in ANLAGE2_FIELDS]})
+        context.update({"rows": rows, "fields": [f[0] for f in fields_def], "labels": [f[1] for f in fields_def]})
     return render(request, template, context)
 
 

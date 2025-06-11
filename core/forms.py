@@ -7,6 +7,7 @@ from .models import (
     Anlage1Question,
     Anlage2Function,
     Anlage2SubQuestion,
+    Anlage2Config,
     Area,
 )
 from .llm_tasks import ANLAGE1_QUESTIONS
@@ -26,6 +27,24 @@ def get_anlage1_numbers() -> list[int]:
     if qs:
         return [q.num for q in qs]
     return list(range(1, len(ANLAGE1_QUESTIONS) + 1))
+
+
+def get_anlage2_fields() -> list[tuple[str, str]]:
+    """Liefert die Spaltenüberschriften für Anlage 2."""
+    cfg = Anlage2Config.objects.first()
+    if cfg:
+        return [
+            ("technisch_vorhanden", cfg.col_technisch_vorhanden),
+            ("einsatz_bei_telefonica", cfg.col_einsatz_bei_telefonica),
+            ("zur_lv_kontrolle", cfg.col_zur_lv_kontrolle),
+            ("ki_beteiligung", cfg.col_ki_beteiligung),
+        ]
+    return [
+        ("technisch_vorhanden", "Technisch vorhanden"),
+        ("einsatz_bei_telefonica", "Einsatz bei Telefónica"),
+        ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
+        ("ki_beteiligung", "KI-Beteiligung"),
+    ]
 
 
 class RecordingForm(forms.ModelForm):
@@ -248,12 +267,7 @@ class Anlage1ReviewForm(forms.Form):
         return out
 
 
-ANLAGE2_FIELDS = [
-    ("technisch_vorhanden", "Technisch vorhanden"),
-    ("einsatz_bei_telefonica", "Einsatz bei Telef\xf3nica"),
-    ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
-    ("ki_beteiligung", "KI-Beteiligung"),
-]
+
 
 
 class Anlage2ReviewForm(forms.Form):
@@ -262,9 +276,10 @@ class Anlage2ReviewForm(forms.Form):
     def __init__(self, *args, initial=None, **kwargs):
         super().__init__(*args, **kwargs)
         data = (initial or {}).get("functions", {})
+        fields = get_anlage2_fields()
         for func in Anlage2Function.objects.order_by("name"):
             f_data = data.get(str(func.id), {})
-            for field, _ in ANLAGE2_FIELDS:
+            for field, _ in fields:
                 name = f"func{func.id}_{field}"
                 self.fields[name] = forms.BooleanField(
                     required=False,
@@ -273,7 +288,7 @@ class Anlage2ReviewForm(forms.Form):
                 self.initial[name] = f_data.get(field, False)
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_data = f_data.get("subquestions", {}).get(str(sub.id), {})
-                for field, _ in ANLAGE2_FIELDS:
+                for field, _ in fields:
                     name = f"sub{sub.id}_{field}"
                     self.fields[name] = forms.BooleanField(
                         required=False,
@@ -285,9 +300,10 @@ class Anlage2ReviewForm(forms.Form):
         out = {"functions": {}}
         if not self.is_valid():
             return out
+        fields = get_anlage2_fields()
         for func in Anlage2Function.objects.order_by("name"):
             item: dict[str, object] = {}
-            for field, _ in ANLAGE2_FIELDS:
+            for field, _ in fields:
                 item[field] = self.cleaned_data.get(
                     f"func{func.id}_{field}", False
                 )
@@ -295,7 +311,7 @@ class Anlage2ReviewForm(forms.Form):
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 sub_item = {
                     field: self.cleaned_data.get(f"sub{sub.id}_{field}", False)
-                    for field, _ in ANLAGE2_FIELDS
+                    for field, _ in fields
                 }
                 sub_dict[str(sub.id)] = sub_item
             if sub_dict:
