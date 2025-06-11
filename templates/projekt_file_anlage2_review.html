@@ -22,7 +22,7 @@
             <tr>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
                 {% for field in fields %}
-                <td class="border px-2 text-center">{{ row.analysis|get_item:field }}</td>
+                <td class="border px-2 text-center">{{ row.analysis|get_item:field|checkbox }}</td>
                 {% endfor %}
                 {% for field in row.form_fields %}
                 <td class="border px-2 text-center">{{ field }}</td>
