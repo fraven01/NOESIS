@@ -4,6 +4,14 @@ import logging
 
 from .models import Anlage2Config
 
+# Zuordnung der Standardspalten zu ihren Modellfeldern
+HEADER_FIELDS = {
+    "technisch vorhanden": "col_technisch_vorhanden",
+    "einsatz bei telefónica": "col_einsatz_bei_telefonica",
+    "zur lv-kontrolle": "col_zur_lv_kontrolle",
+    "ki-beteiligung": "col_ki_beteiligung",
+}
+
 # Bekannte Abkürzungen für Tabellenüberschriften
 HEADER_ALIASES = {
     "steht technisch zur verfügung?": "technisch vorhanden",
@@ -26,6 +34,18 @@ def _parse_bool(text: str) -> bool | None:
     if text.startswith("nein"):
         return False
     return None
+
+
+def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
+    """Erzeugt eine Mapping-Tabelle für erkannte Tabellenköpfe."""
+    mapping: dict[str, str] = {}
+    for canonical, attr in HEADER_FIELDS.items():
+        expected = getattr(cfg, attr).strip().lower() if cfg else canonical
+        mapping[canonical] = expected
+    for alias, canonical in HEADER_ALIASES.items():
+        if canonical in mapping:
+            mapping[alias] = mapping[canonical]
+    return mapping
 
 
 def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
@@ -70,21 +90,16 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         return {}
 
     cfg = Anlage2Config.objects.first()
-    if cfg:
-        exp_tech = cfg.col_technisch_vorhanden.strip().lower()
-        exp_tel = cfg.col_einsatz_bei_telefonica.strip().lower()
-        exp_lv = cfg.col_zur_lv_kontrolle.strip().lower()
-        exp_ki = cfg.col_ki_beteiligung.strip().lower()
-    else:
-        exp_tech = "technisch vorhanden"
-        exp_tel = "einsatz bei telefónica"
-        exp_lv = "zur lv-kontrolle"
-        exp_ki = "ki-beteiligung"
+    header_map = _build_header_map(cfg)
+    exp_tech = header_map["technisch vorhanden"]
+    exp_tel = header_map["einsatz bei telefónica"]
+    exp_lv = header_map["zur lv-kontrolle"]
+    exp_ki = header_map["ki-beteiligung"]
 
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
-        headers = [HEADER_ALIASES.get(h.strip().lower(), h.strip().lower()) for h in headers_raw]
+        headers = [header_map.get(h.strip().lower(), h.strip().lower()) for h in headers_raw]
         logger.debug(
             f"Tabelle {table_idx}: Roh-Header = {headers_raw}"
         )
