@@ -63,6 +63,10 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
         headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+        logger.debug(
+            f"Tabelle {table_idx}: Roh-Header = {[cell.text for cell in table.rows[0].cells]}"
+        )
+        logger.debug(f"Tabelle {table_idx}: Normalisierte Header = {headers}")
         logger.debug(f"Tabelle {table_idx}: Header = {headers}")
         try:
             idx_func = headers.index("funktion")
