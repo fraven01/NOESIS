@@ -72,7 +72,8 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     for h in Anlage2ColumnHeading.objects.all():
         canonical = field_map.get(h.field_name)
         if canonical:
-            mapping[_normalize_header_text(h.text)] = canonical
+            norm = _normalize_header_text(h.text)
+            mapping.setdefault(norm, canonical)
 
     return mapping
 
