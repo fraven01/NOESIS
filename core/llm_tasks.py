@@ -192,7 +192,9 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
     text = text_content.replace("\u00b6", "\n")
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    table_like = any(("|" in line and line.count("|") >= 1) or "\t" in line for line in lines)
+    table_like = any(
+        ("|" in line and line.count("|") >= 1) or "\t" in line for line in lines
+    )
     if table_like:
         prompt = get_prompt(
             "anlage2_table",
@@ -231,7 +233,9 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
         anlage2 = projekt.anlagen.get(anlage_nr=2)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+    except (
+        BVProjectFile.DoesNotExist
+    ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
     table_data = parse_anlage2_table(Path(anlage2.upload.path))
@@ -469,15 +473,26 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xfcft die zweite Anlage."""
+    """Prüft die zweite Anlage.
+
+    Für jede Funktion aus Anlage 2 wird geprüft, ob sie in der Tabelle der Anlage vorhanden ist.
+    Falls ja, werden die Werte direkt übernommen (Quelle: parser).
+    Falls nein, wird ein LLM befragt (Quelle: llm).
+    Zusätzlich werden für jede Subfrage (anlage2subquestion_set) ebenfalls LLM-Abfragen durchgeführt.
+    Das Ergebnis wird als JSON im Analysefeld der Anlage gespeichert.
+    """
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=2)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+    except (
+        BVProjectFile.DoesNotExist
+    ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
     table = parse_anlage2_table(Path(anlage.upload.path))
+    logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
+    logger.debug("Collected project text: %r", text)
     prompt_base = get_prompt(
         "check_anlage2_function",
         (
@@ -489,13 +504,17 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     )
 
     results: list[dict] = []
-    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set").order_by("name"):
+    for func in Anlage2Function.objects.prefetch_related(
+        "anlage2subquestion_set"
+    ).order_by("name"):
         row = table.get(func.name)
         if row and all(v is not None for v in row.values()):
+            # Wenn alle Werte aus der Tabelle vorhanden sind, diese übernehmen
             vals = row
             source = "parser"
             raw = row
         else:
+            # Sonst LLM befragen
             prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
             reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
             try:
@@ -523,6 +542,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         )
         entry = {"funktion": func.name, **vals, "source": source}
         sub_list: list[dict] = []
+        # Für jede Subfrage ebenfalls LLM befragen
         for sub in func.anlage2subquestion_set.all().order_by("id"):
             prompt = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
@@ -570,8 +590,10 @@ def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
     return _check_anlage(projekt_id, 6, model_name)
 
 
-def check_anlage2_functions(projekt_id: int, model_name: str | None = None) -> list[dict]:
-    """Pr\xFCft alle Funktionen aus Anlage 2 einzeln."""
+def check_anlage2_functions(
+    projekt_id: int, model_name: str | None = None
+) -> list[dict]:
+    """Pr\xfcft alle Funktionen aus Anlage 2 einzeln."""
     projekt = BVProject.objects.get(pk=projekt_id)
     text = _collect_text(projekt)
     prompt_base = get_prompt(
