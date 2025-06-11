@@ -170,7 +170,26 @@ class DocxExtractTests(TestCase):
         doc.save(tmp.name)
         tmp.close()
         try:
-            data = parse_anlage2_table(Path(tmp.name))
+            with patch("core.docx_utils.logging.getLogger") as mock_get_logger:
+                mock_logger = mock_get_logger.return_value
+                data = parse_anlage2_table(Path(tmp.name))
+                expected_raw = [
+                    "Funktion",
+                    "Technisch vorhanden",
+                    "Einsatz bei Telefónica",
+                    "Zur LV-Kontrolle",
+                    "KI-Beteiligung",
+                ]
+                expected_norm = [
+                    "funktion",
+                    "technisch vorhanden",
+                    "einsatz bei telefónica",
+                    "zur lv-kontrolle",
+                    "ki-beteiligung",
+                ]
+                mock_logger.debug.assert_any_call(
+                    f"Tabelle 0: Roh-Header = {expected_raw}, Normiert = {expected_norm}"
+                )
         finally:
             Path(tmp.name).unlink(missing_ok=True)
 

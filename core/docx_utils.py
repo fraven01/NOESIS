@@ -128,9 +128,8 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             for h in headers_raw
         ]
         logger.debug(
-            f"Tabelle {table_idx}: Roh-Header = {headers_raw}"
+            f"Tabelle {table_idx}: Roh-Header = {headers_raw}, Normiert = {headers}"
         )
-        logger.debug(f"Tabelle {table_idx}: Normalisierte Header = {headers}")
         try:
             idx_func = headers.index("funktion")
             idx_tech = headers.index("technisch vorhanden")
