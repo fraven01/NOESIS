@@ -1,6 +1,7 @@
 from pathlib import Path
 from docx import Document
 import logging
+import re
 
 from .models import Anlage2Config, Anlage2ColumnHeading
 
@@ -32,6 +33,15 @@ def _parse_bool(text: str) -> bool | None:
     return None
 
 
+def _normalize_header_text(text: str) -> str:
+    """Bereinigt eine Tabellenüberschrift für den Vergleich."""
+    text = text.replace("\n", " ")
+    text = re.sub(r"ja\s*/\s*nein", "", text, flags=re.I)
+    text = text.strip().lower()
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
 def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form.
 
@@ -43,23 +53,23 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
 
     for canonical, attr in HEADER_FIELDS.items():
-        mapping[canonical] = canonical
+        mapping[_normalize_header_text(canonical)] = canonical
         headers = set()
         if cfg:
-            headers.add(getattr(cfg, attr).strip().lower())
+            headers.add(_normalize_header_text(getattr(cfg, attr)))
             headers.update(
-                h.text.strip().lower()
+                _normalize_header_text(h.text)
                 for h in cfg.headers.filter(field_name=attr.replace("col_", ""))
             )
         else:
-            headers.add(canonical)
+            headers.add(_normalize_header_text(canonical))
         for header in headers:
             mapping[header] = canonical
 
     for h in Anlage2ColumnHeading.objects.all():
         canonical = field_map.get(h.field_name)
         if canonical:
-            mapping[h.text.strip().lower()] = canonical
+            mapping[_normalize_header_text(h.text)] = canonical
 
     return mapping
 
@@ -111,7 +121,12 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
-        headers = [header_map.get(h.strip().lower(), h.strip().lower()) for h in headers_raw]
+        headers = [
+            header_map.get(
+                _normalize_header_text(h), _normalize_header_text(h)
+            )
+            for h in headers_raw
+        ]
         logger.debug(
             f"Tabelle {table_idx}: Roh-Header = {headers_raw}"
         )
