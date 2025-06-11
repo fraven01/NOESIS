@@ -18,6 +18,7 @@ from .models import (
     Area,
     Anlage2Function,
     Anlage2Config,
+    Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
@@ -227,12 +228,29 @@ class DocxExtractTests(TestCase):
         self.assertTrue(data["Login"]["technisch_verfuegbar"])
 
     def test_parse_anlage2_table_alias_headers(self):
+        cfg = Anlage2Config.objects.create()
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="technisch_vorhanden",
+            text="Steht technisch zur Verfügung?",
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="einsatz_bei_telefonica",
+            text="einsatzweise bei telefónica: soll die funktion verwendet werden?",
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="zur_lv_kontrolle",
+            text="einsatzweise bei telefónica: soll zur überwachung von leistung oder verhalten verwendet werden?",
+        )
+
         doc = Document()
         table = doc.add_table(rows=2, cols=5)
         table.cell(0, 0).text = "Funktion"
         table.cell(0, 1).text = "Steht technisch zur Verfügung?"
-        table.cell(0, 2).text = "Einsatz bei Telefonica"
-        table.cell(0, 3).text = "Zur LV Kontrolle"
+        table.cell(0, 2).text = "einsatzweise bei Telefónica: soll die Funktion verwendet werden?"
+        table.cell(0, 3).text = "einsatzweise bei Telefónica: soll zur Überwachung von Leistung oder Verhalten verwendet werden?"
         table.cell(0, 4).text = "KI-Beteiligung"
 
         table.cell(1, 0).text = "Login"
