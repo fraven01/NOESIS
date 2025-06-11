@@ -52,8 +52,25 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     geladen.
     """
 
+    logger = logging.getLogger(__name__)
+
     mapping: dict[str, str] = {"funktion": "funktion"}
     field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
+
+    if cfg:
+        logger.debug(
+            "Gefundene Anlage2Config: %s",
+            {
+                canon: getattr(cfg, attr)
+                for canon, attr in HEADER_FIELDS.items()
+            },
+        )
+        logger.debug(
+            "Konfiguriere Alias-Überschriften: %s",
+            [str(h) for h in cfg.headers.all()],
+        )
+    else:
+        logger.debug("Keine Anlage2Config gefunden, verwende Standardwerte")
 
     for canonical, attr in HEADER_FIELDS.items():
         mapping[_normalize_header_text(canonical)] = canonical
@@ -69,11 +86,17 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         for header in headers:
             mapping[header] = canonical
 
-    for h in Anlage2ColumnHeading.objects.all():
+    global_aliases = list(Anlage2ColumnHeading.objects.all())
+    for h in global_aliases:
         canonical = field_map.get(h.field_name)
         if canonical:
             norm = _normalize_header_text(h.text)
             mapping.setdefault(norm, canonical)
+
+    logger.debug(
+        "Globale Alias-Überschriften: %s",
+        [str(h) for h in global_aliases],
+    )
 
     return mapping
 
@@ -120,7 +143,9 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         return {}
 
     cfg = Anlage2Config.objects.first()
+    logger.debug("Aktive Anlage2Config: %s", cfg)
     header_map = _build_header_map(cfg)
+    logger.debug("Erzeugtes Header-Mapping: %s", header_map)
 
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
