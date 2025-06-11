@@ -1249,6 +1249,26 @@ class Anlage2ReviewTests(TestCase):
         self.assertTrue(data["technisch_vorhanden"])
         self.assertTrue(data["subquestions"][str(self.sub.id)]["ki_beteiligung"])
 
+    def test_prefill_from_analysis(self):
+        """Die Formulardaten verwenden Analysewerte als Vorgabe."""
+        self.file.manual_analysis_json = None
+        self.file.analysis_json = {
+            "functions": [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": True,
+                    "einsatz_telefonica": True,
+                    "zur_lv_kontrolle": True,
+                }
+            ]
+        }
+        self.file.save()
+
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        field = f"func{self.func.id}_technisch_vorhanden"
+        self.assertTrue(resp.context["form"].initial[field])
+
 
 class ProjektGutachtenViewTests(TestCase):
     def setUp(self):

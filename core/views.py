@@ -94,6 +94,61 @@ def get_user_tiles(user, bereich: str) -> list[Tile]:
     return list(Tile.objects.filter(bereich__slug=bereich, users=user))
 
 
+FIELD_RENAME = {
+    "technisch_verfuegbar": "technisch_vorhanden",
+    "einsatz_telefonica": "einsatz_bei_telefonica",
+}
+
+
+def _analysis_to_initial(anlage: BVProjectFile) -> dict:
+    """Wandelt ``analysis_json`` in das Initialformat für ``Anlage2ReviewForm``."""
+    data = anlage.analysis_json or {}
+    initial = {"functions": {}}
+    if not isinstance(data, dict):
+        return initial
+
+    name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
+    rev_map = {v: k for k, v in FIELD_RENAME.items()}
+
+    for item in data.get("functions", []):
+        name = item.get("funktion") or item.get("name")
+        func_id = name_map.get(name)
+        if not func_id:
+            continue
+        entry: dict[str, object] = {}
+        for field, _ in get_anlage2_fields():
+            val = item.get(field)
+            if val is None:
+                alt = rev_map.get(field)
+                if alt:
+                    val = item.get(alt)
+            if isinstance(val, bool):
+                entry[field] = val
+        sub_map: dict[str, dict] = {}
+        for sub in Anlage2SubQuestion.objects.filter(funktion_id=func_id).order_by("id"):
+            match = next(
+                (s for s in item.get("subquestions", []) if s.get("frage_text") == sub.frage_text),
+                None,
+            )
+            if not match:
+                continue
+            s_entry: dict[str, object] = {}
+            for field, _ in get_anlage2_fields():
+                s_val = match.get(field)
+                if s_val is None:
+                    alt = rev_map.get(field)
+                    if alt:
+                        s_val = match.get(alt)
+                if isinstance(s_val, bool):
+                    s_entry[field] = s_val
+            if s_entry:
+                sub_map[str(sub.id)] = s_entry
+        if sub_map:
+            entry["subquestions"] = sub_map
+        initial["functions"][func_id] = entry
+    return initial
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -1321,12 +1376,18 @@ def projekt_file_edit_json(request, pk):
                 anlage.save(update_fields=["manual_analysis_json"])
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
-            form = Anlage2ReviewForm(initial=anlage.manual_analysis_json)
+            init = anlage.manual_analysis_json
+            if not init:
+                init = _analysis_to_initial(anlage)
+            form = Anlage2ReviewForm(initial=init)
         template = "projekt_file_anlage2_review.html"
         answers: dict[str, dict] = {}
         for item in (anlage.analysis_json.get("functions") if anlage.analysis_json else []) or []:
             name = item.get("funktion") or item.get("name")
             if name:
+                for old, new in FIELD_RENAME.items():
+                    if old in item and new not in item:
+                        item[new] = item[old]
                 answers[name] = item
         rows = []
         fields_def = get_anlage2_fields()
@@ -1340,9 +1401,21 @@ def projekt_file_edit_json(request, pk):
             })
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in fields_def]
+                s_analysis = {}
+                func_data = answers.get(func.name)
+                if func_data:
+                    match = next(
+                        (s for s in func_data.get("subquestions", []) if s.get("frage_text") == sub.frage_text),
+                        None,
+                    )
+                    if match:
+                        for old, new in FIELD_RENAME.items():
+                            if old in match and new not in match:
+                                match[new] = match[old]
+                        s_analysis = match
                 rows.append({
                     "name": sub.frage_text,
-                    "analysis": {},
+                    "analysis": s_analysis,
                     "form_fields": s_fields,
                     "sub": True,
                 })
