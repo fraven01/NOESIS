@@ -303,18 +303,6 @@ class Anlage2Config(models.Model):
     #: Hilfsfeld, um nur eine Instanz zuzulassen
     singleton_enforcer = models.BooleanField(default=True, unique=True, editable=False)
 
-    col_technisch_vorhanden = models.CharField(
-        max_length=200, default="Technisch vorhanden"
-    )
-    col_einsatz_bei_telefonica = models.CharField(
-        max_length=200, default="Einsatz bei Telefónica"
-    )
-    col_zur_lv_kontrolle = models.CharField(
-        max_length=200, default="Zur LV-Kontrolle"
-    )
-    col_ki_beteiligung = models.CharField(
-        max_length=200, default="KI-Beteiligung"
-    )
 
     class Meta:
         verbose_name = "Anlage2 Konfiguration"

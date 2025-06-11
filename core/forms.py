@@ -32,26 +32,17 @@ def get_anlage1_numbers() -> list[int]:
 def get_anlage2_fields() -> list[tuple[str, str]]:
     """Liefert die Spaltenüberschriften für Anlage 2."""
     cfg = Anlage2Config.get_instance()
-    if cfg:
-        out: list[tuple[str, str]] = []
-        for field, attr in [
-            ("technisch_vorhanden", "col_technisch_vorhanden"),
-            ("einsatz_bei_telefonica", "col_einsatz_bei_telefonica"),
-            ("zur_lv_kontrolle", "col_zur_lv_kontrolle"),
-            ("ki_beteiligung", "col_ki_beteiligung"),
-        ]:
-            heading = (
-                cfg.headers.filter(field_name=field).first()
-            )
-            label = heading.text if heading else getattr(cfg, attr)
-            out.append((field, label))
-        return out
-    return [
-        ("technisch_vorhanden", "Technisch vorhanden"),
-        ("einsatz_bei_telefonica", "Einsatz bei Telefónica"),
-        ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
-        ("ki_beteiligung", "KI-Beteiligung"),
-    ]
+    out: list[tuple[str, str]] = []
+    defaults = {
+        "technisch_vorhanden": "Technisch vorhanden",
+        "einsatz_bei_telefonica": "Einsatz bei Telefónica",
+        "zur_lv_kontrolle": "Zur LV-Kontrolle",
+        "ki_beteiligung": "KI-Beteiligung",
+    }
+    for field, label in defaults.items():
+        heading = cfg.headers.filter(field_name=field).first() if cfg else None
+        out.append((field, heading.text if heading else label))
+    return out
 
 
 class RecordingForm(forms.ModelForm):
