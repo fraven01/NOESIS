@@ -35,7 +35,15 @@ def _parse_bool(text: str) -> bool | None:
 
 def _normalize_header_text(text: str) -> str:
     """Bereinigt eine Tabellenüberschrift für den Vergleich."""
-    text = text.replace("\n", " ")
+    # Zuerst doppelt-escapte Newlines durch ein einfaches Leerzeichen ersetzen
+    # Wichtig: Dies muss passieren, bevor "echte" Newlines ersetzt werden,
+    # falls beides vorkommt, oder wenn die Quelle schon so escapet.
+    text = text.replace("\\n", " ")  # <-- NEUE ZEILE / ÄNDERUNG HIER!
+    # Ersetzt '\\n' durch ein Leerzeichen
+
+    text = text.replace(
+        "\n", " "
+    )  # Behält die alte Zeile für den Fall von "echten" Newlines
     text = re.sub(r"ja\s*/\s*nein", "", text, flags=re.I)
     text = text.strip().lower()
     # Fragezeichen und Doppelpunkte am Ende entfernen
@@ -79,6 +87,11 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         _add_mapping(_normalize_header_text(canonical), canonical)
         if cfg:
             for h in cfg.headers.filter(field_name=field):
+                # HIER FÜGEN SIE DIE ZWEI DEBUG-ZEILEN EIN:
+                logger.debug(f"Roh-Alias (repr): {repr(h.text)}")
+                logger.debug(
+                    f"Normalisierter Alias: '{_normalize_header_text(h.text)}'"
+                )
                 _add_mapping(_normalize_header_text(h.text), canonical)
 
     logger.debug(
