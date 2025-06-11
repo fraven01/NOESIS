@@ -1,5 +1,6 @@
 from pathlib import Path
 from django import template
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -15,3 +16,10 @@ def get_item(data, key):
     if isinstance(data, dict):
         return data.get(key, "")
     return ""
+
+
+@register.filter
+def checkbox(value: object) -> str:
+    """Rendert ein deaktiviertes Kontrollkästchen."""
+    checked = " checked" if value is True else ""
+    return mark_safe(f"<input type='checkbox' disabled{checked}>")
