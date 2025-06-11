@@ -61,7 +61,5 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "projekt",
         "funktion",
         "technisch_verfuegbar",
-        "einsatz_telefonica",
-        "zur_lv_kontrolle",
         "ki_beteiligung",
     )

@@ -414,8 +414,6 @@ class LLMTasksTests(TestCase):
                 {
                     "funktion": "Login",
                     "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                     "source": "parser",
                 }
@@ -1663,17 +1661,15 @@ class Anlage2FunctionTests(TestCase):
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({
             "technisch_verfuegbar": True,
-            "einsatz_telefonica": False,
-            "zur_lv_kontrolle": True,
             "ki_beteiligung": False,
         })
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
             data = check_anlage2_functions(projekt.pk)
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
         self.assertTrue(res.technisch_verfuegbar)
-        self.assertFalse(res.einsatz_telefonica)
-        self.assertTrue(res.zur_lv_kontrolle)
-        self.assertEqual(data[0]["technisch_verfuegbar"], True)
+        self.assertIs(res.ki_beteiligung, False)
+        self.assertTrue(data[0]["technisch_verfuegbar"])
+        self.assertEqual(list(data[0].keys()), ["technisch_verfuegbar", "ki_beteiligung", "source", "funktion"])
 
 
 class CommandFunctionsTests(TestCase):
