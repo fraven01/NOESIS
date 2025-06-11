@@ -1,7 +1,6 @@
 from pathlib import Path
 from docx import Document
-
-from .models import Anlage2Config
+import logging
 
 
 def extract_text(path: Path) -> str:
@@ -21,83 +20,69 @@ def _parse_bool(text: str) -> bool | None:
 
 
 def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
-    """Liest eine Anlage-2-Tabelle aus einer DOCX-Datei.
+    """Liest und parst eine Anlage-2-Tabelle aus einer DOCX-Datei und gibt die extrahierten Daten als verschachteltes Dictionary zurück.
+    Die Funktion sucht in der angegebenen DOCX-Datei nach einer Tabelle mit den erwarteten Spaltenüberschriften:
+    - "Funktion"
+    - "Technisch vorhanden"
+    - "Einsatz bei Telefónica"
+    - "Zur LV-Kontrolle"
+    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet, wenn sie vorhanden ist.
+    Jede Zeile der Tabelle wird als Eintrag im Ergebnis-Dictionary gespeichert, wobei der Wert der Spalte "Funktion" als Schlüssel dient.
+    Die zugehörigen Werte sind Dictionaries mit den folgenden Schlüsseln:
+    - "technisch_verfuegbar": bool oder None – Gibt an, ob die Funktion technisch verfügbar ist.
+    - "einsatz_telefonica": bool oder None – Gibt an, ob die Funktion bei Telefónica im Einsatz ist.
+    - "zur_lv_kontrolle": bool oder None – Gibt an, ob die Funktion zur LV-Kontrolle verwendet wird.
+    - "ki_beteiligung": bool oder None – Gibt an, ob KI-Beteiligung vorliegt (nur, wenn die Spalte vorhanden ist).
+    Die Werte werden aus den jeweiligen Zellen der Tabelle extrahiert und mit einer Hilfsfunktion in boolesche Werte oder None umgewandelt.
+    Parameter:
+        path (Path): Pfad zur DOCX-Datei, die die Anlage-2-Tabelle enthält.
+    Rückgabewert:
+        dict[str, dict[str, bool | None]]:
+            Ein Dictionary, das für jede Funktion ein weiteres Dictionary mit den ausgelesenen Werten enthält.
+            Ist die Datei ungültig oder enthält keine passende Tabelle, wird ein leeres Dictionary zurückgegeben.
+    Hinweise:
+        - Die Funktion verarbeitet nur die erste gefundene Tabelle mit den erwarteten Spaltenüberschriften.
+        - Leere Funktionsnamen werden übersprungen.
+        - Fehler beim Laden der Datei werden protokolliert und führen zur Rückgabe eines leeren Dictionaries.
+    Liest eine Anlage-2-Tabelle aus einer DOCX-Datei.
 
     Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet,
     wenn sie vorhanden ist.
     """
+    logger = logging.getLogger(__name__)
+
+    logger.debug(f"Starte parse_anlage2_table mit Pfad: {path}")
+
     try:
         doc = Document(str(path))
-    except Exception:  # pragma: no cover - ungültige Datei
+        logger.debug(f"Dokument erfolgreich geladen: {path}")
+    except Exception as e:  # pragma: no cover - ungültige Datei
+        logger.error(f"Fehler beim Laden der Datei {path}: {e}")
         return {}
 
-    cfg = Anlage2Config.objects.first()
-
-    col_tech = cfg.col_technisch_vorhanden if cfg else "Technisch vorhanden"
-    col_tel = cfg.col_einsatz_bei_telefonica if cfg else "Einsatz bei Telefónica"
-    col_lv = cfg.col_zur_lv_kontrolle if cfg else "Zur LV-Kontrolle"
-    col_ki = cfg.col_ki_beteiligung if cfg else "KI-Beteiligung"
-
-    def norm(text: str) -> str:
-        return " ".join(text.split()).lower()
-
     results: dict[str, dict[str, bool | None]] = {}
-
-    tech_name = norm(col_tech)
-    tel_name = norm(col_tel)
-    lv_name = norm(col_lv)
-    ki_name = norm(col_ki)
-
-    aliases: dict[str, str] = {}
-    tech_aliases = [
-        col_tech,
-        "Technisch vorhanden",
-        "Steht technisch zur Verfügung?",
-        "Steht technisch zur Verfuegung?",
-    ]
-    tel_aliases = [
-        col_tel,
-        "Einsatz bei Telefónica",
-        "Einsatz bei Telefonica",
-        "Einsatz bei Telefonica?",
-    ]
-    lv_aliases = [
-        col_lv,
-        "Zur LV-Kontrolle",
-        "Zur LV Kontrolle",
-        "Zur LV Kontrolle?",
-    ]
-    ki_aliases = [
-        col_ki,
-        "KI-Beteiligung",
-        "KI-Beteiligung?",
-    ]
-
-    for a in tech_aliases:
-        aliases[norm(a)] = tech_name
-    for a in tel_aliases:
-        aliases[norm(a)] = tel_name
-    for a in lv_aliases:
-        aliases[norm(a)] = lv_name
-    for a in ki_aliases:
-        aliases[norm(a)] = ki_name
-
-    for table in doc.tables:
-        raw_headers = [cell.text.replace("\n", " ").replace("\r", " ") for cell in table.rows[0].cells]
-        headers = [norm(h) for h in raw_headers]
-        normalized = [aliases.get(h, h) for h in headers]
+    for table_idx, table in enumerate(doc.tables):
+        headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+        logger.debug(f"Tabelle {table_idx}: Header = {headers}")
         try:
-            idx_func = normalized.index("funktion")
-            idx_tech = normalized.index(tech_name)
-            idx_tel = normalized.index(tel_name)
-            idx_lv = normalized.index(lv_name)
-        except ValueError:
+            idx_func = headers.index("funktion")
+            idx_tech = headers.index("technisch vorhanden")
+            idx_tel = headers.index("einsatz bei telefónica")
+            idx_lv = headers.index("zur lv-kontrolle")
+        except ValueError as ve:
+            logger.debug(f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}")
             continue
-        idx_ki = normalized.index(ki_name) if ki_name in normalized else None
+        idx_ki = (
+            headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
+        )
 
-        for row in table.rows[1:]:
+        for row_idx, row in enumerate(table.rows[1:], start=1):
             func = row.cells[idx_func].text.strip()
+            logger.debug(f"Tabelle {table_idx}, Zeile {row_idx}: Funktion = '{func}'")
             if not func:
+                logger.debug(
+                    f"Tabelle {table_idx}, Zeile {row_idx}: Leere Funktion, überspringe Zeile."
+                )
                 continue
 
             data = {
@@ -107,9 +92,14 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             }
             if idx_ki is not None:
                 data["ki_beteiligung"] = _parse_bool(row.cells[idx_ki].text)
+            logger.debug(
+                f"Tabelle {table_idx}, Zeile {row_idx}: Funktion = {func}, Daten = {data}"
+            )
             results[func] = data
 
         if results:
+            logger.debug(f"Tabelle {table_idx}: Ergebnisse gefunden, beende Suche.")
             break
 
+    logger.debug(f"Endgültige Ergebnisse: {results}")
     return results
