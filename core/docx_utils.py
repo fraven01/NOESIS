@@ -97,7 +97,7 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         for header in headers:
             _add_mapping(header, canonical)
 
-    global_aliases = list(Anlage2ColumnHeading.objects.all())
+    global_aliases = list(cfg.headers.all()) if cfg else []
     for h in global_aliases:
         canonical = field_map.get(h.field_name)
         if canonical:
@@ -108,7 +108,7 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
                 _add_mapping(norm, canonical)
 
     logger.debug(
-        "Globale Alias-Überschriften: %s",
+        "Alias-Überschriften: %s",
         [str(h) for h in global_aliases],
     )
 

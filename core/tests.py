@@ -407,14 +407,13 @@ class DocxExtractTests(TestCase):
         )
 
     def test_parse_anlage2_table_alias_conflict(self):
-        cfg1 = Anlage2Config.objects.create()
-        cfg2 = Anlage2Config.objects.create()
+        cfg = Anlage2Config.objects.create()
         conflict = "Konflikt"
         Anlage2ColumnHeading.objects.create(
-            config=cfg1, field_name="technisch_vorhanden", text=conflict
+            config=cfg, field_name="technisch_vorhanden", text=conflict
         )
         Anlage2ColumnHeading.objects.create(
-            config=cfg2, field_name="einsatz_bei_telefonica", text=conflict
+            config=cfg, field_name="einsatz_bei_telefonica", text=conflict
         )
 
         doc = Document()
