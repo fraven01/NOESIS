@@ -9,24 +9,60 @@
             <tr class="border-b text-left">
                 <th class="py-2">Feld</th>
                 <th class="py-2">Bezeichnung</th>
+                <th class="py-2 text-center">Löschen</th>
             </tr>
         </thead>
         <tbody>
             <tr class="border-b text-sm">
                 <td class="py-1 font-semibold">Technisch vorhanden</td>
                 <td class="py-1"><input type="text" name="col_technisch_vorhanden" value="{{ config.col_technisch_vorhanden }}" class="border rounded p-2 w-full"></td>
+                <td></td>
             </tr>
             <tr class="border-b text-sm">
                 <td class="py-1 font-semibold">Einsatz bei Telefónica</td>
                 <td class="py-1"><input type="text" name="col_einsatz_bei_telefonica" value="{{ config.col_einsatz_bei_telefonica }}" class="border rounded p-2 w-full"></td>
+                <td></td>
             </tr>
             <tr class="border-b text-sm">
                 <td class="py-1 font-semibold">Zur LV-Kontrolle</td>
                 <td class="py-1"><input type="text" name="col_zur_lv_kontrolle" value="{{ config.col_zur_lv_kontrolle }}" class="border rounded p-2 w-full"></td>
+                <td></td>
             </tr>
             <tr class="border-b text-sm">
                 <td class="py-1 font-semibold">KI-Beteiligung</td>
                 <td class="py-1"><input type="text" name="col_ki_beteiligung" value="{{ config.col_ki_beteiligung }}" class="border rounded p-2 w-full"></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="text-xl font-semibold mt-6 mb-2">Aliasüberschriften</h2>
+    <table class="min-w-full mb-4">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Feld</th>
+                <th class="py-2">Text</th>
+                <th class="py-2 text-center">Entfernen</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for h in aliases %}
+            <tr class="border-b text-sm">
+                <td class="py-1">{{ h.get_field_name_display }}</td>
+                <td class="py-1">{{ h.text }}</td>
+                <td class="py-1 text-center"><input type="checkbox" name="delete{{ h.id }}"></td>
+            </tr>
+        {% endfor %}
+            <tr class="border-b text-sm">
+                <td class="py-1">
+                    <select name="new_field" class="border rounded p-2 w-full">
+                    {% for val, label in choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                    </select>
+                </td>
+                <td class="py-1"><input type="text" name="new_text" class="border rounded p-2 w-full"></td>
+                <td></td>
             </tr>
         </tbody>
     </table>

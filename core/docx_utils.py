@@ -2,7 +2,7 @@ from pathlib import Path
 from docx import Document
 import logging
 
-from .models import Anlage2Config
+from .models import Anlage2Config, Anlage2ColumnHeading
 
 # Zuordnung der Standardspalten zu ihren Modellfeldern
 HEADER_FIELDS = {
@@ -12,12 +12,8 @@ HEADER_FIELDS = {
     "ki-beteiligung": "col_ki_beteiligung",
 }
 
-# Bekannte Abkürzungen für Tabellenüberschriften
-HEADER_ALIASES = {
-    "steht technisch zur verfügung?": "technisch vorhanden",
-    "einsatz bei telefonica": "einsatz bei telefónica",
-    "zur lv kontrolle": "zur lv-kontrolle",
-}
+# Bekannte Abkürzungen werden jetzt in der Datenbank gepflegt
+HEADER_ALIASES: dict[str, str] = {}
 
 
 def extract_text(path: Path) -> str:
@@ -40,21 +36,30 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form."""
 
     mapping: dict[str, str] = {"funktion": "funktion"}
+    field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
+
     for canonical, attr in HEADER_FIELDS.items():
         mapping[canonical] = canonical
+        headers = set()
         if cfg:
-            headers = [
+            headers.add(getattr(cfg, attr).strip().lower())
+            headers.update(
                 h.text.strip().lower()
                 for h in cfg.headers.filter(field_name=attr.replace("col_", ""))
-            ]
-            if not headers:
-                headers = [getattr(cfg, attr).strip().lower()]
+            )
         else:
-            headers = [canonical]
+            headers.add(canonical)
         for header in headers:
             mapping[header] = canonical
+
+    for h in Anlage2ColumnHeading.objects.all():
+        canonical = field_map.get(h.field_name)
+        if canonical:
+            mapping[h.text.strip().lower()] = canonical
+
     for alias, canonical in HEADER_ALIASES.items():
         mapping[alias] = canonical
+
     return mapping
 
 

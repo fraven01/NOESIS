@@ -39,6 +39,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
+    Anlage2ColumnHeading,
     Tile,
     Area,
 )
@@ -831,6 +832,7 @@ def admin_anlage1(request):
 def anlage2_config(request):
     """Konfiguriert die Spaltenüberschriften für Anlage 2."""
     cfg = Anlage2Config.objects.first() or Anlage2Config.objects.create()
+    aliases = list(cfg.headers.all())
     if request.method == "POST":
         cfg.col_technisch_vorhanden = request.POST.get(
             "col_technisch_vorhanden", cfg.col_technisch_vorhanden
@@ -845,8 +847,22 @@ def anlage2_config(request):
             "col_ki_beteiligung", cfg.col_ki_beteiligung
         )
         cfg.save()
+        for h in aliases:
+            if request.POST.get(f"delete{h.id}"):
+                h.delete()
+        new_field = request.POST.get("new_field")
+        new_text = request.POST.get("new_text")
+        if new_field and new_text:
+            Anlage2ColumnHeading.objects.create(
+                config=cfg, field_name=new_field, text=new_text
+            )
         return redirect("anlage2_config")
-    return render(request, "admin_anlage2_config.html", {"config": cfg})
+    context = {
+        "config": cfg,
+        "aliases": aliases,
+        "choices": Anlage2ColumnHeading.FIELD_CHOICES,
+    }
+    return render(request, "admin_anlage2_config.html", context)
 
 
 @login_required
