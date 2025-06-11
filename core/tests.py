@@ -22,7 +22,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
-from .docx_utils import extract_text, parse_anlage2_table
+from .docx_utils import extract_text, parse_anlage2_table, _normalize_header_text
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -150,6 +150,17 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertIn("Das ist ein Test", text)
+
+    def test_normalize_header_text_variants(self):
+        cases = {
+            "Technisch vorhanden?": "technisch vorhanden",
+            "Technisch vorhanden:" : "technisch vorhanden",
+            "Technisch   vorhanden": "technisch vorhanden",
+            "Technisch\tvorhanden": "technisch vorhanden",
+            " Verf\u00fcgbar?\t": "verf\u00fcgbar",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(_normalize_header_text(raw), expected)
 
     def test_parse_anlage2_table(self):
         doc = Document()

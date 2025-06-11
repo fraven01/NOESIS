@@ -38,7 +38,10 @@ def _normalize_header_text(text: str) -> str:
     text = text.replace("\n", " ")
     text = re.sub(r"ja\s*/\s*nein", "", text, flags=re.I)
     text = text.strip().lower()
-    text = re.sub(r"\s+", " ", text)
+    # Fragezeichen und Doppelpunkte am Ende entfernen
+    text = re.sub(r"[?:]+$", "", text).strip()
+    # Mehrere Leerzeichen und Tabulatoren vereinheitlichen
+    text = re.sub(r"[ \t]+", " ", text)
     return text
 
 
