@@ -834,18 +834,6 @@ def anlage2_config(request):
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     if request.method == "POST":
-        cfg.col_technisch_vorhanden = request.POST.get(
-            "col_technisch_vorhanden", cfg.col_technisch_vorhanden
-        )
-        cfg.col_einsatz_bei_telefonica = request.POST.get(
-            "col_einsatz_bei_telefonica", cfg.col_einsatz_bei_telefonica
-        )
-        cfg.col_zur_lv_kontrolle = request.POST.get(
-            "col_zur_lv_kontrolle", cfg.col_zur_lv_kontrolle
-        )
-        cfg.col_ki_beteiligung = request.POST.get(
-            "col_ki_beteiligung", cfg.col_ki_beteiligung
-        )
         cfg.save()
         for h in aliases:
             if request.POST.get(f"delete{h.id}"):

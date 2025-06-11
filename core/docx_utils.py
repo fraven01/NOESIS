@@ -5,12 +5,12 @@ import re
 
 from .models import Anlage2Config, Anlage2ColumnHeading
 
-# Zuordnung der Standardspalten zu ihren Modellfeldern
+# Zuordnung der Standardspalten zu ihren Feldnamen
 HEADER_FIELDS = {
-    "technisch vorhanden": "col_technisch_vorhanden",
-    "einsatz bei telefónica": "col_einsatz_bei_telefonica",
-    "zur lv-kontrolle": "col_zur_lv_kontrolle",
-    "ki-beteiligung": "col_ki_beteiligung",
+    "technisch vorhanden": "technisch_vorhanden",
+    "einsatz bei telefónica": "einsatz_bei_telefonica",
+    "zur lv-kontrolle": "zur_lv_kontrolle",
+    "ki-beteiligung": "ki_beteiligung",
 }
 
 # Aliasüberschriften werden ausschließlich über das Modell
@@ -66,50 +66,24 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
             logger.warning(msg)
             raise ValueError(msg)
         mapping[key] = canonical
-    field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
 
     if cfg:
-        logger.debug(
-            "Gefundene Anlage2Config: %s",
-            {
-                canon: getattr(cfg, attr)
-                for canon, attr in HEADER_FIELDS.items()
-            },
-        )
         logger.debug(
             "Konfiguriere Alias-Überschriften: %s",
             [str(h) for h in cfg.headers.all()],
         )
     else:
-        logger.debug("Keine Anlage2Config gefunden, verwende Standardwerte")
+        logger.debug("Keine Anlage2Config gefunden")
 
-    for canonical, attr in HEADER_FIELDS.items():
+    for canonical, field in HEADER_FIELDS.items():
         _add_mapping(_normalize_header_text(canonical), canonical)
-        headers = set()
         if cfg:
-            headers.add(_normalize_header_text(getattr(cfg, attr)))
-            headers.update(
-                _normalize_header_text(h.text)
-                for h in cfg.headers.filter(field_name=attr.replace("col_", ""))
-            )
-        else:
-            headers.add(_normalize_header_text(canonical))
-        for header in headers:
-            _add_mapping(header, canonical)
-
-    global_aliases = list(cfg.headers.all()) if cfg else []
-    for h in global_aliases:
-        canonical = field_map.get(h.field_name)
-        if canonical:
-            norm = _normalize_header_text(h.text)
-            if norm not in mapping:
-                mapping[norm] = canonical
-            elif mapping[norm] != canonical:
-                _add_mapping(norm, canonical)
+            for h in cfg.headers.filter(field_name=field):
+                _add_mapping(_normalize_header_text(h.text), canonical)
 
     logger.debug(
         "Alias-Überschriften: %s",
-        [str(h) for h in global_aliases],
+        [str(h) for h in cfg.headers.all()] if cfg else [],
     )
 
     return mapping
@@ -122,7 +96,7 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     - "Technisch vorhanden"
     - "Einsatz bei Telefónica"
     - "Zur LV-Kontrolle"
-    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet, wenn sie vorhanden ist.
+    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet, wenn sie vorhanden ist. Eigene Überschriften können über Aliasdefinitionen in der Datenbank hinterlegt werden.
     Jede Zeile der Tabelle wird als Eintrag im Ergebnis-Dictionary gespeichert, wobei der Wert der Spalte "Funktion" als Schlüssel dient.
     Die zugehörigen Werte sind Dictionaries mit den folgenden Schlüsseln:
     - "technisch_verfuegbar": bool oder None – Gibt an, ob die Funktion technisch verfügbar ist.
