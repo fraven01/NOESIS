@@ -30,16 +30,29 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         return {}
 
     results: dict[str, dict[str, bool | None]] = {}
+
+    aliases = {
+        "steht technisch zur verfügung?": "technisch vorhanden",
+        "steht technisch zur verfuegung?": "technisch vorhanden",
+        "einsatz bei telefonica": "einsatz bei telefónica",
+        "einsatz bei telefonica?": "einsatz bei telefónica",
+        "zur lv kontrolle": "zur lv-kontrolle",
+        "zur lv kontrolle?": "zur lv-kontrolle",
+        "ki-beteiligung?": "ki-beteiligung",
+    }
+
     for table in doc.tables:
-        headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+        raw_headers = [cell.text.replace("\n", " ").replace("\r", " ") for cell in table.rows[0].cells]
+        headers = [" ".join(h.split()).lower() for h in raw_headers]
+        normalized = [aliases.get(h, h) for h in headers]
         try:
-            idx_func = headers.index("funktion")
-            idx_tech = headers.index("technisch vorhanden")
-            idx_tel = headers.index("einsatz bei telefónica")
-            idx_lv = headers.index("zur lv-kontrolle")
+            idx_func = normalized.index("funktion")
+            idx_tech = normalized.index("technisch vorhanden")
+            idx_tel = normalized.index("einsatz bei telefónica")
+            idx_lv = normalized.index("zur lv-kontrolle")
         except ValueError:
             continue
-        idx_ki = headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
+        idx_ki = normalized.index("ki-beteiligung") if "ki-beteiligung" in normalized else None
 
         for row in table.rows[1:]:
             func = row.cells[idx_func].text.strip()

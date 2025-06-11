@@ -1667,7 +1667,10 @@ def gutachten_llm_check(request, pk):
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        check_gutachten_functions(projekt.pk, model_name=model)
+        note = check_gutachten_functions(projekt.pk, model_name=model)
+        if note:
+            projekt.gutachten_function_note = note
+            projekt.save(update_fields=["gutachten_function_note"])
         messages.success(request, "Gutachten geprüft")
     except ValueError:
         messages.error(request, "Kein Gutachten vorhanden")
