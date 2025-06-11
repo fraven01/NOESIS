@@ -185,6 +185,47 @@ class DocxExtractTests(TestCase):
             },
         )
 
+    def test_parse_anlage2_table_multiple_headers(self):
+        cfg = Anlage2Config.objects.create()
+        Anlage2ColumnHeading.objects.create(
+            config=cfg, field_name="technisch_vorhanden", text="Verfügbar?"
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg,
+            field_name="technisch_vorhanden",
+            text="Steht technisch zur Verfügung?",
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg, field_name="einsatz_bei_telefonica", text="Telefonica Einsatz"
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg, field_name="zur_lv_kontrolle", text="LV Kontrolle"
+        )
+        Anlage2ColumnHeading.objects.create(
+            config=cfg, field_name="ki_beteiligung", text="KI?"
+        )
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Steht technisch zur Verfügung?"
+        table.cell(0, 2).text = "Telefonica Einsatz"
+        table.cell(0, 3).text = "LV Kontrolle"
+        table.cell(0, 4).text = "KI?"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertTrue(data["Login"]["technisch_verfuegbar"])
+
     def test_parse_anlage2_table_alias_headers(self):
         doc = Document()
         table = doc.add_table(rows=2, cols=5)

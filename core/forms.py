@@ -33,12 +33,19 @@ def get_anlage2_fields() -> list[tuple[str, str]]:
     """Liefert die Spaltenüberschriften für Anlage 2."""
     cfg = Anlage2Config.objects.first()
     if cfg:
-        return [
-            ("technisch_vorhanden", cfg.col_technisch_vorhanden),
-            ("einsatz_bei_telefonica", cfg.col_einsatz_bei_telefonica),
-            ("zur_lv_kontrolle", cfg.col_zur_lv_kontrolle),
-            ("ki_beteiligung", cfg.col_ki_beteiligung),
-        ]
+        out: list[tuple[str, str]] = []
+        for field, attr in [
+            ("technisch_vorhanden", "col_technisch_vorhanden"),
+            ("einsatz_bei_telefonica", "col_einsatz_bei_telefonica"),
+            ("zur_lv_kontrolle", "col_zur_lv_kontrolle"),
+            ("ki_beteiligung", "col_ki_beteiligung"),
+        ]:
+            heading = (
+                cfg.headers.filter(field_name=field).first()
+            )
+            label = heading.text if heading else getattr(cfg, attr)
+            out.append((field, label))
+        return out
     return [
         ("technisch_vorhanden", "Technisch vorhanden"),
         ("einsatz_bei_telefonica", "Einsatz bei Telefónica"),

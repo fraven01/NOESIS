@@ -37,14 +37,24 @@ def _parse_bool(text: str) -> bool | None:
 
 
 def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
-    """Erzeugt eine Mapping-Tabelle für erkannte Tabellenköpfe."""
-    mapping: dict[str, str] = {}
+    """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form."""
+
+    mapping: dict[str, str] = {"funktion": "funktion"}
     for canonical, attr in HEADER_FIELDS.items():
-        expected = getattr(cfg, attr).strip().lower() if cfg else canonical
-        mapping[canonical] = expected
+        mapping[canonical] = canonical
+        if cfg:
+            headers = [
+                h.text.strip().lower()
+                for h in cfg.headers.filter(field_name=attr.replace("col_", ""))
+            ]
+            if not headers:
+                headers = [getattr(cfg, attr).strip().lower()]
+        else:
+            headers = [canonical]
+        for header in headers:
+            mapping[header] = canonical
     for alias, canonical in HEADER_ALIASES.items():
-        if canonical in mapping:
-            mapping[alias] = mapping[canonical]
+        mapping[alias] = canonical
     return mapping
 
 
@@ -91,10 +101,6 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
 
     cfg = Anlage2Config.objects.first()
     header_map = _build_header_map(cfg)
-    exp_tech = header_map["technisch vorhanden"]
-    exp_tel = header_map["einsatz bei telefónica"]
-    exp_lv = header_map["zur lv-kontrolle"]
-    exp_ki = header_map["ki-beteiligung"]
 
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
@@ -106,15 +112,15 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         logger.debug(f"Tabelle {table_idx}: Normalisierte Header = {headers}")
         try:
             idx_func = headers.index("funktion")
-            idx_tech = headers.index(exp_tech)
-            idx_tel = headers.index(exp_tel)
-            idx_lv = headers.index(exp_lv)
+            idx_tech = headers.index("technisch vorhanden")
+            idx_tel = headers.index("einsatz bei telefónica")
+            idx_lv = headers.index("zur lv-kontrolle")
         except ValueError as ve:
             logger.debug(
                 f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}"
             )
             continue
-        idx_ki = headers.index(exp_ki) if exp_ki in headers else None
+        idx_ki = headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
 
         for row_idx, row in enumerate(table.rows[1:], start=1):
             func = row.cells[idx_func].text.strip()

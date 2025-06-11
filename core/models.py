@@ -320,6 +320,29 @@ class Anlage2Config(models.Model):
         return "Anlage2Config"
 
 
+class Anlage2ColumnHeading(models.Model):
+    """Mögliche Überschrift für ein Anlage-2-Feld."""
+
+    FIELD_CHOICES = [
+        ("technisch_vorhanden", "Technisch vorhanden"),
+        ("einsatz_bei_telefonica", "Einsatz bei Telefónica"),
+        ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
+        ("ki_beteiligung", "KI-Beteiligung"),
+    ]
+
+    config = models.ForeignKey(
+        Anlage2Config, on_delete=models.CASCADE, related_name="headers"
+    )
+    field_name = models.CharField(max_length=50, choices=FIELD_CHOICES)
+    text = models.CharField(max_length=200)
+
+    class Meta:
+        ordering = ["field_name", "id"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.field_name}: {self.text}"
+
+
 class Tile(models.Model):
     """Kachel für das Dashboard."""
 
