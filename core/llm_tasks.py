@@ -482,6 +482,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     Das Ergebnis wird als JSON im Analysefeld der Anlage gespeichert.
     """
     projekt = BVProject.objects.get(pk=projekt_id)
+    logger.debug("Starte check_anlage2 f\u00fcr Projekt %s", projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=2)
     except (
@@ -489,6 +490,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
+    logger.debug("Anlage 2 Pfad: %s", anlage.upload.path)
     table = parse_anlage2_table(Path(anlage.upload.path))
     logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
@@ -506,7 +508,9 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"
     ).order_by("name"):
+        logger.debug("Pr\u00fcfe Funktion '%s'", func.name)
         row = table.get(func.name)
+        logger.debug("Tabellenzeile: %s", row)
         if row and all(v is not None for v in row.values()):
             vals = {
                 "technisch_verfuegbar": row.get("technisch_verfuegbar"),
@@ -517,7 +521,9 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         else:
             # Sonst LLM befragen
             prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+            logger.debug("LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt)
             reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
             try:
                 raw = json.loads(reply)
             except Exception:  # noqa: BLE001
@@ -537,12 +543,19 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 "source": source,
             },
         )
+        logger.debug("Ergebnis Funktion '%s': %s", func.name, vals)
         entry = {"funktion": func.name, **vals, "source": source}
         sub_list: list[dict] = []
         # Für jede Subfrage ebenfalls LLM befragen
         for sub in func.anlage2subquestion_set.all().order_by("id"):
             prompt = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
+            logger.debug(
+                "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt
+            )
             reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            logger.debug(
+                "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
+            )
             try:
                 s_raw = json.loads(reply)
             except Exception:  # noqa: BLE001
@@ -562,6 +575,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     data = {"task": "check_anlage2", "functions": results}
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
+    logger.debug("check_anlage2 Ergebnis: %s", data)
     return data
 
 
