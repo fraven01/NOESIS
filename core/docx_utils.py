@@ -12,8 +12,8 @@ HEADER_FIELDS = {
     "ki-beteiligung": "col_ki_beteiligung",
 }
 
-# Bekannte Abkürzungen werden jetzt in der Datenbank gepflegt
-HEADER_ALIASES: dict[str, str] = {}
+# Aliasüberschriften werden ausschließlich über das Modell
+# ``Anlage2ColumnHeading`` gepflegt
 
 
 def extract_text(path: Path) -> str:
@@ -33,7 +33,11 @@ def _parse_bool(text: str) -> bool | None:
 
 
 def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
-    """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form."""
+    """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form.
+
+    Aliasüberschriften werden ausschließlich aus ``Anlage2ColumnHeading``
+    geladen.
+    """
 
     mapping: dict[str, str] = {"funktion": "funktion"}
     field_map = {attr.replace("col_", ""): canon for canon, attr in HEADER_FIELDS.items()}
@@ -56,9 +60,6 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         canonical = field_map.get(h.field_name)
         if canonical:
             mapping[h.text.strip().lower()] = canonical
-
-    for alias, canonical in HEADER_ALIASES.items():
-        mapping[alias] = canonical
 
     return mapping
 
