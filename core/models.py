@@ -355,8 +355,6 @@ class Anlage2FunctionResult(models.Model):
     projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     technisch_verfuegbar = models.BooleanField(null=True)
-    einsatz_telefonica = models.BooleanField(null=True)
-    zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     raw_json = models.JSONField(null=True, blank=True)
     source = models.CharField(max_length=10, default="llm")
