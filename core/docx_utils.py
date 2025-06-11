@@ -19,7 +19,11 @@ def _parse_bool(text: str) -> bool | None:
 
 
 def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
-    """Liest eine Anlage-2-Tabelle aus einer DOCX-Datei."""
+    """Liest eine Anlage-2-Tabelle aus einer DOCX-Datei.
+
+    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet,
+    wenn sie vorhanden ist.
+    """
     try:
         doc = Document(str(path))
     except Exception:  # pragma: no cover - ungültige Datei
@@ -33,21 +37,23 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             idx_tech = headers.index("technisch vorhanden")
             idx_tel = headers.index("einsatz bei telefónica")
             idx_lv = headers.index("zur lv-kontrolle")
-            idx_ki = headers.index("ki-beteiligung")
         except ValueError:
             continue
+        idx_ki = headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
 
         for row in table.rows[1:]:
             func = row.cells[idx_func].text.strip()
             if not func:
                 continue
 
-            results[func] = {
+            data = {
                 "technisch_verfuegbar": _parse_bool(row.cells[idx_tech].text),
                 "einsatz_telefonica": _parse_bool(row.cells[idx_tel].text),
                 "zur_lv_kontrolle": _parse_bool(row.cells[idx_lv].text),
-                "ki_beteiligung": _parse_bool(row.cells[idx_ki].text),
             }
+            if idx_ki is not None:
+                data["ki_beteiligung"] = _parse_bool(row.cells[idx_ki].text)
+            results[func] = data
 
         if results:
             break

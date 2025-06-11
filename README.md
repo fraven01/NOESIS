@@ -72,16 +72,12 @@ Extrahieren berücksichtigt.
 
 ### Anlage 2 analysieren
 
-Mit
-
-```bash
-python manage.py analyse_anlage2 42
-```
-
-wird der Text der Systembeschreibung und der Anlagen 1 und 2 zusammengeführt und
-von einem LLM nach Funktionen durchsucht. Die erkannten Funktionen werden mit
-den Angaben aus Anlage 2 verglichen. Fehlende oder zusätzliche Funktionen werden
-als JSON in Anlage 2 gespeichert.
+Die Analyse der zweiten Anlage erfolgt über das Webinterface. In der
+Projektübersicht lässt sich über den Button **Prüfen** neben Anlage 2 der
+Parser starten. Dieser ermittelt ausschließlich anhand des Dokuments, welche
+Funktionen oder Unterfragen ausgefüllt wurden. Eine Abfrage zum
+**KI‑Beteiligung**‑Flag findet dabei nicht statt. In der Detailansicht kann im
+Bedarfsfall eine weitergehende Prüfung per LLM ausgelöst werden.
 
 ### Kachel-Zugriff verwalten
 
