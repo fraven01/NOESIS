@@ -1241,7 +1241,7 @@ def projekt_file_check_pk(request, pk):
 
 @login_required
 def projekt_file_check_view(request, pk):
-    """Pr\xfcft eine Anlage und zeigt das Ergebnis an."""
+    """Pr\xfcft eine Anlage und leitet zur Analyse-Bearbeitung weiter."""
     try:
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
@@ -1260,33 +1260,16 @@ def projekt_file_check_view(request, pk):
     if not func:
         raise Http404
 
-    category = None
-    model = None
-    if request.method == "POST":
-        form = BVProjectFileJSONForm(request.POST, instance=anlage)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Analyse gespeichert")
-            return redirect("projekt_detail", pk=anlage.projekt.pk)
-    else:
-        category = request.GET.get("model_category")
-        model = LLMConfig.get_default(category) if category else None
-        try:
-            func(anlage.projekt_id, model_name=model)
-        except RuntimeError:
-            messages.error(request, "Missing LLM credentials from environment.")
-        except Exception:
-            logger.exception("LLM Fehler")
-            messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
-        form = BVProjectFileJSONForm(instance=anlage)
-
-    context = {
-        "form": form,
-        "anlage": anlage,
-        "categories": LLMConfig.get_categories(),
-        "category": category or "anlagen",
-    }
-    return render(request, "projekt_file_check_result.html", context)
+    category = request.GET.get("model_category")
+    model = LLMConfig.get_default(category) if category else None
+    try:
+        func(anlage.projekt_id, model_name=model)
+    except RuntimeError:
+        messages.error(request, "Missing LLM credentials from environment.")
+    except Exception:
+        logger.exception("LLM Fehler")
+        messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
+    return redirect("projekt_file_edit_json", pk=pk)
 
 
 @login_required

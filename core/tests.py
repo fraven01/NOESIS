@@ -1375,7 +1375,7 @@ class ProjektFileCheckResultTests(TestCase):
             text_content="Text2",
         )
 
-    def test_get_runs_check_and_shows_form(self):
+    def test_get_runs_check_and_redirects_to_edit(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
         expected = {"task": "check_anlage1"}
         llm_reply = json.dumps(
@@ -1396,7 +1396,7 @@ class ProjektFileCheckResultTests(TestCase):
             "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
         ):
             resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
         self.file.refresh_from_db()
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
@@ -1404,21 +1404,21 @@ class ProjektFileCheckResultTests(TestCase):
             for i in nums
         }
         self.assertEqual(self.file.analysis_json, expected)
-        self.assertContains(resp, 'name="analysis_json"')
 
-    def test_post_updates_and_redirects(self):
+    def test_post_triggers_check_and_redirects(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        resp = self.client.post(
-            url, {"analysis_json": "{}", "manual_analysis_json": "{}"}
-        )
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        with patch("core.views.check_anlage1") as mock_func:
+            mock_func.return_value = {"task": "check_anlage1"}
+            resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
     def test_anlage2_uses_parser_by_default(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk])
         with patch("core.views.analyse_anlage2") as mock_func:
             mock_func.return_value = {"task": "analyse_anlage2"}
             resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
     def test_llm_param_triggers_full_check(self):
@@ -1426,7 +1426,7 @@ class ProjektFileCheckResultTests(TestCase):
         with patch("core.views.check_anlage2") as mock_func:
             mock_func.return_value = {"task": "check_anlage2"}
             resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
 
