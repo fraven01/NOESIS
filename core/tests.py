@@ -17,6 +17,7 @@ from .models import (
     Anlage1Config,
     Area,
     Anlage2Function,
+    Anlage2Config,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
@@ -192,6 +193,47 @@ class DocxExtractTests(TestCase):
         table.cell(0, 2).text = "Einsatz bei Telefonica"
         table.cell(0, 3).text = "Zur LV Kontrolle"
         table.cell(0, 4).text = "KI-Beteiligung"
+
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertEqual(
+            data,
+            {
+                "Login": {
+                    "technisch_verfuegbar": True,
+                    "einsatz_telefonica": False,
+                    "zur_lv_kontrolle": False,
+                    "ki_beteiligung": True,
+                }
+            },
+        )
+
+    def test_parse_anlage2_table_custom_headers(self):
+        Anlage2Config.objects.create(
+            col_technisch_vorhanden="Verf\u00fcgbar?",
+            col_einsatz_bei_telefonica="Telefonica Einsatz",
+            col_zur_lv_kontrolle="LV Kontrolle",
+            col_ki_beteiligung="KI?",
+        )
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Verf\u00fcgbar?"
+        table.cell(0, 2).text = "Telefonica Einsatz"
+        table.cell(0, 3).text = "LV Kontrolle"
+        table.cell(0, 4).text = "KI?"
 
         table.cell(1, 0).text = "Login"
         table.cell(1, 1).text = "Ja"
