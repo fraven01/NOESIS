@@ -1830,9 +1830,10 @@ class ModelSelectionTests(TestCase):
         with patch("core.views.check_anlage1") as mock_func:
             mock_func.return_value = {"task": "check_anlage1"}
             resp = self.client.get(view_url)
-        self.assertContains(resp, "Standard")
-        self.assertContains(resp, "Gutachten")
-        self.assertContains(resp, "Anlagen")
+        self.assertRedirects(
+            resp,
+            reverse("projekt_file_edit_json", args=[self.projekt.anlagen.first().pk]),
+        )
 
         gutachten_url = reverse("projekt_gutachten", args=[self.projekt.pk])
         resp = self.client.get(gutachten_url)
