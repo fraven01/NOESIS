@@ -2,6 +2,15 @@ from pathlib import Path
 from docx import Document
 import logging
 
+from .models import Anlage2Config
+
+# Bekannte Abkürzungen für Tabellenüberschriften
+HEADER_ALIASES = {
+    "steht technisch zur verfügung?": "technisch vorhanden",
+    "einsatz bei telefonica": "einsatz bei telefónica",
+    "zur lv kontrolle": "zur lv-kontrolle",
+}
+
 
 def extract_text(path: Path) -> str:
     """Extrahiert den gesamten Text einer DOCX-Datei."""
@@ -60,25 +69,37 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         logger.error(f"Fehler beim Laden der Datei {path}: {e}")
         return {}
 
+    cfg = Anlage2Config.objects.first()
+    if cfg:
+        exp_tech = cfg.col_technisch_vorhanden.strip().lower()
+        exp_tel = cfg.col_einsatz_bei_telefonica.strip().lower()
+        exp_lv = cfg.col_zur_lv_kontrolle.strip().lower()
+        exp_ki = cfg.col_ki_beteiligung.strip().lower()
+    else:
+        exp_tech = "technisch vorhanden"
+        exp_tel = "einsatz bei telefónica"
+        exp_lv = "zur lv-kontrolle"
+        exp_ki = "ki-beteiligung"
+
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
-        headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+        headers_raw = [cell.text for cell in table.rows[0].cells]
+        headers = [HEADER_ALIASES.get(h.strip().lower(), h.strip().lower()) for h in headers_raw]
         logger.debug(
-            f"Tabelle {table_idx}: Roh-Header = {[cell.text for cell in table.rows[0].cells]}"
+            f"Tabelle {table_idx}: Roh-Header = {headers_raw}"
         )
         logger.debug(f"Tabelle {table_idx}: Normalisierte Header = {headers}")
-        logger.debug(f"Tabelle {table_idx}: Header = {headers}")
         try:
             idx_func = headers.index("funktion")
-            idx_tech = headers.index("technisch vorhanden")
-            idx_tel = headers.index("einsatz bei telefónica")
-            idx_lv = headers.index("zur lv-kontrolle")
+            idx_tech = headers.index(exp_tech)
+            idx_tel = headers.index(exp_tel)
+            idx_lv = headers.index(exp_lv)
         except ValueError as ve:
-            logger.debug(f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}")
+            logger.debug(
+                f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}"
+            )
             continue
-        idx_ki = (
-            headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
-        )
+        idx_ki = headers.index(exp_ki) if exp_ki in headers else None
 
         for row_idx, row in enumerate(table.rows[1:], start=1):
             func = row.cells[idx_func].text.strip()
