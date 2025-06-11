@@ -2,6 +2,23 @@ from pathlib import Path
 from docx import Document
 import logging
 
+from .models import Anlage2Config
+
+# Zuordnung der Standardspalten zu ihren Modellfeldern
+HEADER_FIELDS = {
+    "technisch vorhanden": "col_technisch_vorhanden",
+    "einsatz bei telefónica": "col_einsatz_bei_telefonica",
+    "zur lv-kontrolle": "col_zur_lv_kontrolle",
+    "ki-beteiligung": "col_ki_beteiligung",
+}
+
+# Bekannte Abkürzungen für Tabellenüberschriften
+HEADER_ALIASES = {
+    "steht technisch zur verfügung?": "technisch vorhanden",
+    "einsatz bei telefonica": "einsatz bei telefónica",
+    "zur lv kontrolle": "zur lv-kontrolle",
+}
+
 
 def extract_text(path: Path) -> str:
     """Extrahiert den gesamten Text einer DOCX-Datei."""
@@ -17,6 +34,18 @@ def _parse_bool(text: str) -> bool | None:
     if text.startswith("nein"):
         return False
     return None
+
+
+def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
+    """Erzeugt eine Mapping-Tabelle für erkannte Tabellenköpfe."""
+    mapping: dict[str, str] = {}
+    for canonical, attr in HEADER_FIELDS.items():
+        expected = getattr(cfg, attr).strip().lower() if cfg else canonical
+        mapping[canonical] = expected
+    for alias, canonical in HEADER_ALIASES.items():
+        if canonical in mapping:
+            mapping[alias] = mapping[canonical]
+    return mapping
 
 
 def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
@@ -60,25 +89,32 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
         logger.error(f"Fehler beim Laden der Datei {path}: {e}")
         return {}
 
+    cfg = Anlage2Config.objects.first()
+    header_map = _build_header_map(cfg)
+    exp_tech = header_map["technisch vorhanden"]
+    exp_tel = header_map["einsatz bei telefónica"]
+    exp_lv = header_map["zur lv-kontrolle"]
+    exp_ki = header_map["ki-beteiligung"]
+
     results: dict[str, dict[str, bool | None]] = {}
     for table_idx, table in enumerate(doc.tables):
-        headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+        headers_raw = [cell.text for cell in table.rows[0].cells]
+        headers = [header_map.get(h.strip().lower(), h.strip().lower()) for h in headers_raw]
         logger.debug(
-            f"Tabelle {table_idx}: Roh-Header = {[cell.text for cell in table.rows[0].cells]}"
+            f"Tabelle {table_idx}: Roh-Header = {headers_raw}"
         )
         logger.debug(f"Tabelle {table_idx}: Normalisierte Header = {headers}")
-        logger.debug(f"Tabelle {table_idx}: Header = {headers}")
         try:
             idx_func = headers.index("funktion")
-            idx_tech = headers.index("technisch vorhanden")
-            idx_tel = headers.index("einsatz bei telefónica")
-            idx_lv = headers.index("zur lv-kontrolle")
+            idx_tech = headers.index(exp_tech)
+            idx_tel = headers.index(exp_tel)
+            idx_lv = headers.index(exp_lv)
         except ValueError as ve:
-            logger.debug(f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}")
+            logger.debug(
+                f"Tabelle {table_idx}: Erwartete Spalten nicht gefunden: {ve}"
+            )
             continue
-        idx_ki = (
-            headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
-        )
+        idx_ki = headers.index(exp_ki) if exp_ki in headers else None
 
         for row_idx, row in enumerate(table.rows[1:], start=1):
             func = row.cells[idx_func].text.strip()
