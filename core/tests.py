@@ -23,7 +23,12 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
-from .docx_utils import extract_text, parse_anlage2_table, _normalize_header_text
+from .docx_utils import (
+    extract_text,
+    parse_anlage2_table,
+    parse_anlage2_text,
+    _normalize_header_text,
+)
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -400,6 +405,40 @@ class DocxExtractTests(TestCase):
                 parse_anlage2_table(Path(tmp.name))
         finally:
             Path(tmp.name).unlink(missing_ok=True)
+
+    def test_parse_anlage2_text(self):
+        func = Anlage2Function.objects.create(
+            name="Login",
+            detection_phrases={
+                "name_aliases": ["login"],
+                "technisch_verfuegbar_true": ["tv ja"],
+                "ki_beteiligung_false": ["ki nein"],
+            },
+        )
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+            detection_phrases={
+                "name_aliases": ["warum"],
+                "technisch_verfuegbar_false": ["tv nein"],
+            },
+        )
+        text = "Login tv ja ki nein\nWarum tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {
+                    "funktion": "Login: Warum?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
 
 
 class BVProjectFormTests(TestCase):
