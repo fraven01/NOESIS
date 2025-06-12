@@ -3,7 +3,12 @@ from docx import Document
 import logging
 import re
 
-from .models import Anlage2Config, Anlage2ColumnHeading
+from .models import (
+    Anlage2Config,
+    Anlage2ColumnHeading,
+    Anlage2Function,
+    Anlage2SubQuestion,
+)
 
 # Zuordnung der Standardspalten zu ihren Feldnamen
 HEADER_FIELDS = {
@@ -244,4 +249,85 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
             break
 
     logger.debug(f"Endgültige Ergebnisse: {results}")
+    return results
+
+
+def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
+    """Parst den Text einer Anlage 2 mittels Datenbankregeln.
+
+    Die Funktion durchsucht den übergebenen Text zeilenweise nach
+    Funktionsnamen und Unterfragen. Welche Phrasen dabei jeweils eine
+    Übereinstimmung darstellen und welche Werte für die einzelnen Felder
+    gesetzt werden, wird in ``detection_phrases`` der Modelle
+    ``Anlage2Function`` und ``Anlage2SubQuestion`` definiert.
+    """
+
+    logger = logging.getLogger(__name__)
+    if not text_content:
+        return []
+
+    all_functions = list(Anlage2Function.objects.all())
+    all_subs = list(Anlage2SubQuestion.objects.select_related("funktion"))
+
+    def _get_list(data: dict, key: str) -> list[str]:
+        val = data.get(key, [])
+        if isinstance(val, str):
+            return [val]
+        return [str(v) for v in val]
+
+    def _match(phrases: list[str], line: str) -> bool:
+        return any(p.lower() in line for p in phrases if p)
+
+    def _extract_values(phrases: dict, line: str) -> dict[str, dict[str, object]]:
+        result: dict[str, dict[str, object]] = {}
+        for field in [
+            "technisch_verfuegbar",
+            "einsatz_telefonica",
+            "zur_lv_kontrolle",
+            "ki_beteiligung",
+        ]:
+            val = None
+            if _match(_get_list(phrases, f"{field}_true"), line):
+                val = True
+            elif _match(_get_list(phrases, f"{field}_false"), line):
+                val = False
+            if val is not None:
+                result[field] = {"value": val, "note": None}
+        return result
+
+    lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
+    results: list[dict[str, object]] = []
+    last_main: dict[str, object] | None = None
+
+    for line in lines:
+        lower = line.lower()
+        if not lower:
+            continue
+
+        found = False
+        for sub in all_subs:
+            if last_main is None:
+                break
+            aliases = _get_list(sub.detection_phrases, "name_aliases")
+            if _match(aliases, lower):
+                full_name = f"{last_main['funktion']}: {sub.frage_text}"
+                row = {"funktion": full_name}
+                row.update(_extract_values(sub.detection_phrases, lower))
+                results.append(row)
+                found = True
+                break
+        if found:
+            continue
+
+        for func in all_functions:
+            aliases = _get_list(func.detection_phrases, "name_aliases")
+            if _match(aliases, lower):
+                row = {"funktion": func.name}
+                row.update(_extract_values(func.detection_phrases, lower))
+                results.append(row)
+                last_main = row
+                found = True
+                break
+
+    logger.debug("parse_anlage2_text Ergebnisse: %s", results)
     return results
