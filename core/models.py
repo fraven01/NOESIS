@@ -141,6 +141,11 @@ class BVProjectFile(models.Model):
     manual_analysis_json = models.JSONField(blank=True, null=True)
     manual_comment = models.TextField("Kommentar", blank=True)
     question_review = models.JSONField(blank=True, null=True)
+    verification_json = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Ergebnis der KI-gestützten Verifizierung der Funktionen.",
+    )
 
     class Meta:
         ordering = ["anlage_nr"]
