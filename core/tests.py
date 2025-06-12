@@ -207,14 +207,15 @@ class DocxExtractTests(TestCase):
 
         self.assertEqual(
             data,
-            {
-                "Login": {
+            [
+                {
+                    "funktion": "Login",
                     "technisch_verfuegbar": True,
                     "einsatz_telefonica": False,
                     "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                 }
-            },
+            ],
         )
 
     def test_parse_anlage2_table_multiple_headers(self):
@@ -256,7 +257,7 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
 
-        self.assertTrue(data["Login"]["technisch_verfuegbar"])
+        self.assertTrue(data[0]["technisch_verfuegbar"])
 
     def test_parse_anlage2_table_alias_headers(self):
         cfg = Anlage2Config.get_instance()
@@ -300,14 +301,15 @@ class DocxExtractTests(TestCase):
 
         self.assertEqual(
             data,
-            {
-                "Login": {
+            [
+                {
+                    "funktion": "Login",
                     "technisch_verfuegbar": True,
                     "einsatz_telefonica": False,
                     "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                 }
-            },
+            ],
         )
 
 
@@ -357,14 +359,15 @@ class DocxExtractTests(TestCase):
 
         self.assertEqual(
             data,
-            {
-                "Login": {
+            [
+                {
+                    "funktion": "Login",
                     "technisch_verfuegbar": True,
                     "einsatz_telefonica": False,
                     "zur_lv_kontrolle": False,
                     "ki_beteiligung": True,
                 }
-            },
+            ],
         )
 
     def test_parse_anlage2_table_alias_conflict(self):

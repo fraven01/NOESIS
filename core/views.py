@@ -132,6 +132,8 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     rev_map = {v: k for k, v in FIELD_RENAME.items()}
 
     items = data.get("functions")
+    if isinstance(items, dict) and "value" in items:
+        items = items["value"]
     if items is None:
         table_funcs = data.get("table_functions")
         if isinstance(table_funcs, dict):
@@ -1453,6 +1455,8 @@ def projekt_file_edit_json(request, pk):
         funcs = []
         if anlage.analysis_json:
             funcs = anlage.analysis_json.get("functions")
+            if isinstance(funcs, dict) and "value" in funcs:
+                funcs = funcs["value"]
             if funcs is None:
                 table = anlage.analysis_json.get("table_functions")
                 if isinstance(table, dict):
