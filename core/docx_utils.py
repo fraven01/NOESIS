@@ -93,7 +93,6 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
         _add_mapping(_normalize_header_text(canonical), canonical)
         if cfg:
             for h in cfg.headers.filter(field_name=field):
-                # HIER FÜGEN SIE DIE ZWEI DEBUG-ZEILEN EIN:
                 logger.debug(f"Roh-Alias (repr): {repr(h.text)}")
                 logger.debug(
                     f"Normalisierter Alias: '{_normalize_header_text(h.text)}'"
@@ -108,35 +107,23 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     return mapping
 
 
-def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
-    """Liest und parst eine Anlage-2-Tabelle aus einer DOCX-Datei und gibt die extrahierten Daten als verschachteltes Dictionary zurück.
-    Die Funktion sucht in der angegebenen DOCX-Datei nach einer Tabelle mit den erwarteten Spaltenüberschriften:
-    - "Funktion"
-    - "Technisch vorhanden"
-    - "Einsatz bei Telefónica"
-    - "Zur LV-Kontrolle"
-    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet, wenn sie vorhanden ist. Eigene Überschriften können über Aliasdefinitionen in der Datenbank hinterlegt werden.
-    Jede Zeile der Tabelle wird als Eintrag im Ergebnis-Dictionary gespeichert, wobei der Wert der Spalte "Funktion" als Schlüssel dient.
-    Die zugehörigen Werte sind Dictionaries mit den folgenden Schlüsseln:
-    - "technisch_verfuegbar": bool oder None – Gibt an, ob die Funktion technisch verfügbar ist.
-    - "einsatz_telefonica": bool oder None – Gibt an, ob die Funktion bei Telefónica im Einsatz ist.
-    - "zur_lv_kontrolle": bool oder None – Gibt an, ob die Funktion zur LV-Kontrolle verwendet wird.
-    - "ki_beteiligung": bool oder None – Gibt an, ob KI-Beteiligung vorliegt (nur, wenn die Spalte vorhanden ist).
-    Die Werte werden aus den jeweiligen Zellen der Tabelle extrahiert und mit einer Hilfsfunktion in boolesche Werte oder None umgewandelt.
-    Parameter:
-        path (Path): Pfad zur DOCX-Datei, die die Anlage-2-Tabelle enthält.
-    Rückgabewert:
-        dict[str, dict[str, bool | None]]:
-            Ein Dictionary, das für jede Funktion ein weiteres Dictionary mit den ausgelesenen Werten enthält.
-            Ist die Datei ungültig oder enthält keine passende Tabelle, wird ein leeres Dictionary zurückgegeben.
-    Hinweise:
-        - Die Funktion verarbeitet nur die erste gefundene Tabelle mit den erwarteten Spaltenüberschriften.
-        - Leere Funktionsnamen werden übersprungen.
-        - Fehler beim Laden der Datei werden protokolliert und führen zur Rückgabe eines leeren Dictionaries.
-    Liest eine Anlage-2-Tabelle aus einer DOCX-Datei.
+def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
+    """Liest und parst eine Anlage‑2‑Tabelle aus einer DOCX-Datei.
 
-    Die Spalte "KI-Beteiligung" ist optional und wird nur ausgewertet,
-    wenn sie vorhanden ist.
+    Die Funktion versucht, sowohl einfache Tabellen als auch die in Anlage 2
+    vorkommende hierarchische Struktur zu interpretieren. Dabei werden zwei
+    Zeilentypen unterschieden:
+
+    - **Hauptfunktions-Zeilen** enthalten einen Funktionsnamen in der ersten
+      Spalte, die zweite Funktionsspalte ist leer.
+    - **Unterfragen-Zeilen** besitzen einen Text in der zweiten
+      Funktionsspalte. Der Text der ersten Spalte wird ignoriert, da er in der
+      Regel einen generischen Hinweis enthält. Der vollständige Funktionsname
+      ergibt sich aus dem zuletzt gefundenen Hauptfunktionsnamen gefolgt von
+      einem Doppelpunkt und dem Unterfragentext.
+
+    Die Rückgabe ist eine Liste von Dictionaries mit den Schlüsseln
+    ``funktion`` sowie den in ``HEADER_FIELDS`` definierten Spalten.
     """
     logger = logging.getLogger(__name__)
 
@@ -154,7 +141,7 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
     header_map = _build_header_map(cfg)
     logger.debug("Erzeugtes Header-Mapping: %s", header_map)
 
-    results: dict[str, dict[str, bool | None]] = {}
+    results: list[dict[str, bool | None]] = []
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
         headers = [
@@ -165,7 +152,10 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             f"Tabelle {table_idx}: Roh-Header = {headers_raw}, Normiert = {headers}"
         )
         try:
-            idx_func = headers.index("funktion")
+            func_indices = [i for i, h in enumerate(headers) if h == "funktion"]
+            if not func_indices:
+                raise ValueError("funktion")
+            idx_func = func_indices[0]
             idx_tech = headers.index("technisch vorhanden")
             idx_tel = headers.index("einsatz bei telefónica")
             idx_lv = headers.index("zur lv-kontrolle")
@@ -176,14 +166,35 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
         )
 
+        second_idx = func_indices[1] if len(func_indices) > 1 else None
+        current_main = None
         for row_idx, row in enumerate(table.rows[1:], start=1):
-            func = row.cells[idx_func].text.strip()
-            logger.debug(f"Tabelle {table_idx}, Zeile {row_idx}: Funktion = '{func}'")
-            if not func:
-                logger.debug(
-                    f"Tabelle {table_idx}, Zeile {row_idx}: Leere Funktion, überspringe Zeile."
-                )
-                continue
+            first_text = row.cells[idx_func].text.strip()
+            second_text = row.cells[second_idx].text.strip() if second_idx is not None else ""
+            logger.debug(
+                "Tabelle %s, Zeile %s: first='%s', second='%s'",
+                table_idx,
+                row_idx,
+                first_text,
+                second_text,
+            )
+
+            if second_text:
+                if current_main:
+                    func_name = f"{current_main}: {second_text}"
+                else:
+                    logger.debug(
+                        "Zeile %s: Unterfrage ohne Kontext, übersprungen", row_idx
+                    )
+                    continue
+            else:
+                if not first_text:
+                    logger.debug(
+                        "Zeile %s: Leere Funktionsspalte, übersprungen", row_idx
+                    )
+                    continue
+                current_main = first_text
+                func_name = current_main
 
             data = {
                 "technisch_verfuegbar": _parse_bool(row.cells[idx_tech].text),
@@ -192,10 +203,15 @@ def parse_anlage2_table(path: Path) -> dict[str, dict[str, bool | None]]:
             }
             if idx_ki is not None:
                 data["ki_beteiligung"] = _parse_bool(row.cells[idx_ki].text)
+
             logger.debug(
-                f"Tabelle {table_idx}, Zeile {row_idx}: Funktion = {func}, Daten = {data}"
+                "Zeile %s: Funktion '%s' Daten %s",
+                row_idx,
+                func_name,
+                data,
             )
-            results[func] = data
+
+            results.append({"funktion": func_name, **data})
 
         if results:
             logger.debug(f"Tabelle {table_idx}: Ergebnisse gefunden, beende Suche.")

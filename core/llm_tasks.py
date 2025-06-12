@@ -239,14 +239,14 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     table_data = parse_anlage2_table(Path(anlage2.upload.path))
-    table_names = list(table_data.keys())
+    table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
 
     missing = [f for f in anlage_funcs if f not in table_names]
     additional = [f for f in table_names if f not in anlage_funcs]
 
     result = {
-        "table_functions": table_data,
+        "functions": table_data,
         "anlage2_functions": anlage_funcs,
         "missing": missing,
         "additional": additional,
@@ -509,15 +509,13 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         "anlage2subquestion_set"
     ).order_by("name"):
         logger.debug("Pr\u00fcfe Funktion '%s'", func.name)
-        row = table.get(func.name)
-        if row is None:
-            norm = _normalize_function_name(func.name)
-            for key, value in table.items():
-                if _normalize_function_name(key) == norm:
-                    row = value
-                    break
+        norm = _normalize_function_name(func.name)
+        row = next(
+            (r for r in table if _normalize_function_name(r["funktion"]) == norm),
+            None,
+        )
         logger.debug("Tabellenzeile: %s", row)
-        if row and all(v is not None for v in row.values()):
+        if row and all(v is not None for k, v in row.items() if k != "funktion"):
             vals = {
                 "technisch_verfuegbar": row.get("technisch_verfuegbar"),
                 "ki_beteiligung": row.get("ki_beteiligung"),
