@@ -10,6 +10,11 @@
         {{ form.frage_text }}
         {{ form.frage_text.errors }}
     </div>
+    <div>
+        {{ form.detection_phrases.label_tag }}<br>
+        {{ form.detection_phrases }}
+        {{ form.detection_phrases.errors }}
+    </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
 </form>
 {% endblock %}
