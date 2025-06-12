@@ -12,9 +12,12 @@ def basename(value):
 
 @register.filter
 def get_item(data, key):
-    """Gibt ``data[key]`` zur\u00fcck, falls vorhanden."""
+    """Gibt ``data[key]`` zur\u00fcck und entpackt ``{"value": x}``-Strukturen."""
     if isinstance(data, dict):
-        return data.get(key, "")
+        value = data.get(key, "")
+        if isinstance(value, dict) and "value" in value:
+            return value["value"]
+        return value
     return ""
 
 

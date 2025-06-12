@@ -118,10 +118,14 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         entry: dict[str, object] = {}
         for field, _ in get_anlage2_fields():
             val = item.get(field)
+            if isinstance(val, dict) and "value" in val:
+                val = val["value"]
             if val is None:
                 alt = rev_map.get(field)
                 if alt:
                     val = item.get(alt)
+                    if isinstance(val, dict) and "value" in val:
+                        val = val["value"]
             if isinstance(val, bool):
                 entry[field] = val
         sub_map: dict[str, dict] = {}
@@ -135,10 +139,14 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             s_entry: dict[str, object] = {}
             for field, _ in get_anlage2_fields():
                 s_val = match.get(field)
+                if isinstance(s_val, dict) and "value" in s_val:
+                    s_val = s_val["value"]
                 if s_val is None:
                     alt = rev_map.get(field)
                     if alt:
                         s_val = match.get(alt)
+                        if isinstance(s_val, dict) and "value" in s_val:
+                            s_val = s_val["value"]
                 if isinstance(s_val, bool):
                     s_entry[field] = s_val
             if s_entry:
