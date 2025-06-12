@@ -1498,21 +1498,30 @@ def projekt_file_edit_json(request, pk):
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in fields_def]
                 s_analysis = {}
-                func_data = answers.get(func.name)
-                if func_data:
-                    match = next(
-                        (
-                            s
-                            for s in func_data.get("subquestions", [])
-                            if s.get("frage_text") == sub.frage_text
-                        ),
-                        None,
-                    )
-                    if match:
-                        for old, new in FIELD_RENAME.items():
-                            if old in match and new not in match:
-                                match[new] = match[old]
-                        s_analysis = match
+                lookup_key = f"{func.name}: {sub.frage_text}"
+
+                item = answers.get(lookup_key)
+                if item:
+                    for old, new in FIELD_RENAME.items():
+                        if old in item and new not in item:
+                            item[new] = item[old]
+                    s_analysis = item
+                else:
+                    func_data = answers.get(func.name)
+                    if func_data:
+                        match = next(
+                            (
+                                s
+                                for s in func_data.get("subquestions", [])
+                                if s.get("frage_text") == sub.frage_text
+                            ),
+                            None,
+                        )
+                        if match:
+                            for old, new in FIELD_RENAME.items():
+                                if old in match and new not in match:
+                                    match[new] = match[old]
+                            s_analysis = match
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
                 rows.append(
