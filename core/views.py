@@ -119,6 +119,31 @@ FIELD_RENAME = {
 }
 
 
+def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
+    """Wandelt ``analysis_json`` in das Initialformat für ``Anlage1ReviewForm``."""
+
+    data = anlage.analysis_json or {}
+    if not isinstance(data, dict):
+        return {}
+
+    questions = data.get("questions")
+    if not isinstance(questions, dict):
+        return {}
+
+    out: dict[str, dict] = {}
+    for num in get_anlage1_numbers():
+        q = questions.get(str(num), {})
+        if not isinstance(q, dict):
+            continue
+        out[str(num)] = {
+            "status": q.get("status", ""),
+            "hinweis": q.get("hinweis", ""),
+            "vorschlag": q.get("vorschlag", ""),
+        }
+
+    return out
+
+
 def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat für ``Anlage2ReviewForm``."""
     data = anlage.analysis_json or {}
@@ -1377,7 +1402,10 @@ def projekt_file_edit_json(request, pk):
                 anlage.save(update_fields=["question_review"])
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
-            form = Anlage1ReviewForm(initial=anlage.question_review)
+            init = anlage.question_review
+            if not init:
+                init = _analysis1_to_initial(anlage)
+            form = Anlage1ReviewForm(initial=init)
         template = "projekt_file_anlage1_review.html"
         answers: dict[str, str] = {}
         numbers = get_anlage1_numbers()

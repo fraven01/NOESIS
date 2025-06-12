@@ -1243,6 +1243,28 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(data["hinweis"], "Fehlt")
         self.assertEqual(data["vorschlag"], "Mehr Infos")
 
+    def test_question_review_prefill_from_analysis(self):
+        """Initialwerte stammen aus der automatischen Analyse."""
+        self.anlage1.question_review = None
+        self.anlage1.analysis_json = {
+            "questions": {
+                "1": {
+                    "answer": "A",
+                    "status": "ok",
+                    "hinweis": "H",
+                    "vorschlag": "V",
+                }
+            }
+        }
+        self.anlage1.save()
+
+        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
+        resp = self.client.get(url)
+        form = resp.context["form"]
+        self.assertEqual(form.initial["q1_status"], "ok")
+        self.assertEqual(form.initial["q1_hinweis"], "H")
+        self.assertEqual(form.initial["q1_vorschlag"], "V")
+
 
 class Anlage2ReviewTests(TestCase):
     def setUp(self):
