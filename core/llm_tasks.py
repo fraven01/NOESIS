@@ -20,7 +20,12 @@ from .models import (
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
-from .docx_utils import parse_anlage2_table, extract_text, _normalize_function_name
+from .docx_utils import (
+    parse_anlage2_table,
+    parse_anlage2_text,
+    extract_text,
+    _normalize_function_name,
+)
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -226,6 +231,28 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
         if not capture and m:
             functions.append(m.group(1).strip())
     return functions or None
+
+
+def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
+    """Parst eine Anlage 2-Datei mit Fallback.
+
+    Zunächst wird versucht, die Tabelle zu lesen. Liefert dies keine Daten,
+    kommt der Text-Parser zum Einsatz. Das Ergebnis wird als JSON-String im
+    Modell gespeichert.
+    """
+
+    logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
+
+    analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+    if analysis_result:
+        logger.info("Tabellen-Parser verwendet")
+    else:
+        analysis_result = parse_anlage2_text(project_file.text_content)
+        logger.info("Text-Parser als Fallback verwendet")
+
+    project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
+    project_file.save(update_fields=["analysis_json"])
+    return analysis_result
 
 
 def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
