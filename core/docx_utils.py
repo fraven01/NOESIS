@@ -166,52 +166,60 @@ def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
             headers.index("ki-beteiligung") if "ki-beteiligung" in headers else None
         )
 
-        second_idx = func_indices[1] if len(func_indices) > 1 else None
-        current_main = None
+        col_indices = {
+            "technisch_verfuegbar": idx_tech,
+            "einsatz_telefonica": idx_tel,
+            "zur_lv_kontrolle": idx_lv,
+        }
+        if idx_ki is not None:
+            col_indices["ki_beteiligung"] = idx_ki
+
+        current_main_function_name = None
+
         for row_idx, row in enumerate(table.rows[1:], start=1):
-            first_text = row.cells[idx_func].text.strip()
-            second_text = row.cells[second_idx].text.strip() if second_idx is not None else ""
-            logger.debug(
-                "Tabelle %s, Zeile %s: first='%s', second='%s'",
-                table_idx,
-                row_idx,
-                first_text,
-                second_text,
+            main_col_text = row.cells[idx_func].text.strip()
+            sub_col_text = (
+                row.cells[idx_func + 1].text.strip()
+                if len(row.cells) > idx_func + 1
+                else ""
             )
 
-            if second_text:
-                if current_main:
-                    func_name = f"{current_main}: {second_text}"
-                else:
-                    logger.debug(
-                        "Zeile %s: Unterfrage ohne Kontext, übersprungen", row_idx
-                    )
-                    continue
-            else:
-                if not first_text:
-                    logger.debug(
-                        "Zeile %s: Leere Funktionsspalte, übersprungen", row_idx
-                    )
-                    continue
-                current_main = first_text
-                func_name = current_main
+            logger.debug(
+                "Tabelle %s, Zeile %s: main='%s', sub='%s'",
+                table_idx,
+                row_idx,
+                main_col_text,
+                sub_col_text,
+            )
 
-            data = {
-                "technisch_verfuegbar": _parse_bool(row.cells[idx_tech].text),
-                "einsatz_telefonica": _parse_bool(row.cells[idx_tel].text),
-                "zur_lv_kontrolle": _parse_bool(row.cells[idx_lv].text),
-            }
-            if idx_ki is not None:
-                data["ki_beteiligung"] = _parse_bool(row.cells[idx_ki].text)
+            row_data: dict[str, bool | None] | None = None
+
+            if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
+                current_main_function_name = main_col_text
+                row_data = {"funktion": current_main_function_name}
+            elif sub_col_text and current_main_function_name:
+                full_name = f"{current_main_function_name}: {sub_col_text}"
+                row_data = {"funktion": full_name}
+
+            if row_data is None:
+                logger.debug(
+                    "Zeile %s: Keine verarbeitbare Funktion gefunden, übersprungen",
+                    row_idx,
+                )
+                continue
+
+            for col_name, idx in col_indices.items():
+                if idx is not None:
+                    row_data[col_name] = _parse_bool(row.cells[idx].text)
 
             logger.debug(
                 "Zeile %s: Funktion '%s' Daten %s",
                 row_idx,
-                func_name,
-                data,
+                row_data["funktion"],
+                {k: row_data[k] for k in col_indices},
             )
 
-            results.append({"funktion": func_name, **data})
+            results.append(row_data)
 
         if results:
             logger.debug(f"Tabelle {table_idx}: Ergebnisse gefunden, beende Suche.")
