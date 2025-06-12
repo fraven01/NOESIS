@@ -5,6 +5,12 @@
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
+    <div class="filter-controls mb-2">
+        <label>
+            <input type="checkbox" id="show-relevant-only-filter" class="mr-2">
+            Nur als "vorhanden" markierte Funktionen anzeigen
+        </label>
+    </div>
     <table class="table-auto w-full border">
         <thead>
             <tr>
@@ -19,10 +25,20 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr>
+            <tr data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}">
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
                 {% for field in fields %}
-                <td class="border px-2 text-center">{{ row.analysis|get_item:field|checkbox }}</td>
+                {% with parsed=row.analysis|raw_item:field %}
+                <td class="border px-2 text-center">
+                    {% if parsed.value == True %}
+                        <span class="status-badge status-ja" title="{{ parsed.note|default:'Keine Zusatzinfo' }}">✓ Vorhanden</span>
+                    {% elif parsed.value == False %}
+                        <span class="status-badge status-nein">✗ Nicht vorhanden</span>
+                    {% else %}
+                        <span class="status-badge status-unbekannt">? Unbekannt</span>
+                    {% endif %}
+                </td>
+                {% endwith %}
                 {% endfor %}
                 {% for field in row.form_fields %}
                 <td class="border px-2 text-center">{{ field }}</td>
@@ -33,4 +49,17 @@
     </table>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Speichern</button>
 </form>
+<script>
+document.getElementById('show-relevant-only-filter').addEventListener('change', function() {
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(tr => {
+        const relevant = tr.dataset.relevant;
+        if (this.checked && relevant !== 'true') {
+            tr.style.display = 'none';
+        } else {
+            tr.style.display = '';
+        }
+    });
+});
+</script>
 {% endblock %}
