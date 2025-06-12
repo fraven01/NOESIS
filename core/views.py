@@ -66,6 +66,7 @@ from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
 
 import logging
+import sys
 
 import time
 
@@ -74,12 +75,22 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("anlage2_debug")
-if not any(isinstance(h, logging.FileHandler) and getattr(h, "baseFilename", "").endswith("debug.txt") for h in debug_logger.handlers):
-    file_handler = logging.FileHandler(settings.BASE_DIR / "debug.txt")
+if not any(
+    isinstance(h, logging.FileHandler)
+    and getattr(h, "baseFilename", "").endswith("debug.log")
+    for h in debug_logger.handlers
+):
+    file_handler = logging.FileHandler(settings.BASE_DIR / "debug.log")
     file_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(asctime)s %(message)s")
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     file_handler.setFormatter(formatter)
     debug_logger.addHandler(file_handler)
+if not any(isinstance(h, logging.StreamHandler) for h in debug_logger.handlers):
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    stream_handler.setFormatter(formatter)
+    debug_logger.addHandler(stream_handler)
 debug_logger.setLevel(logging.DEBUG)
 
 _WHISPER_MODEL = None
@@ -1464,9 +1475,13 @@ def projekt_file_edit_json(request, pk):
                     if old in item and new not in item:
                         item[new] = item[old]
                 answers[name] = item
+        debug_logger.debug("Answers Inhalt vor Verarbeitung: %s", answers)
         rows = []
         fields_def = get_anlage2_fields()
         for func in Anlage2Function.objects.order_by("name"):
+            debug_logger.debug("--- Prüfe Hauptfunktion ---")
+            debug_logger.debug("Funktion: %s", func.name)
+            debug_logger.debug("Zuordnung in answers: %s", answers.get(func.name, {}))
             fields = [form[f"func{func.id}_{field}"] for field, _ in fields_def]
             rows.append(
                 {
@@ -1494,6 +1509,8 @@ def projekt_file_edit_json(request, pk):
                             if old in match and new not in match:
                                 match[new] = match[old]
                         s_analysis = match
+                debug_logger.debug("Subfrage: %s", sub.frage_text)
+                debug_logger.debug("Analyse Subfrage: %s", s_analysis)
                 rows.append(
                     {
                         "name": sub.frage_text,
@@ -1502,8 +1519,10 @@ def projekt_file_edit_json(request, pk):
                         "sub": True,
                     }
                 )
-        logger.debug("Anlage2 answers: %s", answers)
-        logger.debug("Rows for review: %s", rows)
+        debug_logger.debug(
+            "Endgültige Rows: %s",
+            json.dumps(rows, default=str, ensure_ascii=False, indent=2),
+        )
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)

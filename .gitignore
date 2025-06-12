@@ -202,3 +202,4 @@ media/
 
 .env
 debug.txt
+debug.log
