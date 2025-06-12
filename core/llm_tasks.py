@@ -17,6 +17,7 @@ from .models import (
     Anlage1Config,
     Anlage1Question,
     Anlage2Function,
+    Anlage2SubQuestion,
     Anlage2FunctionResult,
 )
 from .llm_utils import query_llm
@@ -674,6 +675,46 @@ def check_anlage2_functions(
         )
         results.append({**vals, "source": "llm", "funktion": func.name})
     return results
+
+
+def verify_single_feature(
+    projekt: BVProject,
+    feature_obj: Anlage2Function | Anlage2SubQuestion,
+    model_name: str | None = None,
+) -> dict[str, bool | None]:
+    """Fragt das LLM nach dem Vorhandensein einer Einzelfunktion."""
+
+    prompt_base = get_prompt(
+        "anlage2_feature_verification",
+        (
+            "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
+            "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
+            "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
+            'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
+            "Aussage: Besitzt die Software '{software_name}' typischerweise "
+            "die Funktion oder Eigenschaft '{function_name}'?"
+        ),
+    )
+
+    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
+
+    name = getattr(feature_obj, "name", None) or getattr(feature_obj, "frage_text")
+
+    answers: list[str] = []
+    for software in software_list:
+        prompt = prompt_base.format(software_name=software, function_name=name)
+        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        answers.append(reply.strip())
+
+    lower = [ans.lower() for ans in answers]
+    if any(a.startswith("ja") for a in lower):
+        result = True
+    elif all(a.startswith("nein") for a in lower):
+        result = False
+    else:
+        result = None
+
+    return {"technisch_verfuegbar": result}
 
 
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
