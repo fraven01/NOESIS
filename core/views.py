@@ -1427,6 +1427,8 @@ def projekt_file_edit_json(request, pk):
                     "form_fields": s_fields,
                     "sub": True,
                 })
+        logger.debug("Anlage2 answers: %s", answers)
+        logger.debug("Rows for review: %s", rows)
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
