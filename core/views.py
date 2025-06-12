@@ -1026,14 +1026,6 @@ def anlage2_function_import(request):
         for entry in items:
             name = entry.get("name") or entry.get("funktion") or ""
             func, _ = Anlage2Function.objects.get_or_create(name=name)
-            for field in [
-                "technisch_vorhanden",
-                "einsatz_bei_telefonica",
-                "zur_lv_kontrolle",
-                "ki_beteiligung",
-            ]:
-                if field in entry:
-                    setattr(func, field, entry.get(field))
             func.save()
             subs = entry.get("subquestions") or entry.get("unterfragen") or []
             for sub in subs:
@@ -1046,10 +1038,6 @@ def anlage2_function_import(request):
                 Anlage2SubQuestion.objects.create(
                     funktion=func,
                     frage_text=text,
-                    technisch_vorhanden=vals.get("technisch_vorhanden"),
-                    einsatz_bei_telefonica=vals.get("einsatz_bei_telefonica"),
-                    zur_lv_kontrolle=vals.get("zur_lv_kontrolle"),
-                    ki_beteiligung=vals.get("ki_beteiligung"),
                 )
         messages.success(request, "Funktionskatalog importiert")
         return redirect("anlage2_function_list")
@@ -1064,22 +1052,10 @@ def anlage2_function_export(request):
     for f in Anlage2Function.objects.all().order_by("name"):
         item = {
             "name": f.name,
-            "technisch_vorhanden": f.technisch_vorhanden,
-            "einsatz_bei_telefonica": f.einsatz_bei_telefonica,
-            "zur_lv_kontrolle": f.zur_lv_kontrolle,
-            "ki_beteiligung": f.ki_beteiligung,
             "subquestions": [],
         }
         for q in f.anlage2subquestion_set.all().order_by("id"):
-            item["subquestions"].append(
-                {
-                    "frage_text": q.frage_text,
-                    "technisch_vorhanden": q.technisch_vorhanden,
-                    "einsatz_bei_telefonica": q.einsatz_bei_telefonica,
-                    "zur_lv_kontrolle": q.zur_lv_kontrolle,
-                    "ki_beteiligung": q.ki_beteiligung,
-                }
-            )
+            item["subquestions"].append({"frage_text": q.frage_text})
         functions.append(item)
     content = json.dumps(functions, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
