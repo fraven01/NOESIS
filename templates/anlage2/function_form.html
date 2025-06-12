@@ -10,13 +10,43 @@
         {{ form.name }}
         {{ form.name.errors }}
     </div>
+    {% for prefix, label, formset in sections %}
     <div>
-        {{ form.detection_phrases.label_tag }}<br>
-        {{ form.detection_phrases }}
-        {{ form.detection_phrases.errors }}
+        <h3 class="font-semibold mt-4 mb-2">{{ label }}</h3>
+        <div id="{{ prefix }}-container">
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="flex items-center mb-1">
+                {{ form.phrase }}
+                <label class="ml-2 text-sm">{{ form.DELETE }} löschen</label>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="{{ prefix }}-empty-form" style="display:none;">
+            <div class="flex items-center mb-1">
+                {{ formset.empty_form.phrase }}
+                <label class="ml-2 text-sm">{{ formset.empty_form.DELETE }} löschen</label>
+            </div>
+        </div>
+        <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ prefix }}">+ Weitere Phrase hinzufügen</button>
     </div>
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    {% endfor %}
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded mt-4">Speichern</button>
 </form>
+<script>
+function addForm(prefix){
+    const total=document.getElementById('id_'+prefix+'-TOTAL_FORMS');
+    const index=parseInt(total.value);
+    const empty=document.querySelector('#'+prefix+'-empty-form').cloneNode(true);
+    empty.style.display='';
+    empty.innerHTML=empty.innerHTML.replace(/__prefix__/g,index);
+    document.getElementById(prefix+'-container').appendChild(empty);
+    total.value=index+1;
+}
+document.querySelectorAll('.add-form').forEach(btn=>{
+    btn.addEventListener('click',()=>addForm(btn.dataset.prefix));
+});
+</script>
 {% if funktion %}
 <h2 class="text-xl font-semibold mt-8 mb-2">Unterfragen</h2>
 <a href="{% url 'anlage2_subquestion_new' funktion.id %}" class="inline-block mb-2 px-3 py-1 bg-green-600 text-white rounded">Neue Unterfrage</a>

@@ -325,10 +325,9 @@ class Anlage2FunctionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Function
-        fields = ["name", "detection_phrases"]
+        fields = ["name"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
-            "detection_phrases": Textarea(attrs={"rows": 10}),
         }
 
 
@@ -356,4 +355,14 @@ class Anlage2FunctionImportForm(forms.Form):
         required=False,
         label="Datenbank vorher leeren",
         widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )
+
+
+class PhraseForm(forms.Form):
+    """Einzelnes Feld für eine Erkennungsphrase."""
+
+    phrase = forms.CharField(
+        label="",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
     )

@@ -23,6 +23,7 @@ from .forms import (
     Anlage2ReviewForm,
     get_anlage2_fields,
     Anlage2FunctionForm,
+    PhraseForm,
     Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
@@ -65,6 +66,7 @@ from .llm_tasks import (
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
+from django.forms import formset_factory
 
 import logging
 import sys
@@ -94,6 +96,8 @@ if not any(isinstance(h, logging.StreamHandler) for h in debug_logger.handlers):
     stream_handler.setFormatter(formatter)
     debug_logger.addHandler(stream_handler)
 debug_logger.setLevel(logging.DEBUG)
+
+PhraseFormSet = formset_factory(PhraseForm, extra=1, can_delete=True)
 
 _WHISPER_MODEL = None
 
@@ -1027,11 +1031,56 @@ def anlage2_function_form(request, pk=None):
     """Erstellt oder bearbeitet eine Anlage-2-Funktion."""
     funktion = get_object_or_404(Anlage2Function, pk=pk) if pk else None
     form = Anlage2FunctionForm(request.POST or None, instance=funktion)
-    if request.method == "POST" and form.is_valid():
-        funktion = form.save()
-        return redirect("anlage2_function_edit", funktion.pk)
+
+    categories = [
+        ("name_aliases", "Name Aliase"),
+        ("technisch_verfuegbar_true", "Technisch vorhanden (ja)"),
+        ("technisch_verfuegbar_false", "Technisch vorhanden (nein)"),
+        ("einsatz_telefonica_true", "Einsatz bei Telefónica (ja)"),
+        ("einsatz_telefonica_false", "Einsatz bei Telefónica (nein)"),
+        ("zur_lv_kontrolle_true", "Zur LV-Kontrolle (ja)"),
+        ("zur_lv_kontrolle_false", "Zur LV-Kontrolle (nein)"),
+        ("ki_beteiligung_true", "KI-Beteiligung (ja)"),
+        ("ki_beteiligung_false", "KI-Beteiligung (nein)"),
+    ]
+
+    formsets: dict[str, PhraseFormSet] = {}
+    data = funktion.detection_phrases if funktion else {}
+
+    if request.method == "POST":
+        for key, _ in categories:
+            formsets[key] = PhraseFormSet(request.POST, prefix=key)
+        if form.is_valid() and all(fs.is_valid() for fs in formsets.values()):
+            funktion = form.save(commit=False)
+            new_json_data: dict[str, list[str]] = {}
+            for key, _ in categories:
+                phrases: list[str] = []
+                for row in formsets[key].cleaned_data:
+                    if row.get("DELETE"):
+                        continue
+                    val = row.get("phrase", "").strip()
+                    if val:
+                        phrases.append(val)
+                new_json_data[key] = phrases
+            funktion.detection_phrases = new_json_data
+            funktion.save()
+            return redirect("anlage2_function_edit", funktion.pk)
+    else:
+        for key, _ in categories:
+            raw = data.get(key, [])
+            if isinstance(raw, str):
+                raw = [raw]
+            initial = [{"phrase": p} for p in raw]
+            formsets[key] = PhraseFormSet(prefix=key, initial=initial)
+
     subquestions = list(funktion.anlage2subquestion_set.all()) if funktion else []
-    context = {"form": form, "funktion": funktion, "subquestions": subquestions}
+    sections = [(k, label, formsets[k]) for k, label in categories]
+    context = {
+        "form": form,
+        "funktion": funktion,
+        "subquestions": subquestions,
+        "sections": sections,
+    }
     return render(request, "anlage2/function_form.html", context)
 
 
