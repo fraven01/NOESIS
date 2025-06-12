@@ -114,7 +114,16 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     if items is None:
         table_funcs = data.get("table_functions")
         if isinstance(table_funcs, dict):
-            items = [{"name": k, **v} for k, v in table_funcs.items()]
+            items = []
+            for k, v in table_funcs.items():
+                if isinstance(v, dict):
+                    items.append({"name": k, **v})
+                else:
+                    logger.warning(
+                        "Unerwarteter Typ in table_functions f\xc3\xbcr %s: %s",
+                        k,
+                        type(v),
+                    )
         else:
             items = []
     for item in items:
@@ -1413,7 +1422,16 @@ def projekt_file_edit_json(request, pk):
             if funcs is None:
                 table = anlage.analysis_json.get("table_functions")
                 if isinstance(table, dict):
-                    funcs = [{"name": k, **v} for k, v in table.items()]
+                    funcs = []
+                    for k, v in table.items():
+                        if isinstance(v, dict):
+                            funcs.append({"name": k, **v})
+                        else:
+                            logger.warning(
+                                "Unerwarteter Typ in table_functions f\xc3\xbcr %s: %s",
+                                k,
+                                type(v),
+                            )
                 else:
                     funcs = []
         for item in funcs or []:
