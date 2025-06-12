@@ -110,7 +110,14 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
     rev_map = {v: k for k, v in FIELD_RENAME.items()}
 
-    for item in data.get("functions", []):
+    items = data.get("functions")
+    if items is None:
+        table_funcs = data.get("table_functions")
+        if isinstance(table_funcs, dict):
+            items = [{"name": k, **v} for k, v in table_funcs.items()]
+        else:
+            items = []
+    for item in items:
         name = item.get("funktion") or item.get("name")
         func_id = name_map.get(name)
         if not func_id:
@@ -129,9 +136,15 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             if isinstance(val, bool):
                 entry[field] = val
         sub_map: dict[str, dict] = {}
-        for sub in Anlage2SubQuestion.objects.filter(funktion_id=func_id).order_by("id"):
+        for sub in Anlage2SubQuestion.objects.filter(funktion_id=func_id).order_by(
+            "id"
+        ):
             match = next(
-                (s for s in item.get("subquestions", []) if s.get("frage_text") == sub.frage_text),
+                (
+                    s
+                    for s in item.get("subquestions", [])
+                    if s.get("frage_text") == sub.frage_text
+                ),
                 None,
             )
             if not match:
@@ -934,9 +947,7 @@ def anlage2_function_form(request, pk=None):
     if request.method == "POST" and form.is_valid():
         funktion = form.save()
         return redirect("anlage2_function_edit", funktion.pk)
-    subquestions = (
-        list(funktion.anlage2subquestion_set.all()) if funktion else []
-    )
+    subquestions = list(funktion.anlage2subquestion_set.all()) if funktion else []
     context = {"form": form, "funktion": funktion, "subquestions": subquestions}
     return render(request, "anlage2/function_form.html", context)
 
@@ -1045,7 +1056,11 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("anlage2_function_edit", funktion.pk)
-    context = {"form": form, "funktion": funktion, "subquestion": subquestion if pk else None}
+    context = {
+        "form": form,
+        "funktion": funktion,
+        "subquestion": subquestion if pk else None,
+    }
     return render(request, "anlage2/subquestion_form.html", context)
 
 
@@ -1177,7 +1192,9 @@ def projekt_file_upload(request, pk):
                 try:
                     content = uploaded.read().decode("utf-8")
                 except UnicodeDecodeError as exc:
-                    logger.error("Datei konnte nicht als UTF-8 dekodiert werden: %s", exc)
+                    logger.error(
+                        "Datei konnte nicht als UTF-8 dekodiert werden: %s", exc
+                    )
                     return HttpResponseBadRequest("Ungültiges Dateiformat")
             obj = form.save(commit=False)
             obj.projekt = projekt
@@ -1390,7 +1407,16 @@ def projekt_file_edit_json(request, pk):
             form = Anlage2ReviewForm(initial=init)
         template = "projekt_file_anlage2_review.html"
         answers: dict[str, dict] = {}
-        for item in (anlage.analysis_json.get("functions") if anlage.analysis_json else []) or []:
+        funcs = []
+        if anlage.analysis_json:
+            funcs = anlage.analysis_json.get("functions")
+            if funcs is None:
+                table = anlage.analysis_json.get("table_functions")
+                if isinstance(table, dict):
+                    funcs = [{"name": k, **v} for k, v in table.items()]
+                else:
+                    funcs = []
+        for item in funcs or []:
             name = item.get("funktion") or item.get("name")
             if name:
                 for old, new in FIELD_RENAME.items():
@@ -1401,19 +1427,25 @@ def projekt_file_edit_json(request, pk):
         fields_def = get_anlage2_fields()
         for func in Anlage2Function.objects.order_by("name"):
             fields = [form[f"func{func.id}_{field}"] for field, _ in fields_def]
-            rows.append({
-                "name": func.name,
-                "analysis": answers.get(func.name, {}),
-                "form_fields": fields,
-                "sub": False,
-            })
+            rows.append(
+                {
+                    "name": func.name,
+                    "analysis": answers.get(func.name, {}),
+                    "form_fields": fields,
+                    "sub": False,
+                }
+            )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in fields_def]
                 s_analysis = {}
                 func_data = answers.get(func.name)
                 if func_data:
                     match = next(
-                        (s for s in func_data.get("subquestions", []) if s.get("frage_text") == sub.frage_text),
+                        (
+                            s
+                            for s in func_data.get("subquestions", [])
+                            if s.get("frage_text") == sub.frage_text
+                        ),
                         None,
                     )
                     if match:
@@ -1421,12 +1453,14 @@ def projekt_file_edit_json(request, pk):
                             if old in match and new not in match:
                                 match[new] = match[old]
                         s_analysis = match
-                rows.append({
-                    "name": sub.frage_text,
-                    "analysis": s_analysis,
-                    "form_fields": s_fields,
-                    "sub": True,
-                })
+                rows.append(
+                    {
+                        "name": sub.frage_text,
+                        "analysis": s_analysis,
+                        "form_fields": s_fields,
+                        "sub": True,
+                    }
+                )
         logger.debug("Anlage2 answers: %s", answers)
         logger.debug("Rows for review: %s", rows)
     else:
@@ -1443,7 +1477,13 @@ def projekt_file_edit_json(request, pk):
     if anlage.anlage_nr == 1:
         context["qa"] = qa
     elif anlage.anlage_nr == 2:
-        context.update({"rows": rows, "fields": [f[0] for f in fields_def], "labels": [f[1] for f in fields_def]})
+        context.update(
+            {
+                "rows": rows,
+                "fields": [f[0] for f in fields_def],
+                "labels": [f[1] for f in fields_def],
+            }
+        )
     return render(request, template, context)
 
 
