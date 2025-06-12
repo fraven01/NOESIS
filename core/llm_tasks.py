@@ -515,7 +515,13 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             None,
         )
         logger.debug("Tabellenzeile: %s", row)
-        if row and all(v is not None for k, v in row.items() if k != "funktion"):
+        def _val(item, key):
+            value = item.get(key)
+            if isinstance(value, dict) and "value" in value:
+                return value["value"]
+            return value
+
+        if row and _val(row, "technisch_verfuegbar") is not None and _val(row, "ki_beteiligung") is not None:
             vals = {
                 "technisch_verfuegbar": row.get("technisch_verfuegbar"),
                 "ki_beteiligung": row.get("ki_beteiligung"),
@@ -541,8 +547,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             projekt=projekt,
             funktion=func,
             defaults={
-                "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
-                "ki_beteiligung": vals.get("ki_beteiligung"),
+                "technisch_verfuegbar": _val(vals, "technisch_verfuegbar"),
+                "ki_beteiligung": _val(vals, "ki_beteiligung"),
                 "raw_json": raw,
                 "source": source,
             },

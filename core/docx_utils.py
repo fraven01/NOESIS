@@ -33,6 +33,22 @@ def _parse_bool(text: str) -> bool | None:
     return None
 
 
+def _parse_cell_value(text: str) -> dict[str, object]:
+    """Parst eine Tabellenzelle mit optionaler Zusatzinfo.
+
+    Gibt ein Dictionary mit ``value`` (bool oder ``None``) und ``note``
+    (optionaler Zusatztext) zurück.
+    """
+    note: str | None = None
+    clean = text
+    m = re.search(r"\(([^)]*)\)", text)
+    if m:
+        note = m.group(1).strip() or None
+        clean = text[: m.start()] + text[m.end() :]
+    value = _parse_bool(clean)
+    return {"value": value, "note": note}
+
+
 def _normalize_header_text(text: str) -> str:
     """Bereinigt eine Tabellenüberschrift für den Vergleich."""
     # Zuerst doppelt-escapte Newlines durch ein einfaches Leerzeichen ersetzen
@@ -107,7 +123,7 @@ def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     return mapping
 
 
-def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
+def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     """Liest und parst eine Anlage‑2‑Tabelle aus einer DOCX-Datei.
 
     Die Funktion versucht, sowohl einfache Tabellen als auch die in Anlage 2
@@ -122,8 +138,10 @@ def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
       ergibt sich aus dem zuletzt gefundenen Hauptfunktionsnamen gefolgt von
       einem Doppelpunkt und dem Unterfragentext.
 
-    Die Rückgabe ist eine Liste von Dictionaries mit den Schlüsseln
-    ``funktion`` sowie den in ``HEADER_FIELDS`` definierten Spalten.
+    Die Rückgabe ist eine Liste von Dictionaries mit dem Schlüssel
+    ``funktion`` sowie den in ``HEADER_FIELDS`` definierten Spalten. Jede
+    Spalte enthält wiederum ein Dictionary mit den Schlüsseln ``value`` und
+    ``note``.
     """
     logger = logging.getLogger(__name__)
 
@@ -141,7 +159,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
     header_map = _build_header_map(cfg)
     logger.debug("Erzeugtes Header-Mapping: %s", header_map)
 
-    results: list[dict[str, bool | None]] = []
+    results: list[dict[str, object]] = []
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
         headers = [
@@ -192,7 +210,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
                 sub_col_text,
             )
 
-            row_data: dict[str, bool | None] | None = None
+            row_data: dict[str, object] | None = None
 
             if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
                 current_main_function_name = main_col_text
@@ -210,7 +228,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, bool | None]]:
 
             for col_name, idx in col_indices.items():
                 if idx is not None:
-                    row_data[col_name] = _parse_bool(row.cells[idx].text)
+                    row_data[col_name] = _parse_cell_value(row.cells[idx].text)
 
             logger.debug(
                 "Zeile %s: Funktion '%s' Daten %s",
