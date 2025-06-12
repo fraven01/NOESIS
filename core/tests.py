@@ -210,10 +210,10 @@ class DocxExtractTests(TestCase):
             [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
-                    "ki_beteiligung": True,
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
                 }
             ],
         )
@@ -257,7 +257,7 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
 
-        self.assertTrue(data[0]["technisch_verfuegbar"])
+        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
 
     def test_parse_anlage2_table_alias_headers(self):
         cfg = Anlage2Config.get_instance()
@@ -304,10 +304,10 @@ class DocxExtractTests(TestCase):
             [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
-                    "ki_beteiligung": True,
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
                 }
             ],
         )
@@ -362,10 +362,10 @@ class DocxExtractTests(TestCase):
             [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": True,
-                    "einsatz_telefonica": False,
-                    "zur_lv_kontrolle": False,
-                    "ki_beteiligung": True,
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
                 }
             ],
         )
@@ -630,8 +630,8 @@ class LLMTasksTests(TestCase):
             "functions": [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": True,
-                    "ki_beteiligung": True,
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
                     "source": "parser",
                 }
             ],
@@ -1219,10 +1219,10 @@ class Anlage2ReviewTests(TestCase):
                 "functions": [
                     {
                         "funktion": "Login",
-                        "technisch_vorhanden": True,
-                        "einsatz_bei_telefonica": False,
-                        "zur_lv_kontrolle": False,
-                        "ki_beteiligung": True,
+                        "technisch_vorhanden": {"value": True, "note": None},
+                        "einsatz_bei_telefonica": {"value": False, "note": None},
+                        "zur_lv_kontrolle": {"value": False, "note": None},
+                        "ki_beteiligung": {"value": True, "note": None},
                     }
                 ]
             },
@@ -1259,9 +1259,9 @@ class Anlage2ReviewTests(TestCase):
             "functions": [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": True,
-                    "einsatz_telefonica": True,
-                    "zur_lv_kontrolle": True,
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": True, "note": None},
+                    "zur_lv_kontrolle": {"value": True, "note": None},
                 }
             ]
         }

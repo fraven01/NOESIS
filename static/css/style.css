@@ -7,3 +7,20 @@
 .back-link {
     margin-right: 0.5rem;
 }
+
+.status-badge {
+    padding: 0.2em 0.6em;
+    border-radius: 1em;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: white;
+}
+.status-ja {
+    background-color: #28a745;
+}
+.status-nein {
+    background-color: #dc3545;
+}
+.status-unbekannt {
+    background-color: #6c757d;
+}

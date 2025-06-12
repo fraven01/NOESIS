@@ -26,3 +26,11 @@ def checkbox(value: object) -> str:
     """Rendert ein deaktiviertes Kontrollkästchen."""
     checked = " checked" if value is True else ""
     return mark_safe(f"<input type='checkbox' disabled{checked}>")
+
+
+@register.filter
+def raw_item(data, key):
+    """Gibt ``data[key]`` zurück ohne weitere Verarbeitung."""
+    if isinstance(data, dict):
+        return data.get(key)
+    return None
