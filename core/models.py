@@ -382,6 +382,11 @@ class Anlage2Function(models.Model):
     """Funktion aus Anlage 2."""
 
     name = models.CharField(max_length=200, unique=True)
+    detection_phrases = models.JSONField(
+        blank=True,
+        default=dict,
+        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser."
+    )
 
     class Meta:
         ordering = ["name"]
@@ -414,6 +419,11 @@ class Anlage2SubQuestion(models.Model):
 
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     frage_text = models.TextField()
+    detection_phrases = models.JSONField(
+        blank=True,
+        default=dict,
+        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser."
+    )
 
     class Meta:
         ordering = ["id"]

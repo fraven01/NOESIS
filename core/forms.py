@@ -1,4 +1,5 @@
 from django import forms
+from django.forms import Textarea
 from pathlib import Path
 from .models import (
     Recording,
@@ -324,9 +325,10 @@ class Anlage2FunctionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Function
-        fields = ["name"]
+        fields = ["name", "detection_phrases"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "border rounded p-2"})
+            "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "detection_phrases": Textarea(attrs={"rows": 10}),
         }
 
 
@@ -335,10 +337,11 @@ class Anlage2SubQuestionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2SubQuestion
-        fields = ["frage_text"]
+        fields = ["frage_text", "detection_phrases"]
         labels = {"frage_text": "Frage"}
         widgets = {
-            "frage_text": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 3})
+            "frage_text": Textarea(attrs={"class": "border rounded p-2", "rows": 3}),
+            "detection_phrases": Textarea(attrs={"rows": 10}),
         }
 
 
