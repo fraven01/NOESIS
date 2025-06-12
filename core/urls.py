@@ -126,6 +126,11 @@ urlpatterns = [
         name="projekt_functions_check",
     ),
     path(
+        "work/anlage/<int:pk>/verify-feature/",
+        views.anlage2_feature_verify,
+        name="anlage2_feature_verify",
+    ),
+    path(
         "work/projekte/<int:pk>/anlage/<int:nr>/check/",
         views.projekt_file_check,
         name="projekt_file_check",

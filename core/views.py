@@ -58,6 +58,7 @@ from .llm_tasks import (
     check_anlage2_functions,
     check_gutachten_functions,
     generate_gutachten,
+    verify_single_feature,
     get_prompt,
     ANLAGE1_QUESTIONS,
 )
@@ -67,6 +68,7 @@ from .obs_utils import start_recording, stop_recording, is_recording
 
 import logging
 import sys
+import copy
 
 import time
 
@@ -117,6 +119,17 @@ FIELD_RENAME = {
     "technisch_verfuegbar": "technisch_vorhanden",
     "einsatz_telefonica": "einsatz_bei_telefonica",
 }
+
+
+def _deep_update(base: dict, extra: dict) -> dict:
+    """Aktualisiert ``base`` rekursiv mit ``extra``."""
+    for key, val in extra.items():
+        if isinstance(val, dict):
+            node = base.setdefault(key, {})
+            _deep_update(node, val)
+        else:
+            base[key] = val
+    return base
 
 
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
@@ -1443,6 +1456,7 @@ def projekt_file_edit_json(request, pk):
             for i in numbers
         ]
     elif anlage.anlage_nr == 2:
+        analysis_init = _analysis_to_initial(anlage)
         if request.method == "POST":
             form = Anlage2ReviewForm(request.POST)
             if form.is_valid():
@@ -1450,9 +1464,11 @@ def projekt_file_edit_json(request, pk):
                 anlage.save(update_fields=["manual_analysis_json"])
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
-            init = anlage.manual_analysis_json
-            if not init:
-                init = _analysis_to_initial(anlage)
+            init = copy.deepcopy(analysis_init)
+            if anlage.verification_json:
+                _deep_update(init, anlage.verification_json)
+            if anlage.manual_analysis_json:
+                _deep_update(init, anlage.manual_analysis_json)
             form = Anlage2ReviewForm(initial=init)
         template = "projekt_file_anlage2_review.html"
         answers: dict[str, dict] = {}
@@ -1486,21 +1502,54 @@ def projekt_file_edit_json(request, pk):
         debug_logger.debug("Answers Inhalt vor Verarbeitung: %s", answers)
         rows = []
         fields_def = get_anlage2_fields()
+
+        def _source(func_id: str, sub_id: str | None, field: str) -> str | None:
+            if sub_id is None:
+                if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}):
+                    return "Manuell"
+                if field in (anlage.verification_json or {}).get("functions", {}).get(func_id, {}):
+                    return "KI-Prüfung"
+                if field in analysis_init.get("functions", {}).get(func_id, {}):
+                    return "Dokumenten-Analyse"
+            else:
+                if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                    return "Manuell"
+                if field in (anlage.verification_json or {}).get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                    return "KI-Prüfung"
+                if field in analysis_init.get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                    return "Dokumenten-Analyse"
+            return None
+
         for func in Anlage2Function.objects.order_by("name"):
             debug_logger.debug("--- Prüfe Hauptfunktion ---")
             debug_logger.debug("Funktion: %s", func.name)
             debug_logger.debug("Zuordnung in answers: %s", answers.get(func.name, {}))
-            fields = [form[f"func{func.id}_{field}"] for field, _ in fields_def]
+            f_fields = []
+            for field, _ in fields_def:
+                f_fields.append(
+                    {
+                        "widget": form[f"func{func.id}_{field}"],
+                        "source": _source(str(func.id), None, field),
+                    }
+                )
             rows.append(
                 {
                     "name": func.name,
                     "analysis": answers.get(func.name, {}),
-                    "form_fields": fields,
+                    "form_fields": f_fields,
                     "sub": False,
+                    "func_id": func.id,
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
-                s_fields = [form[f"sub{sub.id}_{field}"] for field, _ in fields_def]
+                s_fields = []
+                for field, _ in fields_def:
+                    s_fields.append(
+                        {
+                            "widget": form[f"sub{sub.id}_{field}"],
+                            "source": _source(str(func.id), str(sub.id), field),
+                        }
+                    )
                 s_analysis = {}
                 lookup_key = f"{func.name}: {sub.frage_text}"
 
@@ -1534,6 +1583,8 @@ def projekt_file_edit_json(request, pk):
                         "analysis": s_analysis,
                         "form_fields": s_fields,
                         "sub": True,
+                        "func_id": func.id,
+                        "sub_id": sub.id,
                     }
                 )
         debug_logger.debug(
@@ -1761,6 +1812,52 @@ def projekt_functions_check(request, pk):
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
     return JsonResponse({"status": "ok"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def anlage2_feature_verify(request, pk):
+    """Fragt das LLM nach einer Einzelfunktion."""
+    try:
+        anlage = BVProjectFile.objects.get(pk=pk)
+    except BVProjectFile.DoesNotExist:
+        return JsonResponse({"error": "not found"}, status=404)
+    if anlage.anlage_nr != 2:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    func_id = request.POST.get("function")
+    sub_id = request.POST.get("subquestion")
+    model = request.POST.get("model")
+    if func_id:
+        obj = get_object_or_404(Anlage2Function, pk=func_id)
+    elif sub_id:
+        obj = get_object_or_404(Anlage2SubQuestion, pk=sub_id)
+    else:
+        return JsonResponse({"error": "invalid"}, status=400)
+    try:
+        result = verify_single_feature(anlage.projekt, obj, model_name=model)
+    except RuntimeError:
+        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
+    except Exception:
+        logger.exception("LLM Fehler")
+        return JsonResponse({"error": "llm"}, status=502)
+
+    data = anlage.verification_json or {"functions": {}}
+    if func_id:
+        entry = data.get("functions", {}).get(str(func_id), {})
+        entry["technisch_vorhanden"] = result.get("technisch_verfuegbar")
+        data.setdefault("functions", {})[str(func_id)] = entry
+    else:
+        func_key = str(obj.funktion_id)
+        func_entry = data.setdefault("functions", {}).setdefault(func_key, {})
+        sub_map = func_entry.setdefault("subquestions", {})
+        sub_entry = sub_map.get(str(sub_id), {})
+        sub_entry["technisch_vorhanden"] = result.get("technisch_verfuegbar")
+        sub_map[str(sub_id)] = sub_entry
+    anlage.verification_json = data
+    anlage.save(update_fields=["verification_json"])
+
+    return JsonResponse({"technisch_vorhanden": result.get("technisch_verfuegbar")})
 
 
 @login_required

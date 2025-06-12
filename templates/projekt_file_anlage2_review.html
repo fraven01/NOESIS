@@ -10,11 +10,13 @@
             <input type="checkbox" id="show-relevant-only-filter" class="mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
+        <button type="button" id="verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
     </div>
     <table class="table-auto w-full border">
         <thead>
             <tr>
                 <th class="border px-2">Funktion</th>
+                <th class="border px-2">Aktion</th>
                 {% for label in labels %}
                 <th class="border px-2">{{ label }} (Analyse)</th>
                 {% endfor %}
@@ -27,6 +29,9 @@
         {% for row in rows %}
             <tr data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}">
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
+                <td class="border px-2 text-center">
+                    <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>
+                </td>
                 {% for field in fields %}
                 {% with parsed=row.analysis|raw_item:field %}
                 <td class="border px-2 text-center">
@@ -40,8 +45,11 @@
                 </td>
                 {% endwith %}
                 {% endfor %}
-                {% for field in row.form_fields %}
-                <td class="border px-2 text-center">{{ field }}</td>
+                {% for f in row.form_fields %}
+                <td class="border px-2 text-center">
+                    {{ f.widget }}
+                    {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
+                </td>
                 {% endfor %}
             </tr>
         {% endfor %}
@@ -73,6 +81,42 @@ document.getElementById('reset-fields').addEventListener('click', () => {
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.checked = !!initialStates[cb.name];
     });
+});
+
+function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
+const verifyUrl = '{% url "anlage2_feature_verify" anlage.pk %}';
+
+async function triggerVerify(btn){
+    const fd=new FormData();
+    if(btn.dataset.functionId){fd.append('function',btn.dataset.functionId);}
+    if(btn.dataset.subId){fd.append('subquestion',btn.dataset.subId);}
+    const resp=await fetch(verifyUrl,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd});
+    if(!resp.ok){alert('Fehler bei der Prüfung');return null;}
+    const data=await resp.json();
+    const fid=btn.dataset.functionId||btn.dataset.parent;
+    const sid=btn.dataset.subId;
+    const fieldName=sid?`sub${sid}_technisch_vorhanden`:`func${fid}_technisch_vorhanden`;
+    const cb=document.querySelector(`[name='${fieldName}']`);
+    if(cb){cb.checked=data.technisch_vorhanden===true;}
+    return data;
+}
+
+document.querySelectorAll('.verify-btn').forEach(btn=>{
+    btn.addEventListener('click',async ()=>{btn.disabled=true;await triggerVerify(btn);btn.disabled=false;});
+});
+
+document.getElementById('verify-all').addEventListener('click',async()=>{
+    const allBtn=document.getElementById('verify-all');
+    allBtn.disabled=true;
+    const funcBtns=Array.from(document.querySelectorAll('.verify-btn[data-function-id]'));
+    for(const fb of funcBtns){
+        const result=await triggerVerify(fb);
+        if(result&&result.technisch_vorhanden===true){
+            const subs=Array.from(document.querySelectorAll(`.verify-btn[data-parent='${fb.dataset.functionId}']`));
+            for(const sb of subs){await triggerVerify(sb);}
+        }
+    }
+    allBtn.disabled=false;
 });
 </script>
 {% endblock %}
