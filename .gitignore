@@ -201,3 +201,4 @@ media/
 *.sqlite3
 
 .env
+debug.txt

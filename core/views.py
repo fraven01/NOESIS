@@ -73,6 +73,14 @@ import markdown
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+debug_logger = logging.getLogger("anlage2_debug")
+if not any(isinstance(h, logging.FileHandler) and getattr(h, "baseFilename", "").endswith("debug.txt") for h in debug_logger.handlers):
+    file_handler = logging.FileHandler(settings.BASE_DIR / "debug.txt")
+    file_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s %(message)s")
+    file_handler.setFormatter(formatter)
+    debug_logger.addHandler(file_handler)
+debug_logger.setLevel(logging.DEBUG)
 
 _WHISPER_MODEL = None
 
@@ -103,8 +111,10 @@ FIELD_RENAME = {
 def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat für ``Anlage2ReviewForm``."""
     data = anlage.analysis_json or {}
+    debug_logger.debug("Eingabe analysis_json: %r", data)
     initial = {"functions": {}}
     if not isinstance(data, dict):
+        debug_logger.debug("analysis_json ist kein Dict: %r", type(data))
         return initial
 
     name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
@@ -134,16 +144,22 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         entry: dict[str, object] = {}
         for field, _ in get_anlage2_fields():
             val = item.get(field)
+            debug_logger.debug("Funktion %s Feld %s: %r", name, field, val)
             if isinstance(val, dict) and "value" in val:
                 val = val["value"]
+                debug_logger.debug("Feld %s normalisiert: %r", field, val)
             if val is None:
                 alt = rev_map.get(field)
                 if alt:
-                    val = item.get(alt)
-                    if isinstance(val, dict) and "value" in val:
-                        val = val["value"]
+                    alt_val = item.get(alt)
+                    debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
+                    if isinstance(alt_val, dict) and "value" in alt_val:
+                        alt_val = alt_val["value"]
+                        debug_logger.debug("Alternativfeld %s normalisiert: %r", alt, alt_val)
+                    val = alt_val
             if isinstance(val, bool):
                 entry[field] = val
+                debug_logger.debug("Gesetzter Wert f\u00fcr %s: %r", field, val)
         sub_map: dict[str, dict] = {}
         for sub in Anlage2SubQuestion.objects.filter(funktion_id=func_id).order_by(
             "id"
@@ -161,21 +177,28 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             s_entry: dict[str, object] = {}
             for field, _ in get_anlage2_fields():
                 s_val = match.get(field)
+                debug_logger.debug("Subfrage %s Feld %s: %r", sub.frage_text, field, s_val)
                 if isinstance(s_val, dict) and "value" in s_val:
                     s_val = s_val["value"]
+                    debug_logger.debug("Subfeld %s normalisiert: %r", field, s_val)
                 if s_val is None:
                     alt = rev_map.get(field)
                     if alt:
-                        s_val = match.get(alt)
-                        if isinstance(s_val, dict) and "value" in s_val:
-                            s_val = s_val["value"]
+                        alt_val = match.get(alt)
+                        debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
+                        if isinstance(alt_val, dict) and "value" in alt_val:
+                            alt_val = alt_val["value"]
+                            debug_logger.debug("Alternativfeld %s normalisiert: %r", alt, alt_val)
+                        s_val = alt_val
                 if isinstance(s_val, bool):
                     s_entry[field] = s_val
+                    debug_logger.debug("Gesetzter Subwert f\u00fcr %s: %r", field, s_val)
             if s_entry:
                 sub_map[str(sub.id)] = s_entry
         if sub_map:
             entry["subquestions"] = sub_map
         initial["functions"][func_id] = entry
+    debug_logger.debug("Ergebnis initial: %r", initial)
     return initial
 
 
