@@ -86,19 +86,29 @@ document.getElementById('reset-fields').addEventListener('click', () => {
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 const verifyUrl = '{% url "anlage2_feature_verify" anlage.pk %}';
 
-async function triggerVerify(btn){
+function triggerVerify(button){
     const fd=new FormData();
-    if(btn.dataset.functionId){fd.append('function',btn.dataset.functionId);}
-    if(btn.dataset.subId){fd.append('subquestion',btn.dataset.subId);}
-    const resp=await fetch(verifyUrl,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd});
-    if(!resp.ok){alert('Fehler bei der Prüfung');return null;}
-    const data=await resp.json();
-    const fid=btn.dataset.functionId||btn.dataset.parent;
-    const sid=btn.dataset.subId;
-    const fieldName=sid?`sub${sid}_technisch_vorhanden`:`func${fid}_technisch_vorhanden`;
-    const cb=document.querySelector(`[name='${fieldName}']`);
-    if(cb){cb.checked=data.technisch_vorhanden===true;}
-    return data;
+    if(button.dataset.functionId){fd.append('function',button.dataset.functionId);} 
+    if(button.dataset.subId){fd.append('subquestion',button.dataset.subId);} 
+    return fetch(verifyUrl,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd})
+        .then(resp=>{
+            if(!resp.ok){alert('Fehler bei der Prüfung');throw new Error('verify');}
+            return resp.json();
+        })
+        .then(data=>{
+            console.log(data);
+            const row=button.closest('tr');
+            if(!row) return data;
+            const newStatus=data.technisch_verfuegbar;
+            const statusRadios=row.querySelectorAll('input[type="radio"][name*="-status"]');
+            statusRadios.forEach(radio=>{
+                if(radio.value===String(newStatus)){
+                    radio.checked=true;
+                }
+            });
+            return data;
+        })
+        .catch(()=>null);
 }
 
 document.querySelectorAll('.verify-btn').forEach(btn=>{
