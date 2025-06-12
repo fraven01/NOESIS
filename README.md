@@ -25,6 +25,10 @@ python manage.py makemigrations --check
 python manage.py test
 ```
 
+## Logging
+
+Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
+
 ## Datenbankmigrationen
 
 Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Mit

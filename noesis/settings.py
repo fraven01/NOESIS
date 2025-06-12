@@ -169,20 +169,26 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "debug.log",
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "DEBUG",  # Wichtig: Der Root-Logger muss DEBUG-Meldungen abfangen
             "propagate": False,
         },
         "django": {  # Der Django-spezifische Logger
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "INFO",  # Django selbst loggt nicht alles auf DEBUG standardmäßig, INFO ist oft ausreichend
             "propagate": False,
         },
         "deine_app_name": {  # Füge einen Logger für deine spezifische App hinzu (ersetze 'deine_app_name')
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "DEBUG",  # Hier setzt du den Loglevel für DEINE App auf DEBUG
             "propagate": False,
         },
@@ -190,7 +196,7 @@ LOGGING = {
         # Dein Skript verwendet: logger = logging.getLogger(__name__)
         # Wenn dein Skript z.B. in myapp/utils.py liegt, wäre __name__ 'myapp.utils'
         "bv_project_tasks": {  # Passe dies an den tatsächlichen Modulnamen an, wenn du nur diesen spezifischen Logger debuggen möchtest
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "DEBUG",
             "propagate": False,
         },
