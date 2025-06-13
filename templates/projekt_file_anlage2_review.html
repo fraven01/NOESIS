@@ -27,7 +27,7 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}">
+            <tr data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
                 <td class="border px-2 text-center">
                     <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>
@@ -58,6 +58,7 @@
     <div class="space-x-2 mt-2">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
         <button type="button" id="reset-fields" class="bg-gray-300 text-black px-4 py-2 rounded">Reset</button>
+        <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
 </form>
 <script>
@@ -127,6 +128,44 @@ document.getElementById('verify-all').addEventListener('click',async()=>{
         }
     }
     allBtn.disabled=false;
+});
+
+// Reset all review fields to parsed values
+document.addEventListener('DOMContentLoaded', function() {
+    const resetButton = document.getElementById('btn-reset-all-reviews');
+
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
+
+            rows.forEach(row => {
+                const parsedStatus = row.dataset.parsedStatus;
+                const parsedNotes = row.dataset.parsedNotes || "";
+
+                const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
+                const notesTextarea = row.querySelector('textarea[name*="-notes"]');
+
+                if (statusRadios.length > 0) {
+                    let aRadioWasChecked = false;
+                    statusRadios.forEach(radio => {
+                        if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
+                            radio.checked = true;
+                            aRadioWasChecked = true;
+                        }
+                    });
+                    if (!aRadioWasChecked) {
+                        statusRadios.forEach(radio => radio.checked = false);
+                    }
+                }
+
+                if (notesTextarea) {
+                    notesTextarea.value = parsedNotes;
+                }
+            });
+
+            alert('Alle Bewertungen wurden auf die ursprünglichen Analysewerte zurückgesetzt.');
+        });
+    }
 });
 </script>
 {% endblock %}
