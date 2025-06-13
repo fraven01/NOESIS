@@ -7,6 +7,27 @@
 <a href="{% url 'admin_anlage1' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 1 Fragen</a>
 <a href="{% url 'anlage2_function_list' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 2 Funktionen</a>
 <a href="{% url 'anlage2_config' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 2 Konfiguration</a>
+
+<form method="get" action="{% url 'admin_projects' %}" class="mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+            <label for="search-input" class="visually-hidden">Suche nach Titel</label>
+            <input type="text" id="search-input" name="q" class="form-control" placeholder="Suche nach Titel..." value="{{ search_query }}">
+        </div>
+        <div class="col-md-4">
+            <label for="status-filter" class="visually-hidden">Nach Status filtern</label>
+            <select id="status-filter" name="status" class="form-select">
+                <option value="">Alle Status</option>
+                {% for value, display in status_choices %}
+                    <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Filtern</button>
+        </div>
+    </div>
+</form>
 <form method="post">
     {% csrf_token %}
     <table class="min-w-full">
@@ -27,7 +48,9 @@
                 <td class="py-1">{{ p.title }}</td>
                 <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
                 <td class="py-1">{{ p.software_typen }}</td>
-                <td class="py-1">{{ p.get_status_display }}</td>
+                <td class="py-1">
+                    <span class="status-badge status-badge-{{ p.status|lower }}">{{ p.get_status_display }}</span>
+                </td>
                 <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
                 <td class="py-1 text-center">
                     <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded mr-2">Bearbeiten</a>

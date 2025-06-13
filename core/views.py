@@ -795,7 +795,8 @@ def admin_talkdiary(request):
 @login_required
 @admin_required
 def admin_projects(request):
-    projects = list(BVProject.objects.all().order_by("-created_at"))
+    """Verwaltet die Projektliste mit Such- und Filterfunktionen."""
+    projects = BVProject.objects.all().order_by("-created_at")
 
     if request.method == "POST":
         # Fall 1: Der globale Knopf zum Löschen markierter Projekte wurde gedrückt
@@ -829,7 +830,22 @@ def admin_projects(request):
 
         return redirect("admin_projects")
 
-    context = {"projects": projects}
+    # GET-Logik: Suche und Filter
+    search_query = request.GET.get("q", "")
+    if search_query:
+        projects = projects.filter(title__icontains=search_query)
+
+    status_filter = request.GET.get("status", "")
+    if status_filter:
+        projects = projects.filter(status=status_filter)
+
+    context = {
+        "projects": projects,
+        "form": BVProjectForm(),
+        "search_query": search_query,
+        "status_filter": status_filter,
+        "status_choices": BVProject.STATUS_CHOICES,
+    }
     return render(request, "admin_projects.html", context)
 
 
