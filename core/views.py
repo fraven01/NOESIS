@@ -1088,6 +1088,11 @@ def anlage2_config(request):
     aliases = list(cfg.headers.all())
     categories = Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES
     phrase_sets: dict[str, Anlage2GlobalPhraseFormSet] = {}
+    cfg_form = (
+        Anlage2ConfigForm(request.POST, instance=cfg)
+        if request.method == "POST"
+        else Anlage2ConfigForm(instance=cfg)
+    )
 
     if request.method == "POST":
         for key, _ in categories:
@@ -1095,8 +1100,8 @@ def anlage2_config(request):
             phrase_sets[key] = Anlage2GlobalPhraseFormSet(
                 request.POST, prefix=key, queryset=qs
             )
-        if all(fs.is_valid() for fs in phrase_sets.values()):
-            cfg.save()
+        if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
+            cfg_form.save()
             for h in aliases:
                 if request.POST.get(f"delete{h.id}"):
                     h.delete()
@@ -1127,6 +1132,7 @@ def anlage2_config(request):
 
     context = {
         "config": cfg,
+        "config_form": cfg_form,
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "phrase_sets": [(k, label, phrase_sets[k]) for k, label in categories],
@@ -1619,8 +1625,29 @@ def projekt_file_edit_json(request, pk):
         if request.method == "POST":
             form = Anlage2ReviewForm(request.POST)
             if form.is_valid():
+                cfg_rule = Anlage2Config.get_instance()
+                functions_to_override: set[int] = set()
+                if cfg_rule.enforce_subquestion_override:
+                    for func in Anlage2Function.objects.order_by("name"):
+                        for sub in func.anlage2subquestion_set.all().order_by("id"):
+                            field_name = f"sub{sub.id}_technisch_vorhanden"
+                            if form.cleaned_data.get(field_name):
+                                functions_to_override.add(func.id)
+
                 anlage.manual_analysis_json = form.get_json()
                 anlage.save(update_fields=["manual_analysis_json"])
+
+                if cfg_rule.enforce_subquestion_override:
+                    for fid in functions_to_override:
+                        Anlage2FunctionResult.objects.update_or_create(
+                            projekt=anlage.projekt,
+                            funktion_id=fid,
+                            defaults={
+                                "technisch_verfuegbar": True,
+                                "source": "manual",
+                            },
+                        )
+
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             init = copy.deepcopy(analysis_init)

@@ -401,3 +401,17 @@ Anlage2GlobalPhraseFormSet = modelformset_factory(
     extra=1,
     can_delete=True,
 )
+
+
+class Anlage2ConfigForm(forms.ModelForm):
+    """Formular für die Anlage-2-Konfiguration."""
+
+    class Meta:
+        model = Anlage2Config
+        fields = ["enforce_subquestion_override"]
+        labels = {
+            "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+        }
+        widgets = {
+            "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
