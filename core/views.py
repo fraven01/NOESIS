@@ -825,6 +825,7 @@ def admin_project_delete(request, pk):
             f"Error deleting project {projekt.id} ('{projekt_title}'): {e}",
             exc_info=True,
         )
+        print(f"!!! DEBUG-AUSGABE FEHLER BEIM LÖSCHEN: {type(e).__name__}: {e}")
     return redirect("admin_projects")
 
 
