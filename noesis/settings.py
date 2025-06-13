@@ -28,9 +28,7 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
-    raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein"
-    )
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -48,7 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "core",
-    "django_q",
+    "django_q2",
 ]
 
 MIDDLEWARE = [
@@ -211,14 +209,14 @@ LOGGING = {
 
 # Django-Q Konfiguration
 Q_CLUSTER = {
-    'name': 'noesis_q',
-    'workers': 4,
-    'recycle': 500,
-    'timeout': 60,
-    'compress': True,
-    'save_limit': 250,
-    'queue_limit': 500,
-    'cpu_affinity': 1,
-    'label': 'Django Q',
-    'orm': 'default',
+    "name": "noesis_q",
+    "workers": 4,
+    "recycle": 500,
+    "timeout": 60,
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "cpu_affinity": 1,
+    "label": "Django Q",
+    "orm": "default",
 }
