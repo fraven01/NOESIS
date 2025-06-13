@@ -2379,3 +2379,43 @@ def gutachten_llm_check(request, pk):
         logger.exception("LLM Fehler")
         messages.error(request, "LLM-Fehler beim Funktionscheck")
     return redirect("gutachten_view", pk=projekt.pk)
+
+
+@login_required
+def edit_ki_justification(request, pk):
+    """Erlaubt das Bearbeiten der KI-Begründung."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    if anlage.anlage_nr != 2:
+        raise Http404
+
+    func_id = request.GET.get("function") or request.POST.get("function")
+    sub_id = request.GET.get("subquestion") or request.POST.get("subquestion")
+    if func_id:
+        obj = get_object_or_404(Anlage2Function, pk=func_id)
+        key = obj.name
+        obj_type = "function"
+    elif sub_id:
+        obj = get_object_or_404(Anlage2SubQuestion, pk=sub_id)
+        key = f"{obj.funktion.name}: {obj.frage_text}"
+        obj_type = "subquestion"
+    else:
+        return HttpResponseBadRequest("invalid")
+
+    verif = anlage.verification_json or {}
+    data = verif.get(key, {})
+    if request.method == "POST":
+        text = request.POST.get("ki_begruendung", "").strip()
+        data["ki_begruendung"] = text
+        verif[key] = data
+        anlage.verification_json = verif
+        anlage.save(update_fields=["verification_json"])
+        messages.success(request, "Begründung gespeichert")
+        return redirect("projekt_file_edit_json", pk=anlage.pk)
+
+    context = {
+        "anlage": anlage,
+        "object": obj,
+        "object_type": obj_type,
+        "ki_begruendung": data.get("ki_begruendung", ""),
+    }
+    return render(request, "edit_ki_justification.html", context)

@@ -2143,6 +2143,11 @@ class FeatureVerificationTests(TestCase):
             {"technisch_verfuegbar": True, "ki_begruendung": "Begruendung"},
         )
         self.assertEqual(mock_q.call_count, 3)
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        self.assertEqual(
+            pf.verification_json["Export"],
+            {"technisch_verfuegbar": True, "ki_begruendung": "Begruendung"},
+        )
 
     def test_all_no_returns_false(self):
         with patch(
@@ -2162,24 +2167,45 @@ class FeatureVerificationTests(TestCase):
         self.assertEqual(result["ki_begruendung"], "")
 
 
-class EditJustificationViewTests(TestCase):
+
+class EditKIJustificationTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("editor", password="pass")
-        self.client.login(username="editor", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="X", beschreibung="x")
+        self.user = User.objects.create_user("justi", password="pass")
+        self.client.login(username="justi", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
-            verification_json={"Login": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}},
-        )
 
-    def test_post_updates_justification(self):
-        url = reverse("edit_ki_justification", args=[self.file.pk, "Login"])
-        resp = self.client.post(url, {"justification": "Neu"})
+            verification_json={
+                "Export": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}
+            },
+        )
+        self.func = Anlage2Function.objects.create(name="Export")
+
+    def test_get_returns_form(self):
+        url = reverse(
+            "edit_ki_justification",
+            args=[self.file.pk],
+        ) + f"?function={self.func.pk}"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Alt")
+
+    def test_post_updates_value(self):
+        url = reverse("edit_ki_justification", args=[self.file.pk])
+        resp = self.client.post(
+            url,
+            {"function": self.func.pk, "ki_begruendung": "Neu"},
+        )
         self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
         self.file.refresh_from_db()
-        self.assertEqual(self.file.verification_json["Login"]["ki_begruendung"], "Neu")
+        self.assertEqual(
+            self.file.verification_json["Export"]["ki_begruendung"],
+            "Neu",
+        )
+
 
 
 

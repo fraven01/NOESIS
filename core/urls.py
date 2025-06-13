@@ -131,6 +131,11 @@ urlpatterns = [
         name="anlage2_feature_verify",
     ),
     path(
+        "work/anlage/<int:pk>/edit-ki-justification/",
+        views.edit_ki_justification,
+        name="edit_ki_justification",
+    ),
+    path(
         "ajax/task-status/<str:task_id>/",
         views.ajax_check_task_status,
         name="ajax_check_task_status",
