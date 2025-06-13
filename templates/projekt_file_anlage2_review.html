@@ -37,17 +37,17 @@
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
-                    <span class="text-muted small">(Quelle: {{ row.source }})</span>
+                    <span class="text-muted small">(Quelle: {{ row.source_text }})</span>
                 </td>
                 <td class="border px-2 text-center">
                     <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>
                 </td>
                 {% for field in fields %}
-                {% with parsed=row.analysis|raw_item:field %}
+                {% with val=row.initial|get_item:field %}
                 <td class="border px-2 text-center">
-                    {% if parsed.value == True %}
-                        <span class="status-badge status-ja" title="{{ parsed.note|default:'Keine Zusatzinfo' }}">✓ Vorhanden</span>
-                    {% elif parsed.value == False %}
+                    {% if val == True %}
+                        <span class="status-badge status-ja">✓ Vorhanden</span>
+                    {% elif val == False %}
                         <span class="status-badge status-nein">✗ Nicht vorhanden</span>
                     {% else %}
                         <span class="status-badge status-unbekannt">? Unbekannt</span>

@@ -1682,12 +1682,73 @@ def projekt_file_edit_json(request, pk):
 
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
-            init = copy.deepcopy(analysis_init)
             verif_init = _verification_to_initial(anlage.verification_json)
-            _deep_update(init, verif_init)
-            if anlage.manual_analysis_json:
-                _deep_update(init, anlage.manual_analysis_json)
+            manual_results = {
+                str(r.funktion_id): r
+                for r in Anlage2FunctionResult.objects.filter(
+                    projekt=anlage.projekt, source="manual"
+                )
+            }
+
+            fields_def = get_anlage2_fields()
+
+            init = {"functions": {}}
+            source_map: dict[tuple[str, str | None, str], str] = {}
+
+            for func in Anlage2Function.objects.order_by("name"):
+                fid = str(func.id)
+                manual_obj = manual_results.get(fid)
+                doc_func = analysis_init.get("functions", {}).get(fid, {})
+                ai_func = verif_init.get("functions", {}).get(fid, {})
+
+                func_entry: dict[str, object] = {}
+                for field, _ in fields_def:
+                    man_val = getattr(manual_obj, field, None) if manual_obj else None
+                    ai_val = ai_func.get(field)
+                    doc_val = doc_func.get(field)
+                    if man_val is not None:
+                        val = man_val
+                        src = "Manuell"
+                    elif ai_val is not None:
+                        val = ai_val
+                        src = "KI-Prüfung"
+                    elif doc_val is not None:
+                        val = doc_val
+                        src = "Dokumenten-Analyse"
+                    else:
+                        val = False
+                        src = "N/A"
+                    func_entry[field] = val
+                    source_map[(fid, None, field)] = src
+
+                sub_entry: dict[str, dict[str, bool]] = {}
+                for sub in func.anlage2subquestion_set.all().order_by("id"):
+                    sid = str(sub.id)
+                    doc_sub = doc_func.get("subquestions", {}).get(sid, {})
+                    ai_sub = ai_func.get("subquestions", {}).get(sid, {})
+                    sub_dict: dict[str, bool] = {}
+                    for field, _ in fields_def:
+                        ai_val = ai_sub.get(field)
+                        doc_val = doc_sub.get(field)
+                        if ai_val is not None:
+                            val = ai_val
+                            src = "KI-Prüfung"
+                        elif doc_val is not None:
+                            val = doc_val
+                            src = "Dokumenten-Analyse"
+                        else:
+                            val = False
+                            src = "N/A"
+                        sub_dict[field] = val
+                        source_map[(fid, sid, field)] = src
+                    if sub_dict:
+                        sub_entry[sid] = sub_dict
+                if sub_entry:
+                    func_entry["subquestions"] = sub_entry
+                init["functions"][fid] = func_entry
+
             form = Anlage2ReviewForm(initial=init)
+
         template = "projekt_file_anlage2_review.html"
         answers: dict[str, dict] = {}
         funcs = []
@@ -1721,31 +1782,6 @@ def projekt_file_edit_json(request, pk):
         rows = []
         fields_def = get_anlage2_fields()
 
-        def _source(func_id: str, sub_id: str | None, field: str) -> str | None:
-            if sub_id is None:
-                if field in (anlage.manual_analysis_json or {}).get(
-                    "functions", {}
-                ).get(func_id, {}):
-                    return "Manuell"
-                if field in verif_init.get("functions", {}).get(func_id, {}):
-                    return "KI-Prüfung"
-                if field in analysis_init.get("functions", {}).get(func_id, {}):
-                    return "Dokumenten-Analyse"
-            else:
-                if field in (anlage.manual_analysis_json or {}).get(
-                    "functions", {}
-                ).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
-                    return "Manuell"
-                if field in verif_init.get("functions", {}).get(func_id, {}).get(
-                    "subquestions", {}
-                ).get(sub_id, {}):
-                    return "KI-Prüfung"
-                if field in analysis_init.get("functions", {}).get(func_id, {}).get(
-                    "subquestions", {}
-                ).get(sub_id, {}):
-                    return "Dokumenten-Analyse"
-            return None
-
         for func in Anlage2Function.objects.order_by("name"):
             debug_logger.debug("--- Prüfe Hauptfunktion ---")
             debug_logger.debug("Funktion: %s", func.name)
@@ -1755,18 +1791,19 @@ def projekt_file_edit_json(request, pk):
                 f_fields.append(
                     {
                         "widget": form[f"func{func.id}_{field}"],
-                        "source": _source(str(func.id), None, field),
+                        "source": source_map.get((str(func.id), None, field)),
                     }
                 )
-            row_source = _source(str(func.id), None, "technisch_vorhanden")
+            row_source = source_map.get((str(func.id), None, "technisch_vorhanden"))
             rows.append(
                 {
                     "name": func.name,
                     "analysis": answers.get(func.name, {}),
+                    "initial": init["functions"].get(str(func.id), {}),
                     "form_fields": f_fields,
                     "sub": False,
                     "func_id": func.id,
-                    "source": row_source,
+                    "source_text": row_source,
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -1775,7 +1812,7 @@ def projekt_file_edit_json(request, pk):
                     s_fields.append(
                         {
                             "widget": form[f"sub{sub.id}_{field}"],
-                            "source": _source(str(func.id), str(sub.id), field),
+                        "source_text": source_map.get((str(func.id), str(sub.id), field)),
                         }
                     )
                 s_analysis = {}
@@ -1805,16 +1842,19 @@ def projekt_file_edit_json(request, pk):
                             s_analysis = match
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
-                row_source = _source(str(func.id), str(sub.id), "technisch_vorhanden")
+                row_source = source_map.get((str(func.id), str(sub.id), "technisch_vorhanden"))
                 rows.append(
                     {
                         "name": sub.frage_text,
                         "analysis": s_analysis,
+                        "initial": init["functions"].get(str(func.id), {})
+                        .get("subquestions", {})
+                        .get(str(sub.id), {}),
                         "form_fields": s_fields,
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
-                        "source": row_source,
+                        "source_text": row_source,
                     }
                 )
         debug_logger.debug(
