@@ -34,3 +34,25 @@
 .hidden-row {
     display: none;
 }
+
+/* Status-Badges für Projektübersichten */
+.status-badge-new,
+.status-badge-classified {
+    background-color: #0d6efd;
+    color: white;
+}
+.status-badge-in_pruefung_anlage_x,
+.status-badge-fb_in_pruefung {
+    background-color: #ffc107;
+    color: black;
+}
+.status-badge-gutachten_ok,
+.status-badge-gutachten_freigegeben,
+.status-badge-endgeprueft {
+    background-color: #198754;
+    color: white;
+}
+.status-badge-error {
+    background-color: #dc3545;
+    color: white;
+}
