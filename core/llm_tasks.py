@@ -725,9 +725,10 @@ def worker_verify_feature(
 
     data = {"technisch_verfuegbar": result}
 
-    try:
-        pf = BVProjectFile.objects.get(projekt_id=project_id, anlage_nr=2)
-    except BVProjectFile.DoesNotExist:
+    pf = (
+        BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
+    )
+    if not pf:
         return data
 
     verif = pf.verification_json or {}
