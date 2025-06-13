@@ -2225,29 +2225,6 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
     return JsonResponse({"status": "success"})
 
 
-@login_required
-def edit_ki_justification(request, pk, function_key):
-    """Bearbeitet die KI-Begründung einer Funktion."""
-
-    anlage = get_object_or_404(BVProjectFile, pk=pk)
-    data = anlage.verification_json or {}
-    item = data.get(function_key) or {}
-    if request.method == "POST":
-        form = EditJustificationForm(request.POST)
-        if form.is_valid():
-            item = item if isinstance(item, dict) else {}
-            item["ki_begruendung"] = form.cleaned_data["justification"]
-            data[function_key] = item
-            anlage.verification_json = data
-            anlage.save(update_fields=["verification_json"])
-            messages.success(request, "Begründung gespeichert")
-            return redirect("projekt_file_edit_json", pk=anlage.pk)
-    else:
-        form = EditJustificationForm(initial={"justification": item.get("ki_begruendung", "")})
-
-    context = {"form": form, "anlage": anlage, "function_key": function_key}
-    return render(request, "edit_justification.html", context)
-
 
 @login_required
 def projekt_gap_analysis(request, pk):
