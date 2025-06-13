@@ -1741,18 +1741,18 @@ def projekt_file_edit_json(request, pk):
                         man_val = getattr(manual_obj, field, None)
                     ai_val = ai_func.get(field)
                     doc_val = doc_func.get(field)
+
+                    val = False
+                    src = "N/A"
+                    if doc_val is not None:
+                        val = doc_val
+                        src = "Dokumenten-Analyse"
+                    if ai_val is not None:
+                        val = ai_val
+                        src = "KI-Prüfung"
                     if man_val is not None:
                         val = man_val
                         src = "Manuell"
-                    elif ai_val is not None:
-                        val = ai_val
-                        src = "KI-Prüfung"
-                    elif doc_val is not None:
-                        val = doc_val
-                        src = "Dokumenten-Analyse"
-                    else:
-                        val = False
-                        src = "N/A"
                     func_entry[field] = val
                     source_map[(fid, None, field)] = src
 
@@ -1772,18 +1772,18 @@ def projekt_file_edit_json(request, pk):
                         man_val = manual_sub.get(field)
                         ai_val = ai_sub.get(field)
                         doc_val = doc_sub.get(field)
+
+                        val = False
+                        src = "N/A"
+                        if doc_val is not None:
+                            val = doc_val
+                            src = "Dokumenten-Analyse"
+                        if ai_val is not None:
+                            val = ai_val
+                            src = "KI-Prüfung"
                         if man_val is not None:
                             val = man_val
                             src = "Manuell"
-                        elif ai_val is not None:
-                            val = ai_val
-                            src = "KI-Prüfung"
-                        elif doc_val is not None:
-                            val = doc_val
-                            src = "Dokumenten-Analyse"
-                        else:
-                            val = False
-                            src = "N/A"
                         sub_dict[field] = val
                         source_map[(fid, sid, field)] = src
                     if sub_dict:
