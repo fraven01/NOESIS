@@ -682,7 +682,7 @@ def worker_verify_feature(
     object_type: str,
     object_id: int,
     model_name: str | None = None,
-) -> dict[str, bool | None]:
+) -> dict[str, bool | str | None]:
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
 
     projekt = BVProject.objects.get(pk=project_id)
@@ -723,7 +723,25 @@ def worker_verify_feature(
     else:
         result = None
 
-    data = {"technisch_verfuegbar": result}
+    justification = ""
+    if result:
+        just_base = get_prompt(
+            "anlage2_feature_justification",
+            (
+                "Warum besitzt die Software '{software_name}' typischerweise die "
+                "Funktion oder Eigenschaft '{function_name}'?"
+            ),
+        )
+        idx = next((i for i, a in enumerate(lower) if a.startswith("ja")), 0)
+        just_prompt = just_base.format(
+            software_name=software_list[idx],
+            function_name=name,
+        )
+        justification = query_llm(
+            just_prompt, model_name=model_name, model_type="anlagen"
+        ).strip()
+
+    data = {"technisch_verfuegbar": result, "ki_begruendung": justification}
 
     pf = (
         BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
