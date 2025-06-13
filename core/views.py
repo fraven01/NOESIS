@@ -260,6 +260,40 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     return initial
 
 
+def _verification_to_initial(data: dict | None) -> dict:
+    """Wandelt ``verification_json`` in das Initialformat."""
+    initial = {"functions": {}}
+    if not isinstance(data, dict):
+        return initial
+
+    name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
+    sub_map = {}
+    for sub in Anlage2SubQuestion.objects.select_related("funktion"):  # type: ignore[misc]
+        sub_map[(sub.funktion.name, sub.frage_text)] = str(sub.id)
+
+    for key, val in data.items():
+        if not isinstance(val, dict):
+            continue
+        if ": " in key:
+            func_name, sub_text = key.split(": ", 1)
+            func_id = name_map.get(func_name)
+            sub_id = sub_map.get((func_name, sub_text))
+            if not func_id or not sub_id:
+                continue
+            entry = initial["functions"].setdefault(func_id, {}).setdefault(
+                "subquestions",
+                {},
+            ).setdefault(sub_id, {})
+        else:
+            func_id = name_map.get(key)
+            if not func_id:
+                continue
+            entry = initial["functions"].setdefault(func_id, {})
+        if "technisch_verfuegbar" in val:
+            entry["technisch_vorhanden"] = val["technisch_verfuegbar"]
+    return initial
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -1590,8 +1624,8 @@ def projekt_file_edit_json(request, pk):
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             init = copy.deepcopy(analysis_init)
-            if anlage.verification_json:
-                _deep_update(init, anlage.verification_json)
+            verif_init = _verification_to_initial(anlage.verification_json)
+            _deep_update(init, verif_init)
             if anlage.manual_analysis_json:
                 _deep_update(init, anlage.manual_analysis_json)
             form = Anlage2ReviewForm(initial=init)
@@ -1632,14 +1666,14 @@ def projekt_file_edit_json(request, pk):
             if sub_id is None:
                 if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}):
                     return "Manuell"
-                if field in (anlage.verification_json or {}).get("functions", {}).get(func_id, {}):
+                if field in verif_init.get("functions", {}).get(func_id, {}):
                     return "KI-Prüfung"
                 if field in analysis_init.get("functions", {}).get(func_id, {}):
                     return "Dokumenten-Analyse"
             else:
                 if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
                     return "Manuell"
-                if field in (anlage.verification_json or {}).get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                if field in verif_init.get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
                     return "KI-Prüfung"
                 if field in analysis_init.get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
                     return "Dokumenten-Analyse"
@@ -1657,6 +1691,7 @@ def projekt_file_edit_json(request, pk):
                         "source": _source(str(func.id), None, field),
                     }
                 )
+            row_source = _source(str(func.id), None, "technisch_vorhanden")
             rows.append(
                 {
                     "name": func.name,
@@ -1664,6 +1699,7 @@ def projekt_file_edit_json(request, pk):
                     "form_fields": f_fields,
                     "sub": False,
                     "func_id": func.id,
+                    "source": row_source,
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -1702,6 +1738,7 @@ def projekt_file_edit_json(request, pk):
                             s_analysis = match
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
+                row_source = _source(str(func.id), str(sub.id), "technisch_vorhanden")
                 rows.append(
                     {
                         "name": sub.frage_text,
@@ -1710,6 +1747,7 @@ def projekt_file_edit_json(request, pk):
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
+                        "source": row_source,
                     }
                 )
         debug_logger.debug(
