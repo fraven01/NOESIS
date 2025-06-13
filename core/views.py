@@ -30,6 +30,7 @@ from .forms import (
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
+    EditJustificationForm,
 )
 from .models import (
     Recording,
@@ -1715,6 +1716,11 @@ def projekt_file_edit_json(request, pk):
                     projekt=anlage.projekt, source="manual"
                 )
             }
+            manual_init = (
+                anlage.manual_analysis_json
+                if isinstance(anlage.manual_analysis_json, dict)
+                else {}
+            )
 
             fields_def = get_anlage2_fields()
 
@@ -1726,10 +1732,13 @@ def projekt_file_edit_json(request, pk):
                 manual_obj = manual_results.get(fid)
                 doc_func = analysis_init.get("functions", {}).get(fid, {})
                 ai_func = verif_init.get("functions", {}).get(fid, {})
+                manual_func = manual_init.get("functions", {}).get(fid, {})
 
                 func_entry: dict[str, object] = {}
                 for field, _ in fields_def:
-                    man_val = getattr(manual_obj, field, None) if manual_obj else None
+                    man_val = manual_func.get(field)
+                    if man_val is None and manual_obj:
+                        man_val = getattr(manual_obj, field, None)
                     ai_val = ai_func.get(field)
                     doc_val = doc_func.get(field)
                     if man_val is not None:
@@ -1752,11 +1761,21 @@ def projekt_file_edit_json(request, pk):
                     sid = str(sub.id)
                     doc_sub = doc_func.get("subquestions", {}).get(sid, {})
                     ai_sub = ai_func.get("subquestions", {}).get(sid, {})
+                    manual_sub = (
+                        manual_init.get("functions", {})
+                        .get(fid, {})
+                        .get("subquestions", {})
+                        .get(sid, {})
+                    )
                     sub_dict: dict[str, bool] = {}
                     for field, _ in fields_def:
+                        man_val = manual_sub.get(field)
                         ai_val = ai_sub.get(field)
                         doc_val = doc_sub.get(field)
-                        if ai_val is not None:
+                        if man_val is not None:
+                            val = man_val
+                            src = "Manuell"
+                        elif ai_val is not None:
                             val = ai_val
                             src = "KI-Prüfung"
                         elif doc_val is not None:
@@ -1829,6 +1848,7 @@ def projekt_file_edit_json(request, pk):
                     "form_fields": f_fields,
                     "sub": False,
                     "func_id": func.id,
+                    "verif_key": func.name,
                     "source_text": row_source,
                     "ki_begruendung": ki_map.get((str(func.id), None)),
                 }
@@ -1881,6 +1901,7 @@ def projekt_file_edit_json(request, pk):
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
+                        "verif_key": lookup_key,
                         "source_text": row_source,
                         "ki_begruendung": ki_map.get((str(func.id), str(sub.id))),
                     }
@@ -2202,6 +2223,30 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
     )
 
     return JsonResponse({"status": "success"})
+
+
+@login_required
+def edit_ki_justification(request, pk, function_key):
+    """Bearbeitet die KI-Begründung einer Funktion."""
+
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    data = anlage.verification_json or {}
+    item = data.get(function_key) or {}
+    if request.method == "POST":
+        form = EditJustificationForm(request.POST)
+        if form.is_valid():
+            item = item if isinstance(item, dict) else {}
+            item["ki_begruendung"] = form.cleaned_data["justification"]
+            data[function_key] = item
+            anlage.verification_json = data
+            anlage.save(update_fields=["verification_json"])
+            messages.success(request, "Begründung gespeichert")
+            return redirect("projekt_file_edit_json", pk=anlage.pk)
+    else:
+        form = EditJustificationForm(initial={"justification": item.get("ki_begruendung", "")})
+
+    context = {"form": form, "anlage": anlage, "function_key": function_key}
+    return render(request, "edit_justification.html", context)
 
 
 @login_required

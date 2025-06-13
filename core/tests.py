@@ -2167,6 +2167,7 @@ class FeatureVerificationTests(TestCase):
         self.assertEqual(result["ki_begruendung"], "")
 
 
+
 class EditKIJustificationTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("justi", password="pass")
@@ -2176,6 +2177,7 @@ class EditKIJustificationTests(TestCase):
             projekt=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
+
             verification_json={
                 "Export": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}
             },
@@ -2203,6 +2205,7 @@ class EditKIJustificationTests(TestCase):
             self.file.verification_json["Export"]["ki_begruendung"],
             "Neu",
         )
+
 
 
 

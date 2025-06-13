@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Begründung bearbeiten{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Begründung bearbeiten</h1>
+<p class="mb-2">{{ function_key }}</p>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.justification.label_tag }}<br>
+    {{ form.justification }}
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+{% endblock %}
