@@ -10,4 +10,4 @@ python-dotenv
 python-docx
 Pillow
 rich
-django-q
+django-q2>=1.8.0
