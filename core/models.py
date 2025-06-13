@@ -308,6 +308,15 @@ class Anlage2Config(models.Model):
     #: Hilfsfeld, um nur eine Instanz zuzulassen
     singleton_enforcer = models.BooleanField(default=True, unique=True, editable=False)
 
+    enforce_subquestion_override = models.BooleanField(
+        default=False,
+        help_text=(
+            "Wenn aktiviert, wird eine Hauptfunktion automatisch als 'technisch "
+            "vorhanden' markiert, wenn mindestens eine ihrer Unterfragen als "
+            "'technisch vorhanden' bewertet wird."
+        ),
+    )
+
 
     class Meta:
         verbose_name = "Anlage2 Konfiguration"

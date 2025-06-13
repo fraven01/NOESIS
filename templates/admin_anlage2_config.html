@@ -5,6 +5,16 @@
 <form method="post" class="space-y-4">
     {% csrf_token %}
 
+    <div>
+        <label>
+            {{ config_form.enforce_subquestion_override }}
+            {{ config_form.enforce_subquestion_override.label }}
+        </label>
+        <p class="text-sm text-gray-600">
+            {{ config_form.enforce_subquestion_override.help_text }}
+        </p>
+    </div>
+
     <h2 class="text-xl font-semibold mt-6 mb-2">Aliasüberschriften</h2>
     <table class="min-w-full mb-4">
         <thead>
