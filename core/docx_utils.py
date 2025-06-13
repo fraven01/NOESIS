@@ -266,17 +266,26 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     if not text_content:
         return []
 
-    all_functions = list(Anlage2Function.objects.all())
-    all_subs = list(Anlage2SubQuestion.objects.select_related("funktion"))
-
     def _get_list(data: dict, key: str) -> list[str]:
         val = data.get(key, [])
         if isinstance(val, str):
             return [val]
         return [str(v) for v in val]
 
+    # Alle Funktionen mit ihren Aliases vorbereiten
+    functions: list[tuple[Anlage2Function, list[str]]] = []
+    for func in Anlage2Function.objects.all():
+        aliases = [a.lower() for a in _get_list(func.detection_phrases, "name_aliases")]
+        functions.append((func, aliases))
+
+    # Unterfragen pro Funktion sammeln
+    sub_map: dict[int, list[tuple[Anlage2SubQuestion, list[str]]]] = {}
+    for sub in Anlage2SubQuestion.objects.select_related("funktion"):
+        aliases = [a.lower() for a in _get_list(sub.detection_phrases, "name_aliases")]
+        sub_map.setdefault(sub.funktion_id, []).append((sub, aliases))
+
     def _match(phrases: list[str], line: str) -> bool:
-        return any(p.lower() in line for p in phrases if p)
+        return any(p in line for p in phrases if p)
 
     cfg = Anlage2Config.get_instance()
     gp_dict: dict[str, list[str]] = {}
@@ -303,6 +312,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
     results: list[dict[str, object]] = []
     last_main: dict[str, object] | None = None
+    last_func: Anlage2Function | None = None
 
     for line in lines:
         lower = line.lower()
@@ -310,27 +320,28 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             continue
 
         found = False
-        for sub in all_subs:
-            if last_main is None:
-                break
-            aliases = _get_list(sub.detection_phrases, "name_aliases")
-            if _match(aliases, lower):
-                full_name = f"{last_main['funktion']}: {sub.frage_text}"
-                row = {"funktion": full_name}
-                row.update(_extract_values(lower))
-                results.append(row)
-                found = True
-                break
+
+        # Prüfe zuerst auf Unterfragen der zuletzt gefundenen Funktion
+        if last_func:
+            for sub, aliases in sub_map.get(last_func.id, []):
+                if _match(aliases, lower):
+                    full_name = f"{last_main['funktion']}: {sub.frage_text}"
+                    row = {"funktion": full_name}
+                    row.update(_extract_values(lower))
+                    results.append(row)
+                    found = True
+                    break
         if found:
             continue
 
-        for func in all_functions:
-            aliases = _get_list(func.detection_phrases, "name_aliases")
+        # Suche nach einer neuen Hauptfunktion
+        for func, aliases in functions:
             if _match(aliases, lower):
                 row = {"funktion": func.name}
                 row.update(_extract_values(lower))
                 results.append(row)
                 last_main = row
+                last_func = func
                 found = True
                 break
 

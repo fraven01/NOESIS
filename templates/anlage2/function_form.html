@@ -10,10 +10,9 @@
         {{ form.name }}
         {{ form.name.errors }}
     </div>
-    {% for prefix, label, formset in sections %}
     <div>
-        <h3 class="font-semibold mt-4 mb-2">{{ label }}</h3>
-        <div id="{{ prefix }}-container">
+        <h3 class="font-semibold mt-4 mb-2">Name Aliase</h3>
+        <div id="name_aliases-container">
             {{ formset.management_form }}
             {% for form in formset %}
             <div class="flex items-center mb-1">
@@ -22,15 +21,14 @@
             </div>
             {% endfor %}
         </div>
-        <div id="{{ prefix }}-empty-form" style="display:none;">
+        <div id="name_aliases-empty-form" style="display:none;">
             <div class="flex items-center mb-1">
                 {{ formset.empty_form.phrase }}
                 <label class="ml-2 text-sm">{{ formset.empty_form.DELETE }} löschen</label>
             </div>
         </div>
-        <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ prefix }}">+ Weitere Phrase hinzufügen</button>
+        <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="name_aliases">+ Weitere Phrase hinzufügen</button>
     </div>
-    {% endfor %}
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded mt-4">Speichern</button>
 </form>
 <script>
