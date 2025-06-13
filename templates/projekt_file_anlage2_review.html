@@ -175,33 +175,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 2. Iteriere über jede dieser Zeilen.
             rows.forEach(row => {
-                // 3. Lies den ursprünglichen Status und die Notizen aus dem data-Attribut.
+                // 1. Lies den ursprünglichen Status aus dem data-Attribut.
                 const parsedStatus = row.dataset.parsedStatus;
-                const parsedNotes = row.dataset.parsedNotes || "";
+                const notesTextarea = row.querySelector('textarea[name*="-notes"]'); // Optional für Notizen
 
-                // 4. Finde die Formular-Elemente INNERHALB der aktuellen Zeile.
+                // 2. Finde die Radio-Buttons INNERHALB der aktuellen Zeile.
                 const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
-                const notesTextarea = row.querySelector('textarea[name*="-notes"]');
 
-                // 5. Setze die Radio-Buttons zurück.
                 if (statusRadios.length > 0) {
-                    let aRadioWasChecked = false;
+                    let aRadioWasSet = false; // Flag, um zu prüfen, ob eine Aktion ausgeführt wurde.
+
+                    // 3. Iteriere über die Radio-Buttons, um den richtigen zu finden.
                     statusRadios.forEach(radio => {
-                        // Vergleiche den Wert des Buttons ("True", "False", "None", "") mit dem gespeicherten Status.
+                        // Vergleiche den Wert des Buttons mit dem gespeicherten Status
                         if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
                             radio.checked = true;
-                            aRadioWasChecked = true;
+                            aRadioWasSet = true;
                         }
                     });
-                    // Falls kein Wert passt (z.B. parsedStatus ist leer), keinen Button auswählen.
-                    if (!aRadioWasChecked) {
-                       statusRadios.forEach(radio => radio.checked = false);
+
+                    // 4. KORREKTUR: Wenn kein passender Button gefunden wurde (z.B. weil parsedStatus leer war),
+                    // stelle sicher, dass kein Button mehr ausgewählt ist.
+                    if (!aRadioWasSet) {
+                       statusRadios.forEach(radio => {
+                           radio.checked = false;
+                       });
                     }
                 }
 
-                // 6. Setze das Notiz-Feld zurück.
+                // Optional: Setze auch das Notiz-Feld zurück
                 if (notesTextarea) {
-                    notesTextarea.value = parsedNotes;
+                    notesTextarea.value = row.dataset.parsedNotes || "";
                 }
             });
 
