@@ -12,6 +12,7 @@ import subprocess
 import whisper
 import torch
 import json
+from django_q.tasks import async_task, fetch, result
 
 from .forms import (
     RecordingForm,
@@ -62,7 +63,6 @@ from .llm_tasks import (
     check_anlage2_functions,
     check_gutachten_functions,
     generate_gutachten,
-    verify_single_feature,
     get_prompt,
     ANLAGE1_QUESTIONS,
 )
@@ -1942,7 +1942,7 @@ def projekt_functions_check(request, pk):
 @login_required
 @require_http_methods(["POST"])
 def anlage2_feature_verify(request, pk):
-    """Fragt das LLM nach einer Einzelfunktion."""
+    """Startet die Pr\u00fcfung einer Einzelfunktion im Hintergrund."""
     try:
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
@@ -1954,35 +1954,33 @@ def anlage2_feature_verify(request, pk):
     sub_id = request.POST.get("subquestion")
     model = request.POST.get("model")
     if func_id:
-        obj = get_object_or_404(Anlage2Function, pk=func_id)
+        object_type = "function"
+        obj_id = int(func_id)
+        get_object_or_404(Anlage2Function, pk=obj_id)  # nur Validierung
     elif sub_id:
-        obj = get_object_or_404(Anlage2SubQuestion, pk=sub_id)
+        object_type = "subquestion"
+        obj_id = int(sub_id)
+        get_object_or_404(Anlage2SubQuestion, pk=obj_id)
     else:
         return JsonResponse({"error": "invalid"}, status=400)
-    try:
-        result = verify_single_feature(anlage.projekt, obj, model_name=model)
-    except RuntimeError:
-        return JsonResponse({"error": "Missing LLM credentials from environment."}, status=500)
-    except Exception:
-        logger.exception("LLM Fehler")
-        return JsonResponse({"error": "llm"}, status=502)
 
-    data = anlage.verification_json or {"functions": {}}
-    if func_id:
-        entry = data.get("functions", {}).get(str(func_id), {})
-        entry["technisch_vorhanden"] = result.get("technisch_verfuegbar")
-        data.setdefault("functions", {})[str(func_id)] = entry
-    else:
-        func_key = str(obj.funktion_id)
-        func_entry = data.setdefault("functions", {}).setdefault(func_key, {})
-        sub_map = func_entry.setdefault("subquestions", {})
-        sub_entry = sub_map.get(str(sub_id), {})
-        sub_entry["technisch_vorhanden"] = result.get("technisch_verfuegbar")
-        sub_map[str(sub_id)] = sub_entry
-    anlage.verification_json = data
-    anlage.save(update_fields=["verification_json"])
+    task_id = async_task(
+        "core.llm_tasks.worker_verify_feature",
+        anlage.projekt_id,
+        object_type,
+        obj_id,
+        model,
+    )
 
-    return JsonResponse({"technisch_vorhanden": result.get("technisch_verfuegbar")})
+    return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
+def ajax_check_task_status(request, task_id: str) -> JsonResponse:
+    """Gibt den Status eines Hintergrund-Tasks zur\u00fcck."""
+    task = fetch(task_id)
+    task_status = task.status if task else "unknown"
+    return JsonResponse({"status": task_status, "result": result(task_id)})
 
 
 @login_required

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "core",
+    "django_q",
 ]
 
 MIDDLEWARE = [
@@ -206,4 +207,18 @@ LOGGING = {
             "propagate": False,
         },
     },
+}
+
+# Django-Q Konfiguration
+Q_CLUSTER = {
+    'name': 'noesis_q',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 60,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    'orm': 'default',
 }

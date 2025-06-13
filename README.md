@@ -39,6 +39,17 @@ python manage.py showmigrations
 
 lässt sich prüfen, ob alle Migrationen angewendet wurden.
 
+## Hintergrund-Tasks
+
+Für langlaufende Aktionen nutzt die Anwendung **Django‑Q**. Neben dem
+``runserver``-Prozess muss deshalb ein weiterer Worker laufen:
+
+```bash
+python manage.py qcluster
+```
+
+Ohne diesen Prozess werden keine Hintergrundaufgaben ausgeführt.
+
 ## Markdown-Verarbeitung
 
 Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
