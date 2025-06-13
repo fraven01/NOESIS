@@ -1715,6 +1715,11 @@ def projekt_file_edit_json(request, pk):
                     projekt=anlage.projekt, source="manual"
                 )
             }
+            manual_init = (
+                anlage.manual_analysis_json
+                if isinstance(anlage.manual_analysis_json, dict)
+                else {}
+            )
 
             fields_def = get_anlage2_fields()
 
@@ -1726,10 +1731,13 @@ def projekt_file_edit_json(request, pk):
                 manual_obj = manual_results.get(fid)
                 doc_func = analysis_init.get("functions", {}).get(fid, {})
                 ai_func = verif_init.get("functions", {}).get(fid, {})
+                manual_func = manual_init.get("functions", {}).get(fid, {})
 
                 func_entry: dict[str, object] = {}
                 for field, _ in fields_def:
-                    man_val = getattr(manual_obj, field, None) if manual_obj else None
+                    man_val = manual_func.get(field)
+                    if man_val is None and manual_obj:
+                        man_val = getattr(manual_obj, field, None)
                     ai_val = ai_func.get(field)
                     doc_val = doc_func.get(field)
                     if man_val is not None:
@@ -1752,11 +1760,21 @@ def projekt_file_edit_json(request, pk):
                     sid = str(sub.id)
                     doc_sub = doc_func.get("subquestions", {}).get(sid, {})
                     ai_sub = ai_func.get("subquestions", {}).get(sid, {})
+                    manual_sub = (
+                        manual_init.get("functions", {})
+                        .get(fid, {})
+                        .get("subquestions", {})
+                        .get(sid, {})
+                    )
                     sub_dict: dict[str, bool] = {}
                     for field, _ in fields_def:
+                        man_val = manual_sub.get(field)
                         ai_val = ai_sub.get(field)
                         doc_val = doc_sub.get(field)
-                        if ai_val is not None:
+                        if man_val is not None:
+                            val = man_val
+                            src = "Manuell"
+                        elif ai_val is not None:
                             val = ai_val
                             src = "KI-Prüfung"
                         elif doc_val is not None:
