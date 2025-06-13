@@ -3,7 +3,7 @@
 {% block title %}Anlage 2 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
-<form method="post" class="space-y-4">
+<form method="post" class="space-y-4" data-anlage-id="{{ anlage.pk }}">
     {% csrf_token %}
     <div class="filter-controls mb-2">
         <label>
@@ -31,7 +31,7 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
+            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}" data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
@@ -239,5 +239,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// -------------------- Auto-Save Logic --------------------
+const autoSaveUrl = '{% url "ajax_save_review_item" %}';
+const formEl = document.querySelector('form[data-anlage-id]');
+const projectFileId = formEl ? formEl.dataset.anlageId : null;
+
+function showSaveStatus(el, text, color='black') {
+    let span = el.parentNode.querySelector('.save-status');
+    if (!span) {
+        span = document.createElement('span');
+        span.className = 'save-status ml-2 text-sm';
+        el.parentNode.appendChild(span);
+    }
+    span.textContent = text;
+    span.style.color = color;
+    if (text.startsWith('✓')) {
+        setTimeout(() => span.remove(), 1500);
+    }
+}
+
+function autoSave(inputEl) {
+    const row = inputEl.closest('tr');
+    if (!row || !projectFileId) return;
+    const funcId = row.dataset.funcId;
+    const subId = row.dataset.subId;
+    const statusRadio = row.querySelector('input[type="radio"][name*="-status"]:checked');
+    const statusVal = statusRadio ? statusRadio.value : null;
+    const notesEl = row.querySelector('textarea[name*="-notes"]');
+    const notesVal = notesEl ? notesEl.value : '';
+
+    const payload = {
+        project_file_id: projectFileId,
+        function_id: funcId,
+        subquestion_id: subId,
+        status: statusVal,
+        notes: notesVal
+    };
+
+    showSaveStatus(inputEl, 'Speichere...');
+    fetch(autoSaveUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(resp => resp.ok ? resp.json() : Promise.reject())
+        .then(() => showSaveStatus(inputEl, '✓ Gespeichert', 'green'))
+        .catch(() => showSaveStatus(inputEl, 'Fehler beim Speichern', 'red'));
+}
+
+document.querySelector('tbody').addEventListener('change', function(e) {
+    const t = e.target;
+    if (t.matches('input[type="radio"][name*="-status"], input[type="checkbox"]')) {
+        autoSave(t);
+    }
+});
+
+document.querySelector('tbody').addEventListener('blur', function(e) {
+    const t = e.target;
+    if (t.matches('textarea[name*="-notes"]')) {
+        autoSave(t);
+    }
+}, true);
 </script>
 {% endblock %}
