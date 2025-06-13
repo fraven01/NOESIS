@@ -1997,7 +1997,13 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
     pf_id = payload.get("project_file_id")
     func_id = payload.get("function_id")
     sub_id = payload.get("subquestion_id")
-    status = payload.get("status")
+    status_val = payload.get("status")
+    if status_val in (True, "True", "true", 1):
+        status = True
+    elif status_val in (False, "False", "false", 0):
+        status = False
+    else:
+        status = None
     notes = payload.get("notes")
 
     if pf_id is None or func_id is None:
@@ -2013,8 +2019,8 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
         projekt=anlage.projekt,
         funktion=funktion,
         defaults={
-            "technisch_verfuegbar": None if status is None else bool(status),
-            "raw_json": {"notes": notes},
+            "technisch_verfuegbar": status,
+            "raw_json": {"notes": notes, "subquestion_id": sub_id},
             "source": "manual",
         },
     )
