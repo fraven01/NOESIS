@@ -1251,9 +1251,21 @@ def anlage2_subquestion_delete(request, pk):
 @tile_required("projektverwaltung")
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
+
+    search_query = request.GET.get("q", "")
+    if search_query:
+        projekte = projekte.filter(title__icontains=search_query)
+
+    status_filter = request.GET.get("status", "")
+    if status_filter:
+        projekte = projekte.filter(status=status_filter)
+
     context = {
         "projekte": projekte,
         "is_admin": request.user.groups.filter(name="admin").exists(),
+        "search_query": search_query,
+        "status_filter": status_filter,
+        "status_choices": BVProject.STATUS_CHOICES,
     }
     return render(request, "projekt_list.html", context)
 
