@@ -725,6 +725,9 @@ def worker_verify_feature(
 
     justification = ""
     if result:
+        # Zusätzliche Rückfrage beim LLM, warum die Funktion
+        # üblicherweise vorhanden ist. Die Antwort wird später im
+        # Review als Tooltip angezeigt.
         just_base = get_prompt(
             "anlage2_feature_justification",
             (
