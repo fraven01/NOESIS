@@ -12,6 +12,10 @@
         </label>
         <button type="button" id="verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
     </div>
+    <div class="mb-3">
+        <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>
+        <button type="button" id="collapse-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle einklappen</button>
+    </div>
     <table class="table-auto w-full border">
         <thead>
             <tr>
@@ -27,8 +31,13 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
-                <td class="border px-2 {% if row.sub %}pl-8{% endif %}">{{ row.name }}</td>
+            <tr class="{% if row.sub %}subquestion-row collapse subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
+                <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
+                    {% if not row.sub %}
+                    <button type="button" class="toggle-button mr-2 bg-gray-200 px-1 rounded" data-target=".subquestions-for-{{ row.func_id }}">+</button>
+                    {% endif %}
+                    {{ row.name }}
+                </td>
                 <td class="border px-2 text-center">
                     <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>
                 </td>
@@ -114,6 +123,26 @@ function triggerVerify(button){
 
 document.querySelectorAll('.verify-btn').forEach(btn=>{
     btn.addEventListener('click',async ()=>{btn.disabled=true;await triggerVerify(btn);btn.disabled=false;});
+});
+
+// Auf- und Zuklappen aller Unterfragen
+document.getElementById('expand-all-subquestions').addEventListener('click', () => {
+    document.querySelectorAll('.subquestion-row').forEach(row => row.classList.add('show'));
+    document.querySelectorAll('.toggle-button').forEach(btn => btn.textContent = '-');
+});
+
+document.getElementById('collapse-all-subquestions').addEventListener('click', () => {
+    document.querySelectorAll('.subquestion-row').forEach(row => row.classList.remove('show'));
+    document.querySelectorAll('.toggle-button').forEach(btn => btn.textContent = '+');
+});
+
+// Individuelles Aufklappen einzelner Hauptfunktionen
+document.querySelectorAll('.toggle-button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll(btn.dataset.target).forEach(row => row.classList.toggle('show'));
+        const anyOpen = Array.from(document.querySelectorAll(btn.dataset.target)).some(r => r.classList.contains('show'));
+        btn.textContent = anyOpen ? '-' : '+';
+    });
 });
 
 document.getElementById('verify-all').addEventListener('click',async()=>{
