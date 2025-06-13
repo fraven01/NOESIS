@@ -24,3 +24,8 @@
 .status-unbekannt {
     background-color: #6c757d;
 }
+
+/* Einfaches Collapse-Verhalten für Tabellenzeilen */
+.collapse:not(.show) {
+    display: none;
+}
