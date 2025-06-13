@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import Textarea
+from django.forms import Textarea, modelformset_factory
 from pathlib import Path
 from .models import (
     Recording,
@@ -9,6 +9,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
+    Anlage2GlobalPhrase,
     Area,
 )
 from .llm_tasks import ANLAGE1_QUESTIONS
@@ -366,3 +367,23 @@ class PhraseForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
+
+
+class Anlage2GlobalPhraseForm(forms.ModelForm):
+    """Formular für eine globale Erkennungsphrase."""
+
+    class Meta:
+        model = Anlage2GlobalPhrase
+        fields = ["phrase_text"]
+        labels = {"phrase_text": ""}
+        widgets = {
+            "phrase_text": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
+Anlage2GlobalPhraseFormSet = modelformset_factory(
+    Anlage2GlobalPhrase,
+    form=Anlage2GlobalPhraseForm,
+    extra=1,
+    can_delete=True,
+)

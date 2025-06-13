@@ -22,6 +22,7 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
+    Anlage2GlobalPhrase,
 )
 from .docx_utils import (
     extract_text,
@@ -410,19 +411,22 @@ class DocxExtractTests(TestCase):
     def test_parse_anlage2_text(self):
         func = Anlage2Function.objects.create(
             name="Login",
-            detection_phrases={
-                "name_aliases": ["login"],
-                "technisch_verfuegbar_true": ["tv ja"],
-                "ki_beteiligung_false": ["ki nein"],
-            },
+            detection_phrases={"name_aliases": ["login"]},
         )
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Warum?",
-            detection_phrases={
-                "name_aliases": ["warum"],
-                "technisch_verfuegbar_false": ["tv nein"],
-            },
+            detection_phrases={"name_aliases": ["warum"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="technisch_verfuegbar_false", phrase_text="tv nein"
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="ki_beteiligung_false", phrase_text="ki nein"
         )
         text = "Login tv ja ki nein\nWarum tv nein"
         data = parse_anlage2_text(text)

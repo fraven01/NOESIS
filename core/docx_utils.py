@@ -257,9 +257,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     Die Funktion durchsucht den übergebenen Text zeilenweise nach
     Funktionsnamen und Unterfragen. Welche Phrasen dabei jeweils eine
-    Übereinstimmung darstellen und welche Werte für die einzelnen Felder
-    gesetzt werden, wird in ``detection_phrases`` der Modelle
-    ``Anlage2Function`` und ``Anlage2SubQuestion`` definiert.
+    Übereinstimmung darstellen, wird über die ``detection_phrases`` der
+    Funktionen bzw. Unterfragen bestimmt. Die Phrasen zur Ermittlung der
+    Feldwerte liegen hingegen zentral im Modell ``Anlage2GlobalPhrase``.
     """
 
     logger = logging.getLogger(__name__)
@@ -278,7 +278,12 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     def _match(phrases: list[str], line: str) -> bool:
         return any(p.lower() in line for p in phrases if p)
 
-    def _extract_values(phrases: dict, line: str) -> dict[str, dict[str, object]]:
+    cfg = Anlage2Config.get_instance()
+    gp_dict: dict[str, list[str]] = {}
+    for gp in cfg.global_phrases.all():
+        gp_dict.setdefault(gp.phrase_type, []).append(gp.phrase_text.lower())
+
+    def _extract_values(line: str) -> dict[str, dict[str, object]]:
         result: dict[str, dict[str, object]] = {}
         for field in [
             "technisch_verfuegbar",
@@ -287,9 +292,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             "ki_beteiligung",
         ]:
             val = None
-            if _match(_get_list(phrases, f"{field}_true"), line):
+            if _match(gp_dict.get(f"{field}_true", []), line):
                 val = True
-            elif _match(_get_list(phrases, f"{field}_false"), line):
+            elif _match(gp_dict.get(f"{field}_false", []), line):
                 val = False
             if val is not None:
                 result[field] = {"value": val, "note": None}
@@ -312,7 +317,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             if _match(aliases, lower):
                 full_name = f"{last_main['funktion']}: {sub.frage_text}"
                 row = {"funktion": full_name}
-                row.update(_extract_values(sub.detection_phrases, lower))
+                row.update(_extract_values(lower))
                 results.append(row)
                 found = True
                 break
@@ -323,7 +328,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             aliases = _get_list(func.detection_phrases, "name_aliases")
             if _match(aliases, lower):
                 row = {"funktion": func.name}
-                row.update(_extract_values(func.detection_phrases, lower))
+                row.update(_extract_values(lower))
                 results.append(row)
                 last_main = row
                 found = True

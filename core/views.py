@@ -24,6 +24,7 @@ from .forms import (
     get_anlage2_fields,
     Anlage2FunctionForm,
     PhraseForm,
+    Anlage2GlobalPhraseFormSet,
     Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
@@ -41,6 +42,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2Config,
     Anlage2ColumnHeading,
+    Anlage2GlobalPhrase,
     Tile,
     Area,
 )
@@ -993,25 +995,53 @@ def admin_anlage1(request):
 @login_required
 @admin_required
 def anlage2_config(request):
-    """Konfiguriert die Spaltenüberschriften für Anlage 2."""
+    """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
+    categories = Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES
+    phrase_sets: dict[str, Anlage2GlobalPhraseFormSet] = {}
+
     if request.method == "POST":
-        cfg.save()
-        for h in aliases:
-            if request.POST.get(f"delete{h.id}"):
-                h.delete()
-        new_field = request.POST.get("new_field")
-        new_text = request.POST.get("new_text")
-        if new_field and new_text:
-            Anlage2ColumnHeading.objects.create(
-                config=cfg, field_name=new_field, text=new_text
+        for key, _ in categories:
+            qs = cfg.global_phrases.filter(phrase_type=key)
+            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
+                request.POST, prefix=key, queryset=qs
             )
-        return redirect("anlage2_config")
+        if all(fs.is_valid() for fs in phrase_sets.values()):
+            cfg.save()
+            for h in aliases:
+                if request.POST.get(f"delete{h.id}"):
+                    h.delete()
+            new_field = request.POST.get("new_field")
+            new_text = request.POST.get("new_text")
+            if new_field and new_text:
+                Anlage2ColumnHeading.objects.create(
+                    config=cfg, field_name=new_field, text=new_text
+                )
+            for key, _ in categories:
+                fs = phrase_sets[key]
+                for form in fs.forms:
+                    if form.cleaned_data.get("DELETE"):
+                        if form.instance.pk:
+                            form.instance.delete()
+                        continue
+                    if not form.has_changed() and form.instance.pk:
+                        continue
+                    inst = form.save(commit=False)
+                    inst.config = cfg
+                    inst.phrase_type = key
+                    inst.save()
+            return redirect("anlage2_config")
+    else:
+        for key, _ in categories:
+            qs = cfg.global_phrases.filter(phrase_type=key)
+            phrase_sets[key] = Anlage2GlobalPhraseFormSet(prefix=key, queryset=qs)
+
     context = {
         "config": cfg,
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
+        "phrase_sets": [(k, label, phrase_sets[k]) for k, label in categories],
     }
     return render(request, "admin_anlage2_config.html", context)
 
@@ -1034,14 +1064,6 @@ def anlage2_function_form(request, pk=None):
 
     categories = [
         ("name_aliases", "Name Aliase"),
-        ("technisch_verfuegbar_true", "Technisch vorhanden (ja)"),
-        ("technisch_verfuegbar_false", "Technisch vorhanden (nein)"),
-        ("einsatz_telefonica_true", "Einsatz bei Telefónica (ja)"),
-        ("einsatz_telefonica_false", "Einsatz bei Telefónica (nein)"),
-        ("zur_lv_kontrolle_true", "Zur LV-Kontrolle (ja)"),
-        ("zur_lv_kontrolle_false", "Zur LV-Kontrolle (nein)"),
-        ("ki_beteiligung_true", "KI-Beteiligung (ja)"),
-        ("ki_beteiligung_false", "KI-Beteiligung (nein)"),
     ]
 
     formsets: dict[str, PhraseFormSet] = {}
