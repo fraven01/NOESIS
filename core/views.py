@@ -811,11 +811,20 @@ def admin_projects(request):
 @require_http_methods(["POST"])
 def admin_project_delete(request, pk):
     """Löscht ein einzelnes Projekt."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    projekt_title = projekt.title
     try:
-        projekt = BVProject.objects.get(pk=pk)
-    except BVProject.DoesNotExist:
-        raise Http404
-    projekt.delete()
+        projekt.delete()
+        messages.success(request, f"Projekt '{projekt_title}' wurde erfolgreich gelöscht.")
+    except Exception as e:
+        messages.error(
+            request,
+            f"Projekt '{projekt_title}' konnte nicht gelöscht werden. Ein unerwarteter Fehler ist aufgetreten.",
+        )
+        logger.error(
+            f"Error deleting project {projekt.id} ('{projekt_title}'): {e}",
+            exc_info=True,
+        )
     return redirect("admin_projects")
 
 
