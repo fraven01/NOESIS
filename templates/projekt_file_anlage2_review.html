@@ -31,10 +31,10 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row collapse subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
+            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
-                    <button type="button" class="toggle-button mr-2 bg-gray-200 px-1 rounded" data-bs-toggle="collapse" data-bs-target=".subquestions-for-{{ row.func_id }}">+</button>
+                    <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
                 </td>
@@ -127,48 +127,47 @@ document.querySelectorAll('.verify-btn').forEach(btn=>{
     btn.addEventListener('click',async ()=>{btn.disabled=true;await triggerVerify(btn);btn.disabled=false;});
 });
 
-// Auf- und Zuklappen aller Unterfragen
+// Auf- und Zuklappen aller Unterfragen ohne Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
-    const collapsibleRows = document.querySelectorAll('.subquestion-row');
 
+    // Logik für individuelle Schalter
+    individualToggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetClass = this.dataset.targetClass;
+            const subquestionRows = document.querySelectorAll('.' + targetClass);
+
+            let isHidden = Array.from(subquestionRows).some(row => row.classList.contains('hidden-row'));
+
+            subquestionRows.forEach(row => {
+                row.classList.toggle('hidden-row');
+            });
+
+            this.textContent = isHidden ? '-' : '+';
+        });
+    });
+
+    // Logik für "Alles aufklappen"
     if (expandAllBtn) {
         expandAllBtn.addEventListener('click', function() {
-            collapsibleRows.forEach(row => {
-                bootstrap.Collapse.getOrCreateInstance(row).show();
+            document.querySelectorAll('.subquestion-row').forEach(row => {
+                row.classList.remove('hidden-row');
             });
             individualToggleButtons.forEach(btn => btn.textContent = '-');
         });
     }
 
+    // Logik für "Alles einklappen"
     if (collapseAllBtn) {
         collapseAllBtn.addEventListener('click', function() {
-            collapsibleRows.forEach(row => {
-                bootstrap.Collapse.getOrCreateInstance(row).hide();
+            document.querySelectorAll('.subquestion-row').forEach(row => {
+                row.classList.add('hidden-row');
             });
             individualToggleButtons.forEach(btn => btn.textContent = '+');
         });
     }
-
-    collapsibleRows.forEach(row => {
-        row.addEventListener('show.bs.collapse', function () {
-            const targetClass = Array.from(this.classList).find(c => c.startsWith('subquestions-for-'));
-            const button = document.querySelector(`[data-bs-target=".${targetClass}"]`);
-            if (button) {
-                button.textContent = '-';
-            }
-        });
-
-        row.addEventListener('hide.bs.collapse', function () {
-            const targetClass = Array.from(this.classList).find(c => c.startsWith('subquestions-for-'));
-            const button = document.querySelector(`[data-bs-target=".${targetClass}"]`);
-            if (button) {
-                button.textContent = '+';
-            }
-        });
-    });
 });
 
 document.getElementById('verify-all').addEventListener('click',async()=>{
