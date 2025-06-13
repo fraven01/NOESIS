@@ -37,6 +37,7 @@
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
+                    <span class="text-muted small">(Quelle: {{ row.source }})</span>
                 </td>
                 <td class="border px-2 text-center">
                     <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>

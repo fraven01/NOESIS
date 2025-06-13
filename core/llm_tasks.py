@@ -730,18 +730,12 @@ def worker_verify_feature(
     except BVProjectFile.DoesNotExist:
         return data
 
-    verif = pf.verification_json or {"functions": {}}
+    verif = pf.verification_json or {}
     if object_type == "function":
-        entry = verif.get("functions", {}).get(str(object_id), {})
-        entry["technisch_vorhanden"] = result
-        verif.setdefault("functions", {})[str(object_id)] = entry
+        key = name
     else:
-        func_key = str(feature_obj.funktion_id)
-        func_entry = verif.setdefault("functions", {}).setdefault(func_key, {})
-        sub_map = func_entry.setdefault("subquestions", {})
-        sub_entry = sub_map.get(str(object_id), {})
-        sub_entry["technisch_vorhanden"] = result
-        sub_map[str(object_id)] = sub_entry
+        key = f"{feature_obj.funktion.name}: {feature_obj.frage_text}"
+    verif[key] = data
     pf.verification_json = verif
     pf.save(update_fields=["verification_json"])
 
