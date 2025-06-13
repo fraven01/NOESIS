@@ -34,7 +34,7 @@
             <tr class="{% if row.sub %}subquestion-row collapse subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}">
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
-                    <button type="button" class="toggle-button mr-2 bg-gray-200 px-1 rounded" data-target=".subquestions-for-{{ row.func_id }}">+</button>
+                    <button type="button" class="toggle-button mr-2 bg-gray-200 px-1 rounded" data-bs-toggle="collapse" data-bs-target=".subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
                 </td>
@@ -70,6 +70,8 @@
         <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
 </form>
+{% endblock %}
+{% block extra_js %}
 <script>
 document.getElementById('show-relevant-only-filter').addEventListener('change', function() {
     const rows = document.querySelectorAll('tbody tr');
@@ -126,22 +128,46 @@ document.querySelectorAll('.verify-btn').forEach(btn=>{
 });
 
 // Auf- und Zuklappen aller Unterfragen
-document.getElementById('expand-all-subquestions').addEventListener('click', () => {
-    document.querySelectorAll('.subquestion-row').forEach(row => row.classList.add('show'));
-    document.querySelectorAll('.toggle-button').forEach(btn => btn.textContent = '-');
-});
+document.addEventListener('DOMContentLoaded', function() {
+    const expandAllBtn = document.getElementById('expand-all-subquestions');
+    const collapseAllBtn = document.getElementById('collapse-all-subquestions');
+    const individualToggleButtons = document.querySelectorAll('.toggle-button');
+    const collapsibleRows = document.querySelectorAll('.subquestion-row');
 
-document.getElementById('collapse-all-subquestions').addEventListener('click', () => {
-    document.querySelectorAll('.subquestion-row').forEach(row => row.classList.remove('show'));
-    document.querySelectorAll('.toggle-button').forEach(btn => btn.textContent = '+');
-});
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', function() {
+            collapsibleRows.forEach(row => {
+                bootstrap.Collapse.getOrCreateInstance(row).show();
+            });
+            individualToggleButtons.forEach(btn => btn.textContent = '-');
+        });
+    }
 
-// Individuelles Aufklappen einzelner Hauptfunktionen
-document.querySelectorAll('.toggle-button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll(btn.dataset.target).forEach(row => row.classList.toggle('show'));
-        const anyOpen = Array.from(document.querySelectorAll(btn.dataset.target)).some(r => r.classList.contains('show'));
-        btn.textContent = anyOpen ? '-' : '+';
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', function() {
+            collapsibleRows.forEach(row => {
+                bootstrap.Collapse.getOrCreateInstance(row).hide();
+            });
+            individualToggleButtons.forEach(btn => btn.textContent = '+');
+        });
+    }
+
+    collapsibleRows.forEach(row => {
+        row.addEventListener('show.bs.collapse', function () {
+            const targetClass = Array.from(this.classList).find(c => c.startsWith('subquestions-for-'));
+            const button = document.querySelector(`[data-bs-target=".${targetClass}"]`);
+            if (button) {
+                button.textContent = '-';
+            }
+        });
+
+        row.addEventListener('hide.bs.collapse', function () {
+            const targetClass = Array.from(this.classList).find(c => c.startsWith('subquestions-for-'));
+            const button = document.querySelector(`[data-bs-target=".${targetClass}"]`);
+            if (button) {
+                button.textContent = '+';
+            }
+        });
     });
 });
 
