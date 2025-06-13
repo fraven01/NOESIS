@@ -136,33 +136,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (resetButton) {
         resetButton.addEventListener('click', function() {
+            // 1. Selektiere alle Tabellenzeilen, die Analyse-Daten enthalten.
             const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
 
+            if (rows.length === 0) {
+                alert('Keine Analyse-Daten zum Zurücksetzen gefunden.');
+                return;
+            }
+
+            // 2. Iteriere über jede dieser Zeilen.
             rows.forEach(row => {
+                // 3. Lies den ursprünglichen Status und die Notizen aus dem data-Attribut.
                 const parsedStatus = row.dataset.parsedStatus;
                 const parsedNotes = row.dataset.parsedNotes || "";
 
+                // 4. Finde die Formular-Elemente INNERHALB der aktuellen Zeile.
                 const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
                 const notesTextarea = row.querySelector('textarea[name*="-notes"]');
 
+                // 5. Setze die Radio-Buttons zurück.
                 if (statusRadios.length > 0) {
                     let aRadioWasChecked = false;
                     statusRadios.forEach(radio => {
+                        // Vergleiche den Wert des Buttons ("True", "False", "None", "") mit dem gespeicherten Status.
                         if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
                             radio.checked = true;
                             aRadioWasChecked = true;
                         }
                     });
+                    // Falls kein Wert passt (z.B. parsedStatus ist leer), keinen Button auswählen.
                     if (!aRadioWasChecked) {
-                        statusRadios.forEach(radio => radio.checked = false);
+                       statusRadios.forEach(radio => radio.checked = false);
                     }
                 }
 
+                // 6. Setze das Notiz-Feld zurück.
                 if (notesTextarea) {
                     notesTextarea.value = parsedNotes;
                 }
             });
 
+            // Informiere den Benutzer, dass die Aktion erfolgreich war.
             alert('Alle Bewertungen wurden auf die ursprünglichen Analysewerte zurückgesetzt.');
         });
     }
