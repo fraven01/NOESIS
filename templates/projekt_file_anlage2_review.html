@@ -37,10 +37,20 @@
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
+                    {% if row.ki_begruendung %}
+                    <span class="ms-2" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="{{ row.ki_begruendung|markdownify }}">ⓘ</span>
+                    {% endif %}
                     <span class="text-muted small">(Quelle: {{ row.source_text }})</span>
                 </td>
                 <td class="border px-2 text-center">
-                    <button type="button" class="verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>🤖</button>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">🤖</button>
+                        <ul class="dropdown-menu">
+                            <li><button type="button" class="dropdown-item verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>KI-Prüfung starten</button></li>
+                            <li><button type="button" class="dropdown-item">Begründung bearbeiten</button></li>
+                        </ul>
+                    </div>
                 </td>
                 {% for field in fields %}
                 {% with val=row.initial|get_item:field %}
@@ -325,5 +335,10 @@ document.querySelector('tbody').addEventListener('blur', function(e) {
         autoSave(t);
     }
 }, true);
+
+// Bootstrap-Tooltips initialisieren
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el, {html: true});
+});
 </script>
 {% endblock %}
