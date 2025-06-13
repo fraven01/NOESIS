@@ -12,6 +12,11 @@ from .models import (
     Anlage2GlobalPhrase,
     Area,
 )
+
+try:
+    from .models import SoftwareType
+except Exception:  # pragma: no cover - optional model
+    SoftwareType = None
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -109,6 +114,13 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         label="DOCX-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+    if SoftwareType:
+        software_type = forms.ModelMultipleChoiceField(
+            queryset=SoftwareType.objects.none(),
+            widget=forms.CheckboxSelectMultiple,
+            required=False,
+            label="Software-Typen",
+        )
     class Meta:
         model = BVProject
         fields = ["title", "beschreibung", "software_typen", "status"]
@@ -127,6 +139,8 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if SoftwareType:
+            self.fields["software_type"].queryset = SoftwareType.objects.all()
         if not self.instance or not self.instance.pk:
             self.fields.pop("status", None)
         if self.data:
