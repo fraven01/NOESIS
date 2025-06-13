@@ -44,7 +44,7 @@ from .llm_tasks import (
     check_anlage2,
     analyse_anlage2,
     check_anlage2_functions,
-    verify_single_feature,
+    worker_verify_feature,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
@@ -2121,6 +2121,11 @@ class FeatureVerificationTests(TestCase):
             software_typen="Word, Excel",
             beschreibung="x",
         )
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+        )
         self.func = Anlage2Function.objects.create(name="Export")
         self.sub = Anlage2SubQuestion.objects.create(
             funktion=self.func,
@@ -2132,7 +2137,7 @@ class FeatureVerificationTests(TestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein"],
         ) as mock_q:
-            result = verify_single_feature(self.projekt, self.func)
+            result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertEqual(result, {"technisch_verfuegbar": True})
         self.assertEqual(mock_q.call_count, 2)
 
@@ -2141,7 +2146,7 @@ class FeatureVerificationTests(TestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Nein", "Nein"],
         ):
-            result = verify_single_feature(self.projekt, self.sub)
+            result = worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
         self.assertEqual(result, {"technisch_verfuegbar": False})
 
     def test_mixed_returns_none(self):
@@ -2149,7 +2154,7 @@ class FeatureVerificationTests(TestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Unsicher", "Nein"],
         ):
-            result = verify_single_feature(self.projekt, self.func)
+            result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertIsNone(result["technisch_verfuegbar"]) 
 
 

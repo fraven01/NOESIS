@@ -677,12 +677,21 @@ def check_anlage2_functions(
     return results
 
 
-def verify_single_feature(
-    projekt: BVProject,
-    feature_obj: Anlage2Function | Anlage2SubQuestion,
+def worker_verify_feature(
+    project_id: int,
+    object_type: str,
+    object_id: int,
     model_name: str | None = None,
 ) -> dict[str, bool | None]:
-    """Fragt das LLM nach dem Vorhandensein einer Einzelfunktion."""
+    """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
+
+    projekt = BVProject.objects.get(pk=project_id)
+    if object_type == "function":
+        feature_obj = Anlage2Function.objects.get(pk=object_id)
+    elif object_type == "subquestion":
+        feature_obj = Anlage2SubQuestion.objects.get(pk=object_id)
+    else:
+        raise ValueError("invalid object_type")
 
     prompt_base = get_prompt(
         "anlage2_feature_verification",
@@ -714,7 +723,29 @@ def verify_single_feature(
     else:
         result = None
 
-    return {"technisch_verfuegbar": result}
+    data = {"technisch_verfuegbar": result}
+
+    try:
+        pf = BVProjectFile.objects.get(projekt_id=project_id, anlage_nr=2)
+    except BVProjectFile.DoesNotExist:
+        return data
+
+    verif = pf.verification_json or {"functions": {}}
+    if object_type == "function":
+        entry = verif.get("functions", {}).get(str(object_id), {})
+        entry["technisch_vorhanden"] = result
+        verif.setdefault("functions", {})[str(object_id)] = entry
+    else:
+        func_key = str(feature_obj.funktion_id)
+        func_entry = verif.setdefault("functions", {}).setdefault(func_key, {})
+        sub_map = func_entry.setdefault("subquestions", {})
+        sub_entry = sub_map.get(str(object_id), {})
+        sub_entry["technisch_vorhanden"] = result
+        sub_map[str(object_id)] = sub_entry
+    pf.verification_json = verif
+    pf.save(update_fields=["verification_json"])
+
+    return data
 
 
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:

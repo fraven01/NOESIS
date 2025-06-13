@@ -10,3 +10,4 @@ python-dotenv
 python-docx
 Pillow
 rich
+django-q

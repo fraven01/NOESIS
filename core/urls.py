@@ -131,6 +131,11 @@ urlpatterns = [
         name="anlage2_feature_verify",
     ),
     path(
+        "ajax/task-status/<str:task_id>/",
+        views.ajax_check_task_status,
+        name="ajax_check_task_status",
+    ),
+    path(
         "ajax/save-review-item/",
         views.ajax_save_anlage2_review_item,
         name="ajax_save_review_item",

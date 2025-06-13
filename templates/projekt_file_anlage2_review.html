@@ -97,30 +97,50 @@ document.getElementById('reset-fields').addEventListener('click', () => {
 
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 const verifyUrl = '{% url "anlage2_feature_verify" anlage.pk %}';
+const statusUrlTemplate = '{% url "ajax_check_task_status" "dummy" %}';
+function startLoading(btn){btn.dataset.origText=btn.textContent;btn.textContent='⏳';}
+function stopLoading(btn){if(btn.dataset.origText){btn.textContent=btn.dataset.origText;}}
 
 function triggerVerify(button){
     const fd=new FormData();
-    if(button.dataset.functionId){fd.append('function',button.dataset.functionId);} 
-    if(button.dataset.subId){fd.append('subquestion',button.dataset.subId);} 
+    if(button.dataset.functionId){fd.append('function',button.dataset.functionId);}
+    if(button.dataset.subId){fd.append('subquestion',button.dataset.subId);}
+    startLoading(button);
     return fetch(verifyUrl,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd})
-        .then(resp=>{
-            if(!resp.ok){alert('Fehler bei der Prüfung');throw new Error('verify');}
-            return resp.json();
-        })
+        .then(resp=>resp.ok?resp.json():Promise.reject())
         .then(data=>{
-            console.log(data);
-            const row=button.closest('tr');
-            if(!row) return data;
-            const newStatus=data.technisch_verfuegbar;
-            const statusRadios=row.querySelectorAll('input[type="radio"][name*="-status"]');
-            statusRadios.forEach(radio=>{
-                if(radio.value===String(newStatus)){
-                    radio.checked=true;
-                }
+            const taskId=data.task_id;
+            return new Promise((resolve,reject)=>{
+                const intervalId=setInterval(()=>checkStatus(taskId,intervalId,button,resolve,reject),3000);
             });
-            return data;
         })
-        .catch(()=>null);
+        .catch(()=>{stopLoading(button);alert('Fehler bei der Prüfung');});
+}
+
+function checkStatus(taskId,intervalId,button,resolve,reject){
+    fetch(statusUrlTemplate.replace('dummy',taskId))
+        .then(r=>r.ok?r.json():Promise.reject())
+        .then(data=>{
+            if(data.status==='SUCCESS'){
+                clearInterval(intervalId);
+                updateRow(button,data.result.technisch_verfuegbar);
+                stopLoading(button);
+                resolve(data.result);
+            }else if(data.status==='FAIL'){
+                clearInterval(intervalId);
+                stopLoading(button);
+                alert('Fehler bei der Prüfung');
+                reject();
+            }
+        })
+        .catch(()=>{clearInterval(intervalId);stopLoading(button);reject();});
+}
+
+function updateRow(button,newStatus){
+    const row=button.closest('tr');
+    if(!row) return;
+    const statusRadios=row.querySelectorAll('input[type="radio"][name*="-status"]');
+    statusRadios.forEach(radio=>{if(radio.value===String(newStatus)){radio.checked=true;}});
 }
 
 document.querySelectorAll('.verify-btn').forEach(btn=>{
@@ -176,7 +196,7 @@ document.getElementById('verify-all').addEventListener('click',async()=>{
     const funcBtns=Array.from(document.querySelectorAll('.verify-btn[data-function-id]'));
     for(const fb of funcBtns){
         const result=await triggerVerify(fb);
-        if(result&&result.technisch_vorhanden===true){
+        if(result&&result.technisch_verfuegbar===true){
             const subs=Array.from(document.querySelectorAll(`.verify-btn[data-parent='${fb.dataset.functionId}']`));
             for(const sb of subs){await triggerVerify(sb);}
         }
