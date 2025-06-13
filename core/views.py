@@ -29,6 +29,7 @@ from .forms import (
     Anlage2FunctionImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
+    Anlage2ConfigForm,
 )
 from .models import (
     Recording,
@@ -213,7 +214,9 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                     debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
                     if isinstance(alt_val, dict) and "value" in alt_val:
                         alt_val = alt_val["value"]
-                        debug_logger.debug("Alternativfeld %s normalisiert: %r", alt, alt_val)
+                        debug_logger.debug(
+                            "Alternativfeld %s normalisiert: %r", alt, alt_val
+                        )
                     val = alt_val
             if isinstance(val, bool):
                 entry[field] = val
@@ -235,7 +238,9 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             s_entry: dict[str, object] = {}
             for field, _ in get_anlage2_fields():
                 s_val = match.get(field)
-                debug_logger.debug("Subfrage %s Feld %s: %r", sub.frage_text, field, s_val)
+                debug_logger.debug(
+                    "Subfrage %s Feld %s: %r", sub.frage_text, field, s_val
+                )
                 if isinstance(s_val, dict) and "value" in s_val:
                     s_val = s_val["value"]
                     debug_logger.debug("Subfeld %s normalisiert: %r", field, s_val)
@@ -246,11 +251,15 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                         debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
                         if isinstance(alt_val, dict) and "value" in alt_val:
                             alt_val = alt_val["value"]
-                            debug_logger.debug("Alternativfeld %s normalisiert: %r", alt, alt_val)
+                            debug_logger.debug(
+                                "Alternativfeld %s normalisiert: %r", alt, alt_val
+                            )
                         s_val = alt_val
                 if isinstance(s_val, bool):
                     s_entry[field] = s_val
-                    debug_logger.debug("Gesetzter Subwert f\u00fcr %s: %r", field, s_val)
+                    debug_logger.debug(
+                        "Gesetzter Subwert f\u00fcr %s: %r", field, s_val
+                    )
             if s_entry:
                 sub_map[str(sub.id)] = s_entry
         if sub_map:
@@ -280,10 +289,15 @@ def _verification_to_initial(data: dict | None) -> dict:
             sub_id = sub_map.get((func_name, sub_text))
             if not func_id or not sub_id:
                 continue
-            entry = initial["functions"].setdefault(func_id, {}).setdefault(
-                "subquestions",
-                {},
-            ).setdefault(sub_id, {})
+            entry = (
+                initial["functions"]
+                .setdefault(func_id, {})
+                .setdefault(
+                    "subquestions",
+                    {},
+                )
+                .setdefault(sub_id, {})
+            )
         else:
             func_id = name_map.get(key)
             if not func_id:
@@ -844,10 +858,16 @@ def admin_projects(request):
                     projects_to_delete = BVProject.objects.filter(id__in=selected_ids)
                     count = projects_to_delete.count()
                     projects_to_delete.delete()
-                    messages.success(request, f"{count} Projekt(e) erfolgreich gelöscht.")
+                    messages.success(
+                        request, f"{count} Projekt(e) erfolgreich gelöscht."
+                    )
                 except Exception as e:
-                    messages.error(request, "Ein Fehler ist beim Löschen der Projekte aufgetreten.")
-                    logger.error(f"Error deleting multiple projects: {e}", exc_info=True)
+                    messages.error(
+                        request, "Ein Fehler ist beim Löschen der Projekte aufgetreten."
+                    )
+                    logger.error(
+                        f"Error deleting multiple projects: {e}", exc_info=True
+                    )
 
         # Fall 2: Ein individueller Löschknopf wurde gedrückt
         elif "delete_single" in request.POST:
@@ -856,12 +876,22 @@ def admin_projects(request):
                 project = BVProject.objects.get(id=project_id_to_delete)
                 project_title = project.title
                 project.delete()
-                messages.success(request, f"Projekt '{project_title}' wurde erfolgreich gelöscht.")
+                messages.success(
+                    request, f"Projekt '{project_title}' wurde erfolgreich gelöscht."
+                )
             except BVProject.DoesNotExist:
-                messages.error(request, "Das zu löschende Projekt wurde nicht gefunden.")
+                messages.error(
+                    request, "Das zu löschende Projekt wurde nicht gefunden."
+                )
             except Exception as e:
-                messages.error(request, "Projekt konnte nicht gelöscht werden. Ein unerwarteter Fehler ist aufgetreten.")
-                logger.error(f"Error deleting single project {project_id_to_delete}: {e}", exc_info=True)
+                messages.error(
+                    request,
+                    "Projekt konnte nicht gelöscht werden. Ein unerwarteter Fehler ist aufgetreten.",
+                )
+                logger.error(
+                    f"Error deleting single project {project_id_to_delete}: {e}",
+                    exc_info=True,
+                )
 
         return redirect("admin_projects")
 
@@ -893,7 +923,9 @@ def admin_project_delete(request, pk):
     projekt_title = projekt.title
     try:
         projekt.delete()
-        messages.success(request, f"Projekt '{projekt_title}' wurde erfolgreich gelöscht.")
+        messages.success(
+            request, f"Projekt '{projekt_title}' wurde erfolgreich gelöscht."
+        )
     except Exception as e:
         messages.error(
             request,
@@ -1691,18 +1723,26 @@ def projekt_file_edit_json(request, pk):
 
         def _source(func_id: str, sub_id: str | None, field: str) -> str | None:
             if sub_id is None:
-                if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}):
+                if field in (anlage.manual_analysis_json or {}).get(
+                    "functions", {}
+                ).get(func_id, {}):
                     return "Manuell"
                 if field in verif_init.get("functions", {}).get(func_id, {}):
                     return "KI-Prüfung"
                 if field in analysis_init.get("functions", {}).get(func_id, {}):
                     return "Dokumenten-Analyse"
             else:
-                if field in (anlage.manual_analysis_json or {}).get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                if field in (anlage.manual_analysis_json or {}).get(
+                    "functions", {}
+                ).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
                     return "Manuell"
-                if field in verif_init.get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                if field in verif_init.get("functions", {}).get(func_id, {}).get(
+                    "subquestions", {}
+                ).get(sub_id, {}):
                     return "KI-Prüfung"
-                if field in analysis_init.get("functions", {}).get(func_id, {}).get("subquestions", {}).get(sub_id, {}):
+                if field in analysis_init.get("functions", {}).get(func_id, {}).get(
+                    "subquestions", {}
+                ).get(sub_id, {}):
                     return "Dokumenten-Analyse"
             return None
 
