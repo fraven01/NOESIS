@@ -32,12 +32,9 @@
                 <td class="py-1 text-center">
                     <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded mr-2">Bearbeiten</a>
                     <a href="{% url 'admin_project_cleanup' p.pk %}" class="px-2 py-1 bg-yellow-600 text-white rounded mr-2">Bereinigen</a>
-                    <form action="{% url 'admin_project_delete' p.pk %}" method="post" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
-                    </form>
+                    <button type="submit" name="delete_single" value="{{ p.id }}" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
                 </td>
-                <td class="py-1 text-center"><input type="checkbox" name="delete" value="{{ p.id }}" class="form-checkbox"></td>
+                <td class="py-1 text-center"><input type="checkbox" name="selected_projects" value="{{ p.id }}" class="form-checkbox"></td>
             </tr>
         {% empty %}
             <tr><td colspan="7" class="py-2">Keine Projekte</td></tr>
@@ -46,7 +43,7 @@
     </table>
     {% if projects %}
     <div class="mt-4">
-        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Einträge wirklich löschen?');">Löschen</button>
+        <button type="submit" name="delete_selected" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Einträge wirklich löschen?');">Markierte löschen</button>
     </div>
     {% endif %}
 </form>

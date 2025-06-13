@@ -798,8 +798,35 @@ def admin_projects(request):
     projects = list(BVProject.objects.all().order_by("-created_at"))
 
     if request.method == "POST":
-        ids = request.POST.getlist("delete")
-        BVProject.objects.filter(id__in=ids).delete()
+        # Fall 1: Der globale Knopf zum Löschen markierter Projekte wurde gedrückt
+        if "delete_selected" in request.POST:
+            selected_ids = request.POST.getlist("selected_projects")
+            if not selected_ids:
+                messages.warning(request, "Keine Projekte zum Löschen ausgewählt.")
+            else:
+                try:
+                    projects_to_delete = BVProject.objects.filter(id__in=selected_ids)
+                    count = projects_to_delete.count()
+                    projects_to_delete.delete()
+                    messages.success(request, f"{count} Projekt(e) erfolgreich gelöscht.")
+                except Exception as e:
+                    messages.error(request, "Ein Fehler ist beim Löschen der Projekte aufgetreten.")
+                    logger.error(f"Error deleting multiple projects: {e}", exc_info=True)
+
+        # Fall 2: Ein individueller Löschknopf wurde gedrückt
+        elif "delete_single" in request.POST:
+            project_id_to_delete = request.POST.get("delete_single")
+            try:
+                project = BVProject.objects.get(id=project_id_to_delete)
+                project_title = project.title
+                project.delete()
+                messages.success(request, f"Projekt '{project_title}' wurde erfolgreich gelöscht.")
+            except BVProject.DoesNotExist:
+                messages.error(request, "Das zu löschende Projekt wurde nicht gefunden.")
+            except Exception as e:
+                messages.error(request, "Projekt konnte nicht gelöscht werden. Ein unerwarteter Fehler ist aufgetreten.")
+                logger.error(f"Error deleting single project {project_id_to_delete}: {e}", exc_info=True)
+
         return redirect("admin_projects")
 
     context = {"projects": projects}
