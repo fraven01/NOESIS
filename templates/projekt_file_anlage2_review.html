@@ -48,7 +48,11 @@
                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">🤖</button>
                         <ul class="dropdown-menu">
                             <li><button type="button" class="dropdown-item verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>KI-Prüfung starten</button></li>
-                            <li><button type="button" class="dropdown-item">Begründung bearbeiten</button></li>
+                            {% if row.ki_begruendung %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'edit_ki_justification' anlage.pk row.verif_key %}">Begründung bearbeiten</a>
+                            </li>
+                            {% endif %}
                         </ul>
                     </div>
                 </td>
