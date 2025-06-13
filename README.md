@@ -15,6 +15,7 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    # Für Entwicklungs- und Testwerkzeuge:
    pip install -r requirements-dev.txt
    ```
+   Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 
 ## Tests und Checks
 
@@ -41,7 +42,7 @@ lässt sich prüfen, ob alle Migrationen angewendet wurden.
 
 ## Hintergrund-Tasks
 
-Für langlaufende Aktionen nutzt die Anwendung **Django‑Q**. Neben dem
+Für langlaufende Aktionen nutzt die Anwendung **Django‑Q2**. Neben dem
 ``runserver``-Prozess muss deshalb ein weiterer Worker laufen:
 
 ```bash
