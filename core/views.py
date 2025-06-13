@@ -30,6 +30,7 @@ from .forms import (
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
+    EditJustificationForm,
 )
 from .models import (
     Recording,
@@ -1829,6 +1830,7 @@ def projekt_file_edit_json(request, pk):
                     "form_fields": f_fields,
                     "sub": False,
                     "func_id": func.id,
+                    "verif_key": func.name,
                     "source_text": row_source,
                     "ki_begruendung": ki_map.get((str(func.id), None)),
                 }
@@ -1881,6 +1883,7 @@ def projekt_file_edit_json(request, pk):
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
+                        "verif_key": lookup_key,
                         "source_text": row_source,
                         "ki_begruendung": ki_map.get((str(func.id), str(sub.id))),
                     }
@@ -2202,6 +2205,30 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
     )
 
     return JsonResponse({"status": "success"})
+
+
+@login_required
+def edit_ki_justification(request, pk, function_key):
+    """Bearbeitet die KI-Begründung einer Funktion."""
+
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    data = anlage.verification_json or {}
+    item = data.get(function_key) or {}
+    if request.method == "POST":
+        form = EditJustificationForm(request.POST)
+        if form.is_valid():
+            item = item if isinstance(item, dict) else {}
+            item["ki_begruendung"] = form.cleaned_data["justification"]
+            data[function_key] = item
+            anlage.verification_json = data
+            anlage.save(update_fields=["verification_json"])
+            messages.success(request, "Begründung gespeichert")
+            return redirect("projekt_file_edit_json", pk=anlage.pk)
+    else:
+        form = EditJustificationForm(initial={"justification": item.get("ki_begruendung", "")})
+
+    context = {"form": form, "anlage": anlage, "function_key": function_key}
+    return render(request, "edit_justification.html", context)
 
 
 @login_required

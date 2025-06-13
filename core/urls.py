@@ -161,6 +161,11 @@ urlpatterns = [
         name="projekt_file_edit_json",
     ),
     path(
+        "work/anlage/<int:pk>/edit-justification/<str:function_key>/",
+        views.edit_ki_justification,
+        name="edit_ki_justification",
+    ),
+    path(
         "work/anlage/<int:pk>/email/",
         views.anlage1_generate_email,
         name="anlage1_generate_email",

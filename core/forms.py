@@ -415,3 +415,13 @@ class Anlage2ConfigForm(forms.ModelForm):
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
+
+
+class EditJustificationForm(forms.Form):
+    """Formular zum Bearbeiten einer KI-Begründung."""
+
+    justification = forms.CharField(
+        label="Begründung",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 4}),
+    )

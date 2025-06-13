@@ -2162,6 +2162,26 @@ class FeatureVerificationTests(TestCase):
         self.assertEqual(result["ki_begruendung"], "")
 
 
+class EditJustificationViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("editor", password="pass")
+        self.client.login(username="editor", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="X", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            verification_json={"Login": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}},
+        )
+
+    def test_post_updates_justification(self):
+        url = reverse("edit_ki_justification", args=[self.file.pk, "Login"])
+        resp = self.client.post(url, {"justification": "Neu"})
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.verification_json["Login"]["ki_begruendung"], "Neu")
+
+
 
 
 
