@@ -69,15 +69,15 @@ class AdminProjectsTests(TestCase):
 
     def test_delete_selected_projects(self):
         url = reverse("admin_projects")
-        resp = self.client.post(url, {"delete": [self.p1.id]})
+        resp = self.client.post(url, {"delete_selected": "1", "selected_projects": [self.p1.id]})
         self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p1.id).exists())
         self.assertTrue(BVProject.objects.filter(id=self.p2.id).exists())
 
     def test_delete_single_project(self):
-        url = reverse("admin_project_delete", args=[self.p2.id])
-        resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("admin_projects"))
+        url = reverse("admin_projects")
+        resp = self.client.post(url, {"delete_single": str(self.p2.id)})
+        self.assertRedirects(resp, url)
         self.assertFalse(BVProject.objects.filter(id=self.p2.id).exists())
 
     def test_delete_single_requires_post(self):
