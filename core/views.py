@@ -1062,46 +1062,34 @@ def anlage2_function_form(request, pk=None):
     funktion = get_object_or_404(Anlage2Function, pk=pk) if pk else None
     form = Anlage2FunctionForm(request.POST or None, instance=funktion)
 
-    categories = [
-        ("name_aliases", "Name Aliase"),
-    ]
-
-    formsets: dict[str, PhraseFormSet] = {}
+    formset: PhraseFormSet | None = None
     data = funktion.detection_phrases if funktion else {}
 
     if request.method == "POST":
-        for key, _ in categories:
-            formsets[key] = PhraseFormSet(request.POST, prefix=key)
-        if form.is_valid() and all(fs.is_valid() for fs in formsets.values()):
+        formset = PhraseFormSet(request.POST, prefix="name_aliases")
+        if form.is_valid() and formset.is_valid():
             funktion = form.save(commit=False)
-            new_json_data: dict[str, list[str]] = {}
-            for key, _ in categories:
-                phrases: list[str] = []
-                for row in formsets[key].cleaned_data:
-                    if row.get("DELETE"):
-                        continue
-                    val = row.get("phrase", "").strip()
-                    if val:
-                        phrases.append(val)
-                new_json_data[key] = phrases
-            funktion.detection_phrases = new_json_data
+            phrases = [
+                row.get("phrase", "").strip()
+                for row in formset.cleaned_data
+                if row.get("phrase") and not row.get("DELETE")
+            ]
+            funktion.detection_phrases = {"name_aliases": phrases}
             funktion.save()
             return redirect("anlage2_function_edit", funktion.pk)
     else:
-        for key, _ in categories:
-            raw = data.get(key, [])
-            if isinstance(raw, str):
-                raw = [raw]
-            initial = [{"phrase": p} for p in raw]
-            formsets[key] = PhraseFormSet(prefix=key, initial=initial)
+        raw = data.get("name_aliases", [])
+        if isinstance(raw, str):
+            raw = [raw]
+        initial = [{"phrase": p} for p in raw]
+        formset = PhraseFormSet(prefix="name_aliases", initial=initial)
 
     subquestions = list(funktion.anlage2subquestion_set.all()) if funktion else []
-    sections = [(k, label, formsets[k]) for k, label in categories]
     context = {
         "form": form,
         "funktion": funktion,
         "subquestions": subquestions,
-        "sections": sections,
+        "formset": formset,
     }
     return render(request, "anlage2/function_form.html", context)
 
