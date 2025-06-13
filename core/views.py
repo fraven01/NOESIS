@@ -43,6 +43,7 @@ from .models import (
     Anlage2Config,
     Anlage2ColumnHeading,
     Anlage2GlobalPhrase,
+    Anlage2FunctionResult,
     Tile,
     Area,
 )
@@ -1982,6 +1983,43 @@ def anlage2_feature_verify(request, pk):
     anlage.save(update_fields=["verification_json"])
 
     return JsonResponse({"technisch_vorhanden": result.get("technisch_verfuegbar")})
+
+
+@login_required
+@require_http_methods(["POST"])
+def ajax_save_anlage2_review_item(request) -> JsonResponse:
+    """Speichert eine einzelne Bewertung aus Anlage 2."""
+    try:
+        payload = json.loads(request.body.decode())
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    pf_id = payload.get("project_file_id")
+    func_id = payload.get("function_id")
+    sub_id = payload.get("subquestion_id")
+    status = payload.get("status")
+    notes = payload.get("notes")
+
+    if pf_id is None or func_id is None:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    anlage = get_object_or_404(BVProjectFile, pk=pf_id)
+    if anlage.anlage_nr != 2:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    funktion = get_object_or_404(Anlage2Function, pk=func_id)
+
+    Anlage2FunctionResult.objects.update_or_create(
+        projekt=anlage.projekt,
+        funktion=funktion,
+        defaults={
+            "technisch_verfuegbar": None if status is None else bool(status),
+            "raw_json": {"notes": notes},
+            "source": "manual",
+        },
+    )
+
+    return JsonResponse({"status": "success"})
 
 
 @login_required
