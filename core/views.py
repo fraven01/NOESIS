@@ -12,7 +12,7 @@ import subprocess
 import whisper
 import torch
 import json
-from django_q.tasks import async_task, fetch, result, status, Task
+from django_q.tasks import async_task, fetch, result, Task
 
 from .forms import (
     RecordingForm,
@@ -1982,10 +1982,8 @@ def ajax_check_task_status(request, task_id: str) -> JsonResponse:
     if not task:
         return JsonResponse({"status": "UNKNOWN", "result": None})
 
-    task_status_str = status(task_id)
-    task_result = None
-    if task_status_str == Task.SUCCESS:
-        task_result = result(task_id)
+    task_status_str = "SUCCESS" if task.success else "FAIL"
+    task_result = result(task_id) if task.success else None
 
     return JsonResponse({"status": task_status_str, "result": task_result})
 
