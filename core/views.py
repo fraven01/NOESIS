@@ -12,7 +12,7 @@ import subprocess
 import whisper
 import torch
 import json
-from django_q.tasks import async_task, fetch, result
+from django_q.tasks import async_task, fetch, result, status, Task
 
 from .forms import (
     RecordingForm,
@@ -1977,10 +1977,17 @@ def anlage2_feature_verify(request, pk):
 
 @login_required
 def ajax_check_task_status(request, task_id: str) -> JsonResponse:
-    """Gibt den Status eines Hintergrund-Tasks zur\u00fcck."""
+    """Prüft den Status eines Django-Q-Tasks und gibt ihn als JSON zurück."""
     task = fetch(task_id)
-    task_status = task.status if task else "unknown"
-    return JsonResponse({"status": task_status, "result": result(task_id)})
+    if not task:
+        return JsonResponse({"status": "UNKNOWN", "result": None})
+
+    task_status_str = status(task_id)
+    task_result = None
+    if task_status_str == Task.SUCCESS:
+        task_result = result(task_id)
+
+    return JsonResponse({"status": task_status_str, "result": task_result})
 
 
 @login_required
