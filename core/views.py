@@ -1683,6 +1683,32 @@ def projekt_file_edit_json(request, pk):
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             verif_init = _verification_to_initial(anlage.verification_json)
+            verif_raw = anlage.verification_json or {}
+
+            name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
+            sub_map = {
+                (s.funktion.name, s.frage_text): str(s.id)
+                for s in Anlage2SubQuestion.objects.select_related("funktion")
+            }
+            ki_map: dict[tuple[str, str | None], str] = {}
+            if isinstance(verif_raw, dict):
+                for key, val in verif_raw.items():
+                    if not isinstance(val, dict):
+                        continue
+                    begr = val.get("ki_begruendung")
+                    if not begr:
+                        continue
+                    if ": " in key:
+                        func_name, sub_text = key.split(": ", 1)
+                        fid = name_map.get(func_name)
+                        sid = sub_map.get((func_name, sub_text))
+                        if fid:
+                            ki_map[(fid, sid)] = begr
+                    else:
+                        fid = name_map.get(key)
+                        if fid:
+                            ki_map[(fid, None)] = begr
+
             manual_results = {
                 str(r.funktion_id): r
                 for r in Anlage2FunctionResult.objects.filter(
@@ -1804,6 +1830,7 @@ def projekt_file_edit_json(request, pk):
                     "sub": False,
                     "func_id": func.id,
                     "source_text": row_source,
+                    "ki_begruendung": ki_map.get((str(func.id), None)),
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -1848,13 +1875,14 @@ def projekt_file_edit_json(request, pk):
                         "name": sub.frage_text,
                         "analysis": s_analysis,
                         "initial": init["functions"].get(str(func.id), {})
-                        .get("subquestions", {})
-                        .get(str(sub.id), {}),
+                            .get("subquestions", {})
+                            .get(str(sub.id), {}),
                         "form_fields": s_fields,
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
                         "source_text": row_source,
+                        "ki_begruendung": ki_map.get((str(func.id), str(sub.id))),
                     }
                 )
         debug_logger.debug(
