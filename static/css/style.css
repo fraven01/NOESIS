@@ -29,3 +29,8 @@
 .collapse:not(.show) {
     display: none;
 }
+
+/* Neue Klasse für ein- und ausblendbare Zeilen */
+.hidden-row {
+    display: none;
+}
