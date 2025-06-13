@@ -1,4 +1,6 @@
 from pathlib import Path
+
+import markdown
 from django import template
 from django.utils.safestring import mark_safe
 
@@ -34,3 +36,12 @@ def raw_item(data, key):
     if isinstance(data, dict):
         return data.get(key)
     return None
+
+
+@register.filter
+def markdownify(text: str) -> str:
+    """Wandelt Markdown-Text in sicheres HTML um."""
+    if not text:
+        return ""
+    html = markdown.markdown(text)
+    return mark_safe(html)
