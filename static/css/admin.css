@@ -4,3 +4,29 @@
 .admin-content { @apply flex-1 p-4; }
 .admin-search input { @apply w-full border rounded px-2 py-1 mb-4; }
 .admin-nav a { @apply block py-1 text-blue-700 hover:underline; }
+
+/* Status Badges für Projektübersicht */
+.status-badge-new {
+    background-color: #0d6efd;
+    color: white;
+}
+.status-badge-classified {
+    background-color: #0d6efd;
+    color: white;
+}
+.status-badge-in_pruefung_anlage_x,
+.status-badge-fb_in_pruefung {
+    background-color: #ffc107;
+    color: black;
+}
+.status-badge-gutachten_ok,
+.status-badge-gutachten_freigegeben,
+.status-badge-endgeprueft {
+    background-color: #198754;
+    color: white;
+}
+.status-badge-error {
+    background-color: #dc3545;
+    color: white;
+}
+
