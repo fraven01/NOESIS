@@ -14,6 +14,7 @@ from .models import (
     BVProject,
     BVProjectFile,
     Prompt,
+    LLMConfig,
     Anlage1Config,
     Anlage1Question,
     Anlage2Function,
@@ -335,6 +336,21 @@ def generate_gutachten(
     projekt.status = BVProject.STATUS_GUTACHTEN_OK
     projekt.save(update_fields=["gutachten_file", "status"])
     return path
+
+
+def worker_generate_gutachten(project_id: int) -> str:
+    """Erzeugt im Hintergrund ein Gutachten."""
+    projekt = BVProject.objects.get(pk=project_id)
+    prefix = get_prompt(
+        "generate_gutachten",
+        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
+    )
+    model = LLMConfig.get_default("gutachten")
+    text = query_llm(
+        prefix + projekt.software_typen, model_name=model, model_type="gutachten"
+    )
+    path = generate_gutachten(projekt.id, text, model_name=model)
+    return str(path)
 
 
 def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:

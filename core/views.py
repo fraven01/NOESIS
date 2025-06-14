@@ -6,7 +6,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 import os
 import subprocess
 import whisper
@@ -2240,43 +2240,16 @@ def projekt_management_summary(request, pk):
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
 
 
+
 @login_required
-def projekt_gutachten(request, pk):
-    """Erstellt ein Gutachten für das Projekt."""
-    projekt = BVProject.objects.get(pk=pk)
-
-    prefix = get_prompt(
-        "generate_gutachten",
-        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
+@require_POST
+def ajax_start_gutachten_generation(request, project_id):
+    """Startet die Gutachten-Erstellung als Hintergrund-Task."""
+    task_id = async_task(
+        "core.llm_tasks.worker_generate_gutachten",
+        project_id,
     )
-    default_prompt = prefix + projekt.software_typen
-    prompt = default_prompt
-    cfg_model = LLMConfig.get_default("gutachten")
-    category = request.POST.get("model_category")
-    model = LLMConfig.get_default(category) if category else cfg_model
-
-    if request.method == "POST":
-        prompt = request.POST.get("prompt", default_prompt)
-        category = request.POST.get("model_category")
-        model = LLMConfig.get_default(category) if category else None
-        try:
-            text = query_llm(prompt, model_name=model, model_type="gutachten")
-            generate_gutachten(projekt.pk, text, model_name=model)
-            messages.success(request, "Gutachten erstellt")
-            return redirect("projekt_detail", pk=projekt.pk)
-        except RuntimeError:
-            messages.error(request, "Missing LLM credentials from environment.")
-        except Exception:
-            logger.exception("LLM Fehler")
-            messages.error(request, "LLM-Fehler bei der Erstellung des Gutachtens.")
-
-    context = {
-        "projekt": projekt,
-        "prompt": prompt,
-        "category": category or "gutachten",
-        "categories": LLMConfig.get_categories(),
-    }
-    return render(request, "projekt_gutachten_form.html", context)
+    return JsonResponse({"status": "queued", "task_id": task_id})
 
 
 @login_required
