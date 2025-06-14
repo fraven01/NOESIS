@@ -45,6 +45,7 @@ from .llm_tasks import (
     analyse_anlage2,
     check_anlage2_functions,
     worker_verify_feature,
+    worker_generate_gutachten,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
@@ -1339,10 +1340,8 @@ class Anlage2ReviewTests(TestCase):
         self.assertTrue(resp.context["form"].initial[field])
 
 
-class ProjektGutachtenViewTests(TestCase):
+class WorkerGenerateGutachtenTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("guser", password="pass")
-        self.client.login(username="guser", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=self.projekt,
@@ -1351,15 +1350,13 @@ class ProjektGutachtenViewTests(TestCase):
             text_content="Text",
         )
 
-    def test_gutachten_view_creates_file(self):
-        url = reverse("projekt_gutachten", args=[self.projekt.pk])
-        with patch("core.views.query_llm", return_value="Gutachtentext"):
-            resp = self.client.post(url, {"prompt": "foo"})
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+    def test_worker_creates_file(self):
+        with patch("core.llm_tasks.query_llm", return_value="Text"):
+            path = worker_generate_gutachten(self.projekt.pk)
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
         self.assertEqual(self.projekt.status, BVProject.STATUS_GUTACHTEN_OK)
-        Path(self.projekt.gutachten_file.path).unlink(missing_ok=True)
+        Path(path).unlink(missing_ok=True)
 
 
 class GutachtenEditDeleteTests(TestCase):
@@ -1924,11 +1921,6 @@ class ModelSelectionTests(TestCase):
             reverse("projekt_file_edit_json", args=[self.projekt.anlagen.first().pk]),
         )
 
-        gutachten_url = reverse("projekt_gutachten", args=[self.projekt.pk])
-        resp = self.client.get(gutachten_url)
-        self.assertContains(resp, "Standard")
-        self.assertContains(resp, "Gutachten")
-        self.assertContains(resp, "Anlagen")
 
     def test_functions_check_uses_model(self):
         url = reverse("projekt_functions_check", args=[self.projekt.pk])

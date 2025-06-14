@@ -32,7 +32,8 @@
             <button type="submit" class="text-red-700 underline">Löschen</button>
         </form>
     {% else %}
-        <a href="{% url 'projekt_gutachten' projekt.pk %}" class="text-blue-700 underline">Gutachten erstellen</a>
+        <button id="btn-generate-gutachten" class="text-blue-700 underline">Gutachten erstellen</button>
+        <span id="gutachten-status" class="ml-2"></span>
     {% endif %}
 </p>
 <p class="mb-4">
@@ -164,5 +165,34 @@ function sendCheck(payload){
 }
 
 document.addEventListener('DOMContentLoaded',loadLLM);
+
+document.addEventListener('DOMContentLoaded',function(){
+ const btn=document.getElementById('btn-generate-gutachten');
+ const status=document.getElementById('gutachten-status');
+ if(!btn) return;
+ btn.addEventListener('click',function(){
+  btn.disabled=true;
+  status.textContent='Gutachten wird erstellt... ⏳';
+  fetch('{% url "ajax_start_gutachten_generation" projekt.pk %}',{
+    method:'POST',
+    headers:{'X-CSRFToken':getCookie('csrftoken')}
+  }).then(r=>r.json()).then(data=>{
+    const tid=data.task_id;
+    const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+    const iv=setInterval(()=>{
+      fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+        if(d.status==='SUCCESS'){
+          clearInterval(iv);
+          location.reload();
+        }else if(d.status==='FAIL'){
+          clearInterval(iv);
+          status.textContent='Fehler bei der Erstellung';
+          btn.disabled=false;
+        }
+      });
+    },3000);
+  }).catch(()=>{status.textContent='Fehler beim Start';btn.disabled=false;});
+ });
+});
 </script>
 {% endblock %}

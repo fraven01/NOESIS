@@ -146,6 +146,11 @@ urlpatterns = [
         name="ajax_save_review_item",
     ),
     path(
+        "ajax/start-gutachten/<int:project_id>/",
+        views.ajax_start_gutachten_generation,
+        name="ajax_start_gutachten_generation",
+    ),
+    path(
         "work/projekte/<int:pk>/anlage/<int:nr>/check/",
         views.projekt_file_check,
         name="projekt_file_check",
@@ -179,11 +184,6 @@ urlpatterns = [
         "work/projekte/<int:pk>/summary/",
         views.projekt_management_summary,
         name="projekt_management_summary",
-    ),
-    path(
-        "work/projekte/<int:pk>/gutachten/",
-        views.projekt_gutachten,
-        name="projekt_gutachten",
     ),
     path(
         "work/projekte/<int:pk>/gutachten/view/",
