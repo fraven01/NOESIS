@@ -26,7 +26,7 @@
     {% if projekt.gutachten_file %}
         <a href="{% url 'gutachten_view' projekt.pk %}" class="text-blue-700 underline">Gutachten anzeigen</a> |
         <a href="{% url 'gutachten_edit' projekt.pk %}" class="text-blue-700 underline">Bearbeiten</a> |
-        <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
+        <a href="{% url 'gutachten_download' projekt.pk %}" class="text-blue-700 underline">Download</a>
         <form method="post" action="{% url 'gutachten_delete' projekt.pk %}" class="inline-block ml-2">
             {% csrf_token %}
             <button type="submit" class="text-red-700 underline">Löschen</button>

@@ -11,3 +11,4 @@ python-docx
 Pillow
 rich
 django-q2>=1.8.0
+pypandoc

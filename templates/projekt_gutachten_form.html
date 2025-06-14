@@ -18,7 +18,7 @@
 </form>
 {% if projekt.gutachten_file %}
 <p class="mt-4">
-    <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Gutachten herunterladen</a>
+    <a href="{% url 'gutachten_download' projekt.pk %}" class="text-blue-700 underline">Gutachten herunterladen</a>
 </p>
 {% endif %}
 {% endblock %}
