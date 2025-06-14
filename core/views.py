@@ -1857,7 +1857,9 @@ def projekt_file_edit_json(request, pk):
                     s_fields.append(
                         {
                             "widget": form[f"sub{sub.id}_{field}"],
-                        "source_text": source_map.get((str(func.id), str(sub.id), field)),
+                            "source_text": source_map.get(
+                                (str(func.id), str(sub.id), field)
+                            ),
                         }
                     )
                 s_analysis = {}
@@ -1887,14 +1889,17 @@ def projekt_file_edit_json(request, pk):
                             s_analysis = match
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
-                row_source = source_map.get((str(func.id), str(sub.id), "technisch_vorhanden"))
+                row_source = source_map.get(
+                    (str(func.id), str(sub.id), "technisch_vorhanden")
+                )
                 rows.append(
                     {
                         "name": sub.frage_text,
                         "analysis": s_analysis,
-                        "initial": init["functions"].get(str(func.id), {})
-                            .get("subquestions", {})
-                            .get(str(sub.id), {}),
+                        "initial": init["functions"]
+                        .get(str(func.id), {})
+                        .get("subquestions", {})
+                        .get(str(sub.id), {}),
                         "form_fields": s_fields,
                         "sub": True,
                         "func_id": func.id,
@@ -2223,7 +2228,6 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
     return JsonResponse({"status": "success"})
 
 
-
 @login_required
 def projekt_gap_analysis(request, pk):
     """Stellt die Gap-Analyse als Download bereit."""
@@ -2240,14 +2244,12 @@ def projekt_management_summary(request, pk):
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
 
 
-
 @login_required
 @require_POST
 def ajax_start_gutachten_generation(request, project_id):
     """Startet die Gutachten-Erstellung als Hintergrund-Task."""
     task_id = async_task(
-        "core.llm_tasks.worker_generate_gutachten",
-        project_id,
+        "core.llm_tasks.worker_generate_gutachten", project_id, timeout=600
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
 

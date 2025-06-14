@@ -46,9 +46,11 @@ def markdownify(text: str) -> str:
 
     # Aktivierte Markdown-Erweiterungen
     extensions = [
-        "extra",      # Tabellen, Code-Blöcke und mehr
-        "admonition", # Hinweis-Boxen mit !!! note
-        "toc",        # Inhaltsverzeichnis per [TOC]
+        "extra",  # Tabellen, Code-Blöcke und mehr
+        "admonition",  # Hinweis-Boxen mit !!! note
+        "toc",  # Inhaltsverzeichnis per [TOC]
+        "tables",  # Tabellenunterstützung
+        "codehilite",  # Syntaxhervorhebung für Codeblöcke
     ]
 
     html = markdown.markdown(text, extensions=extensions)
