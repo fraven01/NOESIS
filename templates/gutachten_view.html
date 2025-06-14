@@ -7,7 +7,7 @@
 <p class="mt-4">
     <a href="{% url 'gutachten_edit' projekt.pk %}" class="text-blue-700 underline">Bearbeiten</a>
     |
-    <a href="{{ projekt.gutachten_file.url }}" class="text-blue-700 underline">Download</a>
+    <a href="{% url 'gutachten_download' projekt.pk %}" class="text-blue-700 underline">Download</a>
 </p>
 {% if projekt.gutachten_function_note %}
 <div class="mt-4">

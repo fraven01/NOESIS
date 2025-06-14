@@ -1,7 +1,11 @@
 from pathlib import Path
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest, Http404, HttpResponse
+from django.http import (
+    HttpResponseBadRequest,
+    Http404,
+    HttpResponse,
+)
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
@@ -80,6 +84,7 @@ import copy
 import time
 
 import markdown
+import pypandoc
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -2271,6 +2276,46 @@ def gutachten_view(request, pk):
         "category": "gutachten",
     }
     return render(request, "gutachten_view.html", context)
+
+
+@login_required
+def gutachten_download(request, pk):
+    """Stellt das Gutachten als formatiertes DOCX bereit."""
+    projekt = BVProject.objects.get(pk=pk)
+    if not projekt.gutachten_file:
+        raise Http404
+
+    path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+    if not path.exists():
+        raise Http404
+
+    markdown_text = extract_text(path)
+    extensions = ["extra", "admonition", "toc"]
+    html_content = markdown.markdown(markdown_text, extensions=extensions)
+
+    try:
+        docx_output = pypandoc.convert_text(
+            html_content,
+            "docx",
+            format="html",
+            outputfile=None,
+        )
+
+        response = HttpResponse(
+            docx_output,
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        response[
+            "Content-Disposition"
+        ] = f'attachment; filename="Gutachten_{projekt.title}.docx"'
+        return response
+    except (IOError, OSError) as e:
+        logger.error(f"Pandoc-Fehler beim Erstellen des Gutachtens: {e}")
+        messages.error(
+            request,
+            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server installiert?",
+        )
+        return redirect("projekt_detail", pk=projekt.pk)
 
 
 @login_required
