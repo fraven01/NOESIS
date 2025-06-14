@@ -1,4 +1,6 @@
 from pathlib import Path
+import tempfile
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import (
@@ -11,7 +13,6 @@ from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
-import os
 import subprocess
 import whisper
 import torch
@@ -2281,7 +2282,7 @@ def gutachten_view(request, pk):
 @login_required
 def gutachten_download(request, pk):
     """Stellt das Gutachten als formatiertes DOCX bereit."""
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     if not projekt.gutachten_file:
         raise Http404
 
@@ -2290,32 +2291,42 @@ def gutachten_download(request, pk):
         raise Http404
 
     markdown_text = extract_text(path)
-    extensions = ["extra", "admonition", "toc"]
-    html_content = markdown.markdown(markdown_text, extensions=extensions)
+    temp_file_path = os.path.join(tempfile.gettempdir(), f"gutachten_{pk}.docx")
 
     try:
-        docx_output = pypandoc.convert_text(
+        extensions = ["extra", "admonition", "toc"]
+        html_content = markdown.markdown(markdown_text, extensions=extensions)
+
+        pypandoc.convert_text(
             html_content,
             "docx",
             format="html",
-            outputfile=None,
+            outputfile=temp_file_path,
         )
 
-        response = HttpResponse(
-            docx_output,
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
-        response[
-            "Content-Disposition"
-        ] = f'attachment; filename="Gutachten_{projekt.title}.docx"'
-        return response
+        with open(temp_file_path, "rb") as docx_file:
+            response = HttpResponse(
+                docx_file.read(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            response[
+                "Content-Disposition"
+            ] = f'attachment; filename="Gutachten_{projekt.title}.docx"'
+            return response
+
     except (IOError, OSError) as e:
-        logger.error(f"Pandoc-Fehler beim Erstellen des Gutachtens: {e}")
+        logger.error(
+            f"Pandoc-Fehler beim Erstellen des Gutachtens f\u00fcr Projekt {projekt.id}: {e}"
+        )
         messages.error(
             request,
-            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server installiert?",
+            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
         )
         return redirect("projekt_detail", pk=projekt.pk)
+
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 
 @login_required
