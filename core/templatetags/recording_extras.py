@@ -43,5 +43,13 @@ def markdownify(text: str) -> str:
     """Wandelt Markdown-Text in sicheres HTML um."""
     if not text:
         return ""
-    html = markdown.markdown(text)
+
+    # Aktivierte Markdown-Erweiterungen
+    extensions = [
+        "extra",      # Tabellen, Code-Blöcke und mehr
+        "admonition", # Hinweis-Boxen mit !!! note
+        "toc",        # Inhaltsverzeichnis per [TOC]
+    ]
+
+    html = markdown.markdown(text, extensions=extensions)
     return mark_safe(html)
