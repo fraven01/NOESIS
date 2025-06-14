@@ -669,11 +669,9 @@ def talkdiary_detail(request, pk):
         if md_path.exists():
             md_text = md_path.read_text(encoding="utf-8")
 
-    html = markdown.markdown(md_text)
-
     context = {
         "recording": rec,
-        "transcript_html": html,
+        "transcript_text": md_text,
     }
     return render(request, "talkdiary_detail.html", context)
 
@@ -2291,10 +2289,9 @@ def gutachten_view(request, pk):
     if not path.exists():
         raise Http404
     text = extract_text(path)
-    html = markdown.markdown(text)
     context = {
         "projekt": projekt,
-        "text_html": html,
+        "text": text,
         "categories": LLMConfig.get_categories(),
         "category": "gutachten",
     }

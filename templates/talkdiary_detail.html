@@ -6,6 +6,6 @@
 <p class="text-sm text-gray-600 mb-4">{{ recording.created_at|date:'d.m.Y H:i' }} - {{ recording.bereich }}</p>
 <audio controls src="{{ recording.audio_file.url }}" class="mb-4 w-full"></audio>
 <div class="prose max-w-none">
-    {{ transcript_html|safe }}
+    {{ transcript_text|markdownify }}
 </div>
 {% endblock %}
