@@ -38,7 +38,7 @@ def raw_item(data, key):
     return None
 
 
-@register.filter
+@register.filter(name="markdownify")
 def markdownify(text: str) -> str:
     """Wandelt Markdown-Text in sicheres HTML um."""
     if not text:
