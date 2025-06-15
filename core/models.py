@@ -77,11 +77,6 @@ class BVProject(models.Model):
         related_name="projects",
     )
     created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
-    llm_geprueft = models.BooleanField("LLM geprüft", default=False)
-    llm_antwort = models.TextField("LLM-Antwort", blank=True)
-    llm_initial_output = models.TextField("LLM Initialantwort", blank=True)
-    llm_validated = models.BooleanField("LLM validiert", default=False)
-    llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
     classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
     gutachten_function_note = models.TextField("LLM-Hinweis Gutachten", blank=True)
@@ -173,6 +168,27 @@ class BVProjectFile(models.Model):
 
     def __str__(self) -> str:
         return f"Anlage {self.anlage_nr} zu {self.projekt}"
+
+
+class SoftwareKnowledge(models.Model):
+    """Kenntnisstand des LLM zu einer Software in einem Projekt."""
+
+    projekt = models.ForeignKey(
+        BVProject,
+        on_delete=models.CASCADE,
+        related_name="softwareknowledge",
+    )
+    software_name = models.CharField(max_length=100)
+    is_known_by_llm = models.BooleanField(default=False)
+    description = models.TextField(blank=True)
+    last_checked = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("projekt", "software_name")
+        ordering = ["software_name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.software_name
 
 
 class Prompt(models.Model):
