@@ -141,30 +141,57 @@ function loadKnowledge(){
   .then(data=>renderKnowledge(data));
 }
 
-function renderKnowledge(data){
- const tbody=document.querySelector('#knowledge-table tbody');
- tbody.innerHTML='';
- const editT='{% url "edit_knowledge_description" 9999 %}';
- const delT='{% url "delete_knowledge_entry" 9999 %}';
- const downT='{% url "download_knowledge_as_word" 9999 %}';
- data.knowledge.forEach(k=>{
-  let actions='';
-  if(k.id){
-    actions=`<a href="${editT.replace('9999',k.id)}" class="text-blue-700 underline mr-2">Bearbeiten</a>`+
-            `<form action="${delT.replace('9999',k.id)}" method="post" class="inline mr-2">`+
-            `<input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">`+
-            `<button type="submit" class="text-red-700 underline">Löschen</button></form>`;
-    if(k.description){
-      actions+=`<a href="${downT.replace('9999',k.id)}" class="text-blue-700 underline">Export</a>`;
-    }
-  }
-  const known=k.last_checked? (k.is_known_by_llm? 'Ja':'Nein') : '-';
-  tbody.innerHTML+=`<tr class="border-t"><td class="px-2 py-1">${k.software_name}</td>`+
-                    `<td class="px-2 py-1 text-center">${known}</td>`+
-                    `<td class="px-2 py-1">${k.description||''}</td>`+
-                    `<td class="px-2 py-1 text-center">${actions}</td></tr>`;
- });
- document.getElementById('knowledge-progress').textContent=`${data.checked} / ${data.total}`;
+
+function renderLLM(data){
+ const sec=document.getElementById('llm-section');
+ sec.innerHTML='';
+ if(!data.ist_llm_geprueft && !data.llm_initial_output){
+   sec.innerHTML=`<button id="run" class="bg-green-600 text-white px-4 py-2 rounded">LLM-Check starten</button>`;
+ }else if(data.ist_llm_geprueft && !data.llm_validated){
+   sec.innerHTML=`<div class="text-red-600 mb-2">LLM-Check unvollständig oder technisch fehlerhaft.</div>
+   <textarea id="edit" class="border rounded w-full p-2 mb-2">${data.llm_initial_output||''}</textarea>
+   <input id="context" type="text" placeholder="Weiterer Kontext" class="border rounded w-full p-2 mb-2 hidden">
+   <div class="space-x-2">
+     <button id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
+     <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Zusätzlichen Kontext & erneut prüfen</button>
+   </div>`;
+ }else if(data.ist_llm_geprueft && data.llm_validated){
+  sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Antwort ein-/ausblenden</button>
+  <div id="output" class="prose max-w-none bg-gray-100 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
+ }
+ if(data.llm_initial_output){
+   sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
+ }
+ attachHandlers();
+}
+
+function attachHandlers(){
+ const run=document.getElementById('run');
+ if(run){run.addEventListener('click',()=>sendCheck({}));}
+ const editBtn=document.getElementById('edit-btn');
+ const ctxBtn=document.getElementById('ctx-btn');
+ if(editBtn){
+   editBtn.addEventListener('click',()=>{
+     const text=document.getElementById('edit').value;
+     sendCheck({edited_initial_output:text});
+   });
+ }
+ if(ctxBtn){
+   const ctxInput=document.getElementById('context');
+   ctxBtn.addEventListener('click',()=>{
+     if(ctxInput.classList.contains('hidden')){ctxInput.classList.remove('hidden');return;}
+     if(ctxInput.value){sendCheck({additional_context:ctxInput.value});}
+   });
+ }
+ const toggle=document.getElementById('toggle');
+ if(toggle){
+  toggle.addEventListener('click',()=>{
+    document.getElementById('output').classList.toggle('hidden');
+  });
+}
+ const recheck=document.getElementById('recheck');
+ if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
+
 }
 
 function startChecks(){
