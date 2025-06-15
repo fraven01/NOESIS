@@ -4,13 +4,17 @@ from pathlib import Path
 
 
 def recording_upload_path(instance, filename):
-    slug = instance.bereich.slug if hasattr(instance.bereich, "slug") else instance.bereich
+    slug = (
+        instance.bereich.slug if hasattr(instance.bereich, "slug") else instance.bereich
+    )
     return f"recordings/{slug}/{filename}"
 
 
 def transcript_upload_path(instance, filename):
     stem = Path(filename).stem
-    slug = instance.bereich.slug if hasattr(instance.bereich, "slug") else instance.bereich
+    slug = (
+        instance.bereich.slug if hasattr(instance.bereich, "slug") else instance.bereich
+    )
     return f"transcripts/{slug}/{stem}.md"
 
 
@@ -80,9 +84,7 @@ class BVProject(models.Model):
     llm_geprueft_am = models.DateTimeField("LLM geprüft am", null=True, blank=True)
     classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
-    gutachten_function_note = models.TextField(
-        "LLM-Hinweis Gutachten", blank=True
-    )
+    gutachten_function_note = models.TextField("LLM-Hinweis Gutachten", blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -107,6 +109,21 @@ class BVProject(models.Model):
         return self.title
 
 
+def get_default_project_status():
+    """
+    Gibt die ID des als Standard markierten Projektstatus zurück.
+    """
+    # Annahme: ProjectStatus ist bereits importiert oder in derselben Datei definiert
+    default_status = ProjectStatus.objects.filter(is_default=True).first()
+    if default_status:
+        return default_status.pk
+    # Fallback, falls kein Standard definiert ist (sollte nicht passieren)
+    first_status = ProjectStatus.objects.order_by("ordering").first()
+    if first_status:
+        return first_status.pk
+    return None
+
+
 class BVProjectStatusHistory(models.Model):
     """Historie der Projektstatus."""
 
@@ -115,7 +132,9 @@ class BVProjectStatusHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="status_history",
     )
-    status = models.ForeignKey(ProjectStatus, on_delete=models.PROTECT)
+    status = models.ForeignKey(
+        ProjectStatus, on_delete=models.PROTECT, default=get_default_project_status
+    )
     changed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -319,7 +338,6 @@ class Anlage2Config(models.Model):
         ),
     )
 
-
     class Meta:
         verbose_name = "Anlage2 Konfiguration"
 
@@ -383,6 +401,7 @@ class Anlage2GlobalPhrase(models.Model):
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.get_phrase_type_display()}: {self.phrase_text}"
 
+
 class Tile(models.Model):
     """Kachel für das Dashboard."""
 
@@ -429,7 +448,7 @@ class Anlage2Function(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser."
+        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:
@@ -466,7 +485,7 @@ class Anlage2SubQuestion(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser."
+        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:
