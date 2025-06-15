@@ -157,7 +157,7 @@ function sendCheck(payload){
  const spinner=document.createElement('span');
  spinner.textContent='...';
  sec.appendChild(spinner);
- fetch('{% url 'project_llm_check' projekt.pk %}',{
+ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
    method:'POST',
    headers:{'X-CSRFToken':getCookie('csrftoken')},
    body:new URLSearchParams(payload)

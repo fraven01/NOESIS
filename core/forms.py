@@ -11,6 +11,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2Config,
     Anlage2GlobalPhrase,
+    SoftwareKnowledge,
     Area,
 )
 
@@ -430,6 +431,19 @@ class EditJustificationForm(forms.Form):
     )
 
 
+class KnowledgeDescriptionForm(forms.ModelForm):
+    """Formular zum Bearbeiten der Beschreibung einer Software."""
+
+    class Meta:
+        model = SoftwareKnowledge
+        fields = ["description"]
+        labels = {"description": "Beschreibung"}
+        widgets = {
+            "description": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 5})
+        }
+
+
+
 class ProjectStatusForm(forms.ModelForm):
     """Formular für einen Projektstatus."""
 
@@ -443,3 +457,4 @@ class ProjectStatusForm(forms.ModelForm):
             "is_default": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "is_done_status": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
+
