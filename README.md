@@ -128,3 +128,8 @@ Die Seite lädt die aus Dokumentanalyse und manueller Bewertung entstandene
 JSON-Struktur in ein Formular. Nach Anpassungen lassen sich die Daten erneut
 speichern und fließen so in die weitere Auswertung ein.
 
+
+### LLM-Check f\u00fcr Software-Wissen
+
+Beim Anlegen eines Projekts kann jetzt ein zweistufiger LLM-Check gestartet werden. Dabei wird zuerst gepr\u00fcft, ob das Modell die jeweilige Software kennt. Nur bei einer positiven Antwort folgt Schritt zwei mit einer Kurzbeschreibung, die in der Tabelle **Software-Wissen** landet.
+Dort lassen sich die Eintr\u00e4ge bequem bearbeiten, l\u00f6schen oder als Word-Datei exportieren.

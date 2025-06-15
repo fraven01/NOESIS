@@ -142,21 +142,21 @@ function renderLLM(data){
  const sec=document.getElementById('llm-section');
  sec.innerHTML='';
  if(!data.ist_llm_geprueft && !data.llm_initial_output){
-   sec.innerHTML=`<button id="run" class="bg-green-600 text-white px-4 py-2 rounded">Run LLM Check (Initial)</button>`;
+   sec.innerHTML=`<button id="run" class="bg-green-600 text-white px-4 py-2 rounded">LLM-Check starten</button>`;
  }else if(data.ist_llm_geprueft && !data.llm_validated){
-   sec.innerHTML=`<div class="text-red-600 mb-2">Initial LLM check incomplete or technically incorrect.</div>
+   sec.innerHTML=`<div class="text-red-600 mb-2">LLM-Check unvollständig oder technisch fehlerhaft.</div>
    <textarea id="edit" class="border rounded w-full p-2 mb-2">${data.llm_initial_output||''}</textarea>
-   <input id="context" type="text" placeholder="Additional context" class="border rounded w-full p-2 mb-2 hidden">
+   <input id="context" type="text" placeholder="Weiterer Kontext" class="border rounded w-full p-2 mb-2 hidden">
    <div class="space-x-2">
-     <button id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Edit Response & Recheck (Initial)</button>
-     <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Additional Context & Recheck (Initial)</button>
+     <button id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
+     <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Zusätzlichen Kontext & erneut prüfen</button>
    </div>`;
  }else if(data.ist_llm_geprueft && data.llm_validated){
-  sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Show/Hide Initial LLM Response</button>
+  sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Antwort ein-/ausblenden</button>
   <div id="output" class="prose max-w-none bg-gray-100 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
  }
  if(data.llm_initial_output){
-   sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Recheck (Initial)</button>`;
+   sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
  }
  attachHandlers();
 }
