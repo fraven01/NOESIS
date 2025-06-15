@@ -1400,6 +1400,7 @@ def projekt_detail(request, pk):
         "num_attachments": anh.count(),
         "num_reviewed": reviewed,
         "is_admin": is_admin,
+        "knowledge_list": projekt.softwareknowledge.all(),
     }
     return render(request, "projekt_detail.html", context)
 
@@ -2434,7 +2435,8 @@ def download_knowledge_as_word(request, knowledge_id):
         raise Http404
     temp_file_path = os.path.join(tempfile.gettempdir(), f"knowledge_{knowledge_id}.docx")
     try:
-        html_content = markdown.markdown(knowledge.description, extensions=["extra", "admonition", "toc"])
+        extensions = ["extra", "admonition", "toc"]
+        html_content = markdown.markdown(knowledge.description, extensions=extensions)
         pypandoc.convert_text(
             html_content,
             "docx",
