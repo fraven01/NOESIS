@@ -42,6 +42,7 @@ urlpatterns = [
     path("recording/delete/<int:pk>/", views.recording_delete, name="recording_delete"),
     path("talkdiary-admin/", views.admin_talkdiary, name="admin_talkdiary"),
     path("projects-admin/", views.admin_projects, name="admin_projects"),
+    path("projects-admin/status/", views.admin_project_statuses, name="admin_project_statuses"),
     path(
         "projects-admin/<int:pk>/delete/",
         views.admin_project_delete,

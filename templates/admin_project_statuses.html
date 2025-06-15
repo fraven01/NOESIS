@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Projektstatus{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Projektstatus</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Name</th>
+                <th class="py-2">Key</th>
+                <th class="py-2">Reihenfolge</th>
+                <th class="py-2 text-center">Standard</th>
+                <th class="py-2 text-center">Abschluss</th>
+                <th class="py-2 text-center">Löschen</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in statuses %}
+            <tr class="border-b text-sm">
+                <td class="py-1"><input type="text" name="name{{ s.id }}" value="{{ s.name }}" class="border rounded p-1 w-full"></td>
+                <td class="py-1"><input type="text" name="key{{ s.id }}" value="{{ s.key }}" class="border rounded p-1 w-full"></td>
+                <td class="py-1"><input type="number" name="ordering{{ s.id }}" value="{{ s.ordering }}" class="border rounded p-1 w-full"></td>
+                <td class="py-1 text-center"><input type="checkbox" name="is_default{{ s.id }}" {% if s.is_default %}checked{% endif %}></td>
+                <td class="py-1 text-center"><input type="checkbox" name="is_done_status{{ s.id }}" {% if s.is_done_status %}checked{% endif %}></td>
+                <td class="py-1 text-center"><input type="checkbox" name="delete{{ s.id }}"></td>
+            </tr>
+        {% endfor %}
+        <tr class="border-b text-sm">
+            <td class="py-1"><input type="text" name="new_name" class="border rounded p-1 w-full"></td>
+            <td class="py-1"><input type="text" name="new_key" class="border rounded p-1 w-full"></td>
+            <td class="py-1"><input type="number" name="new_ordering" class="border rounded p-1 w-full"></td>
+            <td class="py-1 text-center"><input type="checkbox" name="new_is_default"></td>
+            <td class="py-1 text-center"><input type="checkbox" name="new_is_done_status"></td>
+            <td class="py-1 text-center"></td>
+        </tr>
+        </tbody>
+    </table>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}
