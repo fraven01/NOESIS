@@ -36,6 +36,7 @@ from .forms import (
     get_anlage1_numbers,
     Anlage2ConfigForm,
     EditJustificationForm,
+    ProjectStatusForm,
 )
 from .models import (
     Recording,
@@ -1121,33 +1122,33 @@ def admin_anlage1(request):
 @login_required
 @admin_required
 def admin_project_statuses(request):
-    """Verwaltet mögliche Projektstatus."""
+    """Zeigt alle vorhandenen Projektstatus an."""
     statuses = list(ProjectStatus.objects.all().order_by("ordering", "name"))
-    if request.method == "POST":
-        for s in statuses:
-            if request.POST.get(f"delete{s.id}"):
-                s.delete()
-                continue
-            s.name = request.POST.get(f"name{s.id}", s.name)
-            s.key = request.POST.get(f"key{s.id}", s.key)
-            s.ordering = int(request.POST.get(f"ordering{s.id}", s.ordering) or 0)
-            s.is_default = bool(request.POST.get(f"is_default{s.id}"))
-            s.is_done_status = bool(request.POST.get(f"is_done_status{s.id}"))
-            s.save()
-        name = request.POST.get("new_name", "").strip()
-        key = request.POST.get("new_key", "").strip()
-        if name and key:
-            ordering = int(request.POST.get("new_ordering", "0") or 0)
-            ProjectStatus.objects.create(
-                name=name,
-                key=key,
-                ordering=ordering,
-                is_default=bool(request.POST.get("new_is_default")),
-                is_done_status=bool(request.POST.get("new_is_done_status")),
-            )
-        return redirect("admin_project_statuses")
     context = {"statuses": statuses}
     return render(request, "admin_project_statuses.html", context)
+
+
+@login_required
+@admin_required
+def admin_project_status_form(request, pk=None):
+    """Erstellt oder bearbeitet einen Projektstatus."""
+    status = get_object_or_404(ProjectStatus, pk=pk) if pk else None
+    form = ProjectStatusForm(request.POST or None, instance=status)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("admin_project_statuses")
+    context = {"form": form, "status": status}
+    return render(request, "admin_project_status_form.html", context)
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_project_status_delete(request, pk):
+    """Löscht einen Projektstatus."""
+    status = get_object_or_404(ProjectStatus, pk=pk)
+    status.delete()
+    return redirect("admin_project_statuses")
 
 
 @login_required

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}{% if status %}Status bearbeiten{% else %}Neuer Status{% endif %}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{% if status %}Status bearbeiten{% else %}Neuer Status{% endif %}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.name.label_tag }}<br>
+        {{ form.name }}
+        {{ form.name.errors }}
+    </div>
+    <div>
+        {{ form.key.label_tag }}<br>
+        {{ form.key }}
+        {{ form.key.errors }}
+    </div>
+    <div>
+        {{ form.ordering.label_tag }}<br>
+        {{ form.ordering }}
+        {{ form.ordering.errors }}
+    </div>
+    <div>
+        <label>{{ form.is_default }} Standard</label>
+        {{ form.is_default.errors }}
+    </div>
+    <div>
+        <label>{{ form.is_done_status }} Abschlussstatus</label>
+        {{ form.is_done_status.errors }}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

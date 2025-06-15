@@ -428,3 +428,18 @@ class EditJustificationForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 4}),
     )
+
+
+class ProjectStatusForm(forms.ModelForm):
+    """Formular für einen Projektstatus."""
+
+    class Meta:
+        model = ProjectStatus
+        fields = ["name", "key", "ordering", "is_default", "is_done_status"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "key": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "ordering": forms.NumberInput(attrs={"class": "border rounded p-2"}),
+            "is_default": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "is_done_status": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
