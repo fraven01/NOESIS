@@ -20,6 +20,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
+    ProjectStatus,
 )
 from .llm_utils import query_llm
 from .docx_utils import (
@@ -303,7 +304,7 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
         data = {"raw": reply}
     data = _add_editable_flags(data)
     projekt.classification_json = data
-    projekt.status = BVProject.STATUS_CLASSIFIED
+    projekt.status = ProjectStatus.objects.get(key="CLASSIFIED")
     projekt.save(update_fields=["classification_json", "status"])
     return data
 
@@ -333,7 +334,7 @@ def generate_gutachten(
         old_path.unlink(missing_ok=True)
     doc.save(path)
     projekt.gutachten_file.name = f"gutachten/{fname}"
-    projekt.status = BVProject.STATUS_GUTACHTEN_OK
+    projekt.status = ProjectStatus.objects.get(key="GUTACHTEN_OK")
     projekt.save(update_fields=["gutachten_file", "status"])
     return path
 

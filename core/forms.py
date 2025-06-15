@@ -5,6 +5,7 @@ from .models import (
     Recording,
     BVProject,
     BVProjectFile,
+    ProjectStatus,
     Anlage1Question,
     Anlage2Function,
     Anlage2SubQuestion,
@@ -143,6 +144,8 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
             self.fields["software_type"].queryset = SoftwareType.objects.all()
         if not self.instance or not self.instance.pk:
             self.fields.pop("status", None)
+        else:
+            self.fields["status"].queryset = ProjectStatus.objects.all()
         if self.data:
             self.software_list = [
                 s.strip() for s in self.data.getlist("software") if s.strip()

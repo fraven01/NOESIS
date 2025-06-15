@@ -16,8 +16,8 @@
             <label for="status-filter" class="visually-hidden">Nach Status filtern</label>
             <select id="status-filter" name="status" class="form-select">
                 <option value="">Alle Status</option>
-                {% for value, display in status_choices %}
-                    <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ display }}</option>
+                {% for s in status_choices %}
+                    <option value="{{ s.key }}" {% if s.key == status_filter %}selected{% endif %}>{{ s.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -44,7 +44,7 @@
             <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
             <td class="py-1">{{ p.software_typen }}</td>
             <td class="py-1">
-                <span class="status-badge status-badge-{{ p.status|lower }}">{{ p.get_status_display }}</span>
+                <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
             </td>
             <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
             <td class="py-1">

@@ -9,6 +9,7 @@ from .models import (
     Area,
     Anlage2Function,
     Anlage2FunctionResult,
+    ProjectStatus,
 )
 
 
@@ -63,3 +64,9 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "technisch_verfuegbar",
         "ki_beteiligung",
     )
+
+
+@admin.register(ProjectStatus)
+class ProjectStatusAdmin(admin.ModelAdmin):
+    list_display = ("name", "key", "ordering", "is_default", "is_done_status")
+    list_editable = ("key", "ordering", "is_default", "is_done_status")

@@ -54,6 +54,7 @@ from .models import (
     Anlage2FunctionResult,
     Tile,
     Area,
+    ProjectStatus,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -907,14 +908,14 @@ def admin_projects(request):
 
     status_filter = request.GET.get("status", "")
     if status_filter:
-        projects = projects.filter(status=status_filter)
+        projects = projects.filter(status__key=status_filter)
 
     context = {
         "projects": projects,
         "form": BVProjectForm(),
         "search_query": search_query,
         "status_filter": status_filter,
-        "status_choices": BVProject.STATUS_CHOICES,
+        "status_choices": ProjectStatus.objects.all(),
     }
     return render(request, "admin_projects.html", context)
 
@@ -1336,14 +1337,14 @@ def projekt_list(request):
 
     status_filter = request.GET.get("status", "")
     if status_filter:
-        projekte = projekte.filter(status=status_filter)
+        projekte = projekte.filter(status__key=status_filter)
 
     context = {
         "projekte": projekte,
         "is_admin": request.user.groups.filter(name="admin").exists(),
         "search_query": search_query,
         "status_filter": status_filter,
-        "status_choices": BVProject.STATUS_CHOICES,
+        "status_choices": ProjectStatus.objects.all(),
     }
     return render(request, "projekt_list.html", context)
 
@@ -1356,7 +1357,7 @@ def projekt_detail(request, pk):
     is_admin = request.user.groups.filter(name="admin").exists()
     context = {
         "projekt": projekt,
-        "status_choices": BVProject.STATUS_CHOICES,
+        "status_choices": ProjectStatus.objects.all(),
         "history": projekt.status_history.all(),
         "num_attachments": anh.count(),
         "num_reviewed": reviewed,
