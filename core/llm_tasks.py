@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.utils import timezone
 
 from .models import (
     BVProject,
@@ -21,6 +22,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
     ProjectStatus,
+    SoftwareKnowledge,
 )
 from .llm_utils import query_llm
 from .docx_utils import (
@@ -779,6 +781,39 @@ def worker_verify_feature(
     pf.save(update_fields=["verification_json"])
 
     return data
+
+
+def worker_run_initial_check(project_id: int, software_name: str) -> dict[str, object]:
+    """Führt eine zweistufige LLM-Abfrage zu einer Software durch."""
+
+    projekt = BVProject.objects.get(pk=project_id)
+    sk, _ = SoftwareKnowledge.objects.get_or_create(
+        projekt=projekt, software_name=software_name
+    )
+
+    result = {"is_known_by_llm": False, "description": ""}
+    try:
+        prompt1 = f"Kennst du die Software '{software_name}'?"
+        reply1 = query_llm(prompt1, model_type="default")
+        if reply1.strip().lower().startswith("ja"):
+            sk.is_known_by_llm = True
+            result["is_known_by_llm"] = True
+            prompt2 = f"Beschreibe kurz die Software '{software_name}'."
+            reply2 = query_llm(prompt2, model_type="default")
+            description = reply2.strip()
+            sk.description = description
+            result["description"] = description
+        else:
+            sk.is_known_by_llm = False
+            sk.description = ""
+    except Exception:  # noqa: BLE001
+        logger.exception("worker_run_initial_check: LLM Fehler")
+        sk.is_known_by_llm = False
+        sk.description = ""
+
+    sk.last_checked = timezone.now()
+    sk.save(update_fields=["is_known_by_llm", "description", "last_checked"])
+    return result
 
 
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
