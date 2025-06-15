@@ -1393,6 +1393,15 @@ def projekt_detail(request, pk):
     anh = projekt.anlagen.all()
     reviewed = anh.filter(analysis_json__isnull=False).count()
     is_admin = request.user.groups.filter(name="admin").exists()
+    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
+    knowledge_rows = []
+    checked = 0
+    for name in software_list:
+        entry = knowledge_map.get(name)
+        if entry and entry.last_checked:
+            checked += 1
+        knowledge_rows.append({"name": name, "entry": entry})
     context = {
         "projekt": projekt,
         "status_choices": ProjectStatus.objects.all(),
@@ -1400,7 +1409,11 @@ def projekt_detail(request, pk):
         "num_attachments": anh.count(),
         "num_reviewed": reviewed,
         "is_admin": is_admin,
-        "knowledge_list": projekt.softwareknowledge.all(),
+
+        "knowledge_rows": knowledge_rows,
+        "knowledge_checked": checked,
+        "total_software": len(software_list),
+
     }
     return render(request, "projekt_detail.html", context)
 
@@ -2051,17 +2064,31 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
 def project_detail_api(request, pk):
     projekt = BVProject.objects.get(pk=pk)
     software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
+    knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
+    knowledge = []
+    checked = 0
+    for name in software_list:
+        entry = knowledge_map.get(name)
+        item = {
+            "software_name": name,
+            "id": entry.pk if entry else None,
+            "is_known_by_llm": entry.is_known_by_llm if entry else False,
+            "description": entry.description if entry else "",
+            "last_checked": bool(entry and entry.last_checked),
+        }
+        if item["last_checked"]:
+            checked += 1
+        knowledge.append(item)
+
     data = {
         "id": projekt.pk,
         "title": projekt.title,
         "beschreibung": projekt.beschreibung,
         "software_typen": projekt.software_typen,
         "software_list": software_list,
-        "ist_llm_geprueft": projekt.llm_geprueft,
-        "llm_validated": projekt.llm_validated,
-        "llm_initial_output": projekt.llm_initial_output,
-        "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
-        "llm_initial_output_combined": projekt.llm_initial_output,
+        "knowledge": knowledge,
+        "checked": checked,
+        "total": len(software_list),
     }
     return JsonResponse(data)
 
