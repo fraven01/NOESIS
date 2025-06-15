@@ -23,6 +23,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
     Anlage2GlobalPhrase,
+    SoftwareKnowledge,
 )
 from .docx_utils import (
     extract_text,
@@ -46,6 +47,7 @@ from .llm_tasks import (
     check_anlage2_functions,
     worker_verify_feature,
     worker_generate_gutachten,
+    worker_run_initial_check,
     get_prompt,
     generate_gutachten,
     parse_anlage1_questions,
@@ -2146,6 +2148,34 @@ class FeatureVerificationTests(TestCase):
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertIsNone(result["technisch_verfuegbar"])
         self.assertEqual(result["ki_begruendung"], "")
+
+
+class InitialCheckTests(TestCase):
+    def setUp(self):
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_known_software_stores_description(self):
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["Ja", "Beschreibung"],
+        ) as mock_q:
+            result = worker_run_initial_check(self.projekt.pk, "A")
+        self.assertTrue(result["is_known_by_llm"])
+        self.assertEqual(result["description"], "Beschreibung")
+        self.assertEqual(mock_q.call_count, 2)
+        sk = SoftwareKnowledge.objects.get(projekt=self.projekt, software_name="A")
+        self.assertTrue(sk.is_known_by_llm)
+        self.assertEqual(sk.description, "Beschreibung")
+
+    def test_unknown_sets_flags(self):
+        with patch("core.llm_tasks.query_llm", return_value="Nein") as mock_q:
+            result = worker_run_initial_check(self.projekt.pk, "A")
+        self.assertFalse(result["is_known_by_llm"])
+        self.assertEqual(result["description"], "")
+        self.assertEqual(mock_q.call_count, 1)
+        sk = SoftwareKnowledge.objects.get(projekt=self.projekt, software_name="A")
+        self.assertFalse(sk.is_known_by_llm)
+        self.assertEqual(sk.description, "")
 
 
 
