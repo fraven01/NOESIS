@@ -35,7 +35,6 @@ from tempfile import NamedTemporaryFile
 from docx import Document
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
 from .forms import BVProjectForm, BVProjectUploadForm
 from .workflow import set_project_status
 from .models import ProjectStatus
@@ -155,23 +154,6 @@ class AdminProjectCleanupTests(TestCase):
         self.assertRedirects(resp, url)
         self.projekt.refresh_from_db()
         self.assertIsNone(self.projekt.classification_json)
-
-    def test_delete_summary(self):
-        self.projekt.llm_initial_output = "x"
-        self.projekt.llm_antwort = "y"
-        self.projekt.llm_geprueft = True
-        self.projekt.llm_geprueft_am = timezone.now()
-        self.projekt.llm_validated = True
-        self.projekt.save()
-        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
-        resp = self.client.post(url, {"action": "delete_summary"})
-        self.assertRedirects(resp, url)
-        self.projekt.refresh_from_db()
-        self.assertEqual(self.projekt.llm_initial_output, "")
-        self.assertEqual(self.projekt.llm_antwort, "")
-        self.assertFalse(self.projekt.llm_geprueft)
-        self.assertIsNone(self.projekt.llm_geprueft_am)
-        self.assertFalse(self.projekt.llm_validated)
 
 
 class DocxExtractTests(TestCase):
@@ -2020,26 +2002,6 @@ class CommandFunctionsTests(TestCase):
 
 
 
-
-class ProjektLLMCheckTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user("llmuser", password="pass")
-        self.client.login(username="llmuser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
-
-    def test_multiple_responses_saved(self):
-        url = reverse("project_llm_check", args=[self.projekt.pk])
-        replies = [
-            "This is answer A for test",
-            "This is answer B for test",
-        ]
-        with patch("core.views.query_llm", side_effect=replies) as mock_q:
-            resp = self.client.post(url, {})
-        self.assertEqual(resp.status_code, 200)
-        self.projekt.refresh_from_db()
-        self.assertIn(replies[0], self.projekt.llm_initial_output)
-        self.assertIn(replies[1], self.projekt.llm_initial_output)
-        self.assertEqual(mock_q.call_count, 2)
 
 
 

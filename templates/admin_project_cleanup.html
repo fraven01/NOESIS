@@ -54,15 +54,5 @@
 <p class="mb-4">Keine Bewertung vorhanden.</p>
 {% endif %}
 
-<h2 class="text-xl font-semibold mt-4">Summary</h2>
-{% if projekt.llm_initial_output or projekt.llm_antwort %}
-<form method="post" class="mb-4">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="delete_summary">
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Summary wirklich löschen?');">Summary löschen</button>
-</form>
-{% else %}
-<p class="mb-4">Keine Summary vorhanden.</p>
-{% endif %}
 
 {% endblock %}
