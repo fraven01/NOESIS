@@ -1120,6 +1120,38 @@ def admin_anlage1(request):
 
 @login_required
 @admin_required
+def admin_project_statuses(request):
+    """Verwaltet mögliche Projektstatus."""
+    statuses = list(ProjectStatus.objects.all().order_by("ordering", "name"))
+    if request.method == "POST":
+        for s in statuses:
+            if request.POST.get(f"delete{s.id}"):
+                s.delete()
+                continue
+            s.name = request.POST.get(f"name{s.id}", s.name)
+            s.key = request.POST.get(f"key{s.id}", s.key)
+            s.ordering = int(request.POST.get(f"ordering{s.id}", s.ordering) or 0)
+            s.is_default = bool(request.POST.get(f"is_default{s.id}"))
+            s.is_done_status = bool(request.POST.get(f"is_done_status{s.id}"))
+            s.save()
+        name = request.POST.get("new_name", "").strip()
+        key = request.POST.get("new_key", "").strip()
+        if name and key:
+            ordering = int(request.POST.get("new_ordering", "0") or 0)
+            ProjectStatus.objects.create(
+                name=name,
+                key=key,
+                ordering=ordering,
+                is_default=bool(request.POST.get("new_is_default")),
+                is_done_status=bool(request.POST.get("new_is_done_status")),
+            )
+        return redirect("admin_project_statuses")
+    context = {"statuses": statuses}
+    return render(request, "admin_project_statuses.html", context)
+
+
+@login_required
+@admin_required
 def anlage2_config(request):
     """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
