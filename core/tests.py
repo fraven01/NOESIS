@@ -54,7 +54,7 @@ from .llm_tasks import (
     _parse_anlage2,
 )
 from .reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, call
 from django.core.management import call_command
 from django.test import override_settings
 import json
@@ -2222,4 +2222,69 @@ class EditKIJustificationTests(TestCase):
 
 
 
+
+
+
+class KnowledgeViewsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("knower", password="pass")
+        self.client.login(username="knower", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="Word, Excel", beschreibung="x")
+        self.knowledge = SoftwareKnowledge.objects.create(
+            projekt=self.projekt, software_name="Word", description="Alt"
+        )
+
+    def test_ajax_start_initial_checks(self):
+        url = reverse("ajax_start_initial_checks", args=[self.projekt.pk])
+        with patch("core.views.async_task", side_effect=["t1", "t2"]) as mock_task:
+            resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp.json(),
+            {
+                "status": "queued",
+                "tasks": [
+                    {"software": "Word", "task_id": "t1"},
+                    {"software": "Excel", "task_id": "t2"},
+                ],
+            },
+        )
+        mock_task.assert_has_calls(
+            [
+                call("core.llm_tasks.worker_run_initial_check", self.projekt.pk, "Word"),
+                call("core.llm_tasks.worker_run_initial_check", self.projekt.pk, "Excel"),
+            ]
+        )
+
+    def test_edit_knowledge_description(self):
+        url = reverse("edit_knowledge_description", args=[self.knowledge.pk])
+        resp = self.client.post(url, {"description": "Neu"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.knowledge.refresh_from_db()
+        self.assertEqual(self.knowledge.description, "Neu")
+
+    def test_delete_knowledge_entry(self):
+        url = reverse("delete_knowledge_entry", args=[self.knowledge.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertFalse(SoftwareKnowledge.objects.filter(pk=self.knowledge.pk).exists())
+
+    def test_download_knowledge_as_word(self):
+        url = reverse("download_knowledge_as_word", args=[self.knowledge.pk])
+        created_paths = []
+
+        def fake_convert(text, to, format, outputfile):
+            Path(outputfile).write_bytes(b"data")
+            created_paths.append(Path(outputfile))
+
+        with patch("core.views.pypandoc.convert_text", side_effect=fake_convert):
+            resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.assertIn("attachment", resp["Content-Disposition"])
+        for p in created_paths:
+            self.assertFalse(p.exists())
 
