@@ -43,34 +43,34 @@ class Recording(models.Model):
         return self.transcript_file.name if self.transcript_file else ""
 
 
+class ProjectStatus(models.Model):
+    """Möglicher Status eines BVProject."""
+
+    name = models.CharField(max_length=100)
+    key = models.CharField(max_length=50, unique=True)
+    ordering = models.PositiveIntegerField(default=0)
+    is_default = models.BooleanField(default=False)
+    is_done_status = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["ordering", "name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
+
+
 class BVProject(models.Model):
     """Projekt zur Bewertung von Betriebsvereinbarungen."""
 
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
     software_typen = models.CharField("Software-Typen", max_length=200, blank=True)
-    STATUS_NEW = "NEW"
-    STATUS_CLASSIFIED = "CLASSIFIED"
-    STATUS_GUTACHTEN_OK = "GUTACHTEN_OK"
-    STATUS_GUTACHTEN_FREIGEGEBEN = "GUTACHTEN_FREIGEGEBEN"
-    STATUS_IN_PRUEFUNG_ANLAGE_X = "IN_PRUEFUNG_ANLAGE_X"
-    STATUS_FB_IN_PRUEFUNG = "FB_IN_PRUEFUNG"
-    STATUS_ENDGEPRUEFT = "ENDGEPRUEFT"
-
-    STATUS_CHOICES = [
-        (STATUS_NEW, "Neu"),
-        (STATUS_CLASSIFIED, "Klassifiziert"),
-        (STATUS_GUTACHTEN_OK, "Gutachten OK"),
-        (STATUS_GUTACHTEN_FREIGEGEBEN, "Gutachten freigegeben"),
-        (STATUS_IN_PRUEFUNG_ANLAGE_X, "In Prüfung Anlage X"),
-        (STATUS_FB_IN_PRUEFUNG, "FB in Prüfung"),
-        (STATUS_ENDGEPRUEFT, "Endgeprüft"),
-    ]
-    status = models.CharField(
-        "Status",
-        max_length=30,
-        choices=STATUS_CHOICES,
-        default=STATUS_NEW,
+    status = models.ForeignKey(
+        ProjectStatus,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="projects",
     )
     created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
     llm_geprueft = models.BooleanField("LLM geprüft", default=False)
@@ -97,6 +97,8 @@ class BVProject(models.Model):
             if not self.title:
                 self.title = cleaned
         is_new = self._state.adding
+        if not self.status:
+            self.status = ProjectStatus.objects.filter(is_default=True).first()
         super().save(*args, **kwargs)
         if is_new:
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
@@ -113,14 +115,14 @@ class BVProjectStatusHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="status_history",
     )
-    status = models.CharField(max_length=30, choices=BVProject.STATUS_CHOICES)
+    status = models.ForeignKey(ProjectStatus, on_delete=models.PROTECT)
     changed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["changed_at"]
 
     def __str__(self) -> str:
-        return f"{self.projekt} -> {self.get_status_display()}"
+        return f"{self.projekt} -> {self.status.name}"
 
 
 class BVProjectFile(models.Model):

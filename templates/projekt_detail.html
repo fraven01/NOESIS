@@ -9,15 +9,15 @@
 </h1>
 <div class="lg:flex lg:space-x-4">
 <div class="lg:w-2/3">
-<p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.get_status_display }}</p>
+<p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
 <form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
     <select id="status" name="status" class="border rounded p-2">
-    {% for val,label in status_choices %}
-        <option value="{{ val }}" {% if projekt.status == val %}selected{% endif %}>{{ label }}</option>
+    {% for s in status_choices %}
+        <option value="{{ s.key }}" {% if projekt.status and projekt.status.key == s.key %}selected{% endif %}>{{ s.name }}</option>
     {% endfor %}
     </select>
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
@@ -86,7 +86,7 @@
     <h4 class="font-semibold mt-2">Status-Historie</h4>
     <ul class="list-disc pl-5">
     {% for h in history %}
-      <li>{{ h.get_status_display }} - {{ h.changed_at|date:"d.m.Y H:i" }}</li>
+      <li>{{ h.status.name }} - {{ h.changed_at|date:"d.m.Y H:i" }}</li>
     {% endfor %}
     </ul>
   </div>

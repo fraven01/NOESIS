@@ -38,6 +38,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from .forms import BVProjectForm, BVProjectUploadForm
 from .workflow import set_project_status
+from .models import ProjectStatus
 from .llm_tasks import (
     classify_system,
     check_anlage1,
@@ -56,6 +57,32 @@ from unittest.mock import patch, ANY
 from django.core.management import call_command
 from django.test import override_settings
 import json
+
+
+def create_statuses() -> None:
+    if ProjectStatus.objects.exists():
+        return
+    data = [
+        ("NEW", "Neu"),
+        ("CLASSIFIED", "Klassifiziert"),
+        ("GUTACHTEN_OK", "Gutachten OK"),
+        ("GUTACHTEN_FREIGEGEBEN", "Gutachten freigegeben"),
+        ("IN_PRUEFUNG_ANLAGE_X", "In Prüfung Anlage X"),
+        ("FB_IN_PRUEFUNG", "FB in Prüfung"),
+        ("ENDGEPRUEFT", "Endgeprüft"),
+    ]
+    for idx, (key, name) in enumerate(data, start=1):
+        ProjectStatus.objects.create(
+            name=name,
+            key=key,
+            ordering=idx,
+            is_default=key == "NEW",
+            is_done_status=key == "ENDGEPRUEFT",
+        )
+
+
+def setUpModule():
+    create_statuses()
 
 
 class AdminProjectsTests(TestCase):
@@ -533,13 +560,13 @@ class BVProjectModelTests(TestCase):
 class WorkflowTests(TestCase):
     def test_default_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.assertEqual(projekt.status, BVProject.STATUS_NEW)
+        self.assertEqual(projekt.status.key, "NEW")
 
     def test_set_project_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        set_project_status(projekt, BVProject.STATUS_CLASSIFIED)
+        set_project_status(projekt, "CLASSIFIED")
         projekt.refresh_from_db()
-        self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
+        self.assertEqual(projekt.status.key, "CLASSIFIED")
 
     def test_invalid_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -549,18 +576,18 @@ class WorkflowTests(TestCase):
     def test_set_project_status_new_states(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         for status in [
-            BVProject.STATUS_IN_PRUEFUNG_ANLAGE_X,
-            BVProject.STATUS_FB_IN_PRUEFUNG,
-            BVProject.STATUS_ENDGEPRUEFT,
+            "IN_PRUEFUNG_ANLAGE_X",
+            "FB_IN_PRUEFUNG",
+            "ENDGEPRUEFT",
         ]:
             set_project_status(projekt, status)
             projekt.refresh_from_db()
-            self.assertEqual(projekt.status, status)
+            self.assertEqual(projekt.status.key, status)
 
     def test_status_history_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status_history.count(), 1)
-        set_project_status(projekt, BVProject.STATUS_CLASSIFIED)
+        set_project_status(projekt, "CLASSIFIED")
         self.assertEqual(projekt.status_history.count(), 2)
 
 
@@ -582,7 +609,7 @@ class LLMTasksTests(TestCase):
             data = classify_system(projekt.pk)
         projekt.refresh_from_db()
         self.assertEqual(projekt.classification_json["kategorie"]["value"], "X")
-        self.assertEqual(projekt.status, BVProject.STATUS_CLASSIFIED)
+        self.assertEqual(projekt.status.key, "CLASSIFIED")
         self.assertEqual(data["kategorie"]["value"], "X")
 
     def test_check_anlage2(self):
@@ -1355,7 +1382,7 @@ class WorkerGenerateGutachtenTests(TestCase):
             path = worker_generate_gutachten(self.projekt.pk)
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
-        self.assertEqual(self.projekt.status, BVProject.STATUS_GUTACHTEN_OK)
+        self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")
         Path(path).unlink(missing_ok=True)
 
 
