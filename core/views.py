@@ -36,6 +36,7 @@ from .forms import (
     get_anlage1_numbers,
     Anlage2ConfigForm,
     EditJustificationForm,
+    KnowledgeDescriptionForm,
 )
 from .models import (
     Recording,
@@ -52,6 +53,7 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2GlobalPhrase,
     Anlage2FunctionResult,
+    SoftwareKnowledge,
     Tile,
     Area,
     ProjectStatus,
@@ -2059,90 +2061,6 @@ def project_detail_api(request, pk):
     return JsonResponse(data)
 
 
-@login_required
-@require_http_methods(["POST"])
-def project_llm_check(request, pk):
-    projekt = BVProject.objects.get(pk=pk)
-    edited = request.POST.get("edited_initial_output")
-    additional = request.POST.get("additional_context")
-
-    if edited:
-        projekt.llm_initial_output = edited
-        projekt.llm_geprueft = True
-        valid, msg = _validate_llm_output(edited)
-        projekt.llm_validated = valid
-        projekt.llm_geprueft_am = timezone.now()
-        if not valid:
-            projekt.llm_geprueft = False
-        projekt.save()
-        resp = {
-            "ist_llm_geprueft": projekt.llm_geprueft,
-            "llm_validated": valid,
-            "llm_initial_output": projekt.llm_initial_output,
-            "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
-        }
-        if not valid:
-            resp["error"] = msg
-        return JsonResponse(resp)
-
-    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
-    if not software_list:
-        return JsonResponse(
-            {
-                "error": "Software-Typen field cannot be empty. Please provide one or more software names, comma-separated."
-            },
-            status=400,
-        )
-
-    llm_responses = []
-    validated_all = True
-    for name in software_list:
-        try:
-            reply, valid = _run_llm_check(name, additional)
-        except RuntimeError:
-            return JsonResponse(
-                {"error": "Missing LLM credentials from environment."}, status=500
-            )
-        except Exception:
-            logger.exception("LLM Fehler")
-            return JsonResponse(
-                {
-                    "error": f"LLM service error during check for software {name}. Check server logs for details."
-                },
-                status=502,
-            )
-        llm_responses.append({"software": name, "output": reply, "validated": valid})
-        if not valid:
-            validated_all = False
-
-    sections = [f"**{r['software']}**\n{r['output']}" for r in llm_responses]
-    combined = "Die Initialprüfung für jede Software hat ergeben: \n" + "\n\n".join(
-        sections
-    )
-
-    orig_desc = projekt.beschreibung
-    summary = (
-        "Queried LLM for initial knowledge check on the following software: "
-        + ", ".join(software_list)
-        + "."
-    )
-    if orig_desc:
-        summary += f"\n\n**User-Supplied Notes:** {orig_desc}"
-
-    projekt.llm_initial_output = combined
-    projekt.llm_geprueft = True
-    projekt.llm_validated = validated_all
-    projekt.llm_geprueft_am = timezone.now()
-    projekt.beschreibung = summary
-    projekt.save()
-
-    resp = {
-        "ist_llm_geprueft": True,
-        "llm_validated": validated_all,
-        "llm_initial_output": projekt.llm_initial_output,
-        "llm_initial_output_html": markdown.markdown(projekt.llm_initial_output),
-    }
-    return JsonResponse(resp)
 
 
 @login_required
@@ -2457,3 +2375,84 @@ def edit_ki_justification(request, pk):
         "ki_begruendung": data.get("ki_begruendung", ""),
     }
     return render(request, "edit_ki_justification.html", context)
+
+@login_required
+@require_POST
+def ajax_start_initial_checks(request, project_id):
+    """Startet den Initialcheck für alle Software-Typen eines Projekts."""
+    projekt = get_object_or_404(BVProject, pk=project_id)
+    names = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    tasks = []
+    for name in names:
+        tid = async_task(
+            "core.llm_tasks.worker_run_initial_check",
+            projekt.pk,
+            name,
+        )
+        tasks.append({"software": name, "task_id": tid})
+    return JsonResponse({"status": "queued", "tasks": tasks})
+
+
+@login_required
+def edit_knowledge_description(request, knowledge_id):
+    """Bearbeitet die Beschreibung eines Knowledge-Eintrags."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    if request.method == "POST":
+        form = KnowledgeDescriptionForm(request.POST, instance=knowledge)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Beschreibung gespeichert")
+            return redirect("projekt_detail", pk=knowledge.projekt.pk)
+    else:
+        form = KnowledgeDescriptionForm(instance=knowledge)
+    return render(
+        request,
+        "edit_knowledge_description.html",
+        {"form": form, "knowledge": knowledge},
+    )
+
+
+@login_required
+@require_POST
+def delete_knowledge_entry(request, knowledge_id):
+    """Löscht einen Knowledge-Eintrag."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    project_pk = knowledge.projekt.pk
+    knowledge.delete()
+    return redirect("projekt_detail", pk=project_pk)
+
+
+@login_required
+def download_knowledge_as_word(request, knowledge_id):
+    """Stellt die Beschreibung als Word-Datei bereit."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    if not knowledge.description:
+        raise Http404
+    temp_file_path = os.path.join(tempfile.gettempdir(), f"knowledge_{knowledge_id}.docx")
+    try:
+        html_content = markdown.markdown(knowledge.description, extensions=["extra", "admonition", "toc"])
+        pypandoc.convert_text(
+            html_content,
+            "docx",
+            format="html",
+            outputfile=temp_file_path,
+        )
+        with open(temp_file_path, "rb") as fh:
+            response = HttpResponse(
+                fh.read(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="{knowledge.software_name}.docx"'
+            )
+            return response
+    except (IOError, OSError) as e:
+        logger.error("Pandoc-Fehler beim Knowledge-Export %s", e)
+        messages.error(
+            request,
+            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
+        )
+        return redirect("projekt_detail", pk=knowledge.projekt.pk)
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)

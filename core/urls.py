@@ -213,9 +213,24 @@ urlpatterns = [
     ),
     path("projects/<int:pk>/", views.project_detail_api, name="project_detail_api"),
     path(
-        "projects/<int:pk>/llm-check/",
-        views.project_llm_check,
-        name="project_llm_check",
+        "ajax/start-initial-checks/<int:project_id>/",
+        views.ajax_start_initial_checks,
+        name="ajax_start_initial_checks",
+    ),
+    path(
+        "knowledge/<int:knowledge_id>/edit/",
+        views.edit_knowledge_description,
+        name="edit_knowledge_description",
+    ),
+    path(
+        "knowledge/<int:knowledge_id>/delete/",
+        views.delete_knowledge_entry,
+        name="delete_knowledge_entry",
+    ),
+    path(
+        "knowledge/<int:knowledge_id>/download/",
+        views.download_knowledge_as_word,
+        name="download_knowledge_as_word",
     ),
     path(
         "login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"
