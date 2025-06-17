@@ -2244,7 +2244,9 @@ def projekt_management_summary(request, pk):
 def ajax_start_gutachten_generation(request, project_id):
     """Startet die Gutachten-Erstellung als Hintergrund-Task."""
     software_type_id = request.POST.get("software_type_id")
-    if software_type_id:
+    if not software_type_id:
+        software_type_id = None
+    else:
         try:
             software_type_id = int(software_type_id)
         except ValueError:
@@ -2252,7 +2254,7 @@ def ajax_start_gutachten_generation(request, project_id):
     task_id = async_task(
         "core.llm_tasks.worker_generate_gutachten",
         project_id,
-        software_type_id,
+        software_type_id=software_type_id,
         timeout=600,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
