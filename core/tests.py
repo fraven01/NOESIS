@@ -1361,14 +1361,20 @@ class WorkerGenerateGutachtenTests(TestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
         )
+        self.knowledge = SoftwareKnowledge.objects.create(
+            projekt=self.projekt,
+            software_name="A",
+            is_known_by_llm=True,
+            description="",
+        )
 
     def test_worker_creates_file(self):
         with patch("core.llm_tasks.query_llm", return_value="Text"):
-            path = worker_generate_gutachten(self.projekt.pk)
+            path = worker_generate_gutachten(self.knowledge.pk)
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
         self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")
-        self.assertEqual(Gutachten.objects.filter(project=self.projekt).count(), 1)
+        self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
         Path(path).unlink(missing_ok=True)
 
 
@@ -1387,7 +1393,12 @@ class GutachtenEditDeleteTests(TestCase):
                 "g.docx", SimpleUploadedFile("g.docx", fh.read())
             )
         Path(tmp.name).unlink(missing_ok=True)
-        self.gutachten = Gutachten.objects.create(project=self.projekt, text="Alt")
+        self.knowledge = SoftwareKnowledge.objects.create(
+            projekt=self.projekt,
+            software_name="A",
+            is_known_by_llm=True,
+        )
+        self.gutachten = Gutachten.objects.create(software_knowledge=self.knowledge, text="Alt")
 
     def test_view_shows_content(self):
         url = reverse("gutachten_view", args=[self.gutachten.pk])
@@ -2080,7 +2091,12 @@ class GutachtenLLMCheckTests(TestCase):
         self.user = User.objects.create_user("gcheck", password="pass")
         self.client.login(username="gcheck", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.gutachten = Gutachten.objects.create(project=self.projekt, text="Test")
+        self.knowledge = SoftwareKnowledge.objects.create(
+            projekt=self.projekt,
+            software_name="A",
+            is_known_by_llm=True,
+        )
+        self.gutachten = Gutachten.objects.create(software_knowledge=self.knowledge, text="Test")
 
     def test_endpoint_updates_note(self):
         url = reverse("gutachten_llm_check", args=[self.gutachten.pk])
