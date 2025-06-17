@@ -204,16 +204,11 @@ class SoftwareType(models.Model):
 
 
 class Gutachten(models.Model):
-    """Gutachten für ein Projekt oder eine Software-Komponente."""
+    """Gutachten zu einer Software-Komponente."""
 
-    project = models.ForeignKey(
-        BVProject, on_delete=models.CASCADE, related_name="gutachten"
-    )
-    software_type = models.ForeignKey(
-        SoftwareType,
+    software_knowledge = models.OneToOneField(
+        SoftwareKnowledge,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
         related_name="gutachten",
     )
     text = models.TextField(blank=True)
@@ -223,9 +218,9 @@ class Gutachten(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
-        if self.software_type:
-            return f"{self.project} - {self.software_type.name}"
-        return f"{self.project} - Gesamt"
+        proj = self.software_knowledge.projekt
+        name = self.software_knowledge.software_name
+        return f"{proj} - {name}"
 
 
 class Prompt(models.Model):

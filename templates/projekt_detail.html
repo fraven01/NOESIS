@@ -22,40 +22,6 @@
     </select>
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
 </form>
-<div class="mb-4">
-  <div class="dropdown">
-    <button class="btn btn-primary dropdown-toggle" type="button" id="gutachtenDropdown" data-bs-toggle="dropdown">
-      Gutachten erstellen
-    </button>
-    <ul class="dropdown-menu" aria-labelledby="gutachtenDropdown">
-      <li><a class="dropdown-item generate-gutachten-btn" href="#" data-software-name="">Gesamt-Gutachten</a></li>
-
-      {% if software_list %}
-      <li><hr class="dropdown-divider"></li>
-      {% for software_name in software_list %}
-        <li><a class="dropdown-item generate-gutachten-btn" href="#" data-software-name="{{ software_name }}">{{ software_name }}</a></li>
-      {% endfor %}
-      {% endif %}
-    </ul>
-  </div>
-  <span id="gutachten-status" class="ml-2"></span>
-</div>
-{% if gutachten_list %}
-<ul class="mb-4 list-disc pl-5">
-    {% for g in gutachten_list %}
-    <li>
-        {% if g.software_type %}
-            Gutachten für {{ g.software_type.name }}
-        {% else %}
-            Gesamt-Gutachten
-        {% endif %}
-        - <a href="{% url 'gutachten_view' g.id %}">Anzeigen</a>
-        | <a href="{% url 'gutachten_edit' g.id %}">Bearbeiten</a>
-        | <a href="{% url 'gutachten_download' g.id %}">Download</a>
-    </li>
-    {% endfor %}
-</ul>
-{% endif %}
 <p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-blue-700 underline">Gap-Analyse herunterladen</a>
     |
@@ -103,6 +69,7 @@
             <th class="px-2 py-1 text-center">Bekannt?</th>
             <th class="px-2 py-1">Beschreibung</th>
             <th class="px-2 py-1 text-center">Aktionen</th>
+            <th class="px-2 py-1 text-center">Gutachten</th>
         </tr>
     </thead>
     <tbody>
@@ -125,6 +92,20 @@
                 {% if row.entry.description %}
                 <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="text-blue-700 underline">Export</a>
                 {% endif %}
+            {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center">
+            {% if row.entry %}
+                {% if row.entry.gutachten %}
+                    <a href="{% url 'gutachten_view' row.entry.gutachten.id %}">Anzeigen</a> |
+                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
+                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
+                {% else %}
+                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">
+                        Gutachten erstellen
+                    </button>
+                {% endif %}
+                <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
             {% endif %}
             </td>
         </tr>
@@ -250,14 +231,14 @@ document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
     button.addEventListener('click',function(event){
       event.preventDefault();
-      const softwareName=this.dataset.softwareName;
+      const knowledgeId=this.dataset.knowledgeId;
       const url='{% url 'ajax_start_gutachten_generation' projekt.pk %}';
       const body=new FormData();
-      body.append('software_name',softwareName);
+      body.append('knowledge_id',knowledgeId);
 
-      document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.add('disabled'));
-      const status=document.getElementById('gutachten-status');
-      status.textContent='Gutachten wird erstellt... ⏳';
+      this.classList.add('disabled');
+      const status=document.getElementById('gutachten-status-'+knowledgeId);
+      if(status){status.textContent='...';}
 
       fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
@@ -269,14 +250,14 @@ document.addEventListener('DOMContentLoaded',function(){
                 clearInterval(iv);location.reload();
               }else if(d.status==='FAIL'){
                 clearInterval(iv);
-                status.textContent='Fehler bei der Erstellung';
-                document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.remove('disabled'));
+                if(status){status.textContent='Fehler';}
+                button.classList.remove('disabled');
               }
             });
           },3000);
         }).catch(()=>{
-          status.textContent='Fehler beim Start';
-          document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.remove('disabled'));
+          if(status){status.textContent='Fehler';}
+          button.classList.remove('disabled');
         });
     });
   });

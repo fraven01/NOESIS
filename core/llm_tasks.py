@@ -23,7 +23,6 @@ from .models import (
     Anlage2FunctionResult,
     ProjectStatus,
     SoftwareKnowledge,
-    SoftwareType,
     Gutachten,
 )
 from .llm_utils import query_llm
@@ -343,40 +342,22 @@ def generate_gutachten(
     return path
 
 
-def worker_generate_gutachten(project_id: int, software_type_id: int | None = None) -> str:
+def worker_generate_gutachten(knowledge_id: int) -> str:
     """Erzeugt im Hintergrund ein Gutachten."""
-    projekt = BVProject.objects.get(pk=project_id)
-    sw_obj = None
+    knowledge = SoftwareKnowledge.objects.get(pk=knowledge_id)
+    projekt = knowledge.projekt
 
     model = LLMConfig.get_default("gutachten")
 
-    if software_type_id is None:
-        # Gesamt-Gutachten
-        try:
-            prompt_template = Prompt.objects.get(name="generate_overall_gutachten").text
-        except Prompt.DoesNotExist:
-            logger.error("Prompt 'generate_overall_gutachten' nicht in der Datenbank gefunden!")
-            return ""
-
-        parts = []
-        for g in Gutachten.objects.filter(project=projekt, software_type__isnull=False).order_by("software_type__name"):
-            parts.append(f"### {g.software_type.name}\n{g.text}")
-        context_data = "\n\n".join(parts)
-
-        prompt = prompt_template.format(project_title=projekt.title, context_data=context_data)
-        text = query_llm(prompt, model_name=model, model_type="gutachten")
-    else:
-        # Gutachten pro Software-Komponente
-        prefix = get_prompt(
-            "generate_gutachten",
-            "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
-        )
-        sw_obj = SoftwareType.objects.filter(pk=software_type_id).first()
-        target = sw_obj.name if sw_obj else projekt.software_typen
-        text = query_llm(prefix + target, model_name=model, model_type="gutachten")
+    prefix = get_prompt(
+        "generate_gutachten",
+        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
+    )
+    target = knowledge.software_name
+    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
 
     path = generate_gutachten(projekt.id, text, model_name=model)
-    Gutachten.objects.create(project=projekt, software_type=sw_obj, text=text)
+    Gutachten.objects.create(software_knowledge=knowledge, text=text)
     return str(path)
 
 

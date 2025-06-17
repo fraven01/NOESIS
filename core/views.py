@@ -1407,7 +1407,6 @@ def projekt_detail(request, pk):
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
     software_types = list(SoftwareType.objects.filter(name__in=software_list))
-    gutachten_list = list(projekt.gutachten.select_related("software_type"))
     context = {
         "projekt": projekt,
         "status_choices": ProjectStatus.objects.all(),
@@ -1421,7 +1420,6 @@ def projekt_detail(request, pk):
         "total_software": len(software_list),
         "software_types": software_types,
         "software_list": software_list,
-        "gutachten_list": gutachten_list,
 
     }
     return render(request, "projekt_detail.html", context)
@@ -2246,18 +2244,18 @@ def projekt_management_summary(request, pk):
 @require_POST
 def ajax_start_gutachten_generation(request, project_id):
     """Startet die Gutachten-Erstellung als Hintergrund-Task."""
-    software_type_id = request.POST.get("software_type_id")
-    if not software_type_id:
-        software_type_id = None
-    else:
-        try:
-            software_type_id = int(software_type_id)
-        except ValueError:
-            software_type_id = None
+    knowledge_id = request.POST.get("knowledge_id")
+    try:
+        knowledge_id = int(knowledge_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    if not SoftwareKnowledge.objects.filter(pk=knowledge_id, projekt_id=project_id).exists():
+        return JsonResponse({"error": "invalid"}, status=400)
+
     task_id = async_task(
         "core.llm_tasks.worker_generate_gutachten",
-        project_id,
-        software_type_id=software_type_id,
+        knowledge_id,
         timeout=600,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
@@ -2267,8 +2265,9 @@ def ajax_start_gutachten_generation(request, project_id):
 def gutachten_view(request, pk):
     """Zeigt den Text eines Gutachtens an."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
+    projekt = gutachten.software_knowledge.projekt
     context = {
-        "projekt": gutachten.project,
+        "projekt": projekt,
         "text": gutachten.text,
         "gutachten": gutachten,
         "categories": LLMConfig.get_categories(),
@@ -2281,6 +2280,7 @@ def gutachten_view(request, pk):
 def gutachten_download(request, pk):
     """Stellt das Gutachten als formatiertes DOCX bereit."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
+    projekt = gutachten.software_knowledge.projekt
 
     markdown_text = gutachten.text
     temp_file_path = os.path.join(tempfile.gettempdir(), f"gutachten_{pk}.docx")
@@ -2303,18 +2303,18 @@ def gutachten_download(request, pk):
             )
             response[
                 "Content-Disposition"
-            ] = f'attachment; filename="Gutachten_{gutachten.project.title}.docx"'
+            ] = f'attachment; filename="Gutachten_{projekt.title}.docx"'
             return response
 
     except (IOError, OSError) as e:
         logger.error(
-            f"Pandoc-Fehler beim Erstellen des Gutachtens f\u00fcr Projekt {gutachten.project.id}: {e}"
+            f"Pandoc-Fehler beim Erstellen des Gutachtens f\u00fcr Projekt {projekt.id}: {e}"
         )
         messages.error(
             request,
             "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
         )
-        return redirect("projekt_detail", pk=gutachten.project.pk)
+        return redirect("projekt_detail", pk=projekt.pk)
 
     finally:
         if os.path.exists(temp_file_path):
@@ -2325,13 +2325,14 @@ def gutachten_download(request, pk):
 def gutachten_edit(request, pk):
     """Ermöglicht das Bearbeiten und erneute Speichern des Gutachtens."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
+    projekt = gutachten.software_knowledge.projekt
     if request.method == "POST":
         text = request.POST.get("text", "")
         gutachten.text = text
         gutachten.save(update_fields=["text"])
         messages.success(request, "Gutachten gespeichert")
         return redirect("gutachten_view", pk=gutachten.pk)
-    return render(request, "gutachten_edit.html", {"projekt": gutachten.project, "text": gutachten.text})
+    return render(request, "gutachten_edit.html", {"projekt": projekt, "text": gutachten.text})
 
 
 @login_required
@@ -2339,8 +2340,9 @@ def gutachten_edit(request, pk):
 def gutachten_delete(request, pk):
     """Löscht das Gutachten und entfernt den Verweis im Projekt."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
+    projekt = gutachten.software_knowledge.projekt
     gutachten.delete()
-    return redirect("projekt_detail", pk=gutachten.project.pk)
+    return redirect("projekt_detail", pk=projekt.pk)
 
 
 @login_required
@@ -2348,7 +2350,7 @@ def gutachten_delete(request, pk):
 def gutachten_llm_check(request, pk):
     """Löst den LLM-Funktionscheck für das Gutachten aus."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.project
+    projekt = gutachten.software_knowledge.projekt
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
