@@ -23,17 +23,22 @@
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
 </form>
 <div class="mb-4">
-    <div class="relative inline-block">
-        <button id="btn-gutachten-dropdown" class="text-blue-700 underline">Gutachten erstellen ▼</button>
-        <div id="gutachten-menu" class="hidden absolute bg-white border rounded mt-1 z-10">
-            <a href="#" data-id="" class="start-gutachten block px-4 py-2 hover:bg-gray-200">Gesamt-Gutachten erstellen</a>
-            <div class="border-t my-1"></div>
-            {% for st in software_types %}
-            <a href="#" data-id="{{ st.id }}" class="start-gutachten block px-4 py-2 hover:bg-gray-200">Gutachten für {{ st.name }} erstellen</a>
-            {% endfor %}
-        </div>
-    </div>
-    <span id="gutachten-status" class="ml-2"></span>
+  <div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="gutachtenDropdown" data-bs-toggle="dropdown">
+      Gutachten erstellen
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="gutachtenDropdown">
+      <li><a class="dropdown-item generate-gutachten-btn" href="#" data-software-name="">Gesamt-Gutachten</a></li>
+
+      {% if software_list %}
+      <li><hr class="dropdown-divider"></li>
+      {% for software_name in software_list %}
+        <li><a class="dropdown-item generate-gutachten-btn" href="#" data-software-name="{{ software_name }}">{{ software_name }}</a></li>
+      {% endfor %}
+      {% endif %}
+    </ul>
+  </div>
+  <span id="gutachten-status" class="ml-2"></span>
 </div>
 {% if gutachten_list %}
 <ul class="mb-4 list-disc pl-5">
@@ -242,40 +247,39 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 document.addEventListener('DOMContentLoaded',function(){
- const dropdown=document.getElementById('btn-gutachten-dropdown');
- const menu=document.getElementById('gutachten-menu');
- const status=document.getElementById('gutachten-status');
- if(!dropdown) return;
- dropdown.addEventListener('click',()=>{
-   menu.classList.toggle('hidden');
- });
- menu.querySelectorAll('.start-gutachten').forEach(item=>{
-   item.addEventListener('click',e=>{
-     e.preventDefault();
-     menu.classList.add('hidden');
-     const sid=item.dataset.id;
-     dropdown.disabled=true;
-     status.textContent='Gutachten wird erstellt... ⏳';
-     fetch('{% url "ajax_start_gutachten_generation" projekt.pk %}',{
-       method:'POST',
-       headers:{'X-CSRFToken':getCookie('csrftoken')},
-       body:new URLSearchParams({software_type_id:sid})
-     }).then(r=>r.json()).then(data=>{
-       const tid=data.task_id;
-       const tmpl='{% url "ajax_check_task_status" "dummy" %}';
-       const iv=setInterval(()=>{
-         fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
-           if(d.status==='SUCCESS'){
-             clearInterval(iv);location.reload();
-           }else if(d.status==='FAIL'){
-             clearInterval(iv);status.textContent='Fehler bei der Erstellung';
-             dropdown.disabled=false;
-           }
-         });
-       },3000);
-     }).catch(()=>{status.textContent='Fehler beim Start';dropdown.disabled=false;});
-   });
- });
+  document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
+    button.addEventListener('click',function(event){
+      event.preventDefault();
+      const softwareName=this.dataset.softwareName;
+      const url='{% url 'ajax_start_gutachten_generation' projekt.pk %}';
+      const body=new FormData();
+      body.append('software_name',softwareName);
+
+      document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.add('disabled'));
+      const status=document.getElementById('gutachten-status');
+      status.textContent='Gutachten wird erstellt... ⏳';
+
+      fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+        .then(r=>r.json()).then(data=>{
+          const tid=data.task_id;
+          const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+          const iv=setInterval(()=>{
+            fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+              if(d.status==='SUCCESS'){
+                clearInterval(iv);location.reload();
+              }else if(d.status==='FAIL'){
+                clearInterval(iv);
+                status.textContent='Fehler bei der Erstellung';
+                document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.remove('disabled'));
+              }
+            });
+          },3000);
+        }).catch(()=>{
+          status.textContent='Fehler beim Start';
+          document.querySelectorAll('.generate-gutachten-btn').forEach(btn=>btn.classList.remove('disabled'));
+        });
+    });
+  });
 });
 </script>
 {% endblock %}
