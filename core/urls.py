@@ -190,27 +190,27 @@ urlpatterns = [
         name="projekt_management_summary",
     ),
     path(
-        "work/projekte/<int:pk>/gutachten/view/",
+        "work/gutachten/<int:pk>/view/",
         views.gutachten_view,
         name="gutachten_view",
     ),
     path(
-        "work/projekte/<int:pk>/gutachten/download/",
+        "work/gutachten/<int:pk>/download/",
         views.gutachten_download,
         name="gutachten_download",
     ),
     path(
-        "work/projekte/<int:pk>/gutachten/edit/",
+        "work/gutachten/<int:pk>/edit/",
         views.gutachten_edit,
         name="gutachten_edit",
     ),
     path(
-        "work/projekte/<int:pk>/gutachten/delete/",
+        "work/gutachten/<int:pk>/delete/",
         views.gutachten_delete,
         name="gutachten_delete",
     ),
     path(
-        "work/projekte/<int:pk>/gutachten/llm-check/",
+        "work/gutachten/<int:pk>/llm-check/",
         views.gutachten_llm_check,
         name="gutachten_llm_check",
     ),

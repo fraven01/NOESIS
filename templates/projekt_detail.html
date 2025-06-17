@@ -22,20 +22,35 @@
     </select>
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
 </form>
-<p class="mb-4">
-    {% if projekt.gutachten_file %}
-        <a href="{% url 'gutachten_view' projekt.pk %}" class="text-blue-700 underline">Gutachten anzeigen</a> |
-        <a href="{% url 'gutachten_edit' projekt.pk %}" class="text-blue-700 underline">Bearbeiten</a> |
-        <a href="{% url 'gutachten_download' projekt.pk %}" class="text-blue-700 underline">Download</a>
-        <form method="post" action="{% url 'gutachten_delete' projekt.pk %}" class="inline-block ml-2">
-            {% csrf_token %}
-            <button type="submit" class="text-red-700 underline">Löschen</button>
-        </form>
-    {% else %}
-        <button id="btn-generate-gutachten" class="text-blue-700 underline">Gutachten erstellen</button>
-        <span id="gutachten-status" class="ml-2"></span>
-    {% endif %}
-</p>
+<div class="mb-4">
+    <div class="relative inline-block">
+        <button id="btn-gutachten-dropdown" class="text-blue-700 underline">Gutachten erstellen ▼</button>
+        <div id="gutachten-menu" class="hidden absolute bg-white border rounded mt-1 z-10">
+            <a href="#" data-id="" class="start-gutachten block px-4 py-2 hover:bg-gray-200">Gesamt-Gutachten erstellen</a>
+            <div class="border-t my-1"></div>
+            {% for st in software_types %}
+            <a href="#" data-id="{{ st.id }}" class="start-gutachten block px-4 py-2 hover:bg-gray-200">Gutachten für {{ st.name }} erstellen</a>
+            {% endfor %}
+        </div>
+    </div>
+    <span id="gutachten-status" class="ml-2"></span>
+</div>
+{% if gutachten_list %}
+<ul class="mb-4 list-disc pl-5">
+    {% for g in gutachten_list %}
+    <li>
+        {% if g.software_type %}
+            Gutachten für {{ g.software_type.name }}
+        {% else %}
+            Gesamt-Gutachten
+        {% endif %}
+        - <a href="{% url 'gutachten_view' g.id %}">Anzeigen</a>
+        | <a href="{% url 'gutachten_edit' g.id %}">Bearbeiten</a>
+        | <a href="{% url 'gutachten_download' g.id %}">Download</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
 <p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-blue-700 underline">Gap-Analyse herunterladen</a>
     |
@@ -227,31 +242,39 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 document.addEventListener('DOMContentLoaded',function(){
- const btn=document.getElementById('btn-generate-gutachten');
+ const dropdown=document.getElementById('btn-gutachten-dropdown');
+ const menu=document.getElementById('gutachten-menu');
  const status=document.getElementById('gutachten-status');
- if(!btn) return;
- btn.addEventListener('click',function(){
-  btn.disabled=true;
-  status.textContent='Gutachten wird erstellt... ⏳';
-  fetch('{% url "ajax_start_gutachten_generation" projekt.pk %}',{
-    method:'POST',
-    headers:{'X-CSRFToken':getCookie('csrftoken')}
-  }).then(r=>r.json()).then(data=>{
-    const tid=data.task_id;
-    const tmpl='{% url "ajax_check_task_status" "dummy" %}';
-    const iv=setInterval(()=>{
-      fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
-        if(d.status==='SUCCESS'){
-          clearInterval(iv);
-          location.reload();
-        }else if(d.status==='FAIL'){
-          clearInterval(iv);
-          status.textContent='Fehler bei der Erstellung';
-          btn.disabled=false;
-        }
-      });
-    },3000);
-  }).catch(()=>{status.textContent='Fehler beim Start';btn.disabled=false;});
+ if(!dropdown) return;
+ dropdown.addEventListener('click',()=>{
+   menu.classList.toggle('hidden');
+ });
+ menu.querySelectorAll('.start-gutachten').forEach(item=>{
+   item.addEventListener('click',e=>{
+     e.preventDefault();
+     menu.classList.add('hidden');
+     const sid=item.dataset.id;
+     dropdown.disabled=true;
+     status.textContent='Gutachten wird erstellt... ⏳';
+     fetch('{% url "ajax_start_gutachten_generation" projekt.pk %}',{
+       method:'POST',
+       headers:{'X-CSRFToken':getCookie('csrftoken')},
+       body:new URLSearchParams({software_type_id:sid})
+     }).then(r=>r.json()).then(data=>{
+       const tid=data.task_id;
+       const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+       const iv=setInterval(()=>{
+         fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+           if(d.status==='SUCCESS'){
+             clearInterval(iv);location.reload();
+           }else if(d.status==='FAIL'){
+             clearInterval(iv);status.textContent='Fehler bei der Erstellung';
+             dropdown.disabled=false;
+           }
+         });
+       },3000);
+     }).catch(()=>{status.textContent='Fehler beim Start';dropdown.disabled=false;});
+   });
  });
 });
 </script>

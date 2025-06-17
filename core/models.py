@@ -191,6 +191,43 @@ class SoftwareKnowledge(models.Model):
         return self.software_name
 
 
+class SoftwareType(models.Model):
+    """Typ einer Software-Komponente."""
+
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
+
+
+class Gutachten(models.Model):
+    """Gutachten für ein Projekt oder eine Software-Komponente."""
+
+    project = models.ForeignKey(
+        BVProject, on_delete=models.CASCADE, related_name="gutachten"
+    )
+    software_type = models.ForeignKey(
+        SoftwareType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="gutachten",
+    )
+    text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        if self.software_type:
+            return f"{self.project} - {self.software_type.name}"
+        return f"{self.project} - Gesamt"
+
+
 class Prompt(models.Model):
     """Speichert Texte für LLM-Prompts."""
 
