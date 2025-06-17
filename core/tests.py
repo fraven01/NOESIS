@@ -24,6 +24,7 @@ from .models import (
     Anlage2FunctionResult,
     Anlage2GlobalPhrase,
     SoftwareKnowledge,
+    Gutachten,
 )
 from .docx_utils import (
     extract_text,
@@ -1367,6 +1368,7 @@ class WorkerGenerateGutachtenTests(TestCase):
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
         self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")
+        self.assertEqual(Gutachten.objects.filter(project=self.projekt).count(), 1)
         Path(path).unlink(missing_ok=True)
 
 
@@ -1385,33 +1387,25 @@ class GutachtenEditDeleteTests(TestCase):
                 "g.docx", SimpleUploadedFile("g.docx", fh.read())
             )
         Path(tmp.name).unlink(missing_ok=True)
+        self.gutachten = Gutachten.objects.create(project=self.projekt, text="Alt")
 
     def test_view_shows_content(self):
-        url = reverse("gutachten_view", args=[self.projekt.pk])
+        url = reverse("gutachten_view", args=[self.gutachten.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Alt")
 
-    def test_edit_replaces_file(self):
-        old_path = Path(self.projekt.gutachten_file.path)
-        url = reverse("gutachten_edit", args=[self.projekt.pk])
+    def test_edit_updates_text(self):
+        url = reverse("gutachten_edit", args=[self.gutachten.pk])
         resp = self.client.post(url, {"text": "Neu"})
-        self.assertRedirects(resp, reverse("gutachten_view", args=[self.projekt.pk]))
-        self.projekt.refresh_from_db()
-        new_path = Path(self.projekt.gutachten_file.path)
-        self.assertNotEqual(old_path, new_path)
-        self.assertTrue(new_path.exists())
-        text = extract_text(new_path)
-        self.assertIn("Neu", text)
-        self.assertFalse(old_path.exists())
+        self.assertRedirects(resp, reverse("gutachten_view", args=[self.gutachten.pk]))
+        self.gutachten.refresh_from_db()
+        self.assertEqual(self.gutachten.text, "Neu")
 
     def test_delete_removes_file(self):
-        path = Path(self.projekt.gutachten_file.path)
-        url = reverse("gutachten_delete", args=[self.projekt.pk])
+        url = reverse("gutachten_delete", args=[self.gutachten.pk])
         resp = self.client.post(url)
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
-        self.projekt.refresh_from_db()
-        self.assertEqual(self.projekt.gutachten_file.name, "")
-        self.assertFalse(path.exists())
+        self.assertFalse(Gutachten.objects.filter(pk=self.gutachten.pk).exists())
 
 
 class ProjektFileCheckResultTests(TestCase):
@@ -2086,14 +2080,14 @@ class GutachtenLLMCheckTests(TestCase):
         self.user = User.objects.create_user("gcheck", password="pass")
         self.client.login(username="gcheck", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        generate_gutachten(self.projekt.pk, text="Test")
+        self.gutachten = Gutachten.objects.create(project=self.projekt, text="Test")
 
     def test_endpoint_updates_note(self):
-        url = reverse("gutachten_llm_check", args=[self.projekt.pk])
+        url = reverse("gutachten_llm_check", args=[self.gutachten.pk])
         with patch("core.views.check_gutachten_functions") as mock_func:
             mock_func.return_value = "Hinweis"
             resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("gutachten_view", args=[self.projekt.pk]))
+        self.assertRedirects(resp, reverse("gutachten_view", args=[self.gutachten.pk]))
         self.projekt.refresh_from_db()
         self.assertEqual(self.projekt.gutachten_function_note, "Hinweis")
 

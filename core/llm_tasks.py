@@ -23,6 +23,8 @@ from .models import (
     Anlage2FunctionResult,
     ProjectStatus,
     SoftwareKnowledge,
+    SoftwareType,
+    Gutachten,
 )
 from .llm_utils import query_llm
 from .docx_utils import (
@@ -341,18 +343,24 @@ def generate_gutachten(
     return path
 
 
-def worker_generate_gutachten(project_id: int) -> str:
+def worker_generate_gutachten(project_id: int, software_type_id: int | None = None) -> str:
     """Erzeugt im Hintergrund ein Gutachten."""
     projekt = BVProject.objects.get(pk=project_id)
+    sw_obj = None
     prefix = get_prompt(
         "generate_gutachten",
         "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
     )
+    if software_type_id is not None:
+        sw_obj = SoftwareType.objects.filter(pk=software_type_id).first()
+        target = sw_obj.name if sw_obj else projekt.software_typen
+    else:
+        target = projekt.software_typen
+
     model = LLMConfig.get_default("gutachten")
-    text = query_llm(
-        prefix + projekt.software_typen, model_name=model, model_type="gutachten"
-    )
+    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
     path = generate_gutachten(projekt.id, text, model_name=model)
+    Gutachten.objects.create(project=projekt, software_type=sw_obj, text=text)
     return str(path)
 
 

@@ -5,9 +5,9 @@
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }}</h1>
 <div class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
 <p class="mt-4">
-    <a href="{% url 'gutachten_edit' projekt.pk %}" class="text-blue-700 underline">Bearbeiten</a>
+    <a href="{% url 'gutachten_edit' gutachten.id %}" class="text-blue-700 underline">Bearbeiten</a>
     |
-    <a href="{% url 'gutachten_download' projekt.pk %}" class="text-blue-700 underline">Download</a>
+    <a href="{% url 'gutachten_download' gutachten.id %}" class="text-blue-700 underline">Download</a>
 </p>
 {% if projekt.gutachten_function_note %}
 <div class="mt-4">
@@ -15,7 +15,7 @@
     <textarea class="border rounded w-full p-2" rows="6" readonly>{{ projekt.gutachten_function_note }}</textarea>
 </div>
 {% endif %}
-<form method="post" action="{% url 'gutachten_llm_check' projekt.pk %}" class="mt-4">
+<form method="post" action="{% url 'gutachten_llm_check' gutachten.id %}" class="mt-4">
     {% csrf_token %}
     <label class="font-semibold">LLM-Modell:</label>
     {% for key, data in categories.items %}
