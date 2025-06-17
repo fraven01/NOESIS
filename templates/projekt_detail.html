@@ -94,7 +94,7 @@
                     {% if row.entry.is_known_by_llm %}Ja{% else %}Nein{% endif %}
                 {% else %}-{% endif %}
             </td>
-            <td class="px-2 py-1">{{ row.entry.description|default:"" }}</td>
+            <td class="px-2 py-1">{{ row.entry.description|default:""|markdownify }}</td>
             <td class="px-2 py-1 text-center space-x-2">
             {% if row.entry %}
                 <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="text-blue-700 underline">Bearbeiten</a>
