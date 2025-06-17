@@ -18,6 +18,9 @@ class Migration(migrations.Migration):
             "generate_gutachten": (
                 "Erstelle ein kurzes Gutachten basierend auf diesen Unterlagen:\n\n"
             ),
+            "generate_overall_gutachten": (
+                "Erstelle ein zusammenfassendes Gutachten f\u00fcr das Projekt '{project_title}'. Ber\u00fccksichtige alle folgenden Software-Komponenten und deren Analyseergebnisse: {context_data}. Fasse die Ergebnisse zusammen, bewerte das Gesamtprojekt und gib eine Abschlussempfehlung ab. Strukturiere das Gutachten mit klaren \u00dcberschriften und formatiere es mit Markdown (z.B. \u00dcberschriften, Fett- und Kursivdruck, Listen und Tabellen)."
+            ),
         }
         for i in range(1, 7):
             prompts[f"check_anlage{i}"] = (

@@ -347,18 +347,34 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     """Erzeugt im Hintergrund ein Gutachten."""
     projekt = BVProject.objects.get(pk=project_id)
     sw_obj = None
-    prefix = get_prompt(
-        "generate_gutachten",
-        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
-    )
-    if software_type_id is not None:
-        sw_obj = SoftwareType.objects.filter(pk=software_type_id).first()
-        target = sw_obj.name if sw_obj else projekt.software_typen
-    else:
-        target = projekt.software_typen
 
     model = LLMConfig.get_default("gutachten")
-    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
+
+    if software_type_id is None:
+        # Gesamt-Gutachten
+        try:
+            prompt_template = Prompt.objects.get(name="generate_overall_gutachten").text
+        except Prompt.DoesNotExist:
+            logger.error("Prompt 'generate_overall_gutachten' nicht in der Datenbank gefunden!")
+            return ""
+
+        parts = []
+        for g in Gutachten.objects.filter(project=projekt, software_type__isnull=False).order_by("software_type__name"):
+            parts.append(f"### {g.software_type.name}\n{g.text}")
+        context_data = "\n\n".join(parts)
+
+        prompt = prompt_template.format(project_title=projekt.title, context_data=context_data)
+        text = query_llm(prompt, model_name=model, model_type="gutachten")
+    else:
+        # Gutachten pro Software-Komponente
+        prefix = get_prompt(
+            "generate_gutachten",
+            "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
+        )
+        sw_obj = SoftwareType.objects.filter(pk=software_type_id).first()
+        target = sw_obj.name if sw_obj else projekt.software_typen
+        text = query_llm(prefix + target, model_name=model, model_type="gutachten")
+
     path = generate_gutachten(projekt.id, text, model_name=model)
     Gutachten.objects.create(project=projekt, software_type=sw_obj, text=text)
     return str(path)
