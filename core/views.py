@@ -1395,7 +1395,9 @@ def projekt_detail(request, pk):
     anh = projekt.anlagen.all()
     reviewed = anh.filter(analysis_json__isnull=False).count()
     is_admin = request.user.groups.filter(name="admin").exists()
-    software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
+    software_list = []
+    if projekt.software_typen:
+        software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
     knowledge_rows = []
     checked = 0
@@ -1418,6 +1420,7 @@ def projekt_detail(request, pk):
         "knowledge_checked": checked,
         "total_software": len(software_list),
         "software_types": software_types,
+        "software_list": software_list,
         "gutachten_list": gutachten_list,
 
     }
