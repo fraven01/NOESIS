@@ -14,6 +14,7 @@ from .models import (
     SoftwareKnowledge,
     Area,
     LLMRole,
+    Prompt,
 )
 
 try:
@@ -471,4 +472,27 @@ class LLMRoleForm(forms.ModelForm):
             "role_prompt": Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
             "is_default": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
+
+
+class PromptForm(forms.ModelForm):
+    """Formular zum Bearbeiten eines LLM-Prompts."""
+
+    class Meta:
+        model = Prompt
+        fields = ["name", "text", "role"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "text": Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
+            "role": forms.Select(attrs={"class": "border rounded p-2"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        choices = [("", "--------- (Globale Standard-Rolle verwenden)")]
+        all_roles = LLMRole.objects.all().order_by("name")
+        for role in all_roles:
+            display_name = f"{role.name} (Standard)" if role.is_default else role.name
+            choices.append((role.pk, display_name))
+        self.fields["role"].choices = choices
 
