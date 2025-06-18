@@ -40,6 +40,7 @@ from .forms import (
     KnowledgeDescriptionForm,
 
     ProjectStatusForm,
+    LLMRoleForm,
 
 )
 from .models import (
@@ -63,6 +64,7 @@ from .models import (
     Tile,
     Area,
     ProjectStatus,
+    LLMRole,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -1011,6 +1013,7 @@ def admin_project_cleanup(request, pk):
 def admin_prompts(request):
     """Verwaltet die gespeicherten Prompts."""
     prompts = list(Prompt.objects.all().order_by("name"))
+    roles = list(LLMRole.objects.all().order_by("name"))
     groups = {
         "general": [],
         "anlage1": [],
@@ -1049,7 +1052,9 @@ def admin_prompts(request):
                 prompt.delete()
             elif action == "save":
                 prompt.text = request.POST.get("text", "")
-                prompt.save(update_fields=["text"])
+                role_id = request.POST.get("role")
+                prompt.role = LLMRole.objects.filter(pk=role_id).first() if role_id else None
+                prompt.save(update_fields=["text", "role"])
         return redirect("admin_prompts")
 
     labels = [
@@ -1064,7 +1069,7 @@ def admin_prompts(request):
 
     grouped = [(key, label, groups[key]) for key, label in labels]
 
-    context = {"grouped": grouped}
+    context = {"grouped": grouped, "roles": roles}
     return render(request, "admin_prompts.html", context)
 
 
@@ -1156,6 +1161,38 @@ def admin_project_status_delete(request, pk):
     status = get_object_or_404(ProjectStatus, pk=pk)
     status.delete()
     return redirect("admin_project_statuses")
+
+
+@login_required
+@admin_required
+def admin_llm_roles(request):
+    """Liste aller vorhandenen LLM-Rollen."""
+    roles = list(LLMRole.objects.all().order_by("name"))
+    context = {"roles": roles}
+    return render(request, "admin_llm_roles.html", context)
+
+
+@login_required
+@admin_required
+def admin_llm_role_form(request, pk=None):
+    """Erstellt oder bearbeitet eine LLM-Rolle."""
+    role = get_object_or_404(LLMRole, pk=pk) if pk else None
+    form = LLMRoleForm(request.POST or None, instance=role)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("admin_llm_roles")
+    context = {"form": form, "role": role}
+    return render(request, "admin_llm_role_form.html", context)
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_llm_role_delete(request, pk):
+    """Löscht eine LLM-Rolle."""
+    role = get_object_or_404(LLMRole, pk=pk)
+    role.delete()
+    return redirect("admin_llm_roles")
 
 
 @login_required
@@ -1532,14 +1569,15 @@ def projekt_check(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Nur POST"}, status=400)
     projekt = BVProject.objects.get(pk=pk)
-    prompt = (
+    prompt_text = (
         "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
         + projekt.beschreibung
     )
+    prompt_obj = Prompt(name="tmp", text=prompt_text)
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        reply = query_llm(prompt, model_name=model, model_type="default")
+        reply = query_llm(prompt_obj, {}, model_name=model, model_type="default")
     except RuntimeError:
         return JsonResponse(
             {"error": "Missing LLM credentials from environment."}, status=500
@@ -2025,9 +2063,11 @@ def anlage1_generate_email(request, pk):
         "anlage1_email",
         "Formuliere eine freundliche E-Mail an den Fachbereich. Bitte fasse die folgenden Vorschläge zusammen:\n\n",
     )
-    prompt = prefix + "\n".join(f"- {s}" for s in suggestions)
+    prompt_text = prefix + "\n".join(f"- {s}" for s in suggestions)
+    base_obj = Prompt.objects.filter(name="anlage1_email").first()
+    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
     try:
-        text = query_llm(prompt, model_type="default")
+        text = query_llm(prompt_obj, {}, model_type="default")
     except RuntimeError:
         return JsonResponse({"error": "llm"}, status=500)
     except Exception:
@@ -2055,12 +2095,14 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
             "description of what it does and how it is typically used."
         ),
     )
-    prompt = base.format(name=name)
+    prompt_text = base.format(name=name)
     if additional:
-        prompt += " " + additional
+        prompt_text += " " + additional
+    base_obj = Prompt.objects.filter(name="initial_llm_check").first()
+    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
 
     logger.debug("Starte LLM-Check für %s", name)
-    reply = query_llm(prompt)
+    reply = query_llm(prompt_obj, {})
     valid, _ = _validate_llm_output(reply)
     logger.debug("LLM-Antwort für %s: %s", name, reply[:100])
     return reply, valid

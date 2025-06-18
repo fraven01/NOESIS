@@ -14,6 +14,7 @@
         <thead>
             <tr class="border-b text-left">
                 <th class="py-2">Name</th>
+                <th class="py-2">Rolle</th>
                 <th class="py-2">Text</th>
                 <th class="py-2 text-center">Aktion</th>
             </tr>
@@ -26,6 +27,14 @@
                     <form method="post" class="space-y-2">
                         {% csrf_token %}
                         <input type="hidden" name="pk" value="{{ p.id }}">
+                        <select name="role" class="border rounded p-2 w-full">
+                            <option value="" {% if not p.role %}selected{% endif %}>Standard</option>
+                            {% for r in roles %}
+                                <option value="{{ r.id }}" {% if p.role_id == r.id %}selected{% endif %}>{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                </td>
+                <td class="py-1">
                         <textarea name="text" rows="4" class="border rounded p-2 w-full">{{ p.text }}</textarea>
                         <button name="action" value="save" class="px-2 py-1 bg-blue-600 text-white rounded">Speichern</button>
                     </form>
@@ -40,7 +49,7 @@
                 </td>
             </tr>
         {% empty %}
-            <tr><td colspan="3" class="py-2">Keine Prompts</td></tr>
+            <tr><td colspan="4" class="py-2">Keine Prompts</td></tr>
         {% endfor %}
         </tbody>
     </table>

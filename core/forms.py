@@ -13,6 +13,7 @@ from .models import (
     Anlage2GlobalPhrase,
     SoftwareKnowledge,
     Area,
+    LLMRole,
 )
 
 try:
@@ -456,5 +457,18 @@ class ProjectStatusForm(forms.ModelForm):
             "ordering": forms.NumberInput(attrs={"class": "border rounded p-2"}),
             "is_default": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "is_done_status": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
+
+
+class LLMRoleForm(forms.ModelForm):
+    """Formular zur Verwaltung von LLM-Rollen."""
+
+    class Meta:
+        model = LLMRole
+        fields = ["name", "role_prompt", "is_default"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "role_prompt": Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
+            "is_default": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
 

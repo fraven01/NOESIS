@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from pathlib import Path
 
@@ -223,11 +224,53 @@ class Gutachten(models.Model):
         return f"{proj} - {name}"
 
 
+class LLMRole(models.Model):
+    """Definiert eine wiederverwendbare LLM-Rolle."""
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Ein kurzer, wiedererkennbarer Name für die Rolle.",
+    )
+    role_prompt = models.TextField(
+        help_text=(
+            "Der eigentliche System-Prompt, der die Persona und Anweisungen "
+            "für die KI definiert."
+        )
+    )
+    is_default = models.BooleanField(
+        default=False,
+        help_text=(
+            "Soll diese Rolle als globaler Standard verwendet werden, "
+            "wenn einem Prompt keine spezifische Rolle zugewiesen ist?"
+        ),
+    )
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
+
+    def clean(self) -> None:
+        """Stellt sicher, dass nur eine Rolle als Standard markiert ist."""
+        if self.is_default and LLMRole.objects.filter(is_default=True).exclude(pk=self.pk).exists():
+            raise ValidationError(
+                "Es kann nur eine Rolle als globaler Standard definiert werden."
+            )
+
 class Prompt(models.Model):
     """Speichert Texte für LLM-Prompts."""
 
     name = models.CharField(max_length=50, unique=True)
     text = models.TextField()
+    role = models.ForeignKey(
+        LLMRole,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text=(
+            "Optionale, spezifische Rolle für diesen Prompt. Überschreibt die "
+            "globale Standard-Rolle."
+        ),
+    )
 
     class Meta:
         ordering = ["name"]
