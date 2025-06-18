@@ -813,24 +813,28 @@ def worker_verify_feature(
             temperature=0.1,
         ).strip()
 
-    data = {"technisch_verfuegbar": result, "ki_begruendung": justification}
+    # Ergebnisdictionary für Datenbank und Rückgabewert
+    verification_result = {
+        "technisch_verfuegbar": result,
+        "ki_begruendung": justification,
+    }
 
     pf = (
         BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
     )
     if not pf:
-        return data
+        return verification_result
 
     verif = pf.verification_json or {}
     if object_type == "function":
         key = name
     else:
         key = f"{feature_obj.funktion.name}: {feature_obj.frage_text}"
-    verif[key] = data
+    verif[key] = verification_result
     pf.verification_json = verif
     pf.save(update_fields=["verification_json"])
 
-    return data
+    return verification_result
 
 
 def worker_run_initial_check(knowledge_id: int) -> dict[str, object]:
