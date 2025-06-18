@@ -843,21 +843,33 @@ def worker_run_initial_check(project_id: int, software_name: str) -> dict[str, o
 
     result = {"is_known_by_llm": False, "description": ""}
     try:
-        prompt1_text = f"Kennst du die Software '{software_name}'?"
-        prompt1_obj = Prompt(name="tmp", text=prompt1_text)
-        reply1 = query_llm(prompt1_obj, {}, model_type="default")
-        if reply1.strip().lower().startswith("ja"):
-            sk.is_known_by_llm = True
-            result["is_known_by_llm"] = True
-            prompt2_text = f"Beschreibe kurz die Software '{software_name}'."
-            prompt2_obj = Prompt(name="tmp", text=prompt2_text)
-            reply2 = query_llm(prompt2_obj, {}, model_type="default")
+        # --- Stufe 1: Wissens-Check ---
+        prompt_knowledge = Prompt.objects.get(name="initial_check_knowledge")
+        prompt1_text = prompt_knowledge.text.format(name=software_name)
+        tmp_prompt = Prompt(text=prompt1_text, use_system_role=False)
+        reply1 = query_llm(tmp_prompt, {}, model_type="default")
+        sk.is_known_by_llm = "ja" in reply1.strip().lower()
+        result["is_known_by_llm"] = sk.is_known_by_llm
+
+        # --- Stufe 2: Beschreibung nur bei positiver Kenntnis ---
+        if sk.is_known_by_llm:
+            description_prompt = Prompt.objects.get(name="initial_llm_check")
+            reply2 = query_llm(
+                description_prompt,
+                {"name": software_name},
+                model_type="default",
+            )
             description = reply2.strip()
             sk.description = description
             result["description"] = description
         else:
-            sk.is_known_by_llm = False
-            sk.description = ""
+            sk.description = (
+                "Die Software ist der KI nicht bekannt oder die Abfrage war nicht eindeutig."
+            )
+            result["description"] = sk.description
+
+    except Prompt.DoesNotExist as exc:  # noqa: BLE001
+        logger.error(f"Benötigter Prompt für Initial-Check nicht gefunden: {exc}")
     except Exception:  # noqa: BLE001
         logger.exception("worker_run_initial_check: LLM Fehler")
         sk.is_known_by_llm = False
