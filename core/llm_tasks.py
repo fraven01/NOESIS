@@ -833,13 +833,11 @@ def worker_verify_feature(
     return data
 
 
-def worker_run_initial_check(project_id: int, software_name: str) -> dict[str, object]:
+def worker_run_initial_check(knowledge_id: int) -> dict[str, object]:
     """Führt eine zweistufige LLM-Abfrage zu einer Software durch."""
 
-    projekt = BVProject.objects.get(pk=project_id)
-    sk, _ = SoftwareKnowledge.objects.get_or_create(
-        projekt=projekt, software_name=software_name
-    )
+    sk = SoftwareKnowledge.objects.get(pk=knowledge_id)
+    software_name = sk.software_name
 
     result = {"is_known_by_llm": False, "description": ""}
     try:

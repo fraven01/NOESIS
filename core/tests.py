@@ -2175,21 +2175,29 @@ class InitialCheckTests(TestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Beschreibung"],
         ) as mock_q:
-            result = worker_run_initial_check(self.projekt.pk, "A")
+            sk = SoftwareKnowledge.objects.create(
+                projekt=self.projekt,
+                software_name="A",
+            )
+            result = worker_run_initial_check(sk.pk)
         self.assertTrue(result["is_known_by_llm"])
         self.assertEqual(result["description"], "Beschreibung")
         self.assertEqual(mock_q.call_count, 2)
-        sk = SoftwareKnowledge.objects.get(projekt=self.projekt, software_name="A")
+        sk.refresh_from_db()
         self.assertTrue(sk.is_known_by_llm)
         self.assertEqual(sk.description, "Beschreibung")
 
     def test_unknown_sets_flags(self):
         with patch("core.llm_tasks.query_llm", return_value="Nein") as mock_q:
-            result = worker_run_initial_check(self.projekt.pk, "A")
+            sk = SoftwareKnowledge.objects.create(
+                projekt=self.projekt,
+                software_name="A",
+            )
+            result = worker_run_initial_check(sk.pk)
         self.assertFalse(result["is_known_by_llm"])
         self.assertEqual(result["description"], "")
         self.assertEqual(mock_q.call_count, 1)
-        sk = SoftwareKnowledge.objects.get(projekt=self.projekt, software_name="A")
+        sk.refresh_from_db()
         self.assertFalse(sk.is_known_by_llm)
         self.assertEqual(sk.description, "")
 

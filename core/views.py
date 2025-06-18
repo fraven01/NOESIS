@@ -2517,10 +2517,13 @@ def ajax_start_initial_checks(request, project_id):
     names = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
     tasks = []
     for name in names:
+        sk, _ = SoftwareKnowledge.objects.get_or_create(
+            projekt=projekt,
+            software_name=name,
+        )
         tid = async_task(
             "core.llm_tasks.worker_run_initial_check",
-            projekt.pk,
-            name,
+            sk.pk,
         )
         tasks.append({"software": name, "task_id": tid})
     return JsonResponse({"status": "queued", "tasks": tasks})
