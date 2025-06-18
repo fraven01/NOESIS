@@ -36,27 +36,4 @@ class Migration(migrations.Migration):
                 "verbose_name": "Anlage1 Konfiguration",
             },
         ),
-        migrations.RunPython(
-            lambda apps, schema_editor: [
-                apps.get_model("core", "Prompt").objects.get_or_create(
-                    name=f"anlage1_q{i}",
-                    defaults={"text": text},
-                )
-                for i, text in enumerate(
-                    [
-                        "Frage 1: Extrahiere alle Unternehmen als Liste.",
-                        "Frage 2: Extrahiere alle Fachbereiche als Liste.",
-                        "Frage 3: Liste alle Hersteller und Produktnamen auf.",
-                        "Frage 4: Lege den Textblock als question4_raw ab.",
-                        "Frage 5: Fasse den Zweck des Systems in einem Satz.",
-                        "Frage 6: Extrahiere Web-URLs.",
-                        "Frage 7: Extrahiere ersetzte Systeme.",
-                        "Frage 8: Extrahiere Legacy-Funktionen.",
-                        "Frage 9: Lege den Text als question9_raw ab.",
-                    ],
-                    start=1,
-                )
-            ],
-            migrations.RunPython.noop,
-        ),
     ]
