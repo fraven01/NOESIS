@@ -98,6 +98,7 @@ import time
 import markdown
 import pypandoc
 from django.conf import settings
+from .templatetags.recording_extras import markdownify
 
 logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("anlage2_debug")
@@ -1942,6 +1943,7 @@ def projekt_file_edit_json(request, pk):
                     }
                 )
             row_source = source_map.get((str(func.id), None, "technisch_vorhanden"))
+            begr_md = ki_map.get((str(func.id), None))
             rows.append(
                 {
                     "name": func.name,
@@ -1952,7 +1954,9 @@ def projekt_file_edit_json(request, pk):
                     "func_id": func.id,
                     "verif_key": func.name,
                     "source_text": row_source,
-                    "ki_begruendung": ki_map.get((str(func.id), None)),
+                    "ki_begruendung": begr_md,
+                    "ki_begruendung_md": begr_md,
+                    "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -1996,6 +2000,7 @@ def projekt_file_edit_json(request, pk):
                 row_source = source_map.get(
                     (str(func.id), str(sub.id), "technisch_vorhanden")
                 )
+                begr_md = ki_map.get((str(func.id), str(sub.id)))
                 rows.append(
                     {
                         "name": sub.frage_text,
@@ -2010,7 +2015,9 @@ def projekt_file_edit_json(request, pk):
                         "sub_id": sub.id,
                         "verif_key": lookup_key,
                         "source_text": row_source,
-                        "ki_begruendung": ki_map.get((str(func.id), str(sub.id))),
+                        "ki_begruendung": begr_md,
+                        "ki_begruendung_md": begr_md,
+                        "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
                     }
                 )
         debug_logger.debug(
