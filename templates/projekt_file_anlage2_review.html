@@ -93,6 +93,8 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+// Dieser Code sollte im <script>-Block am Ende von projekt_file_anlage2_review.html stehen
+
 document.addEventListener('DOMContentLoaded', function() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
@@ -106,15 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const subquestionRows = document.querySelectorAll('.' + targetClass);
 
-            // Pr\u00fcfen, ob die Zeilen aktuell versteckt sind, BEVOR wir sie \u00e4ndern
             let isCurrentlyHidden = Array.from(subquestionRows).some(row => row.classList.contains('hidden-row'));
 
-            // Die 'hidden-row'-Klasse f\u00fcr alle zugeh\u00f6rigen Zeilen umschalten
             subquestionRows.forEach(row => {
                 row.classList.toggle('hidden-row');
             });
 
-            // Den Text des Knopfes basierend auf dem VORHERIGEN Zustand anpassen
             this.textContent = isCurrentlyHidden ? '-' : '+';
         });
     });
@@ -139,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ... hier kann die restliche JavaScript-Logik der Seite folgen ...
+    // ... andere Skripte f\u00fcr diese Seite ...
 });
 </script>
 {% endblock %}
