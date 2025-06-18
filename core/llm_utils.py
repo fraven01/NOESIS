@@ -11,8 +11,7 @@ try:
 except ModuleNotFoundError:
     g_exceptions = None
 
-logger = logging.getLogger("llm_debug")
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger("llm_debugger")
 
 
 def _timestamp() -> str:
@@ -48,6 +47,13 @@ def query_llm(
         f"{final_role_prompt}\n\n---\n\n{task_prompt}" if final_role_prompt else task_prompt
     )
 
+    final_prompt_to_llm = prompt
+    model_name_to_use = model_name
+
+    logger.debug(
+        f"--- PROMPT SENT TO MODEL {model_name_to_use} ---\n{final_prompt_to_llm}\n--------------------"
+    )
+
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
         logger.error(
             "[%s] [%s] Missing LLM API key in environment.",
@@ -73,14 +79,20 @@ def query_llm(
             )
 
             resp = model.generate_content(prompt)
+            llm_response = resp.text
 
             logger.debug(
                 "[%s] [%s] Response 200 %s",
                 _timestamp(),
                 correlation_id,
-                repr(resp.text)[:200],
+                repr(llm_response)[:200],
             )
-            return resp.text
+
+            logger.debug(
+                f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
+            )
+
+            return llm_response
 
         except Exception as exc:
             if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -114,6 +126,7 @@ def query_llm(
     try:
         openai.api_key = settings.OPENAI_API_KEY
         completion = openai.ChatCompletion.create(**payload)
+        llm_response = completion.choices[0].message.content
         logger.debug(
             "[%s] [%s] Response %s %s",
             _timestamp(),
@@ -121,7 +134,12 @@ def query_llm(
             completion.response_ms,
             repr(completion)[:200],
         )
-        return completion.choices[0].message.content
+
+        logger.debug(
+            f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
+        )
+
+        return llm_response
     except Exception as exc:
         status = getattr(exc, "http_status", "N/A")
         body = getattr(exc, "http_body", "")

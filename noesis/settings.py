@@ -166,6 +166,10 @@ LOGGING = {
             "format": "{levelname} {message}",
             "style": "{",
         },
+        "llm_formatter": {
+            "format": "{asctime} [{levelname}] {message}",
+            "style": "{",
+        },
     },
     "handlers": {
         "console": {
@@ -179,6 +183,12 @@ LOGGING = {
             "filename": BASE_DIR / "debug.log",
             "formatter": "verbose",
         },
+        "llm_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "llm-debug.log",
+            "formatter": "llm_formatter",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
@@ -189,6 +199,11 @@ LOGGING = {
         "django": {  # Der Django-spezifische Logger
             "handlers": ["console", "file"],
             "level": "INFO",  # Django selbst loggt nicht alles auf DEBUG standardmäßig, INFO ist oft ausreichend
+            "propagate": False,
+        },
+        "llm_debugger": {
+            "handlers": ["llm_file"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "deine_app_name": {  # Füge einen Logger für deine spezifische App hinzu (ersetze 'deine_app_name')
