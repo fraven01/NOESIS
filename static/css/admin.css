@@ -6,3 +6,8 @@
 .admin-nav a { @apply block py-1 text-blue-700 hover:underline; }
 
 
+
+
+.hidden-row {
+    display: none;
+}
