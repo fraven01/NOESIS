@@ -1927,6 +1927,14 @@ def projekt_file_edit_json(request, pk):
                     if old in item and new not in item:
                         item[new] = item[old]
                 answers[name] = item
+                for sub in item.get("subquestions", []):
+                    s_text = sub.get("frage_text")
+                    if not s_text:
+                        continue
+                    for old, new in FIELD_RENAME.items():
+                        if old in sub and new not in sub:
+                            sub[new] = sub[old]
+                    answers[f"{name}: {s_text}"] = sub
         debug_logger.debug("Answers Inhalt vor Verarbeitung: %s", answers)
         rows = []
         fields_def = get_anlage2_fields()
@@ -1971,31 +1979,8 @@ def projekt_file_edit_json(request, pk):
                             ),
                         }
                     )
-                s_analysis = {}
                 lookup_key = f"{func.name}: {sub.frage_text}"
-
-                item = answers.get(lookup_key)
-                if item:
-                    for old, new in FIELD_RENAME.items():
-                        if old in item and new not in item:
-                            item[new] = item[old]
-                    s_analysis = item
-                else:
-                    func_data = answers.get(func.name)
-                    if func_data:
-                        match = next(
-                            (
-                                s
-                                for s in func_data.get("subquestions", [])
-                                if s.get("frage_text") == sub.frage_text
-                            ),
-                            None,
-                        )
-                        if match:
-                            for old, new in FIELD_RENAME.items():
-                                if old in match and new not in match:
-                                    match[new] = match[old]
-                            s_analysis = match
+                s_analysis = answers.get(lookup_key, {})
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
                 row_source = source_map.get(

@@ -65,7 +65,7 @@
                     </div>
                 </td>
                 {% for field in fields %}
-                {% with val=row.initial|get_item:field %}
+                {% with val=row.analysis|get_item:field %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
                         <span class="status-badge status-ja">✓ Vorhanden</span>
