@@ -1370,7 +1370,7 @@ class WorkerGenerateGutachtenTests(TestCase):
 
     def test_worker_creates_file(self):
         with patch("core.llm_tasks.query_llm", return_value="Text"):
-            path = worker_generate_gutachten(self.knowledge.pk)
+            path = worker_generate_gutachten(self.projekt.pk, self.knowledge.pk)
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
         self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")

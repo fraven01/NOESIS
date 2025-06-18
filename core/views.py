@@ -2255,6 +2255,7 @@ def ajax_start_gutachten_generation(request, project_id):
 
     task_id = async_task(
         "core.llm_tasks.worker_generate_gutachten",
+        project_id,
         knowledge_id,
         timeout=600,
     )
