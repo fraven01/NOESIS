@@ -93,93 +93,53 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-// Hilfsfunktion, um den CSRF-Token für POST-Requests zu bekommen
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-const csrftoken = getCookie('csrftoken');
-
 document.addEventListener('DOMContentLoaded', function() {
-    const verifyAllBtn = document.getElementById('btn-verify-all');
+    const expandAllBtn = document.getElementById('expand-all-subquestions');
+    const collapseAllBtn = document.getElementById('collapse-all-subquestions');
+    const individualToggleButtons = document.querySelectorAll('.toggle-button');
 
-    if (verifyAllBtn) {
-        verifyAllBtn.addEventListener('click', function() {
-            const singleVerifyButtons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
-
-            if (singleVerifyButtons.length > 0) {
-                if (confirm(`M\u00f6chten Sie wirklich ${singleVerifyButtons.length} KI-Pr\u00fcfungen starten?`)) {
-                    singleVerifyButtons.forEach(button => {
-                        button.click();
-                    });
-                }
-            } else {
-                alert('Keine ungepr\u00fcften Funktionen zum Starten vorhanden.');
-            }
-        });
-    }
-    // Event-Listener für alle individuellen Prüf-Knöpfe
-    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+    // Logik f\u00fcr individuelle Schalter
+    individualToggleButtons.forEach(button => {
         button.addEventListener('click', function() {
-            const clickedButton = this;
-            const row = clickedButton.closest('tr');
+            const targetClass = this.dataset.targetClass;
+            if (!targetClass) return;
 
-            // UI sofort auf Ladezustand setzen
-            clickedButton.disabled = true;
-            clickedButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            const subquestionRows = document.querySelectorAll('.' + targetClass);
 
-            // Daten aus dem geklickten Button extrahieren
-            const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
-            const url = `/work/anlage/${projectFileId}/verify-feature/`;
+            // Pr\u00fcfen, ob die Zeilen aktuell versteckt sind, BEVOR wir sie \u00e4ndern
+            let isCurrentlyHidden = Array.from(subquestionRows).some(row => row.classList.contains('hidden-row'));
 
-            const body = new FormData();
-            if (functionId) {
-                body.append('function_id', functionId);
-            }
-            if (subquestionId) {
-                body.append('subquestion_id', subquestionId);
-            }
-
-            // Fetch-Request an das Backend senden
-            fetch(url, {
-                method: 'POST',
-                body: body,
-                headers: { 'X-CSRFToken': csrftoken }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'queued' && data.task_id) {
-                    // Hier würde die Polling-Logik starten
-                    // Fürs Erste geben wir nur Erfolg aus und aktivieren den Knopf wieder
-                    console.log('Task gestartet mit ID:', data.task_id);
-                    clickedButton.innerHTML = '✓';
-                    setTimeout(() => { clickedButton.innerHTML = '🤖'; clickedButton.disabled = false; }, 2000);
-                } else {
-                    throw new Error('Task-Start vom Server nicht bestätigt.');
-                }
-            })
-            .catch(error => {
-                console.error('Fehler bei der KI-Prüfung:', error);
-                clickedButton.innerHTML = '⚠️'; // Fehler-Icon
-                clickedButton.disabled = false;
+            // Die 'hidden-row'-Klasse f\u00fcr alle zugeh\u00f6rigen Zeilen umschalten
+            subquestionRows.forEach(row => {
+                row.classList.toggle('hidden-row');
             });
+
+            // Den Text des Knopfes basierend auf dem VORHERIGEN Zustand anpassen
+            this.textContent = isCurrentlyHidden ? '-' : '+';
         });
     });
+
+    // Logik f\u00fcr "Alles aufklappen"
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.subquestion-row').forEach(row => {
+                row.classList.remove('hidden-row');
+            });
+            individualToggleButtons.forEach(btn => btn.textContent = '-');
+        });
+    }
+
+    // Logik f\u00fcr "Alles einklappen"
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.subquestion-row').forEach(row => {
+                row.classList.add('hidden-row');
+            });
+            individualToggleButtons.forEach(btn => btn.textContent = '+');
+        });
+    }
+
+    // ... hier kann die restliche JavaScript-Logik der Seite folgen ...
 });
 </script>
 {% endblock %}
