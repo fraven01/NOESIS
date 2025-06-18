@@ -2127,7 +2127,7 @@ class FeatureVerificationTests(TestCase):
 
     def test_any_yes_returns_true(self):
         with patch(
-            "core.llm_tasks.query_llm",
+            "core.llm_tasks.call_gemini_api",
             side_effect=["Ja", "Nein", "Begruendung"],
         ) as mock_q:
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
@@ -2144,7 +2144,7 @@ class FeatureVerificationTests(TestCase):
 
     def test_all_no_returns_false(self):
         with patch(
-            "core.llm_tasks.query_llm",
+            "core.llm_tasks.call_gemini_api",
             side_effect=["Nein", "Nein"],
         ):
             result = worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
@@ -2152,7 +2152,7 @@ class FeatureVerificationTests(TestCase):
 
     def test_mixed_returns_none(self):
         with patch(
-            "core.llm_tasks.query_llm",
+            "core.llm_tasks.call_gemini_api",
             side_effect=["Unsicher", "Nein"],
         ):
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)

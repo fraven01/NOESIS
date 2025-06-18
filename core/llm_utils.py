@@ -134,3 +134,55 @@ def query_llm(
             exc_info=True,
         )
         raise
+
+
+def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> str:
+    """Sendet einen Prompt direkt an das Gemini-Modell."""
+
+    correlation_id = str(uuid.uuid4())
+
+    if not settings.GOOGLE_API_KEY:
+        logger.error(
+            "[%s] [%s] Missing LLM API key in environment.",
+            _timestamp(),
+            correlation_id,
+        )
+        raise RuntimeError("Missing LLM credentials from environment.")
+
+    try:
+        genai.configure(api_key=settings.GOOGLE_API_KEY)
+        model = genai.GenerativeModel(model_name)
+        logger.debug(
+            "[%s] [%s] Request to Google Gemini model=%s",
+            _timestamp(),
+            correlation_id,
+            model_name,
+        )
+        resp = model.generate_content(
+            prompt, generation_config={"temperature": temperature}
+        )
+        logger.debug(
+            "[%s] [%s] Response 200 %s",
+            _timestamp(),
+            correlation_id,
+            repr(resp.text)[:200],
+        )
+        return resp.text
+    except Exception as exc:  # noqa: BLE001 - Weitergabe an Aufrufer
+        if g_exceptions and isinstance(exc, g_exceptions.NotFound):
+            logger.error(
+                "[%s] [%s] Unbekanntes Gemini-Modell %s",
+                _timestamp(),
+                correlation_id,
+                model_name,
+            )
+            raise RuntimeError(f"Unsupported Gemini model: {model_name}.") from exc
+
+        logger.error(
+            "[%s] [%s] LLM service error: %s",
+            _timestamp(),
+            correlation_id,
+            str(exc),
+            exc_info=True,
+        )
+        raise

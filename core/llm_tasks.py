@@ -25,7 +25,7 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .llm_utils import query_llm
+from .llm_utils import query_llm, call_gemini_api
 from .docx_utils import (
     parse_anlage2_table,
     parse_anlage2_text,
@@ -751,17 +751,18 @@ def worker_verify_feature(
     else:
         raise ValueError("invalid object_type")
 
-    prompt_base = get_prompt(
-        "anlage2_feature_verification",
-        (
+    try:
+        prompt_base = Prompt.objects.get(name="anlage2_feature_verification").text
+    except Prompt.DoesNotExist:
+        logger.error("Prompt 'anlage2_feature_verification' nicht gefunden!")
+        prompt_base = (
             "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
             "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
             "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
             'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
             "Aussage: Besitzt die Software '{software_name}' typischerweise "
             "die Funktion oder Eigenschaft '{function_name}'?"
-        ),
-    )
+        )
 
     software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
 
@@ -769,9 +770,14 @@ def worker_verify_feature(
 
     answers: list[str] = []
     for software in software_list:
-        prompt_text = prompt_base.format(software_name=software, function_name=name)
-        prompt_obj = Prompt(name="tmp", text=prompt_text)
-        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+        prompt_text = prompt_base.format(
+            software_name=software, function_name=name
+        )
+        reply = call_gemini_api(
+            prompt_text,
+            model_name or "models/gemini-2.5-flash",
+            temperature=0.1,
+        )
         answers.append(reply.strip())
 
     lower = [ans.lower() for ans in answers]
@@ -784,24 +790,22 @@ def worker_verify_feature(
 
     justification = ""
     if result:
-        # Zusätzliche Rückfrage beim LLM, warum die Funktion
-        # üblicherweise vorhanden ist. Die Antwort wird später im
-        # Review als Tooltip angezeigt.
-        just_base = get_prompt(
-            "anlage2_feature_justification",
-            (
+        try:
+            just_base = Prompt.objects.get(name="anlage2_feature_justification").text
+        except Prompt.DoesNotExist:
+            just_base = (
                 "Warum besitzt die Software '{software_name}' typischerweise die "
                 "Funktion oder Eigenschaft '{function_name}'?"
-            ),
-        )
+            )
         idx = next((i for i, a in enumerate(lower) if a.startswith("ja")), 0)
         just_prompt_text = just_base.format(
             software_name=software_list[idx],
             function_name=name,
         )
-        just_obj = Prompt(name="tmp", text=just_prompt_text)
-        justification = query_llm(
-            just_obj, {}, model_name=model_name, model_type="anlagen"
+        justification = call_gemini_api(
+            just_prompt_text,
+            model_name or "models/gemini-2.5-flash",
+            temperature=0.1,
         ).strip()
 
     data = {"technisch_verfuegbar": result, "ki_begruendung": justification}
