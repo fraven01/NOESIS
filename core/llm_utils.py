@@ -24,11 +24,21 @@ def query_llm(
     prompt: str, model_name: str | None = None, model_type: str = "default"
 ) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
-    from .models import LLMConfig
+    from .models import LLMConfig, Prompt
 
     correlation_id = str(uuid.uuid4())
     if model_name is None:
         model_name = LLMConfig.get_default(model_type)
+
+    # System-Prompt laden und mitgeben
+    obj = Prompt.objects.filter(name="llm_system_persona").first()
+    if obj:
+        system_prompt = obj.text
+    else:
+        system_prompt = (
+            "Bitte beantworte die folgende Frage direkt und sachlich."
+        )
+    prompt = f"{system_prompt}\n\n---\n\n{prompt}"
 
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
         logger.error(
