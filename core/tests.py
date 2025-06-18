@@ -629,7 +629,7 @@ class LLMTasksTests(TestCase):
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
-        self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0])
+        self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0].text)
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertEqual(data["functions"][0]["funktion"], "Login")
 
@@ -646,7 +646,7 @@ class LLMTasksTests(TestCase):
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
-        prompt = mock_q.call_args_list[0].args[0]
+        prompt = mock_q.call_args_list[0].args[0].text
         self.assertIn("Testinhalt Anlage2", prompt)
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertEqual(data["functions"][0]["funktion"], "Login")
@@ -957,7 +957,7 @@ class LLMTasksTests(TestCase):
             side_effect=['{"task": "check_anlage1"}'] + [eval_reply] * enabled_count,
         ) as mock_q:
             data = check_anlage1(projekt.pk)
-        prompt = mock_q.call_args_list[0].args[0]
+        prompt = mock_q.call_args_list[0].args[0].text
         self.assertNotIn("Frage 1", prompt)
         self.assertIn("1", data["questions"])
         self.assertIsNone(data["questions"]["1"]["status"])
@@ -1909,7 +1909,7 @@ class ModelSelectionTests(TestCase):
         with patch("core.views.query_llm", return_value="ok") as mock_q:
             resp = self.client.post(url, {"model_category": "gutachten"})
         self.assertEqual(resp.status_code, 200)
-        mock_q.assert_called_with(ANY, model_name="g", model_type="default")
+        mock_q.assert_called_with(ANY, {}, model_name="g", model_type="default")
 
     def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])

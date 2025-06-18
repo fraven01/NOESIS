@@ -207,11 +207,13 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
         ("|" in line and line.count("|") >= 1) or "\t" in line for line in lines
     )
     if table_like:
-        prompt = get_prompt(
-            "anlage2_table",
-            "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n",
+        base_obj = Prompt.objects.filter(name="anlage2_table").first()
+        prompt_text = (
+            (base_obj.text if base_obj else "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n")
+            + text_content
         )
-        reply = query_llm(prompt + text_content, model_name=None, model_type="anlagen")
+        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+        reply = query_llm(prompt_obj, {}, model_name=None, model_type="anlagen")
         try:
             data = json.loads(reply)
             if isinstance(data, list):
@@ -294,12 +296,15 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
-    prefix = get_prompt(
-        "classify_system",
-        "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xfcsseln 'kategorie' und 'begruendung' zur\xfcck.\n\n",
+    base_obj = Prompt.objects.filter(name="classify_system").first()
+    prefix = (
+        base_obj.text
+        if base_obj
+        else "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xfcsseln 'kategorie' und 'begruendung' zur\xfcck.\n\n"
     )
-    prompt = prefix + _collect_text(projekt)
-    reply = query_llm(prompt, model_name=model_name, model_type="default")
+    prompt_text = prefix + _collect_text(projekt)
+    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="default")
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -318,12 +323,13 @@ def generate_gutachten(
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
     if text is None:
-        prefix = get_prompt(
-            "generate_gutachten",
-            "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
+        base_obj = Prompt.objects.filter(name="generate_gutachten").first()
+        prefix = (
+            base_obj.text if base_obj else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
         )
-        prompt = prefix + projekt.software_typen
-        text = query_llm(prompt, model_name=model_name, model_type="gutachten")
+        prompt_text = prefix + projekt.software_typen
+        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+        text = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
     doc = Document()
     for line in text.splitlines():
         doc.add_paragraph(line)
@@ -361,10 +367,8 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
         return ""
     model = LLMConfig.get_default("gutachten")
 
-    prefix = get_prompt(
-        "generate_gutachten",
-        "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
-    )
+    base_obj = Prompt.objects.filter(name="generate_gutachten").first()
+    prefix = base_obj.text if base_obj else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
 
     knowledge = None
     if software_type_id:
@@ -373,7 +377,8 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     else:
         target = projekt.software_typen
 
-    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
+    prompt_obj = Prompt(name="tmp", text=prefix + target, role=base_obj.role if base_obj else None)
+    text = query_llm(prompt_obj, {}, model_name=model, model_type="gutachten")
     path = generate_gutachten(projekt.id, text, model_name=model)
 
     if knowledge:
@@ -392,13 +397,14 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     ) as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
         raise ValueError(f"Anlage {nr} fehlt") from exc
 
-    prefix = get_prompt(
-        f"check_anlage{nr}",
-        "Pr\xfcfe die folgende Anlage auf Vollst\xe4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xfcck:\n\n",
+    base_obj = Prompt.objects.filter(name=f"check_anlage{nr}").first()
+    prefix = (
+        base_obj.text if base_obj else "Pr\xfcfe die folgende Anlage auf Vollst\xe4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xfcck:\n\n"
     )
-    prompt = prefix + anlage.text_content
+    prompt_text = prefix + anlage.text_content
+    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
 
-    reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
     try:
         data = json.loads(reply)
     except Exception as _:
@@ -473,12 +479,15 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         parts.insert(insert_at, _ANLAGE1_IT)
         parts.append(_ANLAGE1_SUFFIX)
         prefix = "".join(parts)
-        prompt = prefix + anlage.text_content
+        base_obj = Prompt.objects.filter(name=f"anlage1_q{llm_questions[0].num}").first()
+        prompt_text = prefix + anlage.text_content
+        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
 
         logger.debug(
-            "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r", prompt[:500]
+            "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r",
+            prompt_text[:500],
         )
-        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
         logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
         try:
             data = json.loads(reply)
@@ -514,14 +523,15 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             ans = "leer"
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
         if _llm_enabled(q):
-            prompt = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
+            prompt_text = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
+            prompt_obj = Prompt(name="tmp", text=prompt_text)
             logger.debug(
                 "check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r",
                 q.num,
-                prompt,
+                prompt_text,
             )
             try:
-                reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+                reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
                 logger.debug(
                     "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
                 )
@@ -603,9 +613,10 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             raw = row
         else:
             # Sonst LLM befragen
-            prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
-            logger.debug("LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt)
-            reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+            logger.debug("LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text)
+            prompt_obj = Prompt(name="tmp", text=prompt_text)
+            reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
             logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
             try:
                 raw = json.loads(reply)
@@ -631,11 +642,12 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         sub_list: list[dict] = []
         # Für jede Subfrage ebenfalls LLM befragen
         for sub in func.anlage2subquestion_set.all().order_by("id"):
-            prompt = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
+            prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             logger.debug(
-                "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt
+                "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
             )
-            reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+            prompt_obj = Prompt(name="tmp", text=prompt_text)
+            reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
             logger.debug(
                 "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
             )
@@ -698,8 +710,9 @@ def check_anlage2_functions(
     )
     results: list[dict] = []
     for func in Anlage2Function.objects.order_by("name"):
-        prompt = f"{prompt_base}Funktion: {func.name}\n\n{text}"
-        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+        prompt_obj = Prompt(name="tmp", text=prompt_text)
+        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -756,8 +769,9 @@ def worker_verify_feature(
 
     answers: list[str] = []
     for software in software_list:
-        prompt = prompt_base.format(software_name=software, function_name=name)
-        reply = query_llm(prompt, model_name=model_name, model_type="anlagen")
+        prompt_text = prompt_base.format(software_name=software, function_name=name)
+        prompt_obj = Prompt(name="tmp", text=prompt_text)
+        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
         answers.append(reply.strip())
 
     lower = [ans.lower() for ans in answers]
@@ -781,12 +795,13 @@ def worker_verify_feature(
             ),
         )
         idx = next((i for i, a in enumerate(lower) if a.startswith("ja")), 0)
-        just_prompt = just_base.format(
+        just_prompt_text = just_base.format(
             software_name=software_list[idx],
             function_name=name,
         )
+        just_obj = Prompt(name="tmp", text=just_prompt_text)
         justification = query_llm(
-            just_prompt, model_name=model_name, model_type="anlagen"
+            just_obj, {}, model_name=model_name, model_type="anlagen"
         ).strip()
 
     data = {"technisch_verfuegbar": result, "ki_begruendung": justification}
@@ -819,13 +834,15 @@ def worker_run_initial_check(project_id: int, software_name: str) -> dict[str, o
 
     result = {"is_known_by_llm": False, "description": ""}
     try:
-        prompt1 = f"Kennst du die Software '{software_name}'?"
-        reply1 = query_llm(prompt1, model_type="default")
+        prompt1_text = f"Kennst du die Software '{software_name}'?"
+        prompt1_obj = Prompt(name="tmp", text=prompt1_text)
+        reply1 = query_llm(prompt1_obj, {}, model_type="default")
         if reply1.strip().lower().startswith("ja"):
             sk.is_known_by_llm = True
             result["is_known_by_llm"] = True
-            prompt2 = f"Beschreibe kurz die Software '{software_name}'."
-            reply2 = query_llm(prompt2, model_type="default")
+            prompt2_text = f"Beschreibe kurz die Software '{software_name}'."
+            prompt2_obj = Prompt(name="tmp", text=prompt2_text)
+            reply2 = query_llm(prompt2_obj, {}, model_type="default")
             description = reply2.strip()
             sk.description = description
             result["description"] = description
@@ -849,15 +866,18 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
         raise ValueError("kein Gutachten")
     path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
     text = extract_text(path)
-    prefix = get_prompt(
-        "check_gutachten_functions",
-        (
+    base_obj = Prompt.objects.filter(name="check_gutachten_functions").first()
+    prefix = (
+        base_obj.text
+        if base_obj
+        else (
             "Prüfe das folgende Gutachten auf weitere Funktionen, die nach "
             "\xa7 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. "
             "Gib eine kurze Empfehlung als Text zurück.\n\n"
-        ),
+        )
     )
-    reply = query_llm(prefix + text, model_name=model_name, model_type="gutachten")
+    prompt_obj = Prompt(name="tmp", text=prefix + text, role=base_obj.role if base_obj else None)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])
     return reply

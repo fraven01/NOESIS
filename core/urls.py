@@ -46,6 +46,10 @@ urlpatterns = [
     path("projects-admin/statuses/new/", views.admin_project_status_form, name="admin_project_status_new"),
     path("projects-admin/statuses/<int:pk>/edit/", views.admin_project_status_form, name="admin_project_status_edit"),
     path("projects-admin/statuses/<int:pk>/delete/", views.admin_project_status_delete, name="admin_project_status_delete"),
+    path("projects-admin/roles/", views.admin_llm_roles, name="admin_llm_roles"),
+    path("projects-admin/roles/new/", views.admin_llm_role_form, name="admin_llm_role_new"),
+    path("projects-admin/roles/<int:pk>/edit/", views.admin_llm_role_form, name="admin_llm_role_edit"),
+    path("projects-admin/roles/<int:pk>/delete/", views.admin_llm_role_delete, name="admin_llm_role_delete"),
     path(
         "projects-admin/<int:pk>/delete/",
         views.admin_project_delete,

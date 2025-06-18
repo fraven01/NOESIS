@@ -21,24 +21,32 @@ def _timestamp() -> str:
 
 
 def query_llm(
-    prompt: str, model_name: str | None = None, model_type: str = "default"
+    prompt_object: "Prompt",
+    context_data: dict,
+    model_name: str | None = None,
+    model_type: str = "default",
+    temperature: float = 0.5,
 ) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
-    from .models import LLMConfig, Prompt
+    from .models import LLMConfig, LLMRole, Prompt
 
     correlation_id = str(uuid.uuid4())
     if model_name is None:
         model_name = LLMConfig.get_default(model_type)
 
-    # System-Prompt laden und mitgeben
-    obj = Prompt.objects.filter(name="llm_system_persona").first()
-    if obj:
-        system_prompt = obj.text
+    final_role_prompt = ""
+    if prompt_object.role:
+        final_role_prompt = prompt_object.role.role_prompt
     else:
-        system_prompt = (
-            "Bitte beantworte die folgende Frage direkt und sachlich."
-        )
-    prompt = f"{system_prompt}\n\n---\n\n{prompt}"
+        default_role = LLMRole.objects.filter(is_default=True).first()
+        if default_role:
+            final_role_prompt = default_role.role_prompt
+
+    task_prompt = prompt_object.text.format(**context_data)
+
+    prompt = (
+        f"{final_role_prompt}\n\n---\n\n{task_prompt}" if final_role_prompt else task_prompt
+    )
 
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
         logger.error(
