@@ -2197,18 +2197,18 @@ def anlage2_feature_verify(request, pk):
     if anlage.anlage_nr != 2:
         return JsonResponse({"error": "invalid"}, status=400)
 
-    func_id = request.POST.get("function")
-    sub_id = request.POST.get("subquestion")
+    function_id = request.POST.get("function_id", None)
+    subquestion_id = request.POST.get("subquestion_id", None)
     model = request.POST.get("model")
-    logger.debug(f"Extrahierte function_id: '{func_id}'")
-    logger.debug(f"Extrahierte subquestion_id: '{sub_id}'")
-    if func_id:
+    logger.debug(f"Extrahierte function_id: '{function_id}'")
+    logger.debug(f"Extrahierte subquestion_id: '{subquestion_id}'")
+    if function_id:
         object_type = "function"
-        obj_id = int(func_id)
+        obj_id = int(function_id)
         get_object_or_404(Anlage2Function, pk=obj_id)  # nur Validierung
-    elif sub_id:
+    elif subquestion_id:
         object_type = "subquestion"
-        obj_id = int(sub_id)
+        obj_id = int(subquestion_id)
         get_object_or_404(Anlage2SubQuestion, pk=obj_id)
     else:
         logger.error(
