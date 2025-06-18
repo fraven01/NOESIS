@@ -1,7 +1,7 @@
-{% extends 'base.html' %}
+{% extends 'admin_base.html' %}
 {% load recording_extras %}
 {% block title %}Admin TalkDiary{% endblock %}
-{% block content %}
+{% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Admin TalkDiary</h1>
 <div class="mb-4 space-x-2">
     <a href="?" class="px-3 py-1 rounded bg-gray-200 {% if not active_filter %}bg-gray-400{% endif %}">Alle</a>
