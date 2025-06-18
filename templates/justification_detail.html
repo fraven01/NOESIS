@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Begründung{% endblock %}
+{% block content %}
+<h3 class="text-xl font-semibold mb-4">Begründung für: {{ function_name }}</h3>
+<div class="mb-4 p-2 border rounded bg-gray-50">
+    {{ justification_html|safe }}
+</div>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.justification.label_tag }}
+    {{ form.justification }}
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    <a href="{% url 'justification_delete' project_file.id function_name %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Begründung löschen</a>
+</form>
+{% endblock %}
+

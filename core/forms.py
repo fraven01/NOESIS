@@ -433,6 +433,16 @@ class EditJustificationForm(forms.Form):
     )
 
 
+class JustificationForm(forms.Form):
+    """Formular zum Bearbeiten eines KI-Begründungstextes."""
+
+    justification = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 15}),
+        label="KI-Begründung bearbeiten",
+        required=False,
+    )
+
+
 class KnowledgeDescriptionForm(forms.ModelForm):
     """Formular zum Bearbeiten der Beschreibung einer Software."""
 
