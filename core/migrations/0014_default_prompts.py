@@ -21,6 +21,9 @@ class Migration(migrations.Migration):
             "generate_overall_gutachten": (
                 "Erstelle ein zusammenfassendes Gutachten f\u00fcr das Projekt '{project_title}'. Ber\u00fccksichtige alle folgenden Software-Komponenten und deren Analyseergebnisse: {context_data}. Fasse die Ergebnisse zusammen, bewerte das Gesamtprojekt und gib eine Abschlussempfehlung ab. Strukturiere das Gutachten mit klaren \u00dcberschriften und formatiere es mit Markdown (z.B. \u00dcberschriften, Fett- und Kursivdruck, Listen und Tabellen)."
             ),
+            "llm_system_persona": (
+                "Du bist ein Fachexperte f\u00fcr die Pr\u00fcfung von IT-Systemen im Kontext von Betriebsvereinbarungen bei Telef\u00f3nica Deutschland. Deine Antworten sind stets sachlich, pr\u00e4zise und direkt. Vermeide jegliche konversationelle Einleitungen oder F\u00fcllw\u00f6rter wie 'Gerne, hier ist...' oder 'Absolut, ...'. Du sprichst den Anwender mit 'Du' an. Deine einzige Aufgabe ist es, die folgende Anweisung auszuf\u00fchren."
+            ),
         }
         for i in range(1, 7):
             prompts[f"check_anlage{i}"] = (
