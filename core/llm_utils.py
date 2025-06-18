@@ -34,12 +34,14 @@ def query_llm(
         model_name = LLMConfig.get_default(model_type)
 
     final_role_prompt = ""
-    if prompt_object.role:
-        final_role_prompt = prompt_object.role.role_prompt
-    else:
-        default_role = LLMRole.objects.filter(is_default=True).first()
-        if default_role:
-            final_role_prompt = default_role.role_prompt
+
+    if prompt_object.use_system_role:
+        if prompt_object.role:
+            final_role_prompt = prompt_object.role.role_prompt
+        else:
+            default_role = LLMRole.objects.filter(is_default=True).first()
+            if default_role:
+                final_role_prompt = default_role.role_prompt
 
     task_prompt = prompt_object.text.format(**context_data)
 

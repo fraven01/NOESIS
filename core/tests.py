@@ -1019,7 +1019,13 @@ class AdminPromptsViewTests(TestCase):
     def test_update_prompt(self):
         url = reverse("admin_prompts")
         resp = self.client.post(
-            url, {"pk": self.prompt.id, "text": "neu", "action": "save"}
+            url,
+            {
+                "pk": self.prompt.id,
+                "text": "neu",
+                "action": "save",
+                "use_system_role": "on",
+            },
         )
         self.assertRedirects(resp, url)
         self.prompt.refresh_from_db()
