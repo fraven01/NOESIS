@@ -768,7 +768,7 @@ def worker_verify_feature(
 
     name = getattr(feature_obj, "name", None) or getattr(feature_obj, "frage_text")
 
-    answers: list[str] = []
+    individual_results: list[bool | None] = []
     for software in software_list:
         prompt_text = prompt_base.format(
             software_name=software, function_name=name
@@ -778,14 +778,19 @@ def worker_verify_feature(
             model_name or "models/gemini-2.5-flash",
             temperature=0.1,
         )
-        answers.append(reply.strip())
+        ans = reply.strip()
+        low = ans.lower()
+        if low.startswith("ja"):
+            individual_results.append(True)
+        elif low.startswith("nein"):
+            individual_results.append(False)
+        else:
+            individual_results.append(None)
 
-    lower = [ans.lower() for ans in answers]
-    if any(a.startswith("ja") for a in lower):
+    result = False
+    if True in individual_results:
         result = True
-    elif all(a.startswith("nein") for a in lower):
-        result = False
-    else:
+    elif None in individual_results:
         result = None
 
     justification = ""
@@ -797,7 +802,7 @@ def worker_verify_feature(
                 "Warum besitzt die Software '{software_name}' typischerweise die "
                 "Funktion oder Eigenschaft '{function_name}'?"
             )
-        idx = next((i for i, a in enumerate(lower) if a.startswith("ja")), 0)
+        idx = individual_results.index(True) if True in individual_results else 0
         just_prompt_text = just_base.format(
             software_name=software_list[idx],
             function_name=name,
