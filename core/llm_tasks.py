@@ -863,10 +863,8 @@ def worker_run_initial_check(project_id: int, software_name: str) -> dict[str, o
             sk.description = description
             result["description"] = description
         else:
-            sk.description = (
-                "Die Software ist der KI nicht bekannt oder die Abfrage war nicht eindeutig."
-            )
-            result["description"] = sk.description
+            sk.description = ""
+            result["description"] = ""
 
     except Prompt.DoesNotExist as exc:  # noqa: BLE001
         logger.error(f"Benötigter Prompt für Initial-Check nicht gefunden: {exc}")
