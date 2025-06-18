@@ -37,9 +37,14 @@
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {% endif %}
                     {{ row.name }}
-                    {% if row.ki_begruendung %}
-                    <span class="ms-2" data-bs-toggle="tooltip" data-bs-html="true"
-                          title="{{ row.ki_begruendung|markdownify }}">ⓘ</span>
+                    {% if row.ki_begruendung_html %}
+                    <button type="button" class="btn btn-sm btn-outline-info open-justification-modal ms-2"
+                            data-bs-toggle="modal"
+                            data-bs-target="#justificationModal"
+                            data-function-name="{{ row.name }}"
+                            data-justification-html="{{ row.ki_begruendung_html|escape }}">
+                        ⓘ Begründung
+                    </button>
                     {% endif %}
                     <span class="text-muted small">(Quelle: {{ row.source_text }})</span>
                 </td>
@@ -85,6 +90,18 @@
         <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
 </form>
+<div class="modal fade" id="justificationModal" tabindex="-1" aria-labelledby="justificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="justificationModalLabel">Begründung</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -344,5 +361,19 @@ document.querySelector('tbody').addEventListener('blur', function(e) {
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
     new bootstrap.Tooltip(el, {html: true});
 });
+
+const justificationModal = document.getElementById('justificationModal');
+if (justificationModal) {
+    justificationModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const functionName = button.dataset.functionName;
+        const justificationHtml = new DOMParser().parseFromString(button.dataset.justificationHtml, 'text/html').documentElement.textContent;
+        const modalTitle = justificationModal.querySelector('.modal-title');
+        const modalBody = justificationModal.querySelector('.modal-body');
+
+        modalTitle.textContent = 'Begründung für: ' + functionName;
+        modalBody.innerHTML = justificationHtml;
+    });
+}
 </script>
 {% endblock %}
