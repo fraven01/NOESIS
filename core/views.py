@@ -1055,7 +1055,8 @@ def admin_prompts(request):
                 prompt.text = request.POST.get("text", "")
                 role_id = request.POST.get("role")
                 prompt.role = LLMRole.objects.filter(pk=role_id).first() if role_id else None
-                prompt.save(update_fields=["text", "role"])
+                prompt.use_system_role = bool(request.POST.get("use_system_role"))
+                prompt.save(update_fields=["text", "role", "use_system_role"])
         return redirect("admin_prompts")
 
     labels = [

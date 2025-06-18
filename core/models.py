@@ -271,6 +271,14 @@ class Prompt(models.Model):
             "globale Standard-Rolle."
         ),
     )
+    use_system_role = models.BooleanField(
+        default=True,
+        help_text=(
+            "Wenn aktiviert, wird diesem Prompt der globale oder zugewiesene "
+            "Rollen-Prompt vorangestellt. Deaktivieren für einfache Abfragen, "
+            "die eine strikte, kurze Antwort erfordern."
+        ),
+    )
 
     class Meta:
         ordering = ["name"]

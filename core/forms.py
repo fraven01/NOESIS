@@ -479,11 +479,12 @@ class PromptForm(forms.ModelForm):
 
     class Meta:
         model = Prompt
-        fields = ["name", "text", "role"]
+        fields = ["name", "text", "role", "use_system_role"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
             "text": Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
             "role": forms.Select(attrs={"class": "border rounded p-2"}),
+            "use_system_role": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
 
     def __init__(self, *args, **kwargs):
