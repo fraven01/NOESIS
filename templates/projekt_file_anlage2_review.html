@@ -111,6 +111,23 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 document.addEventListener('DOMContentLoaded', function() {
+    const verifyAllBtn = document.getElementById('btn-verify-all');
+
+    if (verifyAllBtn) {
+        verifyAllBtn.addEventListener('click', function() {
+            const singleVerifyButtons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
+
+            if (singleVerifyButtons.length > 0) {
+                if (confirm(`M\u00f6chten Sie wirklich ${singleVerifyButtons.length} KI-Pr\u00fcfungen starten?`)) {
+                    singleVerifyButtons.forEach(button => {
+                        button.click();
+                    });
+                }
+            } else {
+                alert('Keine ungepr\u00fcften Funktionen zum Starten vorhanden.');
+            }
+        });
+    }
     // Event-Listener für alle individuellen Prüf-Knöpfe
     document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
         button.addEventListener('click', function() {
