@@ -1,7 +1,16 @@
-{% extends "admin/base.html" %}
-{% load static %}
+{% extends "admin_base.html" %}
+{% load i18n static %}
 
-{# Zusätzliche Inhalte für das Django-Admin lassen sich über admin_content einbinden #}
-{% block admin_content %}
-    {% block content %}{% endblock %}
+{% block title %}{{ title }} | {% trans 'NOESIS Admin' %}{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+
+        {% block object-tools %}{% endblock %}
+
+        {{ content }}
+
+        {% block sidebar %}{% endblock %}
+    </div>
 {% endblock %}
