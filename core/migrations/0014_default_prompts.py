@@ -23,6 +23,8 @@ class Migration(migrations.Migration):
             ),
         }
         for i in range(1, 7):
+            if i == 2:
+                continue
             prompts[f"check_anlage{i}"] = (
                 "Pr\u00fcfe die folgende Anlage auf Vollst\u00e4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
             )
