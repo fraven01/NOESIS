@@ -43,7 +43,7 @@
                             data-bs-target="#justificationModal"
                             data-function-name="{{ row.name }}"
                             data-justification-html="{{ row.ki_begruendung_html|escape }}">
-                        ⓘ Begründung
+                        ⓘ Begründung anzeigen
                     </button>
                     {% endif %}
                     <span class="text-muted small source-indicator">(Quelle: {{ row.source_text }})</span>
@@ -94,7 +94,7 @@
     </div>
 </form>
 <div class="modal fade" id="justificationModal" tabindex="-1" aria-labelledby="justificationModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="justificationModalLabel">Begründung</h5>
@@ -179,5 +179,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+const justificationModal = document.getElementById('justificationModal');
+if (justificationModal) {
+    justificationModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const functionName = button.dataset.functionName;
+        const justificationHtml = new DOMParser()
+            .parseFromString(button.dataset.justificationHtml, 'text/html')
+            .documentElement.textContent;
+
+        const modalTitle = justificationModal.querySelector('.modal-title');
+        const modalBody = justificationModal.querySelector('.modal-body');
+
+        modalTitle.textContent = 'Begründung für: ' + functionName;
+        modalBody.innerHTML = justificationHtml;
+    });
+}
 </script>
 {% endblock %}
