@@ -10,7 +10,7 @@
             <input type="checkbox" id="show-relevant-only-filter" class="mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
-        <button type="button" id="verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
+        <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
     </div>
     <div class="mb-3">
         <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>
@@ -46,13 +46,17 @@
                         ⓘ Begründung
                     </button>
                     {% endif %}
-                    <span class="text-muted small">(Quelle: {{ row.source_text }})</span>
+                    <span class="text-muted small source-indicator">(Quelle: {{ row.source_text }})</span>
                 </td>
                 <td class="border px-2 text-center">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">🤖</button>
                         <ul class="dropdown-menu">
-                            <li><button type="button" class="dropdown-item verify-btn" {% if row.sub %}data-sub-id="{{ row.sub_id }}" data-parent="{{ row.func_id }}"{% else %}data-function-id="{{ row.func_id }}"{% endif %}>KI-Prüfung starten</button></li>
+                            <li><button type="button" class="dropdown-item verify-single-feature-btn"
+                                data-project-id="{{ anlage.projekt.pk }}"
+                                data-file-id="{{ anlage.pk }}"
+                                data-function-id="{{ row.func_id }}"
+                                {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>KI-Prüfung starten</button></li>
                             {% if row.ki_begruendung %}
                             <li>
                                 <a class="dropdown-item" href="{% url 'edit_ki_justification' anlage.pk %}?{% if row.sub %}subquestion={{ row.sub_id }}{% else %}function={{ row.func_id }}{% endif %}">Begründung bearbeiten</a>
@@ -128,56 +132,81 @@ document.getElementById('reset-fields').addEventListener('click', () => {
 });
 
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-const verifyUrl = '{% url "anlage2_feature_verify" anlage.pk %}';
-const statusUrlTemplate = '{% url "ajax_check_task_status" "dummy" %}';
-function startLoading(btn){btn.dataset.origText=btn.textContent;btn.textContent='⏳';}
-function stopLoading(btn){if(btn.dataset.origText){btn.textContent=btn.dataset.origText;}}
 
-function triggerVerify(button){
-    const fd=new FormData();
-    if(button.dataset.functionId){fd.append('function',button.dataset.functionId);}
-    if(button.dataset.subId){fd.append('subquestion',button.dataset.subId);}
-    startLoading(button);
-    return fetch(verifyUrl,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd})
-        .then(resp=>resp.ok?resp.json():Promise.reject())
-        .then(data=>{
-            const taskId=data.task_id;
-            return new Promise((resolve,reject)=>{
-                const intervalId=setInterval(()=>checkStatus(taskId,intervalId,button,resolve,reject),3000);
-            });
-        })
-        .catch(()=>{stopLoading(button);alert('Fehler bei der Prüfung');});
+// Funktion zum Aktualisieren einer einzelnen Tabellenzeile mit einem neuen Ergebnis
+function updateRowUI(row, resultData) {
+    if (!row || !resultData) return;
+
+    const newStatus = resultData.technisch_verfuegbar;
+    const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
+
+    // Setze den Radio-Button entsprechend dem Ergebnis
+    let aRadioWasSet = false;
+    statusRadios.forEach(radio => {
+        if (radio.value.toLowerCase() === String(newStatus).toLowerCase()) {
+            radio.checked = true;
+            aRadioWasSet = true;
+        }
+    });
+
+    if (!aRadioWasSet) {
+        statusRadios.forEach(radio => radio.checked = false);
+    }
+
+    // Aktualisiere die Quellen-Anzeige und andere UI-Elemente
+    const sourceSpan = row.querySelector('.source-indicator');
+    if (sourceSpan) {
+        sourceSpan.textContent = '(Quelle: KI-Prüfung)';
+    }
 }
 
-function checkStatus(taskId,intervalId,button,resolve,reject){
-    fetch(statusUrlTemplate.replace('dummy',taskId))
-        .then(r=>r.ok?r.json():Promise.reject())
-        .then(data=>{
-            if(data.status==='SUCCESS'){
-                clearInterval(intervalId);
-                updateRow(button,data.result.technisch_verfuegbar);
-                stopLoading(button);
-                resolve(data.result);
-            }else if(data.status==='FAIL'){
-                clearInterval(intervalId);
-                stopLoading(button);
-                alert('Fehler bei der Prüfung');
-                reject();
+// Funktion zum Starten und Überwachen EINES einzelnen Verifizierungs-Tasks
+function startAndMonitorVerification(button) {
+    // UI sofort auf Ladezustand setzen
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+    const row = button.closest('tr');
+
+    // Daten für den Request aus dem Button extrahieren
+    const { projectId, fileId, functionId, subquestionId } = button.dataset;
+    const url = `/work/anlage/${fileId}/verify-feature/`;
+    const body = new FormData();
+    body.append('project_id', projectId);
+    if (functionId) body.append('function', functionId);
+    if (subquestionId) body.append('subquestion', subquestionId);
+
+    // Task im Backend starten
+    fetch(url, { method: 'POST', body: body, headers: {'X-CSRFToken': getCookie('csrftoken')} })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'queued' && data.task_id) {
+                // Polling für diesen Task starten
+                const intervalId = setInterval(() => {
+                    fetch(`/ajax/task-status/${data.task_id}/`)
+                        .then(res => res.json())
+                        .then(taskData => {
+                            if (taskData.status === 'SUCCESS') {
+                                clearInterval(intervalId);
+                                updateRowUI(row, taskData.result);
+                                button.innerHTML = '🤖';
+                                button.disabled = false;
+                            } else if (taskData.status === 'FAIL') {
+                                clearInterval(intervalId);
+                                button.innerHTML = '⚠️';
+                                button.disabled = false;
+                            }
+                        });
+                }, 3000);
+            } else {
+                button.innerHTML = '⚠️';
+                button.disabled = false;
             }
         })
-        .catch(()=>{clearInterval(intervalId);stopLoading(button);reject();});
+        .catch(() => {
+            button.innerHTML = '⚠️';
+            button.disabled = false;
+        });
 }
-
-function updateRow(button,newStatus){
-    const row=button.closest('tr');
-    if(!row) return;
-    const statusRadios=row.querySelectorAll('input[type="radio"][name*="-status"]');
-    statusRadios.forEach(radio=>{if(radio.value===String(newStatus)){radio.checked=true;}});
-}
-
-document.querySelectorAll('.verify-btn').forEach(btn=>{
-    btn.addEventListener('click',async ()=>{btn.disabled=true;await triggerVerify(btn);btn.disabled=false;});
-});
 
 // Auf- und Zuklappen aller Unterfragen ohne Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
@@ -222,18 +251,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-document.getElementById('verify-all').addEventListener('click',async()=>{
-    const allBtn=document.getElementById('verify-all');
-    allBtn.disabled=true;
-    const funcBtns=Array.from(document.querySelectorAll('.verify-btn[data-function-id]'));
-    for(const fb of funcBtns){
-        const result=await triggerVerify(fb);
-        if(result&&result.technisch_verfuegbar===true){
-            const subs=Array.from(document.querySelectorAll(`.verify-btn[data-parent='${fb.dataset.functionId}']`));
-            for(const sb of subs){await triggerVerify(sb);}
-        }
+// Event-Listener für Verifizierungs-Buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            startAndMonitorVerification(this);
+        });
+    });
+
+    const verifyAllBtn = document.getElementById('btn-verify-all');
+    if (verifyAllBtn) {
+        verifyAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+                button.click();
+            });
+        });
     }
-    allBtn.disabled=false;
 });
 
 // Reset all review fields to parsed values
