@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'admin_base.html' %}
 {% block title %}Funktionen importieren{% endblock %}
-{% block content %}
+{% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Funktionen importieren</h1>
 <form method="post" enctype="multipart/form-data" class="space-y-4">
     {% csrf_token %}

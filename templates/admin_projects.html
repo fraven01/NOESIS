@@ -1,14 +1,7 @@
-{% extends 'base.html' %}
+{% extends 'admin_base.html' %}
 {% block title %}Admin Projekte{% endblock %}
-{% block content %}
+{% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Admin Projekte</h1>
-<a href="{% url 'admin_prompts' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded">Prompts verwalten</a>
-<a href="{% url 'admin_models' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">LLM Modelle</a>
-<a href="{% url 'admin_anlage1' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 1 Fragen</a>
-<a href="{% url 'anlage2_function_list' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 2 Funktionen</a>
-<a href="{% url 'anlage2_config' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Anlage 2 Konfiguration</a>
-<a href="{% url 'admin_project_statuses' %}" class="btn btn-secondary inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">Projekt-Status verwalten</a>
-<a href="{% url 'admin_llm_roles' %}" class="inline-block mb-4 px-4 py-2 bg-purple-600 text-white rounded ml-2">LLM-Rollen verwalten</a>
 
 <form method="get" action="{% url 'admin_projects' %}" class="mb-4">
     <div class="row g-3 align-items-center">
