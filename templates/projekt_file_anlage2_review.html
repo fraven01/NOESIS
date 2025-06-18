@@ -108,28 +108,7 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-document.getElementById('show-relevant-only-filter').addEventListener('change', function() {
-    const rows = document.querySelectorAll('tbody tr');
-    rows.forEach(tr => {
-        const relevant = tr.dataset.relevant;
-        if (this.checked && relevant !== 'true') {
-            tr.style.display = 'none';
-        } else {
-            tr.style.display = '';
-        }
-    });
-});
-
-const initialStates = {};
-document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    initialStates[cb.name] = cb.checked;
-});
-document.getElementById('reset-fields').addEventListener('click', () => {
-    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.checked = !!initialStates[cb.name];
-    });
-});
-
+// Hilfsfunktion, um den CSRF-Token für POST-Requests zu bekommen
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -146,270 +125,59 @@ function getCookie(name) {
 }
 const csrftoken = getCookie('csrftoken');
 
-// Funktion zum Aktualisieren einer einzelnen Tabellenzeile mit einem neuen Ergebnis
-function updateRowUI(row, resultData) {
-    if (!row || !resultData) return;
-
-    const newStatus = resultData.technisch_verfuegbar;
-    const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
-
-    // Setze den Radio-Button entsprechend dem Ergebnis
-    let aRadioWasSet = false;
-    statusRadios.forEach(radio => {
-        if (radio.value.toLowerCase() === String(newStatus).toLowerCase()) {
-            radio.checked = true;
-            aRadioWasSet = true;
-        }
-    });
-
-    if (!aRadioWasSet) {
-        statusRadios.forEach(radio => radio.checked = false);
-    }
-
-    // Aktualisiere die Quellen-Anzeige und andere UI-Elemente
-    const sourceSpan = row.querySelector('.source-indicator');
-    if (sourceSpan) {
-        sourceSpan.textContent = '(Quelle: KI-Prüfung)';
-    }
-}
-
-
-// Auf- und Zuklappen aller Unterfragen ohne Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
-    const expandAllBtn = document.getElementById('expand-all-subquestions');
-    const collapseAllBtn = document.getElementById('collapse-all-subquestions');
-    const individualToggleButtons = document.querySelectorAll('.toggle-button');
-
-    // Logik für individuelle Schalter
-    individualToggleButtons.forEach(button => {
+    // Event-Listener für alle individuellen Prüf-Knöpfe
+    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
         button.addEventListener('click', function() {
-            const targetClass = this.dataset.targetClass;
-            const subquestionRows = document.querySelectorAll('.' + targetClass);
+            const clickedButton = this;
+            const row = clickedButton.closest('tr');
 
-            let isHidden = Array.from(subquestionRows).some(row => row.classList.contains('hidden-row'));
+            // UI sofort auf Ladezustand setzen
+            clickedButton.disabled = true;
+            clickedButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-            subquestionRows.forEach(row => {
-                row.classList.toggle('hidden-row');
-            });
+            // Daten aus dem geklickten Button extrahieren
+            const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
+            const url = `/work/anlage/${projectFileId}/verify-feature/`;
 
-            this.textContent = isHidden ? '-' : '+';
-        });
-    });
-
-    // Logik für "Alles aufklappen"
-    if (expandAllBtn) {
-        expandAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.subquestion-row').forEach(row => {
-                row.classList.remove('hidden-row');
-            });
-            individualToggleButtons.forEach(btn => btn.textContent = '-');
-        });
-    }
-
-    // Logik für "Alles einklappen"
-    if (collapseAllBtn) {
-        collapseAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.subquestion-row').forEach(row => {
-                row.classList.add('hidden-row');
-            });
-            individualToggleButtons.forEach(btn => btn.textContent = '+');
-        });
-    }
-});
-
-// Event-Listener für alle individuellen Prüf-Knöpfe
-document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
-    button.addEventListener('click', function() {
-        const button = this;
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-
-        // Daten aus dem geklickten Button extrahieren
-        const { projectFileId, functionId, subquestionId } = button.dataset;
-        const url = `/work/anlage/${projectFileId}/verify-feature/`;
-
-        const body = new FormData();
-
-        if (functionId) {
-            body.append('function_id', functionId);
-        }
-        if (subquestionId) {
-            body.append('subquestion_id', subquestionId);
-        }
-
-        fetch(url, {
-            method: 'POST',
-            body: body,
-            headers: { 'X-CSRFToken': csrftoken }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const body = new FormData();
+            if (functionId) {
+                body.append('function_id', functionId);
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'queued' && data.task_id) {
-                // Start Polling... (die bestehende Polling-Logik hier)
-            } else {
-                throw new Error('Task-Start vom Server nicht bestätigt.');
-            }
-        })
-        .catch(error => {
-            console.error('Fehler bei der KI-Prüfung:', error);
-            button.innerHTML = '⚠️';
-            button.disabled = false;
-        });
-    });
-});
-
-const verifyAllBtn = document.getElementById('btn-verify-all');
-if (verifyAllBtn) {
-    verifyAllBtn.addEventListener('click', function() {
-        document.querySelectorAll('.verify-single-feature-btn').forEach(btn => {
-            btn.click();
-        });
-    });
-}
-
-// Reset all review fields to parsed values
-document.addEventListener('DOMContentLoaded', function() {
-    const resetButton = document.getElementById('btn-reset-all-reviews');
-
-    if (resetButton) {
-        resetButton.addEventListener('click', function() {
-            // 1. Selektiere alle Tabellenzeilen, die Analyse-Daten enthalten.
-            const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
-
-            if (rows.length === 0) {
-                alert('Keine Analyse-Daten zum Zurücksetzen gefunden.');
-                return;
+            if (subquestionId) {
+                body.append('subquestion_id', subquestionId);
             }
 
-            // 2. Iteriere über jede dieser Zeilen.
-            rows.forEach(row => {
-                // 1. Lies den ursprünglichen Status aus dem data-Attribut.
-                const parsedStatus = row.dataset.parsedStatus;
-                const notesTextarea = row.querySelector('textarea[name*="-notes"]'); // Optional für Notizen
-
-                // 2. Finde die Radio-Buttons INNERHALB der aktuellen Zeile.
-                const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
-
-                if (statusRadios.length > 0) {
-                    let aRadioWasSet = false; // Flag, um zu prüfen, ob eine Aktion ausgeführt wurde.
-
-                    // 3. Iteriere über die Radio-Buttons, um den richtigen zu finden.
-                    statusRadios.forEach(radio => {
-                        // Vergleiche den Wert des Buttons mit dem gespeicherten Status
-                        if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
-                            radio.checked = true;
-                            aRadioWasSet = true;
-                        }
-                    });
-
-                    // 4. KORREKTUR: Wenn kein passender Button gefunden wurde (z.B. weil parsedStatus leer war),
-                    // stelle sicher, dass kein Button mehr ausgewählt ist.
-                    if (!aRadioWasSet) {
-                       statusRadios.forEach(radio => {
-                           radio.checked = false;
-                       });
-                    }
+            // Fetch-Request an das Backend senden
+            fetch(url, {
+                method: 'POST',
+                body: body,
+                headers: { 'X-CSRFToken': csrftoken }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
-                // Optional: Setze auch das Notiz-Feld zurück
-                if (notesTextarea) {
-                    notesTextarea.value = row.dataset.parsedNotes || "";
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'queued' && data.task_id) {
+                    // Hier würde die Polling-Logik starten
+                    // Fürs Erste geben wir nur Erfolg aus und aktivieren den Knopf wieder
+                    console.log('Task gestartet mit ID:', data.task_id);
+                    clickedButton.innerHTML = '✓';
+                    setTimeout(() => { clickedButton.innerHTML = '🤖'; clickedButton.disabled = false; }, 2000);
+                } else {
+                    throw new Error('Task-Start vom Server nicht bestätigt.');
                 }
+            })
+            .catch(error => {
+                console.error('Fehler bei der KI-Prüfung:', error);
+                clickedButton.innerHTML = '⚠️'; // Fehler-Icon
+                clickedButton.disabled = false;
             });
-
-            // Informiere den Benutzer, dass die Aktion erfolgreich war.
-            alert('Alle Bewertungen wurden auf die ursprünglichen Analysewerte zurückgesetzt.');
         });
-    }
-});
-
-// -------------------- Auto-Save Logic --------------------
-const autoSaveUrl = '{% url "ajax_save_review_item" %}';
-const formEl = document.querySelector('form[data-anlage-id]');
-const projectFileId = formEl ? formEl.dataset.anlageId : null;
-
-function showSaveStatus(el, text, color='black') {
-    let span = el.parentNode.querySelector('.save-status');
-    if (!span) {
-        span = document.createElement('span');
-        span.className = 'save-status ml-2 text-sm';
-        el.parentNode.appendChild(span);
-    }
-    span.textContent = text;
-    span.style.color = color;
-    if (text.startsWith('✓')) {
-        setTimeout(() => span.remove(), 1500);
-    }
-}
-
-function autoSave(inputEl) {
-    const row = inputEl.closest('tr');
-    if (!row || !projectFileId) return;
-    const funcId = row.dataset.funcId;
-    const subId = row.dataset.subId;
-    const statusRadio = row.querySelector('input[type="radio"][name*="-status"]:checked');
-    const statusVal = statusRadio ? statusRadio.value : null;
-    const notesEl = row.querySelector('textarea[name*="-notes"]');
-    const notesVal = notesEl ? notesEl.value : '';
-
-    const payload = {
-        project_file_id: projectFileId,
-        function_id: funcId,
-        subquestion_id: subId,
-        status: statusVal,
-        notes: notesVal
-    };
-
-    showSaveStatus(inputEl, 'Speichere...');
-    fetch(autoSaveUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(payload)
-    })
-        .then(resp => resp.ok ? resp.json() : Promise.reject())
-        .then(() => showSaveStatus(inputEl, '✓ Gespeichert', 'green'))
-        .catch(() => showSaveStatus(inputEl, 'Fehler beim Speichern', 'red'));
-}
-
-document.querySelector('tbody').addEventListener('change', function(e) {
-    const t = e.target;
-    if (t.matches('input[type="radio"][name*="-status"], input[type="checkbox"]')) {
-        autoSave(t);
-    }
-});
-
-document.querySelector('tbody').addEventListener('blur', function(e) {
-    const t = e.target;
-    if (t.matches('textarea[name*="-notes"]')) {
-        autoSave(t);
-    }
-}, true);
-
-// Bootstrap-Tooltips initialisieren
-document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-    new bootstrap.Tooltip(el, {html: true});
-});
-
-const justificationModal = document.getElementById('justificationModal');
-if (justificationModal) {
-    justificationModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const functionName = button.dataset.functionName;
-        const justificationHtml = new DOMParser().parseFromString(button.dataset.justificationHtml, 'text/html').documentElement.textContent;
-        const modalTitle = justificationModal.querySelector('.modal-title');
-        const modalBody = justificationModal.querySelector('.modal-body');
-
-        modalTitle.textContent = 'Begründung für: ' + functionName;
-        modalBody.innerHTML = justificationHtml;
     });
-}
+});
 </script>
 {% endblock %}
