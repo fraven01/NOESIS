@@ -53,8 +53,7 @@
                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">🤖</button>
                         <ul class="dropdown-menu">
                             <li><button type="button" class="dropdown-item verify-single-feature-btn"
-                                data-project-id="{{ anlage.projekt.pk }}"
-                                data-file-id="{{ anlage.pk }}"
+                                data-project-file-id="{{ anlage.pk }}"
                                 data-function-id="{{ row.func_id }}"
                                 {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>KI-Prüfung starten</button></li>
                             {% if row.ki_begruendung %}
@@ -131,7 +130,21 @@ document.getElementById('reset-fields').addEventListener('click', () => {
     });
 });
 
-function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
 
 // Funktion zum Aktualisieren einer einzelnen Tabellenzeile mit einem neuen Ergebnis
 function updateRowUI(row, resultData) {
@@ -160,53 +173,6 @@ function updateRowUI(row, resultData) {
     }
 }
 
-// Funktion zum Starten und Überwachen EINES einzelnen Verifizierungs-Tasks
-function startAndMonitorVerification(button) {
-    // UI sofort auf Ladezustand setzen
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-    const row = button.closest('tr');
-
-    // Daten für den Request aus dem Button extrahieren
-    const { projectId, fileId, functionId, subquestionId } = button.dataset;
-    const url = `/work/anlage/${fileId}/verify-feature/`;
-    const body = new FormData();
-    body.append('project_id', projectId);
-    if (functionId) body.append('function', functionId);
-    if (subquestionId) body.append('subquestion', subquestionId);
-
-    // Task im Backend starten
-    fetch(url, { method: 'POST', body: body, headers: {'X-CSRFToken': getCookie('csrftoken')} })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'queued' && data.task_id) {
-                // Polling für diesen Task starten
-                const intervalId = setInterval(() => {
-                    fetch(`/ajax/task-status/${data.task_id}/`)
-                        .then(res => res.json())
-                        .then(taskData => {
-                            if (taskData.status === 'SUCCESS') {
-                                clearInterval(intervalId);
-                                updateRowUI(row, taskData.result);
-                                button.innerHTML = '🤖';
-                                button.disabled = false;
-                            } else if (taskData.status === 'FAIL') {
-                                clearInterval(intervalId);
-                                button.innerHTML = '⚠️';
-                                button.disabled = false;
-                            }
-                        });
-                }, 3000);
-            } else {
-                button.innerHTML = '⚠️';
-                button.disabled = false;
-            }
-        })
-        .catch(() => {
-            button.innerHTML = '⚠️';
-            button.disabled = false;
-        });
-}
 
 // Auf- und Zuklappen aller Unterfragen ohne Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
@@ -252,22 +218,66 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Event-Listener für Verifizierungs-Buttons
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            startAndMonitorVerification(this);
+document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const button = this;
+        const row = button.closest('tr');
+
+        // UI sofort auf Ladezustand setzen
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+        const { projectFileId, functionId, subquestionId } = button.dataset;
+        const url = `/work/anlage/${projectFileId}/verify-feature/`;
+        const body = new FormData();
+        if (functionId) body.append('function_id', functionId);
+        if (subquestionId) body.append('subquestion_id', subquestionId);
+
+        fetch(url, {
+            method: 'POST',
+            body: body,
+            headers: { 'X-CSRFToken': csrftoken }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'queued' && data.task_id) {
+                const intervalId = setInterval(() => {
+                    fetch(`/ajax/task-status/${data.task_id}/`)
+                        .then(res => res.json())
+                        .then(taskData => {
+                            if (taskData.status === 'SUCCESS') {
+                                clearInterval(intervalId);
+                                // updateRowUI(row, taskData.result);
+                                button.innerHTML = '✓';
+                                setTimeout(() => { button.innerHTML = '🤖'; button.disabled = false; }, 2000);
+                            } else if (taskData.status === 'FAILURE') {
+                                clearInterval(intervalId);
+                                button.innerHTML = '⚠️';
+                                button.disabled = false;
+                            }
+                        });
+                }, 5000);
+            } else {
+                button.innerHTML = '⚠️';
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error starting verification task:', error);
+            button.innerHTML = '⚠️';
+            button.disabled = false;
         });
     });
-
-    const verifyAllBtn = document.getElementById('btn-verify-all');
-    if (verifyAllBtn) {
-        verifyAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
-                button.click();
-            });
-        });
-    }
 });
+
+const verifyAllBtn = document.getElementById('btn-verify-all');
+if (verifyAllBtn) {
+    verifyAllBtn.addEventListener('click', function() {
+        document.querySelectorAll('.verify-single-feature-btn').forEach(btn => {
+            btn.click();
+        });
+    });
+}
 
 // Reset all review fields to parsed values
 document.addEventListener('DOMContentLoaded', function() {
