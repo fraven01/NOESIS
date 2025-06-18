@@ -342,22 +342,35 @@ def generate_gutachten(
     return path
 
 
-def worker_generate_gutachten(knowledge_id: int) -> str:
-    """Erzeugt im Hintergrund ein Gutachten."""
-    knowledge = SoftwareKnowledge.objects.get(pk=knowledge_id)
-    projekt = knowledge.projekt
+def worker_generate_gutachten(project_id: int, software_type_id: int | None = None) -> str:
+    """Erzeugt im Hintergrund ein Gutachten.
 
+    Ist ``software_type_id`` angegeben, wird ein Gutachten f\u00fcr die
+    entsprechende Software erstellt. Andernfalls erzeugt die Funktion ein
+    Gesamtgutachten f\u00fcr das Projekt.
+    """
+
+    projekt = BVProject.objects.get(pk=project_id)
     model = LLMConfig.get_default("gutachten")
 
     prefix = get_prompt(
         "generate_gutachten",
         "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n",
     )
-    target = knowledge.software_name
-    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
 
+    knowledge = None
+    if software_type_id:
+        knowledge = SoftwareKnowledge.objects.get(pk=software_type_id)
+        target = knowledge.software_name
+    else:
+        target = projekt.software_typen
+
+    text = query_llm(prefix + target, model_name=model, model_type="gutachten")
     path = generate_gutachten(projekt.id, text, model_name=model)
-    Gutachten.objects.create(software_knowledge=knowledge, text=text)
+
+    if knowledge:
+        Gutachten.objects.create(software_knowledge=knowledge, text=text)
+
     return str(path)
 
 
