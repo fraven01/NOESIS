@@ -139,6 +139,16 @@ urlpatterns = [
         name="anlage2_feature_verify",
     ),
     path(
+        "work/anlage/file/<int:file_id>/justification/<path:function_key>/",
+        views.justification_detail_edit,
+        name="justification_detail_edit",
+    ),
+    path(
+        "work/anlage/file/<int:file_id>/justification/<path:function_key>/delete/",
+        views.justification_delete,
+        name="justification_delete",
+    ),
+    path(
         "work/anlage/<int:pk>/edit-ki-justification/",
         views.edit_ki_justification,
         name="edit_ki_justification",

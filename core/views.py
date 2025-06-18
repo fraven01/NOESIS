@@ -36,6 +36,7 @@ from .forms import (
     get_anlage1_numbers,
     Anlage2ConfigForm,
     EditJustificationForm,
+    JustificationForm,
 
     KnowledgeDescriptionForm,
 
@@ -2452,6 +2453,61 @@ def edit_ki_justification(request, pk):
         "ki_begruendung": data.get("ki_begruendung", ""),
     }
     return render(request, "edit_ki_justification.html", context)
+
+
+@login_required
+def justification_detail_edit(request, file_id, function_key):
+    """Zeigt und bearbeitet die KI-Begründung zu einer Funktion."""
+
+    anlage = get_object_or_404(BVProjectFile, pk=file_id)
+    if anlage.anlage_nr != 2:
+        raise Http404
+
+    verif = anlage.verification_json or {}
+    data = verif.get(function_key, {})
+    if request.method == "POST":
+        form = JustificationForm(request.POST)
+        if form.is_valid():
+            data["ki_begruendung"] = form.cleaned_data["justification"]
+            verif[function_key] = data
+            anlage.verification_json = verif
+            anlage.save(update_fields=["verification_json"])
+            messages.success(request, "Begründung gespeichert")
+            return redirect("projekt_file_edit_json", pk=anlage.pk)
+    else:
+        form = JustificationForm(initial={"justification": data.get("ki_begruendung", "")})
+
+    justification_html = markdownify(data.get("ki_begruendung")) if data.get("ki_begruendung") else ""
+    context = {
+        "project_file": anlage,
+        "function_name": function_key,
+        "form": form,
+        "justification_html": justification_html,
+    }
+    return render(request, "justification_detail.html", context)
+
+
+@login_required
+def justification_delete(request, file_id, function_key):
+    """Löscht die KI-Begründung für einen Funktionsschlüssel."""
+
+    anlage = get_object_or_404(BVProjectFile, pk=file_id)
+    if anlage.anlage_nr != 2:
+        raise Http404
+
+    verif = anlage.verification_json or {}
+    entry = verif.get(function_key, {})
+    if isinstance(entry, dict) and "ki_begruendung" in entry:
+        entry.pop("ki_begruendung")
+        if entry:
+            verif[function_key] = entry
+        else:
+            verif.pop(function_key, None)
+        anlage.verification_json = verif
+        anlage.save(update_fields=["verification_json"])
+        messages.success(request, "Begründung gelöscht")
+
+    return redirect("projekt_file_edit_json", pk=anlage.pk)
 
 @login_required
 @require_POST
