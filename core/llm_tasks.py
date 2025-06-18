@@ -350,7 +350,15 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     Gesamtgutachten f\u00fcr das Projekt.
     """
 
-    projekt = BVProject.objects.get(pk=project_id)
+    try:
+        projekt = BVProject.objects.get(pk=project_id)
+    except BVProject.DoesNotExist:
+        logger.warning(
+            "Task f\u00fcr Gutachten-Erstellung (Projekt-ID: %s) gestartet, "
+            "aber das Projekt existiert nicht mehr. Breche ab.",
+            project_id,
+        )
+        return ""
     model = LLMConfig.get_default("gutachten")
 
     prefix = get_prompt(
