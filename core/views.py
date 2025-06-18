@@ -2186,6 +2186,10 @@ def projekt_functions_check(request, pk):
 @require_http_methods(["POST"])
 def anlage2_feature_verify(request, pk):
     """Startet die Pr\u00fcfung einer Einzelfunktion im Hintergrund."""
+    logger.debug(
+        f"--- KI-Pr\u00fcfung f\u00fcr Anlage 2 gestartet (project_file pk={pk}) ---"
+    )
+    logger.debug(f"Empfangene POST-Daten: {request.POST.dict()}")
     try:
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
@@ -2196,6 +2200,8 @@ def anlage2_feature_verify(request, pk):
     func_id = request.POST.get("function")
     sub_id = request.POST.get("subquestion")
     model = request.POST.get("model")
+    logger.debug(f"Extrahierte function_id: '{func_id}'")
+    logger.debug(f"Extrahierte subquestion_id: '{sub_id}'")
     if func_id:
         object_type = "function"
         obj_id = int(func_id)
@@ -2205,6 +2211,9 @@ def anlage2_feature_verify(request, pk):
         obj_id = int(sub_id)
         get_object_or_404(Anlage2SubQuestion, pk=obj_id)
     else:
+        logger.error(
+            "FEHLER: Weder function_id noch subquestion_id im POST-Request gefunden. Sende 400 Bad Request."
+        )
         return JsonResponse({"error": "invalid"}, status=400)
 
     task_id = async_task(
