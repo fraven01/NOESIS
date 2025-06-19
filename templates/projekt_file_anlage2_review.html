@@ -156,6 +156,71 @@ document.addEventListener('DOMContentLoaded', function() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
 
+    const verifyAllBtn = document.getElementById('btn-verify-all');
+    if (verifyAllBtn) {
+        verifyAllBtn.addEventListener('click', function() {
+            const singleVerifyButtons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
+            if (singleVerifyButtons.length > 0) {
+                if (confirm(`M\u00f6chten Sie wirklich ${singleVerifyButtons.length} KI-Pr\u00fcfungen starten?`)) {
+                    singleVerifyButtons.forEach(button => {
+                        button.click();
+                    });
+                }
+            } else {
+                alert('Keine ungepr\u00fcften Funktionen zum Starten vorhanden.');
+            }
+        });
+    }
+
+    function getCookie(name) {
+        const m = document.cookie.match('(^|;)\\s*' + name + '=([^;]*)');
+        return m ? decodeURIComponent(m[2]) : null;
+    }
+
+    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+        button.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            const btn = this;
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const pfId = btn.dataset.projectFileId;
+            const funcId = btn.dataset.functionId;
+            const subId = btn.dataset.subquestionId;
+            const url = '{% url "anlage2_feature_verify" 0 %}'.replace('0', pfId);
+            const body = new URLSearchParams();
+            if (funcId) body.append('function_id', funcId);
+            if (subId) body.append('subquestion_id', subId);
+            fetch(url, {method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'queued') {
+                        const tmpl = '{% url "ajax_check_task_status" "dummy" %}';
+                        const iv = setInterval(() => {
+                            fetch(tmpl.replace('dummy', data.task_id))
+                                .then(res => res.json())
+                                .then(d => {
+                                    if (d.status === 'SUCCESS' || d.status === 'FAIL') {
+                                        clearInterval(iv);
+                                        btn.disabled = false;
+                                        if (d.status === 'SUCCESS') {
+                                            location.reload();
+                                        } else {
+                                            alert('Fehler bei der KI-Pr\u00fcfung');
+                                        }
+                                    }
+                                });
+                        }, 3000);
+                    } else if (data.error) {
+                        btn.disabled = false;
+                        alert('Fehler: ' + data.error);
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    alert('Fehler bei der KI-Pr\u00fcfung');
+                });
+        });
+    });
     // ... andere Skripte f\u00fcr diese Seite ...
 });
 </script>
