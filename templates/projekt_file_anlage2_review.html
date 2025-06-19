@@ -31,7 +31,11 @@
         </thead>
         <tbody>
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}" data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}" data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}" data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}" data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
+            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}"
+                data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
+                data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
+                data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}"
+                data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
@@ -155,6 +159,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+
+    const filterCheckbox = document.getElementById('show-relevant-only-filter');
+
+    if (filterCheckbox) {
+        filterCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            // Wähle alle Zeilen aus, die gefiltert werden können
+            const allFunctionRows = document.querySelectorAll('tbody tr[data-parsed-status]');
+
+            allFunctionRows.forEach(row => {
+                // Die übergeordnete Hauptfunktion muss immer sichtbar bleiben,
+                // damit man die Unterfragen wieder einblenden kann. Wir filtern nur die Unterfragen.
+                const isSubquestionRow = row.classList.contains('subquestion-row');
+
+                if (isChecked) {
+                    // Wenn Checkbox aktiv ist: Zeige nur Zeilen, deren Status 'True' ist.
+                    const status = row.dataset.parsedStatus;
+                    if (status && status.toLowerCase() === 'true') {
+                        row.style.display = '';
+                    } else {
+                        // Verstecke die Zeile, wenn sie eine Unterfrage ist und der Status nicht passt
+                        if (isSubquestionRow) {
+                            row.style.display = 'none';
+                        }
+                    }
+                } else {
+                    // Wenn Checkbox inaktiv ist: Zeige alle Zeilen wieder an,
+                    // aber respektiere den eingeklappten Zustand.
+                    if (isSubquestionRow && row.classList.contains('hidden-row')) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                }
+            });
+        });
+    }
 
     const verifyAllBtn = document.getElementById('btn-verify-all');
     if (verifyAllBtn) {
