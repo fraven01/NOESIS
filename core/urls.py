@@ -189,6 +189,11 @@ urlpatterns = [
         name="projekt_file_edit_json",
     ),
     path(
+        "work/anlage/<int:pk>/reset-all-reviews/",
+        views.ajax_reset_all_reviews,
+        name="ajax_reset_all_reviews",
+    ),
+    path(
         "work/anlage/<int:pk>/email/",
         views.anlage1_generate_email,
         name="anlage1_generate_email",

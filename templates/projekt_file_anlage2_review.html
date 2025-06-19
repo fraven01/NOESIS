@@ -267,41 +267,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (resetButton) {
         resetButton.addEventListener('click', function() {
-            if (!confirm('M\u00f6chten Sie wirklich alle manuellen Bewertungen auf die urspr\u00fcnglichen Analysewerte zur\u00fccksetzen?')) {
-                return;
-            }
+            if (confirm('Sind Sie sicher, dass Sie alle manuellen und KI-Bewertungen f\u00fcr diese Anlage unwiderruflich l\u00f6schen und auf den Zustand der Dokumenten-Analyse zur\u00fccksetzen wollen?')) {
 
-            const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
+                const url = "{% url 'ajax_reset_all_reviews' project_file.id %}";
+                const csrftoken = getCookie('csrftoken');
 
-            rows.forEach(row => {
-                const parsedStatus = row.dataset.parsedStatus;
-                const parsedNotes = row.dataset.parsedNotes || "";
+                resetButton.disabled = true;
+                resetButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Zur\u00fccksetzen...';
 
-                const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
-                const notesTextarea = row.querySelector('textarea[name*="-notes"]');
-
-                if (statusRadios.length > 0) {
-                    let aRadioWasSet = false;
-                    statusRadios.forEach(radio => {
-                        if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
-                            radio.checked = true;
-                            aRadioWasSet = true;
-                        }
-                    });
-
-                    if (!aRadioWasSet) {
-                        statusRadios.forEach(radio => {
-                            radio.checked = false;
-                        });
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        window.location.reload();
+                    } else {
+                        alert('Ein Fehler ist aufgetreten.');
+                        resetButton.disabled = false;
+                        resetButton.textContent = 'Alle Bewertungen zur\u00fccksetzen';
                     }
-                }
-
-                if (notesTextarea) {
-                    notesTextarea.value = parsedNotes;
-                }
-            });
-
-            alert('Alle Bewertungen wurden zur\u00fcckgesetzt.');
+                })
+                .catch(error => {
+                    alert('Ein Netzwerkfehler ist aufgetreten.');
+                    console.error("Reset error:", error);
+                    resetButton.disabled = false;
+                    resetButton.textContent = 'Alle Bewertungen zur\u00fccksetzen';
+                });
+            }
         });
     }
 

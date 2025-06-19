@@ -2285,6 +2285,22 @@ def ajax_save_anlage2_review_item(request) -> JsonResponse:
 
 
 @login_required
+@require_POST
+def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
+    """L\u00f6scht alle manuellen und KI-Bewertungen f\u00fcr eine Anlage."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 2:
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).delete()
+    project_file.verification_json = {}
+    project_file.save(update_fields=["verification_json"])
+
+    return JsonResponse({"status": "success"})
+
+
+@login_required
 def projekt_gap_analysis(request, pk):
     """Stellt die Gap-Analyse als Download bereit."""
     projekt = BVProject.objects.get(pk=pk)
