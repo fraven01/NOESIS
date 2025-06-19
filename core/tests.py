@@ -2134,18 +2134,28 @@ class FeatureVerificationTests(TestCase):
     def test_any_yes_returns_true(self):
         with patch(
             "core.llm_tasks.call_gemini_api",
-            side_effect=["Ja", "Nein", "Begruendung"],
+            side_effect=["Ja", "Nein", "Begruendung", "Nein"],
         ) as mock_q:
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertEqual(
             result,
-            {"technisch_verfuegbar": True, "ki_begruendung": "Begruendung"},
+            {
+                "technisch_verfuegbar": True,
+                "ki_begruendung": "Begruendung",
+                "ki_beteiligt": False,
+                "ki_beteiligt_begruendung": "",
+            },
         )
-        self.assertEqual(mock_q.call_count, 3)
+        self.assertEqual(mock_q.call_count, 4)
         pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
         self.assertEqual(
             pf.verification_json["Export"],
-            {"technisch_verfuegbar": True, "ki_begruendung": "Begruendung"},
+            {
+                "technisch_verfuegbar": True,
+                "ki_begruendung": "Begruendung",
+                "ki_beteiligt": False,
+                "ki_beteiligt_begruendung": "",
+            },
         )
 
     def test_all_no_returns_false(self):
@@ -2154,7 +2164,15 @@ class FeatureVerificationTests(TestCase):
             side_effect=["Nein", "Nein"],
         ):
             result = worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
-        self.assertEqual(result, {"technisch_verfuegbar": False, "ki_begruendung": ""})
+        self.assertEqual(
+            result,
+            {
+                "technisch_verfuegbar": False,
+                "ki_begruendung": "",
+                "ki_beteiligt": None,
+                "ki_beteiligt_begruendung": "",
+            },
+        )
 
     def test_mixed_returns_none(self):
         with patch(
@@ -2164,6 +2182,8 @@ class FeatureVerificationTests(TestCase):
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertIsNone(result["technisch_verfuegbar"])
         self.assertEqual(result["ki_begruendung"], "")
+        self.assertIsNone(result["ki_beteiligt"])
+        self.assertEqual(result["ki_beteiligt_begruendung"], "")
 
 
 class InitialCheckTests(TestCase):

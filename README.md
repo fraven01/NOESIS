@@ -130,6 +130,10 @@ bejaht wird, folgt Stufe 2 mit der Einschätzung, ob üblicherweise eine
 KI‑Beteiligung vorliegt. Beide Ergebnisse erscheinen anschließend direkt in der
 Tabelle, wobei die Begründung weiterhin über den Info‑Link abrufbar ist.
 
+Die Antwort auf die KI-Frage wird unter `ki_beteiligt` gespeichert. Gibt das
+Modell "Ja" zurück, folgt zudem eine kurze Erläuterung, die im Feld
+`ki_beteiligt_begruendung` landet.
+
 ### Edit-Ansicht für Analysedaten
 
 Über den Link **Analyse bearbeiten** gelangt man zu `/work/anlage/<pk>/edit-json/`.
