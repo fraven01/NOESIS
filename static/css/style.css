@@ -35,6 +35,11 @@
     display: none;
 }
 
+/* Zeilen, die durch den Filter versteckt werden */
+.filter-hidden {
+    display: none;
+}
+
 /* Status-Badges für Projektübersichten */
 .status-badge-new,
 .status-badge-classified {
