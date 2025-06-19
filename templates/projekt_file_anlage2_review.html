@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetButton.addEventListener('click', function() {
             if (confirm('Sind Sie sicher, dass Sie alle manuellen und KI-Bewertungen f\u00fcr diese Anlage unwiderruflich l\u00f6schen und auf den Zustand der Dokumenten-Analyse zur\u00fccksetzen wollen?')) {
 
-                const url = "{% url 'ajax_reset_all_reviews' project_file.id %}";
+                const url = "{% url 'ajax_reset_all_reviews' anlage.pk %}";
                 const csrftoken = getCookie('csrftoken');
 
                 resetButton.disabled = true;
