@@ -332,6 +332,25 @@ def _verification_to_initial(data: dict | None) -> dict:
     return initial
 
 
+def _resolve_value(
+    manual_val: bool | None, ai_val: bool | None, doc_val: bool | None
+) -> tuple[bool, str]:
+    """Bestimme Wert und Quelle anhand der Priorität Manuell > KI > Dokument."""
+
+    val = False
+    src = "N/A"
+    if doc_val is not None:
+        val = doc_val
+        src = "Dokumenten-Analyse"
+    if ai_val is not None:
+        val = ai_val
+        src = "KI-Prüfung"
+    if manual_val is not None:
+        val = manual_val
+        src = "Manuell"
+    return val, src
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -1855,18 +1874,7 @@ def projekt_file_edit_json(request, pk):
                         man_val = getattr(manual_obj, field, None)
                     ai_val = ai_func.get(field)
                     doc_val = doc_func.get(field)
-
-                    val = False
-                    src = "N/A"
-                    if doc_val is not None:
-                        val = doc_val
-                        src = "Dokumenten-Analyse"
-                    if ai_val is not None:
-                        val = ai_val
-                        src = "KI-Prüfung"
-                    if man_val is not None:
-                        val = man_val
-                        src = "Manuell"
+                    val, src = _resolve_value(man_val, ai_val, doc_val)
                     func_entry[field] = val
                     source_map[(fid, None, field)] = src
 
@@ -1886,18 +1894,7 @@ def projekt_file_edit_json(request, pk):
                         man_val = manual_sub.get(field)
                         ai_val = ai_sub.get(field)
                         doc_val = doc_sub.get(field)
-
-                        val = False
-                        src = "N/A"
-                        if doc_val is not None:
-                            val = doc_val
-                            src = "Dokumenten-Analyse"
-                        if ai_val is not None:
-                            val = ai_val
-                            src = "KI-Prüfung"
-                        if man_val is not None:
-                            val = man_val
-                            src = "Manuell"
+                        val, src = _resolve_value(man_val, ai_val, doc_val)
                         sub_dict[field] = val
                         source_map[(fid, sid, field)] = src
                     if sub_dict:
@@ -1996,33 +1993,9 @@ def projekt_file_edit_json(request, pk):
                 s_analysis = answers.get(lookup_key, {})
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
-
-                manual_sub = (
-                    manual_init.get("functions", {})
-                    .get(str(func.id), {})
-                    .get("subquestions", {})
-                    .get(str(sub.id), {})
+                row_source = source_map.get(
+                    (str(func.id), str(sub.id), "technisch_vorhanden")
                 )
-                ai_sub = (
-                    verif_init.get("functions", {})
-                    .get(str(func.id), {})
-                    .get("subquestions", {})
-                    .get(str(sub.id), {})
-                )
-                doc_sub = (
-                    analysis_init.get("functions", {})
-                    .get(str(func.id), {})
-                    .get("subquestions", {})
-                    .get(str(sub.id), {})
-                )
-
-                row_source = "N/A"
-                if "technisch_vorhanden" in manual_sub:
-                    row_source = "Manuell"
-                elif "technisch_vorhanden" in ai_sub:
-                    row_source = "KI-Prüfung"
-                elif "technisch_vorhanden" in doc_sub:
-                    row_source = "Dokumenten-Analyse"
 
                 begr_md = ki_map.get((str(func.id), str(sub.id)))
                 bet_val, bet_reason = beteilig_map.get(
