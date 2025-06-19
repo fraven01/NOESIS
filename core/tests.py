@@ -54,6 +54,7 @@ from .llm_tasks import (
     parse_anlage1_questions,
     _parse_anlage2,
 )
+from .views import _verification_to_initial
 from .reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY
 from django.core.management import call_command
@@ -2260,6 +2261,46 @@ class EditKIJustificationTests(TestCase):
             self.file.verification_json["Export"]["ki_begruendung"],
             "Neu",
         )
+
+
+class VerificationToInitialTests(TestCase):
+    def setUp(self):
+        self.project = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.project,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("v.txt", b"data"),
+        )
+        self.func = Anlage2Function.objects.create(name="Export")
+        self.sub = Anlage2SubQuestion.objects.create(
+            funktion=self.func,
+            frage_text="Warum?",
+        )
+
+    def test_conversion_reads_ai_fields(self):
+        data = {
+            "Export": {
+                "technisch_verfuegbar": True,
+                "ki_beteiligt": True,
+                "ki_beteiligt_begruendung": "Grund",
+            },
+            "Export: Warum?": {
+                "technisch_verfuegbar": False,
+                "ki_beteiligt": False,
+                "ki_beteiligt_begruendung": "Nein",
+            },
+        }
+
+        result = _verification_to_initial(data)
+        func_data = result["functions"][str(self.func.id)]
+        self.assertTrue(func_data["technisch_vorhanden"])
+        self.assertTrue(func_data["ki_beteiligt"])
+        self.assertEqual(func_data["ki_beteiligt_begruendung"], "Grund")
+
+        sub_data = func_data["subquestions"][str(self.sub.id)]
+        self.assertFalse(sub_data["technisch_vorhanden"])
+        self.assertFalse(sub_data["ki_beteiligt"])
+        self.assertEqual(sub_data["ki_beteiligt_begruendung"], "Nein")
 
 
 

@@ -325,6 +325,10 @@ def _verification_to_initial(data: dict | None) -> dict:
             entry = initial["functions"].setdefault(func_id, {})
         if "technisch_verfuegbar" in val:
             entry["technisch_vorhanden"] = val["technisch_verfuegbar"]
+        if "ki_beteiligt" in val:
+            entry["ki_beteiligt"] = val["ki_beteiligt"]
+        if "ki_beteiligt_begruendung" in val:
+            entry["ki_beteiligt_begruendung"] = val["ki_beteiligt_begruendung"]
     return initial
 
 
