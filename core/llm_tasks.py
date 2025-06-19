@@ -794,6 +794,8 @@ def worker_verify_feature(
         result = None
 
     justification = ""
+    ai_involved: bool | None = None
+    ai_reason = ""
     if result:
         try:
             just_base = Prompt.objects.get(name="anlage2_feature_justification").text
@@ -813,10 +815,53 @@ def worker_verify_feature(
             temperature=0.1,
         ).strip()
 
+        try:
+            ai_check_base = Prompt.objects.get(name="anlage2_ai_involvement_check").text
+        except Prompt.DoesNotExist:
+            ai_check_base = (
+                "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die "
+                "Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente?"
+            )
+        ai_check_prompt = ai_check_base.format(
+            software_name=software_list[idx],
+            function_name=name,
+        )
+        ai_reply = call_gemini_api(
+            ai_check_prompt,
+            model_name or "models/gemini-2.5-flash",
+            temperature=0.1,
+        ).strip().lower()
+        if ai_reply.startswith("ja"):
+            ai_involved = True
+        elif ai_reply.startswith("nein"):
+            ai_involved = False
+        else:
+            ai_involved = None
+
+        if ai_involved:
+            try:
+                ai_just_base = Prompt.objects.get(name="anlage2_ai_involvement_justification").text
+            except Prompt.DoesNotExist:
+                ai_just_base = (
+                    "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+                    "der Software '{software_name}' eine KI-Komponente beinhaltet."
+                )
+            ai_just_prompt = ai_just_base.format(
+                software_name=software_list[idx],
+                function_name=name,
+            )
+            ai_reason = call_gemini_api(
+                ai_just_prompt,
+                model_name or "models/gemini-2.5-flash",
+                temperature=0.1,
+            ).strip()
+
     # Ergebnisdictionary für Datenbank und Rückgabewert
     verification_result = {
         "technisch_verfuegbar": result,
         "ki_begruendung": justification,
+        "ki_beteiligt": ai_involved,
+        "ki_beteiligt_begruendung": ai_reason,
     }
 
     pf = (
