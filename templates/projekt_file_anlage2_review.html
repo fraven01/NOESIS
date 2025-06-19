@@ -7,7 +7,7 @@
     {% csrf_token %}
     <div class="filter-controls mb-2">
         <label>
-            <input type="checkbox" id="show-relevant-only-filter" class="mr-2">
+            <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
         <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
@@ -169,34 +169,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (filterCheckbox) {
         filterCheckbox.addEventListener('change', function() {
-            const isChecked = this.checked;
+            const showOnlyAvailable = this.checked;
             // Wähle alle Zeilen aus, die gefiltert werden können
-            const allFunctionRows = document.querySelectorAll('tbody tr[data-parsed-status]');
+            const allRows = document.querySelectorAll('tbody tr[data-parsed-status]');
 
-            allFunctionRows.forEach(row => {
-                // Die übergeordnete Hauptfunktion muss immer sichtbar bleiben,
-                // damit man die Unterfragen wieder einblenden kann. Wir filtern nur die Unterfragen.
-                const isSubquestionRow = row.classList.contains('subquestion-row');
+            allRows.forEach(row => {
+                const isAvailable = row.dataset.parsedStatus === 'True';
 
-                if (isChecked) {
-                    // Wenn Checkbox aktiv ist: Zeige nur Zeilen, deren Status 'True' ist.
-                    const status = row.dataset.parsedStatus;
-                    if (status && status.toLowerCase() === 'true') {
-                        row.style.display = '';
+                if (showOnlyAvailable) {
+                    if (isAvailable) {
+                        row.classList.remove('filter-hidden');
                     } else {
-                        // Verstecke die Zeile, wenn sie eine Unterfrage ist und der Status nicht passt
-                        if (isSubquestionRow) {
-                            row.style.display = 'none';
-                        }
+                        row.classList.add('filter-hidden');
                     }
                 } else {
-                    // Wenn Checkbox inaktiv ist: Zeige alle Zeilen wieder an,
-                    // aber respektiere den eingeklappten Zustand.
-                    if (isSubquestionRow && row.classList.contains('hidden-row')) {
-                        row.style.display = 'none';
-                    } else {
-                        row.style.display = '';
-                    }
+                    row.classList.remove('filter-hidden');
                 }
             });
         });
