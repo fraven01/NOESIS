@@ -121,6 +121,15 @@ vorhanden ist. Das Ergebnis wird als `ki_begruendung` gespeichert und im
 Review-Formular neben dem Funktionsnamen als Info-Symbol angezeigt. Ein
 Mouseover blendet den Text als Tooltip ein.
 
+### Zweistufige KI‑Beteiligungsprüfung
+
+In der Review-Ansicht von Anlage 2 lässt sich für jede Funktion eine
+"KI‑Prüfung starten". Der Prozess arbeitet nun in zwei Stufen. Zunächst wird
+geklärt, ob die Funktion technisch verfügbar ist. Nur wenn diese Prüfung
+bejaht wird, folgt Stufe 2 mit der Einschätzung, ob üblicherweise eine
+KI‑Beteiligung vorliegt. Beide Ergebnisse erscheinen anschließend direkt in der
+Tabelle, wobei die Begründung weiterhin über den Info‑Link abrufbar ist.
+
 ### Edit-Ansicht für Analysedaten
 
 Über den Link **Analyse bearbeiten** gelangt man zu `/work/anlage/<pk>/edit-json/`.
