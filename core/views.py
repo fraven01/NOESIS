@@ -2293,9 +2293,12 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
     if project_file.anlage_nr != 2:
         return JsonResponse({"error": "invalid"}, status=400)
 
-    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).delete()
+    Anlage2FunctionResult.objects.filter(
+        projekt=project_file.projekt
+    ).exclude(source="parser").delete()
     project_file.verification_json = {}
-    project_file.save(update_fields=["verification_json"])
+    project_file.manual_analysis_json = None
+    project_file.save(update_fields=["verification_json", "manual_analysis_json"])
 
     return JsonResponse({"status": "success"})
 
