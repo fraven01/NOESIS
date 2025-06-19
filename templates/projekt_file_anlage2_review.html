@@ -221,6 +221,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     });
+
+    const resetButton = document.getElementById('btn-reset-all-reviews');
+
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            if (!confirm('M\u00f6chten Sie wirklich alle manuellen Bewertungen auf die urspr\u00fcnglichen Analysewerte zur\u00fccksetzen?')) {
+                return;
+            }
+
+            const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
+
+            rows.forEach(row => {
+                const parsedStatus = row.dataset.parsedStatus;
+                const parsedNotes = row.dataset.parsedNotes || "";
+
+                const statusRadios = row.querySelectorAll('input[type="radio"][name*="-status"]');
+                const notesTextarea = row.querySelector('textarea[name*="-notes"]');
+
+                if (statusRadios.length > 0) {
+                    let aRadioWasSet = false;
+                    statusRadios.forEach(radio => {
+                        if (radio.value.toLowerCase() === parsedStatus.toLowerCase()) {
+                            radio.checked = true;
+                            aRadioWasSet = true;
+                        }
+                    });
+
+                    if (!aRadioWasSet) {
+                        statusRadios.forEach(radio => {
+                            radio.checked = false;
+                        });
+                    }
+                }
+
+                if (notesTextarea) {
+                    notesTextarea.value = parsedNotes;
+                }
+            });
+
+            alert('Alle Bewertungen wurden zur\u00fcckgesetzt.');
+        });
+    }
+
     // ... andere Skripte f\u00fcr diese Seite ...
 });
 </script>
