@@ -25,7 +25,7 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .llm_utils import query_llm, call_gemini_api
+from .llm_utils import query_llm
 from .docx_utils import (
     parse_anlage2_table,
     parse_anlage2_text,
@@ -752,16 +752,19 @@ def worker_verify_feature(
         raise ValueError("invalid object_type")
 
     try:
-        prompt_base = Prompt.objects.get(name="anlage2_feature_verification").text
+        prompt_obj = Prompt.objects.get(name="anlage2_feature_verification")
     except Prompt.DoesNotExist:
         logger.error("Prompt 'anlage2_feature_verification' nicht gefunden!")
-        prompt_base = (
-            "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
-            "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
-            "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
-            'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
-            "Aussage: Besitzt die Software '{software_name}' typischerweise "
-            "die Funktion oder Eigenschaft '{function_name}'?"
+        prompt_obj = Prompt(
+            text=(
+                "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
+                "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
+                "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
+                'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
+                "Aussage: Besitzt die Software '{software_name}' typischerweise "
+                "die Funktion oder Eigenschaft '{function_name}'?"
+            ),
+            use_system_role=False,
         )
 
     software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
@@ -770,12 +773,12 @@ def worker_verify_feature(
 
     individual_results: list[bool | None] = []
     for software in software_list:
-        prompt_text = prompt_base.format(
-            software_name=software, function_name=name
-        )
-        reply = call_gemini_api(
-            prompt_text,
-            model_name or "models/gemini-2.5-flash",
+        context = {"software_name": software, "function_name": name}
+        reply = query_llm(
+            prompt_obj,
+            context,
+            model_name=model_name,
+            model_type="anlagen",
             temperature=0.1,
         )
         ans = reply.strip()
@@ -798,37 +801,45 @@ def worker_verify_feature(
     ai_reason = ""
     if result:
         try:
-            just_base = Prompt.objects.get(name="anlage2_feature_justification").text
+            just_prompt_obj = Prompt.objects.get(name="anlage2_feature_justification")
         except Prompt.DoesNotExist:
-            just_base = (
-                "Warum besitzt die Software '{software_name}' typischerweise die "
-                "Funktion oder Eigenschaft '{function_name}'?"
+            just_prompt_obj = Prompt(
+                text=(
+                    "Warum besitzt die Software '{software_name}' typischerweise die "
+                    "Funktion oder Eigenschaft '{function_name}'?"
+                ),
+                use_system_role=False,
             )
         idx = individual_results.index(True) if True in individual_results else 0
-        just_prompt_text = just_base.format(
-            software_name=software_list[idx],
-            function_name=name,
-        )
-        justification = call_gemini_api(
-            just_prompt_text,
-            model_name or "models/gemini-2.5-flash",
+        justification = query_llm(
+            just_prompt_obj,
+            {
+                "software_name": software_list[idx],
+                "function_name": name,
+            },
+            model_name=model_name,
+            model_type="anlagen",
             temperature=0.1,
         ).strip()
 
         try:
-            ai_check_base = Prompt.objects.get(name="anlage2_ai_involvement_check").text
+            ai_check_obj = Prompt.objects.get(name="anlage2_ai_involvement_check")
         except Prompt.DoesNotExist:
-            ai_check_base = (
-                "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die "
-                "Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente?"
+            ai_check_obj = Prompt(
+                text=(
+                    "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die "
+                    "Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente?"
+                ),
+                use_system_role=False,
             )
-        ai_check_prompt = ai_check_base.format(
-            software_name=software_list[idx],
-            function_name=name,
-        )
-        ai_reply = call_gemini_api(
-            ai_check_prompt,
-            model_name or "models/gemini-2.5-flash",
+        ai_reply = query_llm(
+            ai_check_obj,
+            {
+                "software_name": software_list[idx],
+                "function_name": name,
+            },
+            model_name=model_name,
+            model_type="anlagen",
             temperature=0.1,
         ).strip().lower()
         if ai_reply.startswith("ja"):
@@ -840,19 +851,23 @@ def worker_verify_feature(
 
         if ai_involved:
             try:
-                ai_just_base = Prompt.objects.get(name="anlage2_ai_involvement_justification").text
+                ai_just_obj = Prompt.objects.get(name="anlage2_ai_involvement_justification")
             except Prompt.DoesNotExist:
-                ai_just_base = (
-                    "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
-                    "der Software '{software_name}' eine KI-Komponente beinhaltet."
+                ai_just_obj = Prompt(
+                    text=(
+                        "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+                        "der Software '{software_name}' eine KI-Komponente beinhaltet."
+                    ),
+                    use_system_role=False,
                 )
-            ai_just_prompt = ai_just_base.format(
-                software_name=software_list[idx],
-                function_name=name,
-            )
-            ai_reason = call_gemini_api(
-                ai_just_prompt,
-                model_name or "models/gemini-2.5-flash",
+            ai_reason = query_llm(
+                ai_just_obj,
+                {
+                    "software_name": software_list[idx],
+                    "function_name": name,
+                },
+                model_name=model_name,
+                model_type="anlagen",
                 temperature=0.1,
             ).strip()
 
