@@ -744,10 +744,19 @@ def worker_verify_feature(
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
 
     projekt = BVProject.objects.get(pk=project_id)
+
+    obj_to_check = None
+    function_name_for_prompt: str | None = None
+    lookup_key: str | None = None
+
     if object_type == "function":
-        feature_obj = Anlage2Function.objects.get(pk=object_id)
+        obj_to_check = Anlage2Function.objects.get(pk=object_id)
+        function_name_for_prompt = obj_to_check.name
+        lookup_key = obj_to_check.name
     elif object_type == "subquestion":
-        feature_obj = Anlage2SubQuestion.objects.get(pk=object_id)
+        obj_to_check = Anlage2SubQuestion.objects.get(pk=object_id)
+        function_name_for_prompt = obj_to_check.frage_text
+        lookup_key = f"{obj_to_check.funktion.name}: {obj_to_check.frage_text}"
     else:
         raise ValueError("invalid object_type")
 
@@ -769,7 +778,7 @@ def worker_verify_feature(
 
     software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
 
-    name = getattr(feature_obj, "name", None) or getattr(feature_obj, "frage_text")
+    name = function_name_for_prompt or ""
 
     individual_results: list[bool | None] = []
     for software in software_list:
@@ -886,11 +895,8 @@ def worker_verify_feature(
         return verification_result
 
     verif = pf.verification_json or {}
-    if object_type == "function":
-        key = name
-    else:
-        key = f"{feature_obj.funktion.name}: {feature_obj.frage_text}"
-    verif[key] = verification_result
+    if lookup_key:
+        verif[lookup_key] = verification_result
     pf.verification_json = verif
     pf.save(update_fields=["verification_json"])
 
