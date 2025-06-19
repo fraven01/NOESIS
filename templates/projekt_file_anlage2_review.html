@@ -62,6 +62,20 @@
                     </div>
                 </td>
                 {% for field in fields %}
+                {% if field == 'ki_beteiligung' %}
+                <td class="border px-2 text-center">
+                    {% if row.ki_beteiligt == True %}
+                        <span class="status-badge status-ja">✓ Ja</span>
+                    {% elif row.ki_beteiligt == False %}
+                        <span class="status-badge status-nein">✗ Nein</span>
+                    {% else %}
+                        <span class="status-badge status-unbekannt">? Unbekannt</span>
+                    {% endif %}
+                    {% if row.ki_beteiligt_begruendung %}
+                    <i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ row.ki_beteiligt_begruendung }}"></i>
+                    {% endif %}
+                </td>
+                {% else %}
                 {% with val=row.analysis|get_item:field %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
@@ -73,6 +87,7 @@
                     {% endif %}
                 </td>
                 {% endwith %}
+                {% endif %}
                 {% endfor %}
                 {% for f in row.form_fields %}
                 <td class="border px-2 text-center">
@@ -137,6 +152,9 @@ document.addEventListener('DOMContentLoaded', function() {
             individualToggleButtons.forEach(btn => btn.textContent = '+');
         });
     }
+
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
 
     // ... andere Skripte f\u00fcr diese Seite ...
 });
