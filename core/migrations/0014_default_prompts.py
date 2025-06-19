@@ -21,12 +21,6 @@ class Migration(migrations.Migration):
             "generate_overall_gutachten": (
                 "Erstelle ein zusammenfassendes Gutachten f\u00fcr das Projekt '{project_title}'. Ber\u00fccksichtige alle folgenden Software-Komponenten und deren Analyseergebnisse: {context_data}. Fasse die Ergebnisse zusammen, bewerte das Gesamtprojekt und gib eine Abschlussempfehlung ab. Strukturiere das Gutachten mit klaren \u00dcberschriften und formatiere es mit Markdown (z.B. \u00dcberschriften, Fett- und Kursivdruck, Listen und Tabellen)."
             ),
-            "anlage2_ai_involvement_check": (
-                "Antworte ausschlie\u00dflich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente? Eine KI-Komponente liegt vor, wenn die Funktion unstrukturierte Daten (Text, Bild, Ton) verarbeitet, Sentiment-Analysen durchf\u00fchrt oder nicht-deterministische, probabilistische Ergebnisse liefert."
-            ),
-            "anlage2_ai_involvement_justification": (
-                "Gib eine kurze Begr\u00fcndung, warum die Funktion '{function_name}' der Software '{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten oder nicht-deterministischer Ergebnisse."
-            ),
         }
         for i in range(1, 7):
             if i == 2:
