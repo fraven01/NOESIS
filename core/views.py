@@ -1987,7 +1987,7 @@ def projekt_file_edit_json(request, pk):
                     s_fields.append(
                         {
                             "widget": form[f"sub{sub.id}_{field}"],
-                            "source_text": source_map.get(
+                            "source": source_map.get(
                                 (str(func.id), str(sub.id), field)
                             ),
                         }
@@ -1996,9 +1996,34 @@ def projekt_file_edit_json(request, pk):
                 s_analysis = answers.get(lookup_key, {})
                 debug_logger.debug("Subfrage: %s", sub.frage_text)
                 debug_logger.debug("Analyse Subfrage: %s", s_analysis)
-                row_source = source_map.get(
-                    (str(func.id), str(sub.id), "technisch_vorhanden")
+
+                manual_sub = (
+                    manual_init.get("functions", {})
+                    .get(str(func.id), {})
+                    .get("subquestions", {})
+                    .get(str(sub.id), {})
                 )
+                ai_sub = (
+                    verif_init.get("functions", {})
+                    .get(str(func.id), {})
+                    .get("subquestions", {})
+                    .get(str(sub.id), {})
+                )
+                doc_sub = (
+                    analysis_init.get("functions", {})
+                    .get(str(func.id), {})
+                    .get("subquestions", {})
+                    .get(str(sub.id), {})
+                )
+
+                row_source = "N/A"
+                if "technisch_vorhanden" in manual_sub:
+                    row_source = "Manuell"
+                elif "technisch_vorhanden" in ai_sub:
+                    row_source = "KI-Prüfung"
+                elif "technisch_vorhanden" in doc_sub:
+                    row_source = "Dokumenten-Analyse"
+
                 begr_md = ki_map.get((str(func.id), str(sub.id)))
                 bet_val, bet_reason = beteilig_map.get(
                     (str(func.id), str(sub.id)), (None, "")
