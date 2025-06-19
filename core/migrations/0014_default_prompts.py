@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
             prompts[f"check_anlage{i}"] = (
                 "Pr\u00fcfe die folgende Anlage auf Vollst\u00e4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
             )
-        for name, text in prompts.items():
-            Prompt.objects.get_or_create(name=name, defaults={"text": text})
+        for key, text in prompts.items():
+            Prompt.objects.get_or_create(key=key, defaults={"prompt_text": text})
 
     operations = [migrations.RunPython(create_prompts, migrations.RunPython.noop)]
