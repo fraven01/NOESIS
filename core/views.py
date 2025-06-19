@@ -1801,23 +1801,28 @@ def projekt_file_edit_json(request, pk):
                 for s in Anlage2SubQuestion.objects.select_related("funktion")
             }
             ki_map: dict[tuple[str, str | None], str] = {}
+            beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
             if isinstance(verif_raw, dict):
                 for key, val in verif_raw.items():
                     if not isinstance(val, dict):
                         continue
                     begr = val.get("ki_begruendung")
-                    if not begr:
-                        continue
+                    beteiligt = val.get("ki_beteiligt")
+                    beteiligt_begr = val.get("ki_beteiligt_begruendung", "")
                     if ": " in key:
                         func_name, sub_text = key.split(": ", 1)
                         fid = name_map.get(func_name)
                         sid = sub_map.get((func_name, sub_text))
                         if fid:
-                            ki_map[(fid, sid)] = begr
+                            if begr:
+                                ki_map[(fid, sid)] = begr
+                            beteilig_map[(fid, sid)] = (beteiligt, beteiligt_begr)
                     else:
                         fid = name_map.get(key)
                         if fid:
-                            ki_map[(fid, None)] = begr
+                            if begr:
+                                ki_map[(fid, None)] = begr
+                            beteilig_map[(fid, None)] = (beteiligt, beteiligt_begr)
 
             manual_results = {
                 str(r.funktion_id): r
@@ -1958,6 +1963,7 @@ def projekt_file_edit_json(request, pk):
                 )
             row_source = source_map.get((str(func.id), None, "technisch_vorhanden"))
             begr_md = ki_map.get((str(func.id), None))
+            bet_val, bet_reason = beteilig_map.get((str(func.id), None), (None, ""))
             rows.append(
                 {
                     "name": func.name,
@@ -1971,6 +1977,8 @@ def projekt_file_edit_json(request, pk):
                     "ki_begruendung": begr_md,
                     "ki_begruendung_md": begr_md,
                     "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
+                    "ki_beteiligt": bet_val,
+                    "ki_beteiligt_begruendung": bet_reason,
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -1992,6 +2000,9 @@ def projekt_file_edit_json(request, pk):
                     (str(func.id), str(sub.id), "technisch_vorhanden")
                 )
                 begr_md = ki_map.get((str(func.id), str(sub.id)))
+                bet_val, bet_reason = beteilig_map.get(
+                    (str(func.id), str(sub.id)), (None, "")
+                )
                 rows.append(
                     {
                         "name": sub.frage_text,
@@ -2009,6 +2020,8 @@ def projekt_file_edit_json(request, pk):
                         "ki_begruendung": begr_md,
                         "ki_begruendung_md": begr_md,
                         "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
+                        "ki_beteiligt": bet_val,
+                        "ki_beteiligt_begruendung": bet_reason,
                     }
                 )
         debug_logger.debug(
