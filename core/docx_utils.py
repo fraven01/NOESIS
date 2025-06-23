@@ -28,29 +28,36 @@ def extract_text(path: Path) -> str:
     return "\n".join(p.text for p in doc.paragraphs)
 
 
-def _parse_bool(text: str) -> bool | None:
-    """Interpretiert 'Ja' oder 'Nein'."""
-    text = text.strip().lower()
-    if text.startswith("ja"):
-        return True
-    if text.startswith("nein"):
-        return False
-    return None
-
-
 def _parse_cell_value(text: str) -> dict[str, object]:
     """Parst eine Tabellenzelle mit optionaler Zusatzinfo.
 
     Gibt ein Dictionary mit ``value`` (bool oder ``None``) und ``note``
     (optionaler Zusatztext) zurück.
     """
+    text = text.strip()
+    match = re.match(r"^(?i)(ja|nein)\b(.*)$", text)
+    if match:
+        value = match.group(1).lower() == "ja"
+        rest = match.group(2).strip()
+        rest = re.sub(r"^[,:;\-\s]+", "", rest)
+        if rest.startswith("(") and rest.endswith(")"):
+            rest = rest[1:-1].strip()
+        note = rest or None
+        return {"value": value, "note": note}
+
     note: str | None = None
-    clean = text
     m = re.search(r"\(([^)]*)\)", text)
     if m:
         note = m.group(1).strip() or None
-        clean = text[: m.start()] + text[m.end() :]
-    value = _parse_bool(clean)
+        text = (text[: m.start()] + text[m.end() :]).strip()
+
+    lower = text.lower()
+    if lower.startswith("ja"):
+        value = True
+    elif lower.startswith("nein"):
+        value = False
+    else:
+        value = None
     return {"value": value, "note": note}
 
 

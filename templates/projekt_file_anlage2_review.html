@@ -70,7 +70,7 @@
                     {% endif %}
                 </td>
                 {% else %}
-                {% with val=row.analysis|get_item:field %}
+                {% with val=row.analysis|get_item:field note=row.analysis|raw_item:field|get_item:'note' %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
                         <span class="status-badge status-ja">✓ Vorhanden</span>
@@ -79,6 +79,7 @@
                     {% else %}
                         <span class="status-badge status-unbekannt">? Unbekannt</span>
                     {% endif %}
+                    {% if note %}<i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ note }}"></i>{% endif %}
                 </td>
                 {% endwith %}
                 {% endif %}

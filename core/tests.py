@@ -391,6 +391,39 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+    def test_parse_anlage2_table_notes(self):
+        doc = Document()
+        table = doc.add_table(rows=2, cols=4)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja (nur intern)"
+        table.cell(1, 2).text = "Nein, später"
+        table.cell(1, 3).text = "Nein (k.A.)"
+
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": "nur intern"},
+                    "einsatz_telefonica": {"value": False, "note": "später"},
+                    "zur_lv_kontrolle": {"value": False, "note": "k.A."},
+                }
+            ],
+        )
+
     def test_parse_anlage2_table_alias_conflict(self):
         cfg = Anlage2Config.get_instance()
         conflict = "Konflikt"
