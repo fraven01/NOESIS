@@ -1489,6 +1489,8 @@ def anlage2_function_import(request):
         for entry in items:
             name = entry.get("name") or entry.get("funktion") or ""
             func, _ = Anlage2Function.objects.get_or_create(name=name)
+            if "detection_phrases" in entry:
+                func.detection_phrases = entry.get("detection_phrases", {})
             func.save()
             subs = entry.get("subquestions") or entry.get("unterfragen") or []
             for sub in subs:
@@ -1501,6 +1503,7 @@ def anlage2_function_import(request):
                 Anlage2SubQuestion.objects.create(
                     funktion=func,
                     frage_text=text,
+                    detection_phrases=vals.get("detection_phrases", {}),
                 )
         messages.success(request, "Funktionskatalog importiert")
         return redirect("anlage2_function_list")
@@ -1515,10 +1518,14 @@ def anlage2_function_export(request):
     for f in Anlage2Function.objects.all().order_by("name"):
         item = {
             "name": f.name,
+            "detection_phrases": f.detection_phrases,
             "subquestions": [],
         }
         for q in f.anlage2subquestion_set.all().order_by("id"):
-            item["subquestions"].append({"frage_text": q.frage_text})
+            item["subquestions"].append({
+                "frage_text": q.frage_text,
+                "detection_phrases": q.detection_phrases,
+            })
         functions.append(item)
     content = json.dumps(functions, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
