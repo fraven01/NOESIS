@@ -240,6 +240,11 @@ urlpatterns = [
         name="ajax_start_initial_checks",
     ),
     path(
+        "ajax/rerun-initial-check/",
+        views.ajax_rerun_initial_check_with_context,
+        name="ajax_rerun_initial_check_with_context",
+    ),
+    path(
         "knowledge/<int:knowledge_id>/edit/",
         views.edit_knowledge_description,
         name="edit_knowledge_description",

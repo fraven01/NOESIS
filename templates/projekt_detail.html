@@ -92,6 +92,11 @@
                 {% if row.entry.description %}
                 <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="text-blue-700 underline">Export</a>
                 {% endif %}
+                {% if row.entry.is_known_by_llm == False %}
+                <button type="button" class="btn btn-sm btn-warning retry-with-context-btn" data-bs-toggle="modal" data-bs-target="#contextModal" data-knowledge-id="{{ row.entry.id }}">
+                    Kontext hinzufügen & erneut prüfen
+                </button>
+                {% endif %}
             {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
@@ -130,8 +135,26 @@
       <li>{{ h.status.name }} - {{ h.changed_at|date:"d.m.Y H:i" }}</li>
     {% endfor %}
     </ul>
-  </div>
 </div>
+</div>
+</div>
+
+<!-- Modal für zusätzlichen Kontext -->
+<div class="modal fade" id="contextModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Kontext hinzufügen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="contextText" class="form-control" rows="4"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary send-context-btn">Senden</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
@@ -212,8 +235,8 @@ function startChecks(){
      const iv=setInterval(()=>{
        fetch(tmpl.replace('dummy',t.task_id)).then(r=>r.json()).then(d=>{
          if(d.status==='SUCCESS'||d.status==='FAIL'){
-            clearInterval(iv);done++;loadKnowledge();
-            if(done===tasks.length){spinner.remove();btn.disabled=false;}
+            clearInterval(iv);done++;
+            if(done===tasks.length){window.location.reload();}
          }
        });
      },3000);
@@ -258,9 +281,42 @@ document.addEventListener('DOMContentLoaded',function(){
         }).catch(()=>{
           if(status){status.textContent='Fehler';}
           button.classList.remove('disabled');
-        });
+  });
+  });
+});
+
+document.addEventListener('DOMContentLoaded',function(){
+  let contextId=null;
+  document.querySelectorAll('.retry-with-context-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      contextId=this.dataset.knowledgeId;
+      document.getElementById('contextText').value='';
     });
   });
+  const sendBtn=document.querySelector('.send-context-btn');
+  if(sendBtn){
+    sendBtn.addEventListener('click',function(){
+      const text=document.getElementById('contextText').value;
+      const body=new FormData();
+      body.append('knowledge_id',contextId);
+      body.append('user_context',text);
+      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+        .then(r=>r.json()).then(data=>{
+          const tid=data.task_id;
+          const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+          const iv=setInterval(()=>{
+            fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+              if(d.status==='SUCCESS'||d.status==='FAIL'){
+                clearInterval(iv);window.location.reload();
+              }
+            });
+          },3000);
+        });
+      const modalEl=document.getElementById('contextModal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+    });
+  }
+});
 });
 </script>
 {% endblock %}

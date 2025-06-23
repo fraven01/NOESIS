@@ -2265,6 +2265,16 @@ class InitialCheckTests(TestCase):
         self.assertFalse(sk.is_known_by_llm)
         self.assertEqual(sk.description, "")
 
+    def test_context_is_passed_to_prompt(self):
+        with patch("core.llm_tasks.query_llm", return_value="Nein") as mock_q:
+            sk = SoftwareKnowledge.objects.create(
+                projekt=self.projekt,
+                software_name="A",
+            )
+            worker_run_initial_check(sk.pk, user_context="Hint")
+        prompt_text = mock_q.call_args[0][0].text
+        self.assertIn("Hint", prompt_text)
+
 
 
 class EditKIJustificationTests(TestCase):
