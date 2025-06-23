@@ -77,26 +77,38 @@
         <tr class="border-t" data-id="{{ row.entry.id|default:'' }}">
             <td class="px-2 py-1">{{ row.name }}</td>
             <td class="px-2 py-1 text-center">
-                {% if row.entry and row.entry.last_checked %}
-                    {% if row.entry.is_known_by_llm %}Ja{% else %}Nein{% endif %}
-                {% else %}-{% endif %}
-            </td>
-            <td class="px-2 py-1">{{ row.entry.description|default:""|markdownify }}</td>
-            <td class="px-2 py-1 text-center space-x-2">
-            {% if row.entry %}
-                <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="text-blue-700 underline">Bearbeiten</a>
-                <form action="{% url 'delete_knowledge_entry' row.entry.id %}" method="post" class="inline">
-                    {% csrf_token %}
-                    <button type="submit" class="text-red-700 underline">Löschen</button>
-                </form>
-                {% if row.entry.description %}
-                <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="text-blue-700 underline">Export</a>
+                {% if row.entry and row.entry.is_known_by_llm is True %}
+                    <span class="badge status-ja">✓ Bekannt</span>
+                {% elif row.entry and row.entry.is_known_by_llm is False %}
+                    <span class="badge status-nein">✗ Nicht bekannt</span>
+                {% else %}
+                    <span class="badge status-unbekannt">? Ungeprüft</span>
                 {% endif %}
-                {% if row.entry.is_known_by_llm == False %}
-                <button type="button" class="btn btn-sm btn-warning retry-with-context-btn" data-bs-toggle="modal" data-bs-target="#contextModal" data-knowledge-id="{{ row.entry.id }}">
+            </td>
+            <td class="px-2 py-1">
+                {% if row.entry and row.entry.is_known_by_llm is True %}
+                    {{ row.entry.description|markdownify }}
+                {% elif row.entry and row.entry.is_known_by_llm is False %}
+                    <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren. Bitte fügen Sie zusätzlichen Kontext hinzu, um die Prüfung zu wiederholen.</p>
+                {% else %}
+                {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center space-x-2">
+            {% if row.entry and row.entry.is_known_by_llm is True %}
+                <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="btn-action">Bearbeiten</a>
+                <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
+                <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
+            {% elif row.entry and row.entry.is_known_by_llm is False %}
+                <button type="button" class="btn btn-warning btn-sm retry-with-context-btn" 
+                        data-bs-toggle="modal" data-bs-target="#contextModal"
+                        data-knowledge-id="{{ row.entry.id }}">
                     Kontext hinzufügen & erneut prüfen
                 </button>
-                {% endif %}
+            {% else %}
+                <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" 
+                         data-knowledge-id="{{ row.entry.id|default:'' }}">
+                    Prüfung starten
+                </button>
             {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
