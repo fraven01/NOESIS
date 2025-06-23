@@ -2271,6 +2271,58 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
 
 @login_required
 @require_POST
+def ajax_save_anlage2_review(request) -> JsonResponse:
+    """Speichert eine einzelne Bewertung f\u00fcr Anlage 2 per AJAX."""
+
+    try:
+        data = json.loads(request.body)
+        pf_id = data.get("project_file_id")
+        func_id = data.get("function_id")
+        sub_id = data.get("subquestion_id")
+
+        status_val = data.get("status")
+        if status_val in (True, "True", "true", "1", 1):
+            status = True
+        elif status_val in (False, "False", "false", "0", 0):
+            status = False
+        else:
+            status = None
+
+        notes = data.get("notes", "")
+        ki_beteiligt = data.get("ki_beteiligt")
+
+        if pf_id is None or func_id is None:
+            return JsonResponse({"error": "invalid"}, status=400)
+
+        anlage = get_object_or_404(BVProjectFile, pk=pf_id)
+        if anlage.anlage_nr != 2:
+            return JsonResponse({"error": "invalid"}, status=400)
+
+        funktion = get_object_or_404(Anlage2Function, pk=func_id)
+        if sub_id:
+            get_object_or_404(Anlage2SubQuestion, pk=sub_id)
+
+        defaults = {
+            "technisch_verfuegbar": status,
+            "ki_beteiligung": ki_beteiligt,
+            "raw_json": {"notes": notes, "subquestion_id": sub_id},
+            "source": "manual",
+        }
+
+        Anlage2FunctionResult.objects.update_or_create(
+            projekt=anlage.projekt,
+            funktion=funktion,
+            defaults=defaults,
+        )
+
+        return JsonResponse({"status": "success"})
+    except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
+        logger.error("Fehler beim Speichern des manuellen Reviews: %s", exc)
+        return JsonResponse({"status": "error", "message": str(exc)}, status=500)
+
+
+@login_required
+@require_POST
 def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
     """L\u00f6scht alle manuellen und KI-Bewertungen f\u00fcr eine Anlage."""
 

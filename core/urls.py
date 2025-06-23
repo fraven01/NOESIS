@@ -164,6 +164,11 @@ urlpatterns = [
         name="ajax_save_manual_review_item",
     ),
     path(
+        "ajax/save-anlage2-review/",
+        views.ajax_save_anlage2_review,
+        name="ajax_save_anlage2_review",
+    ),
+    path(
         "ajax/start-gutachten/<int:project_id>/",
         views.ajax_start_gutachten_generation,
         name="ajax_start_gutachten_generation",

@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
 
     const formElem = document.querySelector('form[data-anlage-id]');
-    const saveUrl = "{% url 'ajax_save_manual_review_item' %}";
+    const saveUrl = "{% url 'ajax_save_anlage2_review' %}";
 
     function showStatus(input, text) {
         let span = input.parentElement.querySelector('.autosave-status');
@@ -186,15 +186,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const funcId = row.dataset.funcId;
         const subId = row.dataset.subId;
         const status = el.type === 'checkbox' ? el.checked : el.value;
-        const body = new FormData();
-        body.append('project_file_id', formElem.dataset.anlageId);
-        body.append('function_id', funcId);
-        if (subId) { body.append('subquestion_id', subId); }
-        body.append('status', status);
-        body.append('notes', '');
+        const payload = {
+            project_file_id: formElem.dataset.anlageId,
+            function_id: funcId,
+            status: status,
+            notes: '',
+        };
+        if (subId) { payload.subquestion_id = subId; }
 
         const indicator = showStatus(el, 'Speichere...');
-        fetch(saveUrl, { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: body })
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
             .then(r => r.json())
             .then(() => { indicator.textContent = '✓ Gespeichert'; setTimeout(() => indicator.textContent = '', 1500); })
             .catch(() => { indicator.textContent = '⚠️'; });
