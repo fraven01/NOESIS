@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+{% block sidebar %}
+    {% include 'partials/user_sidebar.html' %}
+{% endblock %}
+
 {% load recording_extras %}
 {% block title %}Gutachten anzeigen{% endblock %}
 {% block content %}
