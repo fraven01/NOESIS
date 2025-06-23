@@ -900,6 +900,20 @@ def worker_verify_feature(
     pf.verification_json = verif
     pf.save(update_fields=["verification_json"])
 
+    if object_type == "function":
+        Anlage2FunctionResult.objects.filter(
+            projekt_id=project_id,
+            funktion_id=object_id,
+            source="manual",
+        ).delete()
+    elif object_type == "subquestion":
+        Anlage2FunctionResult.objects.filter(
+            projekt_id=project_id,
+            funktion_id=obj_to_check.funktion_id,
+            source="manual",
+            raw_json__subquestion_id=object_id,
+        ).delete()
+
     return verification_result
 
 

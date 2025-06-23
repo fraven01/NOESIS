@@ -159,9 +159,9 @@ urlpatterns = [
         name="ajax_check_task_status",
     ),
     path(
-        "ajax/save-review-item/",
-        views.ajax_save_anlage2_review_item,
-        name="ajax_save_review_item",
+        "ajax/save-manual-review-item/",
+        views.ajax_save_manual_review_item,
+        name="ajax_save_manual_review_item",
     ),
     path(
         "ajax/start-gutachten/<int:project_id>/",
