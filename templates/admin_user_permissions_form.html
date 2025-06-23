@@ -1,0 +1,20 @@
+{% extends 'admin/base_site.html' %}
+{% block title %}Berechtigungen bearbeiten{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">Berechtigungen für {{ user_obj.username }}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.groups.label_tag }}<br>
+        {{ form.groups }}
+        {{ form.groups.errors }}
+    </div>
+    <div>
+        {{ form.tiles.label_tag }}<br>
+        {{ form.tiles }}
+        {{ form.tiles.errors }}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

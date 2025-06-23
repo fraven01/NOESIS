@@ -62,6 +62,12 @@ urlpatterns = [
     ),
     path("projects-admin/prompts/", views.admin_prompts, name="admin_prompts"),
     path("projects-admin/models/", views.admin_models, name="admin_models"),
+    path("projects-admin/users/", views.admin_user_list, name="admin_user_list"),
+    path(
+        "projects-admin/users/<int:user_id>/permissions/",
+        views.admin_edit_user_permissions,
+        name="admin_edit_user_permissions",
+    ),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
     path(
         "projects-admin/anlage2/config/",

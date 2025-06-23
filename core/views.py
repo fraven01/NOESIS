@@ -3,6 +3,7 @@ import tempfile
 import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
 from django.http import (
     HttpResponseBadRequest,
     Http404,
@@ -41,6 +42,7 @@ from .forms import (
 
     ProjectStatusForm,
     LLMRoleForm,
+    UserPermissionsForm,
 
 )
 from .models import (
@@ -1324,6 +1326,30 @@ def admin_llm_role_delete(request, pk):
     role = get_object_or_404(LLMRole, pk=pk)
     role.delete()
     return redirect("admin_llm_roles")
+
+
+@login_required
+@admin_required
+def admin_user_list(request):
+    """Listet alle Benutzer mit zugehörigen Gruppen und Tiles auf."""
+    users = list(User.objects.all().prefetch_related("groups", "tiles"))
+    context = {"users": users}
+    return render(request, "admin_user_list.html", context)
+
+
+@login_required
+@admin_required
+def admin_edit_user_permissions(request, user_id):
+    """Bearbeitet Gruppen- und Tile-Zuordnungen für einen Benutzer."""
+    user_obj = get_object_or_404(User, pk=user_id)
+    form = UserPermissionsForm(request.POST or None, user=user_obj)
+    if request.method == "POST" and form.is_valid():
+        user_obj.groups.set(form.cleaned_data.get("groups"))
+        user_obj.tiles.set(form.cleaned_data.get("tiles"))
+        messages.success(request, "Berechtigungen gespeichert")
+        return redirect("admin_user_list")
+    context = {"form": form, "user_obj": user_obj}
+    return render(request, "admin_user_permissions_form.html", context)
 
 
 @login_required
