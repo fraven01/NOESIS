@@ -382,6 +382,55 @@ def _get_display_data(
     }
 
 
+def _build_row_data(
+    display_name: str,
+    lookup_key: str,
+    func_id: int,
+    form_prefix: str,
+    form,
+    answers: dict[str, dict],
+    ki_map: dict[tuple[str, str | None], str],
+    beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]],
+    analysis_lookup: dict[str, dict],
+    verification_lookup: dict[str, dict],
+    manual_lookup: dict[str, dict],
+    sub_id: int | None = None,
+) -> dict:
+    """Erzeugt die Darstellungsdaten für eine Funktion oder Unterfrage."""
+
+    disp = _get_display_data(
+        lookup_key, analysis_lookup, verification_lookup, manual_lookup
+    )
+    fields_def = get_anlage2_fields()
+    widgets = [
+        {
+            "widget": form[f"{form_prefix}{field}"],
+            "source": disp["sources"][field],
+        }
+        for field, _ in fields_def
+    ]
+    begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
+    bet_val, bet_reason = beteilig_map.get(
+        (str(func_id), str(sub_id) if sub_id else None), (None, "")
+    )
+    return {
+        "name": display_name,
+        "analysis": answers.get(lookup_key, {}),
+        "initial": disp["values"],
+        "form_fields": widgets,
+        "sub": sub_id is not None,
+        "func_id": func_id,
+        "sub_id": sub_id,
+        "verif_key": lookup_key,
+        "source_text": disp["source"],
+        "ki_begruendung": begr_md,
+        "ki_begruendung_md": begr_md,
+        "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
+        "ki_beteiligt": bet_val,
+        "ki_beteiligt_begruendung": bet_reason,
+    }
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -1976,72 +2025,38 @@ def projekt_file_edit_json(request, pk):
         fields_def = get_anlage2_fields()
 
         for func in Anlage2Function.objects.order_by("name"):
-            debug_logger.debug("--- Prüfe Hauptfunktion ---")
-            debug_logger.debug("Funktion: %s", func.name)
-            debug_logger.debug("Zuordnung in answers: %s", answers.get(func.name, {}))
-            disp = _get_display_data(
-                func.name, analysis_lookup, verification_lookup, manual_lookup
-            )
-            f_fields = [
-                {
-                    "widget": form[f"func{func.id}_{field}"],
-                    "source": disp["sources"][field],
-                }
-                for field, _ in fields_def
-            ]
-            begr_md = ki_map.get((str(func.id), None))
-            bet_val, bet_reason = beteilig_map.get((str(func.id), None), (None, ""))
             rows.append(
-                {
-                    "name": func.name,
-                    "analysis": answers.get(func.name, {}),
-                    "initial": disp["values"],
-                    "form_fields": f_fields,
-                    "sub": False,
-                    "func_id": func.id,
-                    "verif_key": func.name,
-                    "source_text": disp["source"],
-                    "ki_begruendung": begr_md,
-                    "ki_begruendung_md": begr_md,
-                    "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
-                    "ki_beteiligt": bet_val,
-                    "ki_beteiligt_begruendung": bet_reason,
-                }
+                _build_row_data(
+                    func.name,
+                    func.name,
+                    func.id,
+                    f"func{func.id}_",
+                    form,
+                    answers,
+                    ki_map,
+                    beteilig_map,
+                    analysis_lookup,
+                    verification_lookup,
+                    manual_lookup,
+                )
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 lookup_key = f"{func.name}: {sub.frage_text}"
-                s_disp = _get_display_data(
-                    lookup_key, analysis_lookup, verification_lookup, manual_lookup
-                )
-                s_fields = [
-                    {
-                        "widget": form[f"sub{sub.id}_{field}"],
-                        "source": s_disp["sources"][field],
-                    }
-                    for field, _ in fields_def
-                ]
-                s_analysis = answers.get(lookup_key, {})
-                begr_md = ki_map.get((str(func.id), str(sub.id)))
-                bet_val, bet_reason = beteilig_map.get(
-                    (str(func.id), str(sub.id)), (None, "")
-                )
                 rows.append(
-                    {
-                        "name": sub.frage_text,
-                        "analysis": s_analysis,
-                        "initial": s_disp["values"],
-                        "form_fields": s_fields,
-                        "sub": True,
-                        "func_id": func.id,
-                        "sub_id": sub.id,
-                        "verif_key": lookup_key,
-                        "source_text": s_disp["source"],
-                        "ki_begruendung": begr_md,
-                        "ki_begruendung_md": begr_md,
-                        "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
-                        "ki_beteiligt": bet_val,
-                        "ki_beteiligt_begruendung": bet_reason,
-                    }
+                    _build_row_data(
+                        sub.frage_text,
+                        lookup_key,
+                        func.id,
+                        f"sub{sub.id}_",
+                        form,
+                        answers,
+                        ki_map,
+                        beteilig_map,
+                        analysis_lookup,
+                        verification_lookup,
+                        manual_lookup,
+                        sub_id=sub.id,
+                    )
                 )
         debug_logger.debug(
             "Endgültige Rows: %s",
@@ -2346,6 +2361,23 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             funktion=funktion,
             defaults=defaults,
         )
+
+        manual_data = anlage.manual_analysis_json or {"functions": {}}
+        func_entry = manual_data.setdefault("functions", {}).setdefault(
+            str(func_id), {}
+        )
+        if sub_id:
+            sub_map = func_entry.setdefault("subquestions", {}).setdefault(
+                str(sub_id), {}
+            )
+            sub_map["technisch_vorhanden"] = status
+            sub_map["ki_beteiligung"] = ki_beteiligt
+        else:
+            func_entry["technisch_vorhanden"] = status
+            func_entry["ki_beteiligung"] = ki_beteiligt
+
+        anlage.manual_analysis_json = manual_data
+        anlage.save(update_fields=["manual_analysis_json"])
 
         return JsonResponse({"status": "success"})
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
