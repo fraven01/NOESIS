@@ -21,6 +21,9 @@ class Migration(migrations.Migration):
             "generate_overall_gutachten": (
                 "Erstelle ein zusammenfassendes Gutachten f\u00fcr das Projekt '{project_title}'. Ber\u00fccksichtige alle folgenden Software-Komponenten und deren Analyseergebnisse: {context_data}. Fasse die Ergebnisse zusammen, bewerte das Gesamtprojekt und gib eine Abschlussempfehlung ab. Strukturiere das Gutachten mit klaren \u00dcberschriften und formatiere es mit Markdown (z.B. \u00dcberschriften, Fett- und Kursivdruck, Listen und Tabellen)."
             ),
+            "initial_check_knowledge_with_context": (
+                "Kennst du die Software '{name}'? Hier ist zus\u00e4tzlicher Kontext, um sie zu identifizieren: \"{user_context}\". Antworte ausschlie\u00dflich mit einem einzigen Wort: 'Ja' oder 'Nein'."
+            ),
         }
         for i in range(1, 7):
             if i == 2:

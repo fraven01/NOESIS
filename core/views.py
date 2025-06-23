@@ -2564,6 +2564,29 @@ def ajax_start_initial_checks(request, project_id):
 
 
 @login_required
+@require_POST
+def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
+    """Startet den Initial-Check erneut mit zusätzlichem Kontext."""
+
+    knowledge_id = request.POST.get("knowledge_id")
+    user_context = request.POST.get("user_context", "")
+    try:
+        knowledge_id = int(knowledge_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    if not SoftwareKnowledge.objects.filter(pk=knowledge_id).exists():
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    task_id = async_task(
+        "core.llm_tasks.worker_run_initial_check",
+        knowledge_id,
+        user_context,
+    )
+    return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
 def edit_knowledge_description(request, knowledge_id):
     """Bearbeitet die Beschreibung eines Knowledge-Eintrags."""
     knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)

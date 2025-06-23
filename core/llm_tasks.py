@@ -903,8 +903,12 @@ def worker_verify_feature(
     return verification_result
 
 
-def worker_run_initial_check(knowledge_id: int) -> dict[str, object]:
-    """Führt eine zweistufige LLM-Abfrage zu einer Software durch."""
+def worker_run_initial_check(knowledge_id: int, user_context: str | None = None) -> dict[str, object]:
+    """Führt eine zweistufige LLM-Abfrage zu einer Software durch.
+
+    ``user_context`` ermöglicht Zusatzinformationen, falls die Software nicht
+    erkannt wurde.
+    """
 
     sk = SoftwareKnowledge.objects.get(pk=knowledge_id)
     software_name = sk.software_name
@@ -912,8 +916,16 @@ def worker_run_initial_check(knowledge_id: int) -> dict[str, object]:
     result = {"is_known_by_llm": False, "description": ""}
     try:
         # --- Stufe 1: Wissens-Check ---
-        prompt_knowledge = Prompt.objects.get(name="initial_check_knowledge")
-        prompt1_text = prompt_knowledge.text.format(name=software_name)
+        prompt_name = (
+            "initial_check_knowledge_with_context"
+            if user_context
+            else "initial_check_knowledge"
+        )
+        prompt_knowledge = Prompt.objects.get(name=prompt_name)
+        prompt1_text = prompt_knowledge.text.format(
+            name=software_name,
+            user_context=user_context or "",
+        )
         tmp_prompt = Prompt(text=prompt1_text, use_system_role=False)
         reply1 = query_llm(tmp_prompt, {}, model_type="default")
         sk.is_known_by_llm = "ja" in reply1.strip().lower()
