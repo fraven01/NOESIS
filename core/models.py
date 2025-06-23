@@ -575,6 +575,19 @@ class Anlage2FunctionResult(models.Model):
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.projekt} - {self.funktion}"
 
+    def get_lookup_key(self) -> str:
+        """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
+        sub_id = None
+        if isinstance(self.raw_json, dict):
+            sub_id = self.raw_json.get("subquestion_id")
+        if sub_id:
+            try:
+                sub = Anlage2SubQuestion.objects.get(pk=sub_id)
+                return f"{self.funktion.name}: {sub.frage_text}"
+            except Anlage2SubQuestion.DoesNotExist:
+                pass
+        return self.funktion.name
+
 
 class Anlage2SubQuestion(models.Model):
     """Teilfrage zu einer Anlage-2-Funktion."""

@@ -331,6 +331,23 @@ def _verification_to_initial(data: dict | None) -> dict:
     return initial
 
 
+def _initial_to_lookup(data: dict) -> dict[str, dict]:
+    """Wandelt das Initialformat in ein Lookup nach Namen um."""
+    lookup: dict[str, dict] = {}
+    fields = get_anlage2_fields()
+    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set").order_by("name"):
+        fid = str(func.id)
+        func_data = data.get("functions", {}).get(fid, {})
+        lookup[func.name] = {field: func_data.get(field) for field, _ in fields}
+        for sub in func.anlage2subquestion_set.all():
+            sid = str(sub.id)
+            sub_data = func_data.get("subquestions", {}).get(sid, {})
+            lookup[f"{func.name}: {sub.frage_text}"] = {
+                field: sub_data.get(field) for field, _ in fields
+            }
+    return lookup
+
+
 def _resolve_value(
     manual_val: bool | None, ai_val: bool | None, doc_val: bool | None
 ) -> tuple[bool, str]:
@@ -1897,66 +1914,31 @@ def projekt_file_edit_json(request, pk):
                                 ki_map[(fid, None)] = begr
                             beteilig_map[(fid, None)] = (beteiligt, beteiligt_begr)
 
-            manual_results = {
-                str(r.funktion_id): r
+            manual_results_map = {
+                r.get_lookup_key(): {
+                    "technisch_vorhanden": r.technisch_verfuegbar,
+                    "ki_beteiligung": r.ki_beteiligung,
+                }
                 for r in Anlage2FunctionResult.objects.filter(
-                    projekt=anlage.projekt, source="manual"
+                    projekt=anlage.projekt,
+                    source="manual",
                 )
             }
+
             manual_init = (
-                anlage.manual_analysis_json
-                if isinstance(anlage.manual_analysis_json, dict)
-                else {}
+                anlage.manual_analysis_json if isinstance(anlage.manual_analysis_json, dict) else {}
             )
 
             fields_def = get_anlage2_fields()
 
-            analysis_lookup: dict[str, dict] = {}
-            verification_lookup: dict[str, dict] = {}
-            manual_lookup: dict[str, dict] = {}
+            analysis_lookup = _initial_to_lookup(analysis_init)
+            verification_lookup = _initial_to_lookup(verif_init)
+            manual_lookup = _initial_to_lookup(manual_init)
 
-            for func in Anlage2Function.objects.order_by("name"):
-                fid = str(func.id)
-                doc_func = analysis_init.get("functions", {}).get(fid, {})
-                ai_func = verif_init.get("functions", {}).get(fid, {})
-                manual_obj = manual_results.get(fid)
-                manual_func = manual_init.get("functions", {}).get(fid, {})
-
-                analysis_lookup[func.name] = {
-                    field: doc_func.get(field) for field, _ in fields_def
-                }
-                verification_lookup[func.name] = {
-                    field: ai_func.get(field) for field, _ in fields_def
-                }
-                manual_lookup[func.name] = {
-                    field: (
-                        manual_func.get(field)
-                        if manual_func.get(field) is not None
-                        else getattr(manual_obj, field, None) if manual_obj else None
-                    )
-                    for field, _ in fields_def
-                }
-
-                for sub in func.anlage2subquestion_set.all().order_by("id"):
-                    sid = str(sub.id)
-                    doc_sub = doc_func.get("subquestions", {}).get(sid, {})
-                    ai_sub = ai_func.get("subquestions", {}).get(sid, {})
-                    manual_sub = (
-                        manual_func.get("subquestions", {}).get(sid, {})
-                    )
-                    lookup = f"{func.name}: {sub.frage_text}"
-                    analysis_lookup[lookup] = {
-                        field: doc_sub.get(field) for field, _ in fields_def
-                    }
-                    verification_lookup[lookup] = {
-                        field: ai_sub.get(field) for field, _ in fields_def
-                    }
-                    manual_lookup[lookup] = {
-                        field: manual_sub.get(field) for field, _ in fields_def
-                    }
+            for key, res in manual_results_map.items():
+                manual_lookup.setdefault(key, {}).update(res)
 
             init = {"functions": {}}
-            source_map: dict[tuple[str, str | None, str], str] = {}
 
             for func in Anlage2Function.objects.order_by("name"):
                 fid = str(func.id)
@@ -1964,9 +1946,6 @@ def projekt_file_edit_json(request, pk):
                     func.name, analysis_lookup, verification_lookup, manual_lookup
                 )
                 func_entry = disp["values"].copy()
-                for field, _ in fields_def:
-                    source_map[(fid, None, field)] = disp["sources"][field]
-
                 sub_map_init: dict[str, dict] = {}
                 for sub in func.anlage2subquestion_set.all().order_by("id"):
                     sid = str(sub.id)
@@ -1975,8 +1954,6 @@ def projekt_file_edit_json(request, pk):
                         lookup, analysis_lookup, verification_lookup, manual_lookup
                     )
                     sub_map_init[sid] = s_disp["values"].copy()
-                    for field, _ in fields_def:
-                        source_map[(fid, sid, field)] = s_disp["sources"][field]
                 if sub_map_init:
                     func_entry["subquestions"] = sub_map_init
                 init["functions"][fid] = func_entry
