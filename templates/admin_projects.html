@@ -32,7 +32,6 @@
                 <th class="py-2">Beschreibung</th>
                 <th class="py-2">Software-Typen</th>
                 <th class="py-2">Status</th>
-                <th class="py-2">LLM geprüft</th>
                 <th class="py-2 text-center">Aktion</th>
                 <th class="py-2 text-center">Löschen</th>
             </tr>
@@ -46,7 +45,6 @@
                 <td class="py-1">
                     <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
                 </td>
-                <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
                 <td class="py-1 text-center">
                     <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded mr-2">Bearbeiten</a>
                     <a href="{% url 'admin_project_cleanup' p.pk %}" class="px-2 py-1 bg-yellow-600 text-white rounded mr-2">Bereinigen</a>
@@ -55,7 +53,7 @@
                 <td class="py-1 text-center"><input type="checkbox" name="selected_projects" value="{{ p.id }}" class="form-checkbox"></td>
             </tr>
         {% empty %}
-            <tr><td colspan="7" class="py-2">Keine Projekte</td></tr>
+            <tr><td colspan="6" class="py-2">Keine Projekte</td></tr>
         {% endfor %}
         </tbody>
     </table>
