@@ -95,7 +95,6 @@
         </tbody>
     </table>
     <div class="space-x-2 mt-2">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
         <button type="reset" id="reset-fields" class="bg-gray-300 text-black px-4 py-2 rounded">Reset</button>
         <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
@@ -165,6 +164,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+
+    const formElem = document.querySelector('form[data-anlage-id]');
+    const saveUrl = "{% url 'ajax_save_manual_review_item' %}";
+
+    function showStatus(input, text) {
+        let span = input.parentElement.querySelector('.autosave-status');
+        if (!span) {
+            span = document.createElement('span');
+            span.className = 'autosave-status text-muted ms-1';
+            input.parentElement.appendChild(span);
+        }
+        span.textContent = text;
+        return span;
+    }
+
+    function autoSave(event) {
+        const el = event.target;
+        const row = el.closest('tr');
+        if (!row || !formElem) { return; }
+        const funcId = row.dataset.funcId;
+        const subId = row.dataset.subId;
+        const status = el.type === 'checkbox' ? el.checked : el.value;
+        const body = new FormData();
+        body.append('project_file_id', formElem.dataset.anlageId);
+        body.append('function_id', funcId);
+        if (subId) { body.append('subquestion_id', subId); }
+        body.append('status', status);
+        body.append('notes', '');
+
+        const indicator = showStatus(el, 'Speichere...');
+        fetch(saveUrl, { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: body })
+            .then(r => r.json())
+            .then(() => { indicator.textContent = '✓ Gespeichert'; setTimeout(() => indicator.textContent = '', 1500); })
+            .catch(() => { indicator.textContent = '⚠️'; });
+    }
+
+    if (formElem) {
+        formElem.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.addEventListener('change', autoSave));
+        formElem.querySelectorAll('input[type="text"], textarea').forEach(inp => inp.addEventListener('blur', autoSave));
+    }
 
     const filterCheckbox = document.getElementById('show-relevant-only-filter');
 
@@ -241,11 +280,18 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 if (data.status === 'queued' && data.task_id) {
-                    // Hier würde die Polling-Logik starten
-                    // Fürs Erste geben wir nur Erfolg aus und setzen den Knopf zurück
-                    console.log('Task gestartet mit ID:', data.task_id);
-                    clickedButton.innerHTML = '✓';
-                    setTimeout(() => { clickedButton.innerHTML = '🤖'; clickedButton.disabled = false; }, 2000);
+                    const tmpl = "{% url 'ajax_check_task_status' 'TASKID' %}";
+                    const pollUrl = tmpl.replace('TASKID', data.task_id);
+                    const iv = setInterval(() => {
+                        fetch(pollUrl)
+                            .then(r => r.json())
+                            .then(d => {
+                                if (d.status === 'SUCCESS' || d.status === 'FAIL') {
+                                    clearInterval(iv);
+                                    window.location.reload();
+                                }
+                            });
+                    }, 3000);
                 } else {
                     throw new Error('Task-Start vom Server nicht bestätigt.');
                 }

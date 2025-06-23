@@ -2243,24 +2243,20 @@ def ajax_check_task_status(request, task_id: str) -> JsonResponse:
 
 @login_required
 @require_http_methods(["POST"])
-def ajax_save_anlage2_review_item(request) -> JsonResponse:
-    """Speichert eine einzelne Bewertung aus Anlage 2."""
-    try:
-        payload = json.loads(request.body.decode())
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "invalid"}, status=400)
+def ajax_save_manual_review_item(request) -> JsonResponse:
+    """Speichert eine einzelne manuelle Bewertung."""
 
-    pf_id = payload.get("project_file_id")
-    func_id = payload.get("function_id")
-    sub_id = payload.get("subquestion_id")
-    status_val = payload.get("status")
-    if status_val in (True, "True", "true", 1):
+    pf_id = request.POST.get("project_file_id")
+    func_id = request.POST.get("function_id")
+    sub_id = request.POST.get("subquestion_id")
+    status_val = request.POST.get("status")
+    if status_val in (True, "True", "true", "1", 1):
         status = True
-    elif status_val in (False, "False", "false", 0):
+    elif status_val in (False, "False", "false", "0", 0):
         status = False
     else:
         status = None
-    notes = payload.get("notes")
+    notes = request.POST.get("notes")
 
     if pf_id is None or func_id is None:
         return JsonResponse({"error": "invalid"}, status=400)
