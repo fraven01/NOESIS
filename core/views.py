@@ -350,104 +350,68 @@ def _initial_to_lookup(data: dict) -> dict[str, dict]:
     return lookup
 
 
-def _resolve_value(
-    manual_val: bool | None, ai_val: bool | None, doc_val: bool | None
-) -> tuple[bool, str]:
-    """Bestimme Wert und Quelle anhand der Priorität Manuell > KI > Dokument."""
-
-    val = False
-    src = "N/A"
-    if doc_val is not None:
-        val = doc_val
-        src = "Dokumenten-Analyse"
-    if ai_val is not None:
-        val = ai_val
-        src = "KI-Prüfung"
-    if manual_val is not None:
-        val = manual_val
-        src = "Manuell"
-    return val, src
-
-
 def _get_display_data(
     lookup_key: str,
-    analysis_data: dict[str, dict],
-    verification_data: dict[str, dict],
-    manual_results_map: dict[str, dict],
+    analysis_data: dict,
+    verification_data: dict,
+    manual_results_map: dict[str, Anlage2FunctionResult],
 ) -> dict[str, object]:
-    """Ermittelt finale Werte und Quellen für eine Funktion oder Unterfrage."""
+    """Ermittelt die anzuzeigenden Daten basierend auf der Priorisierung."""
 
-    fields = get_anlage2_fields()
-    a_data = analysis_data.get(lookup_key, {})
-    v_data = verification_data.get(lookup_key, {})
-    m_data = manual_results_map.get(lookup_key, {})
+    manual_result = manual_results_map.get(lookup_key)
+    ai_result = verification_data.get(lookup_key) if isinstance(verification_data, dict) else None
+    doc_result = analysis_data.get(lookup_key) if isinstance(analysis_data, dict) else None
 
-    values: dict[str, bool] = {}
-    sources: dict[str, str] = {}
-
-    for field, _ in fields:
-        man_val = m_data.get(field)
-        ai_val = v_data.get(field)
-        doc_val = a_data.get(field)
-        val, src = _resolve_value(man_val, ai_val, doc_val)
-        values[field] = val
-        sources[field] = src
-
-    return {
-        "values": values,
-        "sources": sources,
-        "status": values.get("technisch_vorhanden"),
-        "source": sources.get("technisch_vorhanden"),
+    data = {
+        "status": False,
+        "ki_beteiligt": False,
+        "einsatz_telefonica": False,
+        "zur_lv_kontrolle": False,
+        "notes": "",
+        "source": "N/A",
+        "ki_begruendung": "",
     }
 
+    if doc_result:
+        data.update(
+            {
+                "status": doc_result.get("technisch_verfuegbar", {}).get("value"),
+                "einsatz_telefonica": doc_result.get("einsatz_telefonica", {}).get("value")
+                or doc_result.get("einsatz_bei_telefonica", {}).get("value"),
+                "zur_lv_kontrolle": doc_result.get("zur_lv_kontrolle", {}).get("value"),
+                "ki_beteiligt": doc_result.get("ki_beteiligung", {}).get("value"),
+                "source": "Dokumenten-Analyse",
+            }
+        )
 
-def _build_row_data(
-    display_name: str,
-    lookup_key: str,
-    func_id: int,
-    form_prefix: str,
-    form,
-    answers: dict[str, dict],
-    ki_map: dict[tuple[str, str | None], str],
-    beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]],
-    analysis_lookup: dict[str, dict],
-    verification_lookup: dict[str, dict],
-    manual_lookup: dict[str, dict],
-    sub_id: int | None = None,
-) -> dict:
-    """Erzeugt die Darstellungsdaten für eine Funktion oder Unterfrage."""
+    if ai_result:
+        if "technisch_verfuegbar" in ai_result:
+            data["status"] = ai_result.get("technisch_verfuegbar")
+            data["source"] = "KI-Prüfung"
+        if "ki_beteiligt" in ai_result:
+            data["ki_beteiligt"] = ai_result.get("ki_beteiligt")
+        data["ki_begruendung"] = ai_result.get("ki_begruendung", "")
 
-    disp = _get_display_data(
-        lookup_key, analysis_lookup, verification_lookup, manual_lookup
-    )
-    fields_def = get_anlage2_fields()
-    widgets = [
-        {
-            "widget": form[f"{form_prefix}{field}"],
-            "source": disp["sources"][field],
-        }
-        for field, _ in fields_def
-    ]
-    begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
-    bet_val, bet_reason = beteilig_map.get(
-        (str(func_id), str(sub_id) if sub_id else None), (None, "")
-    )
-    return {
-        "name": display_name,
-        "analysis": answers.get(lookup_key, {}),
-        "initial": disp["values"],
-        "form_fields": widgets,
-        "sub": sub_id is not None,
-        "func_id": func_id,
-        "sub_id": sub_id,
-        "verif_key": lookup_key,
-        "source_text": disp["source"],
-        "ki_begruendung": begr_md,
-        "ki_begruendung_md": begr_md,
-        "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
-        "ki_beteiligt": bet_val,
-        "ki_beteiligt_begruendung": bet_reason,
-    }
+    if manual_result:
+        data.update(
+            {
+                "status": manual_result.technisch_verfuegbar,
+                "ki_beteiligt": manual_result.ki_beteiligung,
+                "source": "Manuell",
+            }
+        )
+        if isinstance(manual_result.raw_json, dict):
+            data["einsatz_telefonica"] = manual_result.raw_json.get(
+                "einsatz_telefonica", data["einsatz_telefonica"]
+            )
+            data["zur_lv_kontrolle"] = manual_result.raw_json.get(
+                "zur_lv_kontrolle", data["zur_lv_kontrolle"]
+            )
+            data["notes"] = manual_result.raw_json.get("notes", data["notes"])
+
+    return data
+
+
 
 
 @login_required
@@ -1940,131 +1904,82 @@ def projekt_file_edit_json(request, pk):
                                 ki_map[(fid, None)] = begr
                             beteilig_map[(fid, None)] = (beteiligt, beteiligt_begr)
 
-            manual_results_map = {
-                r.get_lookup_key(): {
-                    "technisch_vorhanden": r.technisch_verfuegbar,
-                    "ki_beteiligung": r.ki_beteiligung,
-                }
-                for r in Anlage2FunctionResult.objects.filter(
-                    projekt=anlage.projekt,
-                    source="manual",
-                )
-            }
-
-            manual_init = (
-                anlage.manual_analysis_json if isinstance(anlage.manual_analysis_json, dict) else {}
+            analysis_json = anlage.analysis_json or {}
+            verification_json = anlage.verification_json or {}
+            manual_results = Anlage2FunctionResult.objects.filter(
+                projekt=anlage.projekt, source="manual"
             )
+            manual_results_map = {res.get_lookup_key(): res for res in manual_results}
 
-            fields_def = get_anlage2_fields()
-
-            analysis_lookup = _initial_to_lookup(analysis_init)
-            verification_lookup = _initial_to_lookup(verif_init)
-            manual_lookup = _initial_to_lookup(manual_init)
-
-            for key, res in manual_results_map.items():
-                manual_lookup.setdefault(key, {}).update(res)
-
-            init = {"functions": {}}
-
-            for func in Anlage2Function.objects.order_by("name"):
-                fid = str(func.id)
-                disp = _get_display_data(
-                    func.name, analysis_lookup, verification_lookup, manual_lookup
-                )
-                func_entry = disp["values"].copy()
-                sub_map_init: dict[str, dict] = {}
-                for sub in func.anlage2subquestion_set.all().order_by("id"):
-                    sid = str(sub.id)
-                    lookup = f"{func.name}: {sub.frage_text}"
-                    s_disp = _get_display_data(
-                        lookup, analysis_lookup, verification_lookup, manual_lookup
-                    )
-                    sub_map_init[sid] = s_disp["values"].copy()
-                if sub_map_init:
-                    func_entry["subquestions"] = sub_map_init
-                init["functions"][fid] = func_entry
-
-            form = Anlage2ReviewForm(initial=init)
-
-        template = "projekt_file_anlage2_review.html"
-        answers: dict[str, dict] = {}
-        funcs = []
-        if anlage.analysis_json:
-            funcs = anlage.analysis_json.get("functions")
+            analysis_map: dict[str, dict] = {}
+            funcs = analysis_json.get("functions") if isinstance(analysis_json, dict) else []
             if isinstance(funcs, dict) and "value" in funcs:
                 funcs = funcs["value"]
             if funcs is None:
-                table = anlage.analysis_json.get("table_functions")
+                table = analysis_json.get("table_functions")
                 if isinstance(table, dict):
                     funcs = []
                     for k, v in table.items():
                         if isinstance(v, dict):
                             funcs.append({"name": k, **v})
-                        else:
-                            logger.warning(
-                                "Unerwarteter Typ in table_functions f\xc3\xbcr %s: %s",
-                                k,
-                                type(v),
-                            )
                 else:
                     funcs = []
-        for item in funcs or []:
-            name = item.get("funktion") or item.get("name")
-            if name:
-                for old, new in FIELD_RENAME.items():
-                    if old in item and new not in item:
-                        item[new] = item[old]
-                answers[name] = item
-                for sub in item.get("subquestions", []):
-                    s_text = sub.get("frage_text")
-                    if not s_text:
-                        continue
+            for item in funcs or []:
+                name = item.get("funktion") or item.get("name")
+                if name:
                     for old, new in FIELD_RENAME.items():
-                        if old in sub and new not in sub:
-                            sub[new] = sub[old]
-                    answers[f"{name}: {s_text}"] = sub
-        debug_logger.debug("Answers Inhalt vor Verarbeitung: %s", answers)
-        rows = []
-        fields_def = get_anlage2_fields()
+                        if old in item and new not in item:
+                            item[new] = item[old]
+                    analysis_map[name] = item
+                    for sub in item.get("subquestions", []):
+                        s_text = sub.get("frage_text")
+                        if not s_text:
+                            continue
+                        for old, new in FIELD_RENAME.items():
+                            if old in sub and new not in sub:
+                                sub[new] = sub[old]
+                        analysis_map[f"{name}: {s_text}"] = sub
 
-        for func in Anlage2Function.objects.order_by("name"):
-            rows.append(
-                _build_row_data(
-                    func.name,
-                    func.name,
-                    func.id,
-                    f"func{func.id}_",
-                    form,
-                    answers,
-                    ki_map,
-                    beteilig_map,
-                    analysis_lookup,
-                    verification_lookup,
-                    manual_lookup,
+            fields_def = get_anlage2_fields()
+            all_db_functions = Anlage2Function.objects.prefetch_related(
+                "anlage2subquestion_set"
+            ).order_by("name")
+
+            init = {"functions": {}}
+            rows = []
+            for func in all_db_functions:
+                fid = str(func.id)
+                main_data = _get_display_data(
+                    func.name, analysis_map, verification_json, manual_results_map
                 )
-            )
-            for sub in func.anlage2subquestion_set.all().order_by("id"):
-                lookup_key = f"{func.name}: {sub.frage_text}"
-                rows.append(
-                    _build_row_data(
-                        sub.frage_text,
-                        lookup_key,
-                        func.id,
-                        f"sub{sub.id}_",
-                        form,
-                        answers,
-                        ki_map,
-                        beteilig_map,
-                        analysis_lookup,
-                        verification_lookup,
-                        manual_lookup,
-                        sub_id=sub.id,
+                func_entry = {
+                    "technisch_vorhanden": main_data["status"],
+                    "einsatz_bei_telefonica": main_data["einsatz_telefonica"],
+                    "zur_lv_kontrolle": main_data["zur_lv_kontrolle"],
+                    "ki_beteiligung": main_data["ki_beteiligt"],
+                }
+                rows.append({"object": func, "data": main_data, "is_sub": False})
+
+                sub_map: dict[str, dict] = {}
+                for sub in func.anlage2subquestion_set.all():
+                    lookup = f"{func.name}: {sub.frage_text}"
+                    sub_data = _get_display_data(
+                        lookup, analysis_map, verification_json, manual_results_map
                     )
-                )
-        debug_logger.debug(
-            "Endgültige Rows: %s",
-            json.dumps(rows, default=str, ensure_ascii=False, indent=2),
-        )
+                    rows.append({"object": sub, "data": sub_data, "is_sub": True})
+                    sub_map[str(sub.id)] = {
+                        "technisch_vorhanden": sub_data["status"],
+                        "einsatz_bei_telefonica": sub_data["einsatz_telefonica"],
+                        "zur_lv_kontrolle": sub_data["zur_lv_kontrolle"],
+                        "ki_beteiligung": sub_data["ki_beteiligt"],
+                    }
+                if sub_map:
+                    func_entry["subquestions"] = sub_map
+                init["functions"][fid] = func_entry
+
+            form = Anlage2ReviewForm(initial=init)
+
+        template = "projekt_file_anlage2_review.html"
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
