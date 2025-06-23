@@ -29,6 +29,6 @@ class Migration(migrations.Migration):
                 "Pr\u00fcfe die folgende Anlage auf Vollst\u00e4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
             )
         for key, text in prompts.items():
-            Prompt.objects.get_or_create(key=key, defaults={"prompt_text": text})
+            Prompt.objects.get_or_create(name=key, defaults={"text": text})
 
     operations = [migrations.RunPython(create_prompts, migrations.RunPython.noop)]
