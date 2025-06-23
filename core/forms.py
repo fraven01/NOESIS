@@ -15,7 +15,9 @@ from .models import (
     Area,
     LLMRole,
     Prompt,
+    Tile,
 )
+from django.contrib.auth.models import Group
 
 try:
     from .models import SoftwareType
@@ -501,4 +503,29 @@ class PromptForm(forms.ModelForm):
             display_name = f"{role.name} (Standard)" if role.is_default else role.name
             choices.append((role.pk, display_name))
         self.fields["role"].choices = choices
+
+
+class UserPermissionsForm(forms.Form):
+    """Formular zur Bearbeitung von Benutzerrechten."""
+
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Gruppen",
+    )
+    tiles = forms.ModelMultipleChoiceField(
+        queryset=Tile.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Tiles",
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["groups"].queryset = Group.objects.all()
+        self.fields["tiles"].queryset = Tile.objects.all()
+        if user is not None:
+            self.fields["groups"].initial = user.groups.all()
+            self.fields["tiles"].initial = user.tiles.all()
 
