@@ -33,8 +33,6 @@
             <th class="py-2">Beschreibung</th>
             <th class="py-2">Software-Typen</th>
             <th class="py-2">Status</th>
-            <th class="py-2">LLM geprüft</th>
-            <th class="py-2"></th>
         </tr>
     </thead>
     <tbody>
@@ -46,28 +44,11 @@
             <td class="py-1">
                 <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
             </td>
-            <td class="py-1">{{ p.llm_geprueft|yesno:'Ja,Nein' }}</td>
-            <td class="py-1">
-                <button data-url="{% url 'projekt_check' p.pk %}" class="llm-check-btn bg-green-600 text-white px-2 py-1 rounded">
-                    {% if p.llm_geprueft %}LLM-Prüfung wiederholen{% else %}System per LLM prüfen{% endif %}
-                </button>
-            </td>
+            
         </tr>
     {% empty %}
-        <tr><td colspan="6" class="py-2">Keine Projekte</td></tr>
+        <tr><td colspan="4" class="py-2">Keine Projekte</td></tr>
     {% endfor %}
     </tbody>
 </table>
-<script>
-function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.querySelectorAll('.llm-check-btn').forEach(btn=>{
-  btn.addEventListener('click',ev=>{
-    ev.preventDefault();
-    fetch(btn.dataset.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}})
-    .then(r=>r.json()).then(data=>{
-      if(data.status==='ok'){alert('LLM-Prüfung abgeschlossen');btn.textContent='LLM-Prüfung wiederholen';}else{alert('Fehler bei der LLM-Prüfung');}
-    }).catch(()=>alert('Fehler bei der LLM-Prüfung'));
-  });
-});
-</script>
 {% endblock %}

@@ -11,7 +11,6 @@ from django.http import (
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
-from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 import subprocess
 import whisper
@@ -1609,36 +1608,6 @@ def projekt_file_upload(request, pk):
     else:
         form = BVProjectFileForm()
     return render(request, "projekt_file_form.html", {"form": form, "projekt": projekt})
-
-
-@login_required
-def projekt_check(request, pk):
-    if request.method != "POST":
-        return JsonResponse({"status": "error", "message": "Nur POST"}, status=400)
-    projekt = BVProject.objects.get(pk=pk)
-    prompt_text = (
-        "You are an enterprise software expert. Please review this technical description and indicate if the system is known in the industry, and provide a short summary or classification: "
-        + projekt.beschreibung
-    )
-    prompt_obj = Prompt(name="tmp", text=prompt_text)
-    category = request.POST.get("model_category")
-    model = LLMConfig.get_default(category) if category else None
-    try:
-        reply = query_llm(prompt_obj, {}, model_name=model, model_type="default")
-    except RuntimeError:
-        return JsonResponse(
-            {"error": "Missing LLM credentials from environment."}, status=500
-        )
-    except Exception:
-        logger.exception("LLM Fehler")
-        return JsonResponse({"status": "error"}, status=502)
-
-    projekt.llm_antwort = reply
-    projekt.llm_geprueft = True
-    projekt.llm_geprueft_am = timezone.now()
-    projekt.save()
-
-    return JsonResponse({"status": "ok", "snippet": reply[:100]})
 
 
 @login_required

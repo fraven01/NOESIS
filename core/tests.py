@@ -1942,12 +1942,6 @@ class ModelSelectionTests(TestCase):
             anlagen_model="a",
         )
 
-    def test_projekt_check_uses_category(self):
-        url = reverse("projekt_check", args=[self.projekt.pk])
-        with patch("core.views.query_llm", return_value="ok") as mock_q:
-            resp = self.client.post(url, {"model_category": "gutachten"})
-        self.assertEqual(resp.status_code, 200)
-        mock_q.assert_called_with(ANY, {}, model_name="g", model_type="default")
 
     def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
