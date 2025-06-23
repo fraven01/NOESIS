@@ -22,7 +22,7 @@
             </th>
             <th class="py-2">
                 Status
-                <select name="status" class="form-select form-select-sm mt-1" onchange="this.form.submit()">
+                <select name="status" class="form-select form-select-sm mt-1">
                     <option value="">Alle</option>
                     {% for s in status_choices %}
                         <option value="{{ s.key }}" {% if s.key == status_filter %}selected{% endif %}>{{ s.name }}</option>
@@ -34,20 +34,8 @@
 
         </tr>
     </thead>
-    <tbody>
-    {% for p in projekte %}
-        <tr class="border-b text-sm">
-            <td class="py-1"><a href="{% url 'projekt_detail' p.pk %}" class="text-blue-700 hover:underline">{{ p.title }}</a></td>
-            <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
-            <td class="py-1">{{ p.software_typen }}</td>
-            <td class="py-1">
-                <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
-            </td>
-            
-        </tr>
-    {% empty %}
-        <tr><td colspan="4" class="py-2">Keine Projekte</td></tr>
-    {% endfor %}
+    <tbody id="project-table-body">
+        {% include 'partials/_project_list_rows.html' %}
     </tbody>
 </table>
 
@@ -63,6 +51,28 @@ document.querySelectorAll('.llm-check-btn').forEach(btn=>{
     }).catch(()=>alert('Fehler bei der LLM-Prüfung'));
   });
 });
+
+function debounce(fn, delay){
+  let timer;return (...args)=>{clearTimeout(timer);timer=setTimeout(()=>fn(...args),delay);};
+}
+
+function updateProjects(){
+  const params=new URLSearchParams();
+  const q=document.querySelector('input[name="q"]').value;
+  const s=document.querySelector('input[name="software"]').value;
+  const stat=document.querySelector('select[name="status"]').value;
+  if(q)params.append('q',q);
+  if(s)params.append('software',s);
+  if(stat)params.append('status',stat);
+  fetch(`?${params.toString()}`,{headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(r=>r.text())
+    .then(html=>{document.getElementById('project-table-body').innerHTML=html;});
+}
+
+const debouncedUpdate=debounce(updateProjects,300);
+document.querySelector('input[name="q"]').addEventListener('input',debouncedUpdate);
+document.querySelector('input[name="software"]').addEventListener('input',debouncedUpdate);
+document.querySelector('select[name="status"]').addEventListener('change',updateProjects);
 </script>
 
 {% endblock %}
