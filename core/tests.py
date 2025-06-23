@@ -2175,6 +2175,16 @@ class FeatureVerificationTests(TestCase):
             },
         )
 
+    def test_subquestion_context_contains_question(self):
+        """Die Subquestion wird korrekt im Kontext übergeben."""
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["Nein", "Nein"],
+        ) as mock_q:
+            worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
+        first_call_ctx = mock_q.call_args_list[0].args[1]
+        self.assertEqual(first_call_ctx["function_name"], self.sub.frage_text)
+
     def test_mixed_returns_none(self):
         with patch(
             "core.llm_tasks.query_llm",
