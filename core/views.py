@@ -976,11 +976,16 @@ def admin_projects(request):
     if status_filter:
         projects = projects.filter(status__key=status_filter)
 
+    software_filter = request.GET.get("software", "")
+    if software_filter:
+        projects = projects.filter(software_typen__icontains=software_filter)
+
     context = {
         "projects": projects,
         "form": BVProjectForm(),
         "search_query": search_query,
         "status_filter": status_filter,
+        "software_filter": software_filter,
         "status_choices": ProjectStatus.objects.all(),
     }
     return render(request, "admin_projects.html", context)
@@ -1469,6 +1474,10 @@ def projekt_list(request):
     if search_query:
         projekte = projekte.filter(title__icontains=search_query)
 
+    software_filter = request.GET.get("software", "")
+    if software_filter:
+        projekte = projekte.filter(software_typen__icontains=software_filter)
+
     status_filter = request.GET.get("status", "")
     if status_filter:
         projekte = projekte.filter(status__key=status_filter)
@@ -1478,6 +1487,7 @@ def projekt_list(request):
         "is_admin": request.user.groups.filter(name="admin").exists(),
         "search_query": search_query,
         "status_filter": status_filter,
+        "software_filter": software_filter,
         "status_choices": ProjectStatus.objects.all(),
     }
     return render(request, "projekt_list.html", context)
