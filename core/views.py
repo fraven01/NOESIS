@@ -1516,17 +1516,6 @@ def projekt_create(request):
         if form.is_valid():
             projekt = form.save(commit=False)
             projekt.title = form.cleaned_data.get("title", "")
-            docx_file = form.cleaned_data.get("docx_file")
-            if docx_file:
-                from tempfile import NamedTemporaryFile
-
-                tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-                for chunk in docx_file.chunks():
-                    tmp.write(chunk)
-                tmp.close()
-                text = extract_text(Path(tmp.name))
-                Path(tmp.name).unlink(missing_ok=True)
-                projekt.beschreibung = text
             projekt.save()
             return redirect("projekt_detail", pk=projekt.pk)
     else:

@@ -35,7 +35,7 @@ def _parse_cell_value(text: str) -> dict[str, object]:
     (optionaler Zusatztext) zurück.
     """
     text = text.strip()
-    match = re.match(r"^(?i)(ja|nein)\b(.*)$", text)
+    match = re.match(r"^(ja|nein)\b(.*)$", text, flags=re.IGNORECASE)
     if match:
         value = match.group(1).lower() == "ja"
         rest = match.group(2).strip()
