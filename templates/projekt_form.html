@@ -11,11 +11,6 @@
         {{ form.title.errors }}
     </div>
     <div>
-        {{ form.beschreibung.label_tag }}<br>
-        {{ form.beschreibung }}
-        {{ form.beschreibung.errors }}
-    </div>
-    <div>
         <label>Software</label><br>
         <div id="software-container">
         {% for name in form.software_list %}
@@ -42,11 +37,6 @@
         {{ form.status.errors }}
     </div>
     {% endif %}
-    <div>
-        {{ form.docx_file.label_tag }}<br>
-        {{ form.docx_file }}
-        {{ form.docx_file.errors }}
-    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
     {% if projekt %}
     <div class="mt-4">

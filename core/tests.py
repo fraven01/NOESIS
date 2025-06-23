@@ -499,14 +499,12 @@ class BVProjectFormTests(TestCase):
         data.update(
             {
                 "title": "",
-                "beschreibung": "",
             }
         )
         data.setlist("software", ["A"])
-        valid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.docx", b"d")})
-        self.assertTrue(valid.is_valid())
-        invalid = BVProjectForm(data, {"docx_file": SimpleUploadedFile("t.txt", b"d")})
-        self.assertFalse(invalid.is_valid())
+        form = BVProjectForm(data)
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("docx_file", form.fields)
 
     def test_upload_form_docx_validation(self):
         valid = BVProjectUploadForm(

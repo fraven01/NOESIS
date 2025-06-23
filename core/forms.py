@@ -113,11 +113,6 @@ class DocxValidationMixin:
 
 
 class BVProjectForm(DocxValidationMixin, forms.ModelForm):
-    docx_file = forms.FileField(
-        required=False,
-        label="DOCX-Datei",
-        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
-    )
     if SoftwareType:
         software_type = forms.ModelMultipleChoiceField(
             queryset=SoftwareType.objects.none(),
@@ -127,16 +122,14 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         )
     class Meta:
         model = BVProject
-        fields = ["title", "beschreibung", "software_typen", "status"]
+        fields = ["title", "software_typen", "status"]
         labels = {
             "title": "Name",
-            "beschreibung": "Beschreibung",
             "software_typen": "Software-Typen",
             "status": "Status",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded p-2"}),
-            "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2"}),
             "software_typen": forms.HiddenInput(),
             "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
