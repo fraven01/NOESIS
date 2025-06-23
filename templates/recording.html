@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+{% block sidebar %}
+    {% include 'partials/user_sidebar.html' %}
+{% endblock %}
+
 {% load static %}
 {% block title %}Aufnahme {{ bereich|capfirst }}{% endblock %}
 
