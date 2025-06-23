@@ -982,12 +982,15 @@ def admin_projects(request):
 
     context = {
         "projects": projects,
+        "projekte": projects,
         "form": BVProjectForm(),
         "search_query": search_query,
         "status_filter": status_filter,
         "software_filter": software_filter,
         "status_choices": ProjectStatus.objects.all(),
     }
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return render(request, "partials/_admin_project_rows.html", context)
     return render(request, "admin_projects.html", context)
 
 
@@ -1490,6 +1493,8 @@ def projekt_list(request):
         "software_filter": software_filter,
         "status_choices": ProjectStatus.objects.all(),
     }
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return render(request, "partials/_project_list_rows.html", context)
     return render(request, "projekt_list.html", context)
 
 

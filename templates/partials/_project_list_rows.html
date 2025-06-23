@@ -1,0 +1,12 @@
+{% for p in projekte %}
+    <tr class="border-b text-sm">
+        <td class="py-1"><a href="{% url 'projekt_detail' p.pk %}" class="text-blue-700 hover:underline">{{ p.title }}</a></td>
+        <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
+        <td class="py-1">{{ p.software_typen }}</td>
+        <td class="py-1">
+            <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
+        </td>
+    </tr>
+{% empty %}
+    <tr><td colspan="4" class="py-2">Keine Projekte</td></tr>
+{% endfor %}
