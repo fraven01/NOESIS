@@ -351,6 +351,38 @@ def _resolve_value(
     return val, src
 
 
+def _get_display_data(
+    lookup_key: str,
+    analysis_data: dict[str, dict],
+    verification_data: dict[str, dict],
+    manual_results_map: dict[str, dict],
+) -> dict[str, object]:
+    """Ermittelt finale Werte und Quellen für eine Funktion oder Unterfrage."""
+
+    fields = get_anlage2_fields()
+    a_data = analysis_data.get(lookup_key, {})
+    v_data = verification_data.get(lookup_key, {})
+    m_data = manual_results_map.get(lookup_key, {})
+
+    values: dict[str, bool] = {}
+    sources: dict[str, str] = {}
+
+    for field, _ in fields:
+        man_val = m_data.get(field)
+        ai_val = v_data.get(field)
+        doc_val = a_data.get(field)
+        val, src = _resolve_value(man_val, ai_val, doc_val)
+        values[field] = val
+        sources[field] = src
+
+    return {
+        "values": values,
+        "sources": sources,
+        "status": values.get("technisch_vorhanden"),
+        "source": sources.get("technisch_vorhanden"),
+    }
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -1846,50 +1878,74 @@ def projekt_file_edit_json(request, pk):
 
             fields_def = get_anlage2_fields()
 
-            init = {"functions": {}}
-            source_map: dict[tuple[str, str | None, str], str] = {}
+            analysis_lookup: dict[str, dict] = {}
+            verification_lookup: dict[str, dict] = {}
+            manual_lookup: dict[str, dict] = {}
 
             for func in Anlage2Function.objects.order_by("name"):
                 fid = str(func.id)
-                manual_obj = manual_results.get(fid)
                 doc_func = analysis_init.get("functions", {}).get(fid, {})
                 ai_func = verif_init.get("functions", {}).get(fid, {})
+                manual_obj = manual_results.get(fid)
                 manual_func = manual_init.get("functions", {}).get(fid, {})
 
-                func_entry: dict[str, object] = {}
-                for field, _ in fields_def:
-                    man_val = manual_func.get(field)
-                    if man_val is None and manual_obj:
-                        man_val = getattr(manual_obj, field, None)
-                    ai_val = ai_func.get(field)
-                    doc_val = doc_func.get(field)
-                    val, src = _resolve_value(man_val, ai_val, doc_val)
-                    func_entry[field] = val
-                    source_map[(fid, None, field)] = src
+                analysis_lookup[func.name] = {
+                    field: doc_func.get(field) for field, _ in fields_def
+                }
+                verification_lookup[func.name] = {
+                    field: ai_func.get(field) for field, _ in fields_def
+                }
+                manual_lookup[func.name] = {
+                    field: (
+                        manual_func.get(field)
+                        if manual_func.get(field) is not None
+                        else getattr(manual_obj, field, None) if manual_obj else None
+                    )
+                    for field, _ in fields_def
+                }
 
-                sub_entry: dict[str, dict[str, bool]] = {}
                 for sub in func.anlage2subquestion_set.all().order_by("id"):
                     sid = str(sub.id)
                     doc_sub = doc_func.get("subquestions", {}).get(sid, {})
                     ai_sub = ai_func.get("subquestions", {}).get(sid, {})
                     manual_sub = (
-                        manual_init.get("functions", {})
-                        .get(fid, {})
-                        .get("subquestions", {})
-                        .get(sid, {})
+                        manual_func.get("subquestions", {}).get(sid, {})
                     )
-                    sub_dict: dict[str, bool] = {}
+                    lookup = f"{func.name}: {sub.frage_text}"
+                    analysis_lookup[lookup] = {
+                        field: doc_sub.get(field) for field, _ in fields_def
+                    }
+                    verification_lookup[lookup] = {
+                        field: ai_sub.get(field) for field, _ in fields_def
+                    }
+                    manual_lookup[lookup] = {
+                        field: manual_sub.get(field) for field, _ in fields_def
+                    }
+
+            init = {"functions": {}}
+            source_map: dict[tuple[str, str | None, str], str] = {}
+
+            for func in Anlage2Function.objects.order_by("name"):
+                fid = str(func.id)
+                disp = _get_display_data(
+                    func.name, analysis_lookup, verification_lookup, manual_lookup
+                )
+                func_entry = disp["values"].copy()
+                for field, _ in fields_def:
+                    source_map[(fid, None, field)] = disp["sources"][field]
+
+                sub_map_init: dict[str, dict] = {}
+                for sub in func.anlage2subquestion_set.all().order_by("id"):
+                    sid = str(sub.id)
+                    lookup = f"{func.name}: {sub.frage_text}"
+                    s_disp = _get_display_data(
+                        lookup, analysis_lookup, verification_lookup, manual_lookup
+                    )
+                    sub_map_init[sid] = s_disp["values"].copy()
                     for field, _ in fields_def:
-                        man_val = manual_sub.get(field)
-                        ai_val = ai_sub.get(field)
-                        doc_val = doc_sub.get(field)
-                        val, src = _resolve_value(man_val, ai_val, doc_val)
-                        sub_dict[field] = val
-                        source_map[(fid, sid, field)] = src
-                    if sub_dict:
-                        sub_entry[sid] = sub_dict
-                if sub_entry:
-                    func_entry["subquestions"] = sub_entry
+                        source_map[(fid, sid, field)] = s_disp["sources"][field]
+                if sub_map_init:
+                    func_entry["subquestions"] = sub_map_init
                 init["functions"][fid] = func_entry
 
             form = Anlage2ReviewForm(initial=init)
@@ -1939,27 +1995,28 @@ def projekt_file_edit_json(request, pk):
             debug_logger.debug("--- Prüfe Hauptfunktion ---")
             debug_logger.debug("Funktion: %s", func.name)
             debug_logger.debug("Zuordnung in answers: %s", answers.get(func.name, {}))
-            f_fields = []
-            for field, _ in fields_def:
-                f_fields.append(
-                    {
-                        "widget": form[f"func{func.id}_{field}"],
-                        "source": source_map.get((str(func.id), None, field)),
-                    }
-                )
-            row_source = source_map.get((str(func.id), None, "technisch_vorhanden"))
+            disp = _get_display_data(
+                func.name, analysis_lookup, verification_lookup, manual_lookup
+            )
+            f_fields = [
+                {
+                    "widget": form[f"func{func.id}_{field}"],
+                    "source": disp["sources"][field],
+                }
+                for field, _ in fields_def
+            ]
             begr_md = ki_map.get((str(func.id), None))
             bet_val, bet_reason = beteilig_map.get((str(func.id), None), (None, ""))
             rows.append(
                 {
                     "name": func.name,
                     "analysis": answers.get(func.name, {}),
-                    "initial": init["functions"].get(str(func.id), {}),
+                    "initial": disp["values"],
                     "form_fields": f_fields,
                     "sub": False,
                     "func_id": func.id,
                     "verif_key": func.name,
-                    "source_text": row_source,
+                    "source_text": disp["source"],
                     "ki_begruendung": begr_md,
                     "ki_begruendung_md": begr_md,
                     "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
@@ -1968,24 +2025,18 @@ def projekt_file_edit_json(request, pk):
                 }
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
-                s_fields = []
-                for field, _ in fields_def:
-                    s_fields.append(
-                        {
-                            "widget": form[f"sub{sub.id}_{field}"],
-                            "source": source_map.get(
-                                (str(func.id), str(sub.id), field)
-                            ),
-                        }
-                    )
                 lookup_key = f"{func.name}: {sub.frage_text}"
-                s_analysis = answers.get(lookup_key, {})
-                debug_logger.debug("Subfrage: %s", sub.frage_text)
-                debug_logger.debug("Analyse Subfrage: %s", s_analysis)
-                row_source = source_map.get(
-                    (str(func.id), str(sub.id), "technisch_vorhanden")
+                s_disp = _get_display_data(
+                    lookup_key, analysis_lookup, verification_lookup, manual_lookup
                 )
-
+                s_fields = [
+                    {
+                        "widget": form[f"sub{sub.id}_{field}"],
+                        "source": s_disp["sources"][field],
+                    }
+                    for field, _ in fields_def
+                ]
+                s_analysis = answers.get(lookup_key, {})
                 begr_md = ki_map.get((str(func.id), str(sub.id)))
                 bet_val, bet_reason = beteilig_map.get(
                     (str(func.id), str(sub.id)), (None, "")
@@ -1994,16 +2045,13 @@ def projekt_file_edit_json(request, pk):
                     {
                         "name": sub.frage_text,
                         "analysis": s_analysis,
-                        "initial": init["functions"]
-                        .get(str(func.id), {})
-                        .get("subquestions", {})
-                        .get(str(sub.id), {}),
+                        "initial": s_disp["values"],
                         "form_fields": s_fields,
                         "sub": True,
                         "func_id": func.id,
                         "sub_id": sub.id,
                         "verif_key": lookup_key,
-                        "source_text": row_source,
+                        "source_text": s_disp["source"],
                         "ki_begruendung": begr_md,
                         "ki_begruendung_md": begr_md,
                         "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
