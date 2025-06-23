@@ -30,6 +30,13 @@
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
     </div>
+    {% if form.instance.pk %}
+    <div class="mb-3">
+        <label for="{{ form.beschreibung.id_for_label }}" class="form-label">Beschreibung:</label>
+        {{ form.beschreibung }}
+        <div class="form-text">Eine kurze, aussagekräftige Notiz zum Projekt.</div>
+    </div>
+    {% endif %}
     {% if 'status' in form.fields %}
     <div>
         {{ form.status.label_tag }}<br>
