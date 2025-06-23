@@ -1,9 +1,36 @@
 {% extends 'base.html' %}
-
-{% block sidebar %}
-    {% include 'partials/admin_sidebar.html' %}
-{% endblock %}
-
 {% block content %}
-    {% block admin_content %}{% endblock %}
+<div class="flex">
+    <aside class="w-64 bg-gray-100 p-4 border-r">
+        <nav class="space-y-4 text-sm">
+            <ul class="space-y-1">
+                <li class="font-semibold text-gray-700">Projekte</li>
+                <ul class="ml-4 space-y-1">
+                    <li><a href="{% url 'admin_projects' %}" class="text-blue-700 hover:underline">Projekte</a></li>
+                </ul>
+                <li class="font-semibold text-gray-700 mt-4">Anlagen</li>
+                <ul class="ml-4 space-y-1">
+                    <li><a href="{% url 'admin_anlage1' %}" class="text-blue-700 hover:underline">Anlage 1 Fragen</a></li>
+                    <li><a href="{% url 'anlage2_function_list' %}" class="text-blue-700 hover:underline">Anlage 2 Funktionen</a></li>
+                    <li><a href="{% url 'anlage2_config' %}" class="text-blue-700 hover:underline">Anlage 2 Konfiguration</a></li>
+                </ul>
+                <li class="font-semibold text-gray-700 mt-4">System-Konfiguration</li>
+                <ul class="ml-4 space-y-1">
+                    <li><a href="{% url 'admin_prompts' %}" class="text-blue-700 hover:underline">Prompts</a></li>
+                    <li><a href="{% url 'admin_llm_roles' %}" class="text-blue-700 hover:underline">LLM-Rollen</a></li>
+                    <li><a href="{% url 'admin_models' %}" class="text-blue-700 hover:underline">LLM-Modelle</a></li>
+                    <li><a href="{% url 'admin_project_statuses' %}" class="text-blue-700 hover:underline">Projekt-Status</a></li>
+                </ul>
+                <li class="font-semibold text-gray-700 mt-4">Systemverwaltung</li>
+                <ul class="ml-4 space-y-1">
+                    <li><a href="{% url 'admin:auth_user_changelist' %}" class="text-blue-700 hover:underline">Benutzer</a></li>
+                    <li><a href="{% url 'admin:auth_group_changelist' %}" class="text-blue-700 hover:underline">Gruppen</a></li>
+                </ul>
+            </ul>
+        </nav>
+    </aside>
+    <div class="flex-1 p-4">
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
 {% endblock %}

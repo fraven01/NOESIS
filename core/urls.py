@@ -122,7 +122,6 @@ urlpatterns = [
         views.projekt_file_upload,
         name="projekt_file_upload",
     ),
-    path("work/projekte/<int:pk>/check/", views.projekt_check, name="projekt_check"),
     path(
         "work/projekte/<int:pk>/status/",
         views.projekt_status_update,
