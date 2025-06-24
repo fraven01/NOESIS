@@ -177,6 +177,32 @@ function loadKnowledge(){
   .then(data=>renderKnowledge(data));
 }
 
+function renderKnowledge(data){
+ const tbody=document.querySelector('#knowledge-table tbody');
+ tbody.innerHTML='';
+ const editT='{% url "edit_knowledge_description" 9999 %}';
+ const delT='{% url "delete_knowledge_entry" 9999 %}';
+ const downT='{% url "download_knowledge_as_word" 9999 %}';
+ data.knowledge.forEach(k=>{
+  let actions='';
+  if(k.id){
+    actions=`<a href="${editT.replace('9999',k.id)}" class="text-blue-700 underline mr-2">Bearbeiten</a>`+
+            `<form action="${delT.replace('9999',k.id)}" method="post" class="inline mr-2">`+
+            `<input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">`+
+            `<button type="submit" class="text-red-700 underline">Löschen</button></form>`;
+    if(k.description){
+      actions+=`<a href="${downT.replace('9999',k.id)}" class="text-blue-700 underline">Export</a>`;
+    }
+  }
+  const known=k.last_checked? (k.is_known_by_llm? 'Ja':'Nein') : '-';
+  tbody.innerHTML+=`<tr class="border-t"><td class="px-2 py-1">${k.software_name}</td>`+
+                    `<td class="px-2 py-1 text-center">${known}</td>`+
+                    `<td class="px-2 py-1">${k.description||''}</td>`+
+                    `<td class="px-2 py-1 text-center">${actions}</td></tr>`;
+ });
+ document.getElementById('knowledge-progress').textContent=`${data.checked} / ${data.total}`;
+}
+
 
 function renderLLM(data){
  const sec=document.getElementById('llm-section');
@@ -226,8 +252,21 @@ function attachHandlers(){
   });
 }
  const recheck=document.getElementById('recheck');
- if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
+if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
 
+}
+
+function sendCheck(payload){
+ const sec=document.getElementById('llm-section');
+ if(!sec) return;
+ const spinner=document.createElement('span');
+ spinner.textContent='...';
+ sec.appendChild(spinner);
+ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
+   method:'POST',
+   headers:{'X-CSRFToken':getCookie('csrftoken')},
+   body:new URLSearchParams(payload)
+ }).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);}/* reload or update */}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
 }
 
 function startChecks(){
