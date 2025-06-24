@@ -688,9 +688,10 @@ def upload_transcript(request):
 
 
 def _process_recordings_for_user(bereich: str, user) -> list:
-    """Convert and transcribe recordings for ``bereich`` and ``user``.
+    """Konvertiert und transkribiert Aufnahmen für ``bereich`` und ``user``.
 
-    Returns a list of :class:`Recording` objects found or created.
+    Gibt eine Liste der gefundenen oder erzeugten :class:`Recording`-Objekte
+    zurück.
     """
 
     logger.debug(
