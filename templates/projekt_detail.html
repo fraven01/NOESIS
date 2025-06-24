@@ -115,8 +115,13 @@
             {% if row.entry %}
                 {% if row.entry.gutachten %}
                     <a href="{% url 'gutachten_view' row.entry.gutachten.id %}">Anzeigen</a> |
-                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
-                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
+                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a>
+                    <form action="{% url 'gutachten_delete' row.entry.gutachten.id %}" method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action-delete">Löschen</button>
+                    </form>
+                    |
+                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Word exportieren</a>
                 {% else %}
                     <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">
                         Gutachten erstellen
