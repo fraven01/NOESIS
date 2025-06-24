@@ -374,10 +374,16 @@ def _get_display_data(
     verification_data: dict[str, dict],
     manual_results_map: dict[str, dict],
 ) -> dict[str, object]:
-    """Ermittelt finale Werte und Quellen für eine Funktion oder Unterfrage."""
+    """Ermittelt finale Werte und Quellen für eine Funktion oder Unterfrage.
+
+    Fehlt ein Eintrag im Analyse-Dictionary, wird dies als nicht im Dokument
+    vorhanden interpretiert und der Status auf ``False`` gesetzt.
+    """
 
     fields = get_anlage2_fields()
-    a_data = analysis_data.get(lookup_key, {})
+    a_data = analysis_data.get(lookup_key)
+    missing_doc = not a_data
+    a_data = a_data or {}
     v_data = verification_data.get(lookup_key, {})
     m_data = manual_results_map.get(lookup_key, {})
 
@@ -388,6 +394,8 @@ def _get_display_data(
         man_val = m_data.get(field)
         ai_val = v_data.get(field)
         doc_val = a_data.get(field)
+        if doc_val is None and missing_doc:
+            doc_val = False
         val, src = _resolve_value(man_val, ai_val, doc_val)
         values[field] = val
         sources[field] = src
