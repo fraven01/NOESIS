@@ -156,3 +156,21 @@ In der Detailansicht eines Projekts befindet sich unterhalb der Anlagen\u00fcber
 3. Erkennt das Modell die Software nicht, zeigt die Zeile einen Hinweis mit dem Button **Kontext hinzuf\u00fcgen & erneut pr\u00fcfen**. Dar\u00fcber l\u00e4sst sich in einem Modal ein zus\u00e4tzlicher Beschreibungstext eingeben, der beim erneuten Durchlauf an das LLM \u00fcbermittelt wird.
 
 Der Fortschritt der Initial-Pr\u00fcfung wird oberhalb der Tabelle angezeigt. Nach Abschluss k\u00f6nnen die erzeugten Beschreibungen bearbeitet, exportiert oder gel\u00f6scht werden.
+
+### Tailwind CSS aktualisieren
+
+Für den Offline-Betrieb enthält das Repository die Datei `static/css/tailwind.min.css`. Sie basiert auf einer vorkompilierten CDN-Version.
+
+Aktualisierung per Download:
+
+```bash
+curl -L https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css -o static/css/tailwind.min.css
+```
+
+Eigene Builds lassen sich mit dem offiziellen CLI erzeugen:
+
+```bash
+curl -L -o tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.4/tailwindcss-linux-x64
+chmod +x tailwindcss
+./tailwindcss -i static/css/src/tailwind.css -o static/css/tailwind.min.css --minify
+```
