@@ -776,7 +776,7 @@ def worker_verify_feature(
             use_system_role=False,
         )
 
-    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
+    software_list = [s.strip() for s in (projekt.software_typen or []) if str(s).strip()]
 
     name = function_name_for_prompt or ""
 

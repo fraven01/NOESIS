@@ -69,7 +69,7 @@ class BVProject(models.Model):
 
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
-    software_typen = models.CharField("Software-Typen", max_length=200, blank=True)
+    software_typen = models.JSONField("Software-Typen", default=list, blank=True)
     status = models.ForeignKey(
         ProjectStatus,
         on_delete=models.PROTECT,
@@ -88,12 +88,14 @@ class BVProject(models.Model):
     def save(self, *args, **kwargs):
         """Speichert das Projekt und setzt den Titel aus den Software-Namen."""
         if self.software_typen:
-            cleaned = ", ".join(
-                [s.strip() for s in self.software_typen.split(",") if s.strip()]
-            )
-            self.software_typen = cleaned
+            cleaned_list = [
+                s.strip()
+                for s in self.software_typen
+                if isinstance(s, str) and s.strip()
+            ]
+            self.software_typen = cleaned_list
             if not self.title:
-                self.title = cleaned
+                self.title = ", ".join(cleaned_list)
         is_new = self._state.adding
         if not self.status:
             self.status = ProjectStatus.objects.filter(is_default=True).first()

@@ -137,25 +137,30 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
                 s.strip() for s in self.data.getlist("software") if s.strip()
             ]
         else:
-            raw = self.initial.get("software_typen") or getattr(
-                self.instance, "software_typen", ""
-            )
-            self.software_list = [s.strip() for s in raw.split(",") if s.strip()]
+            raw = self.initial.get("software_typen")
+            if raw is None:
+                raw = getattr(self.instance, "software_typen", [])
+            if isinstance(raw, str):
+                self.software_list = [s.strip() for s in raw.split(",") if s.strip()]
+            else:
+                self.software_list = [s.strip() for s in raw if str(s).strip()]
 
-    def clean_software_typen(self) -> str:
+    def clean_software_typen(self) -> list[str]:
         """Bereinigt die Eingabe und stellt sicher, dass sie nicht leer ist."""
         raw_list = self.data.getlist("software")
         if raw_list:
             names = [s.strip() for s in raw_list if s.strip()]
         else:
-            raw = self.cleaned_data.get("software_typen", "")
-            names = [s.strip() for s in raw.split(",") if s.strip()]
+            raw = self.cleaned_data.get("software_typen", [])
+            if isinstance(raw, str):
+                names = [s.strip() for s in raw.split(",") if s.strip()]
+            else:
+                names = [s.strip() for s in raw if str(s).strip()]
         if not names:
             raise forms.ValidationError(
                 "Software-Typen dürfen nicht leer sein.")
-        cleaned = ", ".join(names)
         self.software_list = names
-        return cleaned
+        return names
 
 
 
