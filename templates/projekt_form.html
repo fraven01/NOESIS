@@ -12,15 +12,20 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Software-Typen:</label>
-        {% with form.software_list as software_typen_list %}
+
         <div id="software-inputs-container">
-            <input type="text" name="software_typen" class="form-control mb-2" value="{{ software_typen_list.0 }}">
-            {% for software in software_typen_list|slice:"1:" %}
-                <input type="text" name="software_typen" class="form-control mb-2" value="{{ software }}">
+            <input type="text" name="software" class="form-control mb-2" value="{{ form.software_list.0 }}">
+            {% for software in form.software_list|slice:"1:" %}
+                <input type="text" name="software" class="form-control mb-2" value="{{ software }}">
             {% endfor %}
+            {% if not form.software_list %}
+                <input type="text" name="software" class="form-control mb-2">
+            {% endif %}
         </div>
-        {% endwith %}
         <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+        {{ form.software_typen }}
+        {{ form.software_typen.errors }}
+
     </div>
     {% if form.instance.pk %}
     <div class="mb-3">
@@ -58,13 +63,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addSoftwareBtn && container) {
         addSoftwareBtn.addEventListener('click', function() {
-            // Erstelle ein neues Input-Element
+
             const newInput = document.createElement('input');
             newInput.type = 'text';
-            newInput.name = 'software_typen';
+            newInput.name = 'software';
             newInput.className = 'form-control mb-2';
 
-            // Füge das neue Input-Element zum Container hinzu
             container.appendChild(newInput);
         });
     }
