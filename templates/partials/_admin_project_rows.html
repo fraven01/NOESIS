@@ -2,7 +2,7 @@
     <tr class="border-b text-sm">
         <td class="py-1">{{ p.title }}</td>
         <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
-        <td class="py-1">{{ p.software_typen }}</td>
+        <td class="py-1">{{ p.software_typen|join:", " }}</td>
         <td class="py-1">
             <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
         </td>
