@@ -59,10 +59,10 @@ Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
 
 ### Gutachten verwalten
 
-1. Klicke in der Projekt-Detailansicht auf **Gutachten erstellen**. Der Hintergrund-Task startet sofort und nach Fertigstellung erscheint automatisch ein Link zum Dokument.
-2. Nach erfolgreicher Erstellung zeigt `/work/projekte/<pk>/gutachten/view/` den Text an und bietet einen Download-Link.
-3. Über `/work/projekte/<pk>/gutachten/edit/` kann der Text im Browser bearbeitet und erneut gespeichert werden.
-4. Ein POST-Request an `/work/projekte/<pk>/gutachten/delete/` entfernt das Dokument wieder aus dem Projekt.
+1. Klicke in der Projekt-Detailansicht auf **Gutachten erstellen**. Der Hintergrund-Task startet sofort und nach Fertigstellung erscheint automatisch ein Link zum Dokument, aus dem sich die `<gutachten_id>` entnehmen lässt.
+2. Nach erfolgreicher Erstellung zeigt `/work/gutachten/<gutachten_id>/view/` den Text an und bietet einen Download-Link.
+3. Über `/work/gutachten/<gutachten_id>/edit/` kann der Text im Browser bearbeitet und erneut gespeichert werden.
+4. Ein POST-Request an `/work/gutachten/<gutachten_id>/delete/` entfernt das Dokument wieder aus dem Projekt.
 
 ### Anlage 1 prüfen
 
