@@ -146,3 +146,13 @@ speichern und fließen so in die weitere Auswertung ein.
 
 Beim Anlegen eines Projekts kann jetzt ein zweistufiger LLM-Check gestartet werden. Dabei wird zuerst gepr\u00fcft, ob das Modell die jeweilige Software kennt. Nur bei einer positiven Antwort folgt Schritt zwei mit einer Kurzbeschreibung, die in der Tabelle **Software-Wissen** landet.
 Dort lassen sich die Eintr\u00e4ge bequem bearbeiten, l\u00f6schen oder als Word-Datei exportieren.
+
+### Initial-Pr\u00fcfung der Software-Komponenten
+
+In der Detailansicht eines Projekts befindet sich unterhalb der Anlagen\u00fcbersicht eine Tabelle **Initial-Pr\u00fcfung der Software-Komponenten**. Hier l\u00e4sst sich f\u00fcr alle hinterlegten Software-Typen ein zweistufiger LLM-Check starten.
+
+1. Klicke auf **Pr\u00fcfung starten**, um die Analyse f\u00fcr s\u00e4mtliche Eintr\u00e4ge gleichzeitig auszul\u00f6sen. Alternativ kann jede Zeile einzeln \u00fcber den Button **Pr\u00fcfung starten** gepr\u00fcft werden.
+2. Zuerst ermittelt das LLM, ob die angegebene Software bekannt ist. Nur wenn dies bejaht wird, folgt eine zweite Abfrage mit der Bitte um eine kurze Beschreibung, die anschlie\u00dfend in der Tabelle erscheint.
+3. Erkennt das Modell die Software nicht, zeigt die Zeile einen Hinweis mit dem Button **Kontext hinzuf\u00fcgen & erneut pr\u00fcfen**. Dar\u00fcber l\u00e4sst sich in einem Modal ein zus\u00e4tzlicher Beschreibungstext eingeben, der beim erneuten Durchlauf an das LLM \u00fcbermittelt wird.
+
+Der Fortschritt der Initial-Pr\u00fcfung wird oberhalb der Tabelle angezeigt. Nach Abschluss k\u00f6nnen die erzeugten Beschreibungen bearbeitet, exportiert oder gel\u00f6scht werden.
