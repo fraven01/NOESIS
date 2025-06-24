@@ -10,25 +10,17 @@
         {{ form.title }}
         {{ form.title.errors }}
     </div>
-    <div>
-        <label>Software</label><br>
-        <div id="software-container">
-        {% for name in form.software_list %}
-            <div class="software-item mb-2 flex items-center">
-                <input type="text" name="software" value="{{ name }}" class="border rounded p-2 mr-2">
-                <button type="button" class="remove-software text-red-600">-</button>
-            </div>
-        {% endfor %}
-        {% if not form.software_list %}
-            <div class="software-item mb-2 flex items-center">
-                <input type="text" name="software" class="border rounded p-2 mr-2">
-                <button type="button" class="remove-software text-red-600">-</button>
-            </div>
-        {% endif %}
+    <div class="mb-3">
+        <label class="form-label">Software-Typen:</label>
+        {% with form.software_list as software_typen_list %}
+        <div id="software-inputs-container">
+            <input type="text" name="software_typen" class="form-control mb-2" value="{{ software_typen_list.0 }}">
+            {% for software in software_typen_list|slice:"1:" %}
+                <input type="text" name="software_typen" class="form-control mb-2" value="{{ software }}">
+            {% endfor %}
         </div>
-        <button type="button" id="add-software" class="bg-gray-300 px-2 py-1 rounded">+</button>
-        {{ form.software_typen }}
-        {{ form.software_typen.errors }}
+        {% endwith %}
+        <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
     </div>
     {% if form.instance.pk %}
     <div class="mb-3">
@@ -57,8 +49,25 @@
     </div>
     {% endif %}
 </form>
+{% endblock %}
+{% block extra_js %}
 <script>
-document.getElementById("add-software").addEventListener("click",()=>{const c=document.getElementById("software-container");const d=document.createElement("div");d.className="software-item mb-2 flex items-center";d.innerHTML="<input type="text" name="software" class="border rounded p-2 mr-2"><button type="button" class="remove-software text-red-600">-</button>";c.appendChild(d);});
-document.getElementById('software-container').addEventListener('click',e=>{if(e.target.classList.contains('remove-software')){e.target.parentElement.remove();}});
+document.addEventListener('DOMContentLoaded', function() {
+    const addSoftwareBtn = document.getElementById('add-software-btn');
+    const container = document.getElementById('software-inputs-container');
+
+    if (addSoftwareBtn && container) {
+        addSoftwareBtn.addEventListener('click', function() {
+            // Erstelle ein neues Input-Element
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'software_typen';
+            newInput.className = 'form-control mb-2';
+
+            // Füge das neue Input-Element zum Container hinzu
+            container.appendChild(newInput);
+        });
+    }
+});
 </script>
 {% endblock %}
