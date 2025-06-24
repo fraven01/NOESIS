@@ -56,7 +56,7 @@ from .llm_tasks import (
 )
 from .views import _verification_to_initial
 from .reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, call
 from django.core.management import call_command
 from django.test import override_settings
 import json
@@ -2407,4 +2407,54 @@ class KnowledgeDownloadTests(TestCase):
 
 
 
+
+
+class AjaxInitialChecksTests(TestCase):
+    def setUp(self):
+        create_statuses()
+        self.user = User.objects.create_user("ajax", password="pass")
+        self.client.login(username="ajax", password="pass")
+        self.project = BVProject.objects.create(software_typen=["A", "B"], beschreibung="x")
+
+    def test_start_initial_checks_queues_tasks(self):
+        with patch("core.views.async_task", side_effect=["t1", "t2"]) as mock_task:
+            url = reverse("ajax_start_initial_checks", args=[self.project.pk])
+            resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "queued")
+        self.assertEqual(len(data["tasks"]), 2)
+        self.assertEqual(data["tasks"][0]["task_id"], "t1")
+        self.assertEqual(data["tasks"][0]["software"], "A")
+        self.assertEqual(data["tasks"][1]["task_id"], "t2")
+        self.assertEqual(data["tasks"][1]["software"], "B")
+        sk1 = SoftwareKnowledge.objects.get(projekt=self.project, software_name="A")
+        sk2 = SoftwareKnowledge.objects.get(projekt=self.project, software_name="B")
+        mock_task.assert_has_calls(
+            [
+                call("core.llm_tasks.worker_run_initial_check", sk1.pk),
+                call("core.llm_tasks.worker_run_initial_check", sk2.pk),
+            ],
+            any_order=True,
+        )
+
+    def test_rerun_initial_check_with_context(self):
+        sk = SoftwareKnowledge.objects.create(projekt=self.project, software_name="A")
+        with patch("core.views.async_task", return_value="tid") as mock_task:
+            url = reverse("ajax_rerun_initial_check_with_context")
+            resp = self.client.post(
+                url, {"knowledge_id": sk.pk, "user_context": "Hint"}
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"status": "queued", "task_id": "tid"})
+        mock_task.assert_called_once_with(
+            "core.llm_tasks.worker_run_initial_check", sk.pk, "Hint"
+        )
+
+    def test_rerun_initial_check_invalid(self):
+        url = reverse("ajax_rerun_initial_check_with_context")
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 400)
+        resp = self.client.post(url, {"knowledge_id": "9999"})
+        self.assertEqual(resp.status_code, 400)
 
