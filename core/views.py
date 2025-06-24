@@ -2189,6 +2189,18 @@ def project_detail_api(request, pk):
             "id": entry.pk if entry else None,
             "is_known_by_llm": entry.is_known_by_llm if entry else False,
             "description": entry.description if entry else "",
+            "description_html": markdown.markdown(
+                entry.description,
+                extensions=[
+                    "extra",
+                    "admonition",
+                    "toc",
+                    "tables",
+                    "codehilite",
+                ],
+            )
+            if entry and entry.description
+            else "",
             "last_checked": bool(entry and entry.last_checked),
         }
         if item["last_checked"]:
