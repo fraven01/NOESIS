@@ -155,4 +155,6 @@ In der Detailansicht eines Projekts befindet sich unterhalb der Anlagen\u00fcber
 2. Zuerst ermittelt das LLM, ob die angegebene Software bekannt ist. Nur wenn dies bejaht wird, folgt eine zweite Abfrage mit der Bitte um eine kurze Beschreibung, die anschlie\u00dfend in der Tabelle erscheint.
 3. Erkennt das Modell die Software nicht, zeigt die Zeile einen Hinweis mit dem Button **Kontext hinzuf\u00fcgen & erneut pr\u00fcfen**. Dar\u00fcber l\u00e4sst sich in einem Modal ein zus\u00e4tzlicher Beschreibungstext eingeben, der beim erneuten Durchlauf an das LLM \u00fcbermittelt wird.
 
+4. Die vom LLM erzeugten Beschreibungen sind in Markdown formatiert und können Überschriften, Listen, Tabellen oder **fett** formatierten Text enthalten.
+
 Der Fortschritt der Initial-Pr\u00fcfung wird oberhalb der Tabelle angezeigt. Nach Abschluss k\u00f6nnen die erzeugten Beschreibungen bearbeitet, exportiert oder gel\u00f6scht werden.
