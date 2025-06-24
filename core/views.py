@@ -1664,9 +1664,14 @@ def projekt_create(request):
     if request.method == "POST":
         form = BVProjectForm(request.POST, request.FILES)
         if form.is_valid():
+            software_typen_list = request.POST.getlist("software")
+            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
+            software_typen_str = ", ".join(cleaned_software_list)
+
             projekt = form.save(commit=False)
-            projekt.title = form.cleaned_data.get("title", "")
+            projekt.software_typen = software_typen_str
             projekt.save()
+            messages.success(request, "Projekt erfolgreich erstellt.")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
@@ -1679,7 +1684,14 @@ def projekt_edit(request, pk):
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
-            form.save()
+            software_typen_list = request.POST.getlist("software")
+            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
+            software_typen_str = ", ".join(cleaned_software_list)
+
+            projekt = form.save(commit=False)
+            projekt.software_typen = software_typen_str
+            projekt.save()
+            messages.success(request, "Projekt erfolgreich gespeichert.")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)

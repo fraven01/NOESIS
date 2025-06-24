@@ -112,7 +112,7 @@ class DocxValidationMixin:
 class BVProjectForm(DocxValidationMixin, forms.ModelForm):
     class Meta:
         model = BVProject
-        fields = ["title", "beschreibung", "software_typen", "status"]
+        fields = ["title", "beschreibung", "status"]
         labels = {
             "title": "Name",
             "beschreibung": "Beschreibung",
