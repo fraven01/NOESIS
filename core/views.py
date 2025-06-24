@@ -2184,6 +2184,13 @@ def project_detail_api(request, pk):
     checked = 0
     for name in software_list:
         entry = knowledge_map.get(name)
+        gutachten_id = None
+        if entry:
+            try:
+                gutachten_id = entry.gutachten.id
+            except Gutachten.DoesNotExist:  # pragma: no cover - nicht vorhanden
+                pass
+
         item = {
             "software_name": name,
             "id": entry.pk if entry else None,
@@ -2202,6 +2209,7 @@ def project_detail_api(request, pk):
             if entry and entry.description
             else "",
             "last_checked": bool(entry and entry.last_checked),
+            "gutachten_id": gutachten_id,
         }
         if item["last_checked"]:
             checked += 1
