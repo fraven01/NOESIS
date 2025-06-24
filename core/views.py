@@ -61,7 +61,6 @@ from .models import (
     Anlage2GlobalPhrase,
     Anlage2FunctionResult,
     SoftwareKnowledge,
-    SoftwareType,
     Gutachten,
     Tile,
     Area,
@@ -1614,7 +1613,6 @@ def projekt_detail(request, pk):
         if entry and entry.last_checked:
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
-    software_types = list(SoftwareType.objects.filter(name__in=software_list))
     context = {
         "projekt": projekt,
         "status_choices": ProjectStatus.objects.all(),
@@ -1626,7 +1624,6 @@ def projekt_detail(request, pk):
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
         "total_software": len(software_list),
-        "software_types": software_types,
         "software_list": software_list,
 
     }
