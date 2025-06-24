@@ -12,6 +12,7 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Software-Typen:</label>
+
         <div id="software-inputs-container">
             <input type="text" name="software" class="form-control mb-2" value="{{ form.software_list.0 }}">
             {% for software in form.software_list|slice:"1:" %}
@@ -24,6 +25,7 @@
         <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
         {{ form.software_typen }}
         {{ form.software_typen.errors }}
+
     </div>
     {% if form.instance.pk %}
     <div class="mb-3">
@@ -61,10 +63,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addSoftwareBtn && container) {
         addSoftwareBtn.addEventListener('click', function() {
+
             const newInput = document.createElement('input');
             newInput.type = 'text';
             newInput.name = 'software';
             newInput.className = 'form-control mb-2';
+
             container.appendChild(newInput);
         });
     }
