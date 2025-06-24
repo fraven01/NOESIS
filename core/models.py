@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from pathlib import Path
+import json
 
 
 def recording_upload_path(instance, filename):
@@ -88,6 +89,16 @@ class BVProject(models.Model):
     def save(self, *args, **kwargs):
         """Speichert das Projekt und setzt den Titel aus den Software-Namen."""
         if self.software_typen:
+            if isinstance(self.software_typen, str):
+                raw = self.software_typen
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    parsed = raw.split(",")
+                if isinstance(parsed, str):
+                    parsed = [parsed]
+                self.software_typen = parsed
+
             cleaned_list = [
                 s.strip()
                 for s in self.software_typen
