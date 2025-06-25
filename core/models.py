@@ -86,11 +86,21 @@ class BVProject(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        """Speichert das Projekt und setzt den Titel aus den Software-Namen."""
+        """Speichert das Projekt und bereitet ``software_typen`` auf.
+
+        Liegt ``software_typen`` als Liste vor, werden die Einträge zu einem
+        kommagetrennten String verbunden. Bei einem String bleibt die bisherige
+        Aufteilung nach Komma erhalten. Fehlt ein Titel, wird dieser aus den
+        Software-Namen gesetzt.
+        """
         if self.software_typen:
-            cleaned = ", ".join(
-                [s.strip() for s in self.software_typen.split(",") if s.strip()]
-            )
+            if isinstance(self.software_typen, list):
+                cleaned_list = [s.strip() for s in self.software_typen if s.strip()]
+                cleaned = ", ".join(cleaned_list)
+            else:
+                cleaned = ", ".join(
+                    [s.strip() for s in str(self.software_typen).split(",") if s.strip()]
+                )
             self.software_typen = cleaned
             if not self.title:
                 self.title = cleaned

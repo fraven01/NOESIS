@@ -573,6 +573,13 @@ class BVProjectModelTests(TestCase):
         )
         self.assertEqual(projekt.title, "X")
 
+    def test_save_accepts_list_for_software_typen(self):
+        projekt = BVProject.objects.create(
+            software_typen=["A", "", "B "],
+            beschreibung="x",
+        )
+        self.assertEqual(projekt.software_typen, "A, B")
+
 
 class WorkflowTests(TestCase):
     def test_default_status(self):
