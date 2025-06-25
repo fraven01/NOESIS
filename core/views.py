@@ -202,6 +202,10 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         return initial
 
     name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
+    sub_name_map = {
+        (s.funktion.name, s.frage_text): str(s.id)
+        for s in Anlage2SubQuestion.objects.select_related("funktion")
+    }
     rev_map = {v: k for k, v in FIELD_RENAME.items()}
 
     items = data.get("functions")
@@ -224,6 +228,47 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             items = []
     for item in items:
         name = item.get("funktion") or item.get("name")
+        if not name:
+            continue
+
+        # Unterfrage im Format "Funktion: Frage"?
+        if ": " in name:
+            func_name, sub_text = name.split(": ", 1)
+            func_id = name_map.get(func_name)
+            sub_id = sub_name_map.get((func_name, sub_text))
+            if not func_id or not sub_id:
+                continue
+
+            s_entry: dict[str, object] = {}
+            for field, _ in get_anlage2_fields():
+                val = item.get(field)
+                debug_logger.debug("Subfrage %s Feld %s: %r", sub_text, field, val)
+                if isinstance(val, dict) and "value" in val:
+                    val = val["value"]
+                    debug_logger.debug("Subfeld %s normalisiert: %r", field, val)
+                if val is None:
+                    alt = rev_map.get(field)
+                    if alt:
+                        alt_val = item.get(alt)
+                        debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
+                        if isinstance(alt_val, dict) and "value" in alt_val:
+                            alt_val = alt_val["value"]
+                            debug_logger.debug(
+                                "Alternativfeld %s normalisiert: %r", alt, alt_val
+                            )
+                        val = alt_val
+                if isinstance(val, bool):
+                    s_entry[field] = val
+                    debug_logger.debug("Gesetzter Subwert f\u00fcr %s: %r", field, val)
+
+            if s_entry:
+                (
+                    initial["functions"]
+                    .setdefault(func_id, {})
+                    .setdefault("subquestions", {})
+                )[sub_id] = s_entry
+            continue
+
         func_id = name_map.get(name)
         if not func_id:
             continue
