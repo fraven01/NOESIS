@@ -11,15 +11,14 @@ PASSWORD = os.getenv("OBS_PASSWORD", "")
 
 
 def _connect() -> obs.ReqClient:
-    """Stellt eine Verbindung zum OBS-Websocket her."""
+    """Create a connection to the OBS websocket."""
     return obs.ReqClient(host=HOST, port=PORT, password=PASSWORD, timeout=3)
 
 
 def start_recording(bereich: str, base_dir: Path) -> None:
-    """Startet die OBS-Aufnahme. OBS muss bereits mit dem richtigen
-    Aufnahmeverzeichnis für den angegebenen ``bereich`` konfiguriert sein.
-    Das Verzeichnis wird angelegt, falls es nicht existiert, sodass der Pfad im
-    Dateisystem vorhanden ist."""
+    """Start OBS recording. OBS must already be configured with the correct
+    record directory for the given ``bereich``. The directory is created if it
+    does not exist so that the path exists on the filesystem."""
     directory = base_dir / "recordings" / bereich
     directory.mkdir(parents=True, exist_ok=True)
     ws = _connect()
@@ -30,10 +29,10 @@ def start_recording(bereich: str, base_dir: Path) -> None:
 
 
 def stop_recording(wait: bool = True, timeout: float = 10.0) -> None:
-    """Beendet die OBS-Aufnahme.
+    """Stop OBS recording.
 
-    Wenn ``wait`` ``True`` ist (Standard), blockiert der Aufruf, bis OBS das
-    Ende der Aufnahme bestätigt oder ``timeout`` Sekunden verstrichen sind.
+    If ``wait`` is ``True`` (default), this call blocks until OBS reports that
+    recording has actually stopped or until ``timeout`` seconds have elapsed.
     """
 
     ws = _connect()
@@ -51,7 +50,7 @@ def stop_recording(wait: bool = True, timeout: float = 10.0) -> None:
 
 
 def is_recording() -> bool:
-    """Gibt ``True`` zurück, falls OBS aktuell aufnimmt."""
+    """Return True if OBS is currently recording."""
     ws = _connect()
     try:
         status = ws.get_record_status()
