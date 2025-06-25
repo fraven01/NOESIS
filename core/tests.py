@@ -2412,6 +2412,29 @@ class UserImportExportTests(TestCase):
         self.assertTrue(user.tiles.filter(url_name="tile").exists())
 
 
+class Anlage1ImportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("a1import", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="a1import", password="pass")
+
+    def test_clear_first_resets_questions(self):
+        Anlage1Question.objects.create(num=99, text="Alt?", enabled=True)
+        payload = json.dumps([{"text": "Neu?"}])
+        file = SimpleUploadedFile("a1.json", payload.encode("utf-8"))
+        url = reverse("admin_anlage1_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("admin_anlage1"))
+        self.assertEqual(Anlage1Question.objects.count(), 1)
+        q = Anlage1Question.objects.first()
+        self.assertEqual(q.text, "Neu?")
+        self.assertEqual(q.num, 1)
+
 class Anlage2ConfigImportExportTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -2470,6 +2493,7 @@ class Anlage2ConfigImportExportTests(TestCase):
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
         )
+
 
 
 

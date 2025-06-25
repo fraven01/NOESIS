@@ -407,6 +407,11 @@ class Anlage1ImportForm(forms.Form):
 
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+    clear_first = forms.BooleanField(
+        required=False,
+        label="Datenbank vorher leeren",
+        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )
 
 
 class PhraseForm(forms.Form):
