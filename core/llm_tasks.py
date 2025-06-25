@@ -382,7 +382,11 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     path = generate_gutachten(projekt.id, text, model_name=model)
 
     if knowledge:
-        Gutachten.objects.create(software_knowledge=knowledge, text=text)
+        gutachten, _ = Gutachten.objects.get_or_create(
+            software_knowledge=knowledge
+        )
+        gutachten.text = text
+        gutachten.save(update_fields=["text"])
 
     return str(path)
 
