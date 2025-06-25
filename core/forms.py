@@ -331,11 +331,10 @@ class Anlage2SubQuestionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2SubQuestion
-        fields = ["frage_text", "detection_phrases"]
+        fields = ["frage_text"]
         labels = {"frage_text": "Frage"}
         widgets = {
             "frage_text": Textarea(attrs={"class": "border rounded p-2", "rows": 3}),
-            "detection_phrases": Textarea(attrs={"rows": 10}),
         }
 
 

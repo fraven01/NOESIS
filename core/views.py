@@ -1924,13 +1924,34 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
         funktion = get_object_or_404(Anlage2Function, pk=function_pk)
         subquestion = Anlage2SubQuestion(funktion=funktion)
     form = Anlage2SubQuestionForm(request.POST or None, instance=subquestion)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("anlage2_function_edit", funktion.pk)
+
+    formset: PhraseFormSet | None = None
+    data = subquestion.detection_phrases if subquestion.pk else {}
+
+    if request.method == "POST":
+        formset = PhraseFormSet(request.POST, prefix="name_aliases")
+        if form.is_valid() and formset.is_valid():
+            subquestion = form.save(commit=False)
+            phrases = [
+                row.get("phrase", "").strip()
+                for row in formset.cleaned_data
+                if row.get("phrase") and not row.get("DELETE")
+            ]
+            subquestion.detection_phrases = {"name_aliases": phrases}
+            subquestion.save()
+            return redirect("anlage2_function_edit", funktion.pk)
+    else:
+        raw = data.get("name_aliases", [])
+        if isinstance(raw, str):
+            raw = [raw]
+        initial = [{"phrase": p} for p in raw]
+        formset = PhraseFormSet(prefix="name_aliases", initial=initial)
+
     context = {
         "form": form,
         "funktion": funktion,
         "subquestion": subquestion if pk else None,
+        "formset": formset,
     }
     return render(request, "anlage2/subquestion_form.html", context)
 
