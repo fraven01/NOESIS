@@ -1437,6 +1437,15 @@ class WorkerGenerateGutachtenTests(TestCase):
         self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
         Path(path).unlink(missing_ok=True)
 
+    def test_worker_updates_existing_gutachten(self):
+        Gutachten.objects.create(software_knowledge=self.knowledge, text="Alt")
+        with patch("core.llm_tasks.query_llm", return_value="Neu"):
+            path = worker_generate_gutachten(self.projekt.pk, self.knowledge.pk)
+        gutachten = Gutachten.objects.get(software_knowledge=self.knowledge)
+        self.assertEqual(gutachten.text, "Neu")
+        self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
+        Path(path).unlink(missing_ok=True)
+
 
 class GutachtenEditDeleteTests(TestCase):
     def setUp(self):
