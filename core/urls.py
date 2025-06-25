@@ -61,6 +61,16 @@ urlpatterns = [
         name="admin_project_cleanup",
     ),
     path("projects-admin/prompts/", views.admin_prompts, name="admin_prompts"),
+    path(
+        "projects-admin/prompts/export/",
+        views.admin_prompt_export,
+        name="admin_prompt_export",
+    ),
+    path(
+        "projects-admin/prompts/import/",
+        views.admin_prompt_import,
+        name="admin_prompt_import",
+    ),
     path("projects-admin/models/", views.admin_models, name="admin_models"),
     path("projects-admin/users/", views.admin_user_list, name="admin_user_list"),
     path(
