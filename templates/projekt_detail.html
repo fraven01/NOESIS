@@ -87,7 +87,9 @@
             </td>
             <td class="px-2 py-1">
                 {% if row.entry and row.entry.is_known_by_llm is True %}
-                    {{ row.entry.description|markdownify }}
+                    <div class="prose max-w-none">
+                        {{ row.entry.description|markdownify }}
+                    </div>
                 {% elif row.entry and row.entry.is_known_by_llm is False %}
                     <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren. Bitte fügen Sie zusätzlichen Kontext hinzu, um die Prüfung zu wiederholen.</p>
                 {% else %}

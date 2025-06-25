@@ -1508,6 +1508,31 @@ class GutachtenEditDeleteTests(TestCase):
         self.assertFalse(Gutachten.objects.filter(pk=self.gutachten.pk).exists())
 
 
+class KnowledgeDescriptionEditTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("kwuser", password="pass")
+        self.client.login(username="kwuser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.knowledge = SoftwareKnowledge.objects.create(
+            projekt=self.projekt,
+            software_name="A",
+            is_known_by_llm=True,
+            description="Alt",
+        )
+
+    def test_edit_page_has_mde(self):
+        url = reverse("edit_knowledge_description", args=[self.knowledge.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "easymde.min.css")
+
+    def test_edit_updates_description(self):
+        url = reverse("edit_knowledge_description", args=[self.knowledge.pk])
+        resp = self.client.post(url, {"description": "Neu"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.knowledge.refresh_from_db()
+        self.assertEqual(self.knowledge.description, "Neu")
+
+
 class ProjektFileCheckResultTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")
