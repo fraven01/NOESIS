@@ -202,7 +202,7 @@ function renderKnowledge(data){
   const known=k.last_checked? (k.is_known_by_llm? 'Ja':'Nein') : '-';
   tbody.innerHTML+=`<tr class="border-t"><td class="px-2 py-1">${k.software_name}</td>`+
                     `<td class="px-2 py-1 text-center">${known}</td>`+
-                    `<td class="px-2 py-1">${k.description_html||''}</td>`+
+                    `<td class="px-2 py-1">${k.description||''}</td>`+
                     `<td class="px-2 py-1 text-center">${actions}</td></tr>`;
  });
  document.getElementById('knowledge-progress').textContent=`${data.checked} / ${data.total}`;
