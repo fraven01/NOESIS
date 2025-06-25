@@ -185,14 +185,10 @@ function loadKnowledge(){
 function renderKnowledge(data){
  const tbody=document.querySelector('#knowledge-table tbody');
  tbody.innerHTML='';
-const editT='{% url "edit_knowledge_description" 9999 %}';
-const delT='{% url "delete_knowledge_entry" 9999 %}';
-const downT='{% url "download_knowledge_as_word" 9999 %}';
- const viewGT='{% url "gutachten_view" 9999 %}';
- const editGT='{% url "gutachten_edit" 9999 %}';
- const delGT='{% url "gutachten_delete" 9999 %}';
- const downGT='{% url "gutachten_download" 9999 %}';
-data.knowledge.forEach(k=>{
+ const editT='{% url "edit_knowledge_description" 9999 %}';
+ const delT='{% url "delete_knowledge_entry" 9999 %}';
+ const downT='{% url "download_knowledge_as_word" 9999 %}';
+ data.knowledge.forEach(k=>{
   let actions='';
   if(k.id){
     actions=`<a href="${editT.replace('9999',k.id)}" class="text-blue-700 underline mr-2">Bearbeiten</a>`+
@@ -203,27 +199,13 @@ data.knowledge.forEach(k=>{
       actions+=`<a href="${downT.replace('9999',k.id)}" class="text-blue-700 underline">Export</a>`;
     }
   }
-  let gutachten='';
-  if(k.gutachten_id){
-    gutachten=`<a href="${viewGT.replace('9999',k.gutachten_id)}">Anzeigen</a> |`+
-              `<a href="${editGT.replace('9999',k.gutachten_id)}">Bearbeiten</a>`+
-              `<form action="${delGT.replace('9999',k.gutachten_id)}" method="post" class="inline">`+
-              `<input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">`+
-              `<button type="submit" class="btn-action-delete">Löschen</button></form> | `+
-              `<a href="${downGT.replace('9999',k.gutachten_id)}">Word exportieren</a>`;
-  }else if(k.id){
-    gutachten=`<button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="${k.id}">Gutachten erstellen</button>`+
-              `<span class="gutachten-status-spinner ms-2" id="gutachten-status-${k.id}"></span>`;
-  }
   const known=k.last_checked? (k.is_known_by_llm? 'Ja':'Nein') : '-';
   tbody.innerHTML+=`<tr class="border-t"><td class="px-2 py-1">${k.software_name}</td>`+
                     `<td class="px-2 py-1 text-center">${known}</td>`+
                     `<td class="px-2 py-1">${k.description_html||''}</td>`+
-                    `<td class="px-2 py-1 text-center">${actions}</td>`+
-                    `<td class="px-2 py-1 text-center">${gutachten}</td></tr>`;
-});
-document.getElementById('knowledge-progress').textContent=`${data.checked} / ${data.total}`;
- attachGutachtenHandlers();
+                    `<td class="px-2 py-1 text-center">${actions}</td></tr>`;
+ });
+ document.getElementById('knowledge-progress').textContent=`${data.checked} / ${data.total}`;
 }
 
 
@@ -318,7 +300,13 @@ function startChecks(){
  }).catch(()=>{alert('Fehler beim Start');spinner.remove();btn.disabled=false;});
 }
 
-function attachGutachtenHandlers(){
+document.addEventListener('DOMContentLoaded',loadKnowledge);
+document.addEventListener('DOMContentLoaded',function(){
+ const btn=document.getElementById('start-checks');
+ if(btn){btn.addEventListener('click',startChecks);}
+});
+
+document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
     button.addEventListener('click',function(event){
       event.preventDefault();
@@ -338,7 +326,7 @@ function attachGutachtenHandlers(){
           const iv=setInterval(()=>{
             fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
               if(d.status==='SUCCESS'){
-                clearInterval(iv);loadKnowledge();
+                clearInterval(iv);location.reload();
               }else if(d.status==='FAIL'){
                 clearInterval(iv);
                 if(status){status.textContent='Fehler';}
@@ -349,17 +337,9 @@ function attachGutachtenHandlers(){
         }).catch(()=>{
           if(status){status.textContent='Fehler';}
           button.classList.remove('disabled');
-        });
-    });
   });
-}
-
-document.addEventListener('DOMContentLoaded',loadKnowledge);
-document.addEventListener('DOMContentLoaded',function(){
- const btn=document.getElementById('start-checks');
- if(btn){btn.addEventListener('click',startChecks);}
+  });
 });
-
 
 document.addEventListener('DOMContentLoaded',function(){
   let contextId=null;
