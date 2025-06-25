@@ -1671,7 +1671,7 @@ def projekt_create(request):
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
-    return render(request, "projekt_form.html", {"form": form, "software_typen_list": form.software_list})
+    return render(request, "projekt_form.html", {"form": form})
 
 
 @login_required
@@ -1693,7 +1693,6 @@ def projekt_edit(request, pk):
         "projekt": projekt,
         "categories": LLMConfig.get_categories(),
         "category": "default",
-        "software_typen_list": form.software_list,
     }
     return render(request, "projekt_form.html", context)
 

@@ -501,7 +501,7 @@ class BVProjectFormTests(TestCase):
                 "title": "",
             }
         )
-        data.setlist("software_typen", ["A"])
+        data.setlist("software", ["A"])
         form = BVProjectForm(data)
         self.assertTrue(form.is_valid())
         self.assertNotIn("docx_file", form.fields)

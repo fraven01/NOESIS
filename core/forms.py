@@ -128,17 +128,13 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Feldtyp überschreiben, damit einfache Textwerte akzeptiert werden
-        self.fields["software_typen"] = forms.CharField(
-            required=False, widget=forms.HiddenInput()
-        )
         if not self.instance or not self.instance.pk:
             self.fields.pop("status", None)
         else:
             self.fields["status"].queryset = ProjectStatus.objects.all()
         if self.data:
             self.software_list = [
-                s.strip() for s in self.data.getlist("software_typen") if s.strip()
+                s.strip() for s in self.data.getlist("software") if s.strip()
             ]
         else:
             raw = self.initial.get("software_typen")
@@ -151,7 +147,7 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     def clean_software_typen(self) -> list[str]:
         """Bereinigt die Eingabe und stellt sicher, dass sie nicht leer ist."""
-        raw_list = self.data.getlist("software_typen")
+        raw_list = self.data.getlist("software")
         if raw_list:
             names = [s.strip() for s in raw_list if s.strip()]
         else:
