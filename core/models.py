@@ -336,6 +336,13 @@ class Area(models.Model):
         help_text="Einzigartiger Name des Bereichs, z.B. 'work' oder 'personal'",
     )
     image = models.ImageField(upload_to="area_images/", blank=True, null=True)
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="UserAreaAccess",
+        related_name="areas",
+        blank=True,
+        help_text="Benutzer mit Zugriff auf diesen Bereich.",
+    )
 
     class Meta:
         ordering = ["slug"]
@@ -585,6 +592,19 @@ class UserTileAccess(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.user} -> {self.tile}"
+
+
+class UserAreaAccess(models.Model):
+    """Verknüpfung zwischen Benutzer und Bereich."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    area = models.ForeignKey(Area, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("user", "area")]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.user} -> {self.area}"
 
 
 class Anlage2Function(models.Model):
