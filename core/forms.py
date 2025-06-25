@@ -556,3 +556,12 @@ class UserImportForm(forms.Form):
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
+
+class Anlage2ConfigImportForm(forms.Form):
+    """Formular für den Import der globalen Phrasen."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+

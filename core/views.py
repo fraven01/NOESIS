@@ -46,6 +46,7 @@ from .forms import (
     LLMRoleForm,
     UserPermissionsForm,
     UserImportForm,
+    Anlage2ConfigImportForm,
 
 )
 from .models import (
@@ -1521,6 +1522,52 @@ def admin_import_users_permissions(request):
         messages.success(request, "Benutzerdaten importiert")
         return redirect("admin_user_list")
     return render(request, "admin_user_import.html", {"form": form})
+
+
+@login_required
+@admin_required
+def admin_anlage2_config_export(request):
+    """Exportiert alle globalen Phrasen als JSON-Datei."""
+    cfg = Anlage2Config.get_instance()
+    items = [
+        {"phrase_type": p.phrase_type, "phrase_text": p.phrase_text}
+        for p in cfg.global_phrases.all().order_by("phrase_type", "phrase_text")
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = (
+        "attachment; filename=anlage2_global_phrases.json"
+    )
+    return resp
+
+
+@login_required
+@admin_required
+def admin_anlage2_config_import(request):
+    """Importiert globale Phrasen aus einer JSON-Datei."""
+    form = Anlage2ConfigImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_anlage2_config_import")
+        cfg = Anlage2Config.get_instance()
+        for entry in items:
+            phrase_type = entry.get("phrase_type")
+            phrase_text = entry.get("phrase_text", "")
+            if not phrase_type or not phrase_text:
+                continue
+            Anlage2GlobalPhrase.objects.update_or_create(
+                config=cfg,
+                phrase_type=phrase_type,
+                phrase_text=phrase_text,
+                defaults={},
+            )
+        messages.success(request, "Phrasen importiert")
+        return redirect("anlage2_config")
+    return render(request, "admin_anlage2_config_import.html", {"form": form})
 
 
 @login_required

@@ -105,6 +105,16 @@ urlpatterns = [
         name="anlage2_config",
     ),
     path(
+        "projects-admin/anlage2-config/export/",
+        views.admin_anlage2_config_export,
+        name="admin_anlage2_config_export",
+    ),
+    path(
+        "projects-admin/anlage2-config/import/",
+        views.admin_anlage2_config_import,
+        name="admin_anlage2_config_import",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",
