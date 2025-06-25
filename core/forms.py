@@ -127,13 +127,17 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     class Meta:
         model = BVProject
-        fields = ["title", "status"]
+        fields = ["title", "beschreibung", "status"]
         labels = {
             "title": "Name",
+            "beschreibung": "Beschreibung",
             "status": "Status",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "beschreibung": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 5}
+            ),
             "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
 
