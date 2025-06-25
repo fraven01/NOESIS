@@ -127,19 +127,13 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     class Meta:
         model = BVProject
-        fields = ["title", "beschreibung", "software_typen", "status"]
+        fields = ["title", "status"]
         labels = {
             "title": "Name",
-            "beschreibung": "Beschreibung",
-            "software_typen": "Software-Typen",
             "status": "Status",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded p-2"}),
-            "beschreibung": forms.Textarea(
-                attrs={"class": "border rounded p-2", "rows": 5}
-            ),
-            "software_typen": forms.HiddenInput(),
             "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
 
@@ -151,29 +145,8 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
             self.fields.pop("status", None)
         else:
             self.fields["status"].queryset = ProjectStatus.objects.all()
-        if self.data:
-            self.software_list = [
-                s.strip() for s in self.data.getlist("software") if s.strip()
-            ]
-        else:
-            raw = self.initial.get("software_typen") or getattr(
-                self.instance, "software_typen", ""
-            )
-            self.software_list = [s.strip() for s in raw.split(",") if s.strip()]
 
-    def clean_software_typen(self) -> str:
-        """Bereinigt die Eingabe und stellt sicher, dass sie nicht leer ist."""
-        raw_list = self.data.getlist("software")
-        if raw_list:
-            names = [s.strip() for s in raw_list if s.strip()]
-        else:
-            raw = self.cleaned_data.get("software_typen", "")
-            names = [s.strip() for s in raw.split(",") if s.strip()]
-        if not names:
-            raise forms.ValidationError("Software-Typen dürfen nicht leer sein.")
-        cleaned = ", ".join(names)
-        self.software_list = names
-        return cleaned
+
 
 
 class BVProjectUploadForm(DocxValidationMixin, forms.Form):
