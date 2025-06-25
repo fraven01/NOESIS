@@ -112,6 +112,21 @@ Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
 
+### Anlage‑2‑Konfiguration importieren/exportieren
+
+Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
+Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
+
+```json
+{
+  "column_headings": [{"field_name": "technisch_vorhanden", "text": "Verfügbar?"}],
+  "global_phrases": [{"phrase_type": "technisch_verfuegbar_true", "phrase_text": "ja"}]
+}
+```
+
+Beim Import wird dieselbe Struktur erwartet. Fehlen einzelne Bereiche, werden
+lediglich die vorhandenen Daten eingelesen.
+
 ### KI-Begründung per Tooltip
 
 Bei der LLM-Prüfung einzelner Funktionen ruft der Hintergrundtask zusätzlich den
