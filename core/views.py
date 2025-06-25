@@ -44,6 +44,7 @@ from .forms import (
     ProjectStatusForm,
     LLMRoleForm,
     UserPermissionsForm,
+    UserImportForm,
 
 )
 from .models import (
@@ -1397,6 +1398,74 @@ def admin_edit_user_permissions(request, user_id):
         return redirect("admin_user_list")
     context = {"form": form, "user_obj": user_obj}
     return render(request, "admin_user_permissions_form.html", context)
+
+
+@login_required
+@admin_required
+def admin_export_users_permissions(request):
+    """Exportiert Benutzer, Gruppen und Tile-Zuordnungen als JSON."""
+    users = (
+        User.objects.all()
+        .prefetch_related("groups", "tiles")
+        .order_by("username")
+    )
+    data = []
+    for user in users:
+        data.append(
+            {
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "is_active": user.is_active,
+                "is_staff": user.is_staff,
+                "groups": [g.name for g in user.groups.all()],
+                "tiles": [t.url_name for t in user.tiles.all()],
+            }
+        )
+    content = json.dumps(data, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=users.json"
+    return resp
+
+
+@login_required
+@admin_required
+def admin_import_users_permissions(request):
+    """Importiert Benutzer, Gruppen und Tile-Zuordnungen aus JSON."""
+    form = UserImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            users = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_import_users_permissions")
+        for item in users:
+            username = item.get("username")
+            if not username:
+                continue
+            user_obj, created = User.objects.update_or_create(
+                username=username,
+                defaults={
+                    "email": item.get("email", ""),
+                    "first_name": item.get("first_name", ""),
+                    "last_name": item.get("last_name", ""),
+                    "is_active": item.get("is_active", True),
+                    "is_staff": item.get("is_staff", False),
+                },
+            )
+            if created:
+                user_obj.set_unusable_password()
+                user_obj.save(update_fields=["password"])
+
+            group_qs = Group.objects.filter(name__in=item.get("groups", []))
+            tile_qs = Tile.objects.filter(url_name__in=item.get("tiles", []))
+            user_obj.groups.set(group_qs)
+            user_obj.tiles.set(tile_qs)
+        messages.success(request, "Benutzerdaten importiert")
+        return redirect("admin_user_list")
+    return render(request, "admin_user_import.html", {"form": form})
 
 
 @login_required
