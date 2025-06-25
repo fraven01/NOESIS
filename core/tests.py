@@ -1070,6 +1070,28 @@ class AdminPromptsViewTests(TestCase):
         self.assertFalse(Prompt.objects.filter(id=self.prompt.id).exists())
 
 
+class PromptImportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("pimport", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="pimport", password="pass")
+
+    def test_import_with_clear_first_replaces_prompts(self):
+        Prompt.objects.create(name="old", text="x")
+        payload = json.dumps([{"name": "neu", "text": "t"}])
+        file = SimpleUploadedFile("p.json", payload.encode("utf-8"))
+        url = reverse("admin_prompt_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("admin_prompts"))
+        self.assertEqual(Prompt.objects.count(), 1)
+        self.assertTrue(Prompt.objects.filter(name="neu").exists())
+
+
 class ReportingTests(TestCase):
     def test_gap_analysis_file_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2388,6 +2410,90 @@ class UserImportExportTests(TestCase):
         user = User.objects.get(username="neu")
         self.assertTrue(user.groups.filter(name="testgroup").exists())
         self.assertTrue(user.tiles.filter(url_name="tile").exists())
+
+
+class Anlage1ImportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("a1import", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="a1import", password="pass")
+
+    def test_clear_first_resets_questions(self):
+        Anlage1Question.objects.create(num=99, text="Alt?", enabled=True)
+        payload = json.dumps([{"text": "Neu?"}])
+        file = SimpleUploadedFile("a1.json", payload.encode("utf-8"))
+        url = reverse("admin_anlage1_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("admin_anlage1"))
+        self.assertEqual(Anlage1Question.objects.count(), 1)
+        q = Anlage1Question.objects.first()
+        self.assertEqual(q.text, "Neu?")
+        self.assertEqual(q.num, 1)
+
+class Anlage2ConfigImportExportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("cfgadmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="cfgadmin", password="pass")
+        self.cfg = Anlage2Config.get_instance()
+
+    def test_export_contains_headings_and_phrases(self):
+        Anlage2ColumnHeading.objects.create(
+            config=self.cfg,
+            field_name="technisch_vorhanden",
+            text="Verfügbar?",
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=self.cfg,
+            phrase_type="technisch_verfuegbar_true",
+            phrase_text="ja",
+        )
+        url = reverse("admin_anlage2_config_export")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertIn(
+            {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
+            data["alias_headings"],
+        )
+        self.assertIn(
+            {
+                "phrase_type": "technisch_verfuegbar_true",
+                "phrase_text": "ja",
+            },
+            data["global_phrases"],
+        )
+
+    def test_import_creates_headings(self):
+        payload = json.dumps(
+            {
+                "alias_headings": [
+                    {"field_name": "ki_beteiligung", "text": "KI?"}
+                ],
+                "global_phrases": [
+                    {
+                        "phrase_type": "ki_beteiligung_true",
+                        "phrase_text": "Ja",
+                    }
+                ],
+            }
+        )
+        file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
+        url = reverse("admin_anlage2_config_import")
+        resp = self.client.post(url, {"json_file": file}, format="multipart")
+        self.assertRedirects(resp, reverse("anlage2_config"))
+        self.assertTrue(
+            Anlage2ColumnHeading.objects.filter(
+                field_name="ki_beteiligung", text="KI?"
+            ).exists()
+        )
+
 
 
 
