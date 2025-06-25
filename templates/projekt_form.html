@@ -14,13 +14,17 @@
         <label class="form-label">Software-Typen:</label>
 
         <div id="software-inputs-container">
-            {% for software_name in software_typen_list %}
-                <input type="text" name="software_typen" class="form-control mb-2" value="{{ software_name }}">
-            {% empty %}
-                <input type="text" name="software_typen" class="form-control mb-2">
+            <input type="text" name="software" class="form-control mb-2" value="{{ form.software_list.0 }}">
+            {% for software in form.software_list|slice:"1:" %}
+                <input type="text" name="software" class="form-control mb-2" value="{{ software }}">
             {% endfor %}
+            {% if not form.software_list %}
+                <input type="text" name="software" class="form-control mb-2">
+            {% endif %}
         </div>
         <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+        {{ form.software_typen }}
+        {{ form.software_typen.errors }}
 
     </div>
     {% if form.instance.pk %}
@@ -57,21 +61,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const addSoftwareBtn = document.getElementById('add-software-btn');
     const container = document.getElementById('software-inputs-container');
 
-    // Prüfe, ob beide Elemente existieren, um Fehler zu vermeiden
     if (addSoftwareBtn && container) {
         addSoftwareBtn.addEventListener('click', function() {
-            // Erstelle ein neues Input-Element von Grund auf
+
             const newInput = document.createElement('input');
             newInput.type = 'text';
-            newInput.name = 'software_typen';
+            newInput.name = 'software';
             newInput.className = 'form-control mb-2';
-            newInput.placeholder = 'Weiterer Software-Typ';
 
-            // Füge das neue Input-Element zum Container hinzu
             container.appendChild(newInput);
-
-            // Optional: Setze den Fokus direkt auf das neue Feld
-            newInput.focus();
         });
     }
 });
