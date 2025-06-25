@@ -2348,6 +2348,48 @@ class VerificationToInitialTests(TestCase):
         self.assertEqual(sub_data["ki_beteiligt_begruendung"], "Nein")
 
 
+class UserImportExportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("uadmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="uadmin", password="pass")
+
+        self.group = Group.objects.create(name="testgroup")
+        area = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        self.tile = Tile.objects.create(slug="t1", name="T", bereich=area, url_name="tile")
+
+    def test_export_json(self):
+        self.user.groups.add(self.group)
+        self.user.tiles.add(self.tile)
+        url = reverse("admin_export_users_permissions")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        entry = next(u for u in data if u["username"] == "uadmin")
+        self.assertIn("testgroup", entry["groups"])
+        self.assertIn("tile", entry["tiles"])
+
+    def test_import_creates_user(self):
+        payload = json.dumps(
+            [
+                {
+                    "username": "neu",
+                    "email": "a@b.c",
+                    "groups": ["testgroup"],
+                    "tiles": ["tile"],
+                }
+            ]
+        )
+        file = SimpleUploadedFile("u.json", payload.encode("utf-8"))
+        url = reverse("admin_import_users_permissions")
+        resp = self.client.post(url, {"json_file": file}, format="multipart")
+        self.assertRedirects(resp, reverse("admin_user_list"))
+        user = User.objects.get(username="neu")
+        self.assertTrue(user.groups.filter(name="testgroup").exists())
+        self.assertTrue(user.tiles.filter(url_name="tile").exists())
+
+
 
 
 

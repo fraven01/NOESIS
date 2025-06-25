@@ -74,6 +74,16 @@ urlpatterns = [
     path("projects-admin/models/", views.admin_models, name="admin_models"),
     path("projects-admin/users/", views.admin_user_list, name="admin_user_list"),
     path(
+        "projects-admin/users/export/",
+        views.admin_export_users_permissions,
+        name="admin_export_users_permissions",
+    ),
+    path(
+        "projects-admin/users/import/",
+        views.admin_import_users_permissions,
+        name="admin_import_users_permissions",
+    ),
+    path(
         "projects-admin/users/<int:user_id>/permissions/",
         views.admin_edit_user_permissions,
         name="admin_edit_user_permissions",

@@ -538,3 +538,12 @@ class UserPermissionsForm(forms.Form):
             self.fields["groups"].initial = user.groups.all()
             self.fields["tiles"].initial = user.tiles.all()
 
+
+class UserImportForm(forms.Form):
+    """Formular für den Import von Benutzerrechten."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
