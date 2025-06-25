@@ -1472,6 +1472,11 @@ class GutachtenEditDeleteTests(TestCase):
         self.gutachten.refresh_from_db()
         self.assertEqual(self.gutachten.text, "Neu")
 
+    def test_edit_page_has_mde(self):
+        url = reverse("gutachten_edit", args=[self.gutachten.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "easymde.min.css")
+
     def test_delete_removes_file(self):
         url = reverse("gutachten_delete", args=[self.gutachten.pk])
         resp = self.client.post(url)
