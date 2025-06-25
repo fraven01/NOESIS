@@ -2460,7 +2460,7 @@ class Anlage2ConfigImportExportTests(TestCase):
         data = json.loads(resp.content)
         self.assertIn(
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
-            data["column_headings"],
+            data["alias_headings"],
         )
         self.assertIn(
             {
@@ -2473,7 +2473,7 @@ class Anlage2ConfigImportExportTests(TestCase):
     def test_import_creates_headings(self):
         payload = json.dumps(
             {
-                "column_headings": [
+                "alias_headings": [
                     {"field_name": "ki_beteiligung", "text": "KI?"}
                 ],
                 "global_phrases": [

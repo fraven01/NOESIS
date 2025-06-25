@@ -1629,15 +1629,17 @@ def admin_import_users_permissions(request):
 def admin_anlage2_config_export(request):
     """Exportiert Spaltenüberschriften und globale Phrasen als JSON-Datei."""
     cfg = Anlage2Config.get_instance()
+    global_phrases = Anlage2GlobalPhrase.objects.all().values(
+        "phrase_type",
+        "phrase_text",
+    )
+    alias_headings = Anlage2ColumnHeading.objects.all().values(
+        "field_name",
+        "text",
+    )
     data = {
-        "column_headings": [
-            {"field_name": h.field_name, "text": h.text}
-            for h in cfg.headers.all().order_by("field_name", "id")
-        ],
-        "global_phrases": [
-            {"phrase_type": p.phrase_type, "phrase_text": p.phrase_text}
-            for p in cfg.global_phrases.all().order_by("phrase_type", "phrase_text")
-        ],
+        "global_phrases": list(global_phrases),
+        "alias_headings": list(alias_headings),
     }
     content = json.dumps(data, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
@@ -1658,15 +1660,9 @@ def admin_anlage2_config_import(request):
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_anlage2_config_import")
         cfg = Anlage2Config.get_instance()
-        headings = items.get("column_headings", [])
-        phrases = items.get("global_phrases", [])
-        for h in headings:
-            Anlage2ColumnHeading.objects.update_or_create(
-                config=cfg,
-                field_name=h.get("field_name"),
-                defaults={"text": h.get("text", "")},
-            )
-        for entry in phrases:
+        global_phrases_data = items.get("global_phrases", [])
+        alias_headings_data = items.get("alias_headings", [])
+        for entry in global_phrases_data:
             phrase_type = entry.get("phrase_type")
             phrase_text = entry.get("phrase_text", "")
             if not phrase_type or not phrase_text:
@@ -1676,6 +1672,12 @@ def admin_anlage2_config_import(request):
                 phrase_type=phrase_type,
                 phrase_text=phrase_text,
                 defaults={},
+            )
+        for h in alias_headings_data:
+            Anlage2ColumnHeading.objects.update_or_create(
+                config=cfg,
+                field_name=h.get("field_name"),
+                defaults={"text": h.get("text", "")},
             )
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
