@@ -95,8 +95,8 @@ class AdminProjectsTests(TestCase):
         self.user.groups.add(admin_group)
         self.client.login(username="admin", password="pass")
 
-        self.p1 = BVProject.objects.create(software_typen=["A"], beschreibung="x")
-        self.p2 = BVProject.objects.create(software_typen=["B"], beschreibung="y")
+        self.p1 = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.p2 = BVProject.objects.create(software_typen="B", beschreibung="y")
 
     def test_delete_selected_projects(self):
         url = reverse("admin_projects")
@@ -125,7 +125,7 @@ class AdminProjectCleanupTests(TestCase):
         self.user.groups.add(admin_group)
         self.client.login(username="admin2", password="pass")
 
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -519,7 +519,7 @@ class BVProjectFormTests(TestCase):
 
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         for i in range(1, 4):
             f = SimpleUploadedFile(f"f{i}.txt", b"data")
             BVProjectFile.objects.create(
@@ -538,7 +538,7 @@ class ProjektFileUploadTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("user", password="pass")
         self.client.login(username="user", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
     def test_docx_upload_extracts_text(self):
         doc = Document()
@@ -564,34 +564,34 @@ class ProjektFileUploadTests(TestCase):
 
 class BVProjectModelTests(TestCase):
     def test_title_auto_set_from_software(self):
-        projekt = BVProject.objects.create(software_typen=["A", "B"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
         self.assertEqual(projekt.title, "A, B")
 
     def test_title_preserved_when_set(self):
         projekt = BVProject.objects.create(
-            title="X", software_typen=["A"], beschreibung="x"
+            title="X", software_typen="A", beschreibung="x"
         )
         self.assertEqual(projekt.title, "X")
 
 
 class WorkflowTests(TestCase):
     def test_default_status(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status.key, "NEW")
 
     def test_set_project_status(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         set_project_status(projekt, "CLASSIFIED")
         projekt.refresh_from_db()
         self.assertEqual(projekt.status.key, "CLASSIFIED")
 
     def test_invalid_status(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with self.assertRaises(ValueError):
             set_project_status(projekt, "XXX")
 
     def test_set_project_status_new_states(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         for status in [
             "IN_PRUEFUNG_ANLAGE_X",
             "FB_IN_PRUEFUNG",
@@ -602,7 +602,7 @@ class WorkflowTests(TestCase):
             self.assertEqual(projekt.status.key, status)
 
     def test_status_history_created(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status_history.count(), 1)
         set_project_status(projekt, "CLASSIFIED")
         self.assertEqual(projekt.status_history.count(), 2)
@@ -612,7 +612,7 @@ class LLMTasksTests(TestCase):
     maxDiff = None
 
     def test_classify_system(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -630,7 +630,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data["kategorie"]["value"], "X")
 
     def test_check_anlage2(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
@@ -650,7 +650,7 @@ class LLMTasksTests(TestCase):
 
     def test_check_anlage2_llm_receives_text(self):
         """Der LLM-Prompt enthält den bekannten Text."""
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
@@ -667,7 +667,7 @@ class LLMTasksTests(TestCase):
 
     def test_check_anlage2_prompt_contains_text(self):
         """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
@@ -684,7 +684,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data["functions"][0]["funktion"], "Login")
 
     def test_check_anlage2_parser(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         doc = Document()
         table = doc.add_table(rows=2, cols=5)
         table.cell(0, 0).text = "Funktion"
@@ -730,7 +730,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json, expected)
 
     def test_analyse_anlage2(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="b")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -768,7 +768,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
 
     def test_check_anlage1_new_schema(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -827,7 +827,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data, expected)
 
     def test_check_anlage1_parser(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
             "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
             "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
@@ -869,7 +869,7 @@ class LLMTasksTests(TestCase):
             parser_enabled=True,
             llm_enabled=True,
         )
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
             "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
             "Frage 10: Test?\u00b6A10"
@@ -945,7 +945,7 @@ class LLMTasksTests(TestCase):
 
     def test_wrong_question_number_sets_hint(self):
         """Hinweis wird gesetzt, wenn die Nummer nicht passt."""
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
         BVProjectFile.objects.create(
             projekt=projekt,
@@ -960,7 +960,7 @@ class LLMTasksTests(TestCase):
         self.assertIn("Frage 1.2 statt 1", hint)
 
     def test_generate_gutachten_twice_replaces_file(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
         second = generate_gutachten(projekt.pk, text="Neu")
         try:
@@ -975,7 +975,7 @@ class LLMTasksTests(TestCase):
         q1 = Anlage1Question.objects.get(num=1)
         q1.llm_enabled = False
         q1.save(update_fields=["llm_enabled"])
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -1072,7 +1072,7 @@ class AdminPromptsViewTests(TestCase):
 
 class ReportingTests(TestCase):
     def test_gap_analysis_file_created(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -1087,7 +1087,7 @@ class ReportingTests(TestCase):
             path.unlink(missing_ok=True)
 
     def test_management_summary_includes_comment(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -1104,7 +1104,7 @@ class ReportingTests(TestCase):
             path.unlink(missing_ok=True)
 
     def test_manual_analysis_overrides(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=1,
@@ -1136,7 +1136,7 @@ class ProjektFileCheckViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("user2", password="pass")
         self.client.login(username="user2", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -1212,7 +1212,7 @@ class ProjektFileJSONEditTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("user3", password="pass")
         self.client.login(username="user3", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=3,
@@ -1326,7 +1326,7 @@ class Anlage2ReviewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("rev", password="pass")
         self.client.login(username="rev", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=2,
@@ -1392,7 +1392,7 @@ class Anlage2ReviewTests(TestCase):
 
 class WorkerGenerateGutachtenTests(TestCase):
     def setUp(self):
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -1420,7 +1420,7 @@ class GutachtenEditDeleteTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("euser", password="pass")
         self.client.login(username="euser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         doc = Document()
         doc.add_paragraph("Alt")
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
@@ -1461,7 +1461,7 @@ class ProjektFileCheckResultTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")
         self.client.login(username="vuser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -1602,7 +1602,7 @@ class Anlage1EmailTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("emailer", password="pass")
         self.client.login(username="emailer", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -1929,7 +1929,7 @@ class ModelSelectionTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("modeluser", password="pass")
         self.client.login(username="modeluser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
@@ -1981,7 +1981,7 @@ class ModelSelectionTests(TestCase):
 
 class CommandModelTests(TestCase):
     def test_command_passes_model(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
@@ -1994,7 +1994,7 @@ class CommandModelTests(TestCase):
         mock_func.assert_called_with(projekt.pk, model_name="m3")
 
     def test_analyse_command_passes_model(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
@@ -2012,7 +2012,7 @@ class CommandModelTests(TestCase):
 
 class Anlage2FunctionTests(TestCase):
     def test_check_anlage2_functions_creates_result(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({
             "technisch_verfuegbar": True,
@@ -2029,7 +2029,7 @@ class Anlage2FunctionTests(TestCase):
 
 class CommandFunctionsTests(TestCase):
     def test_functions_command_passes_model(self):
-        projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         Anlage2Function.objects.create(name="Login")
         with patch(
             "core.management.commands.check_anlage2_functions.check_anlage2_functions"
@@ -2050,7 +2050,7 @@ class ProjektDetailAdminButtonTests(TestCase):
         self.admin = User.objects.create_user("padmin", password="pass")
         self.admin.groups.add(admin_group)
         self.user = User.objects.create_user("puser", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
     def test_admin_user_sees_link(self):
         self.client.login(username="padmin", password="pass")
@@ -2122,7 +2122,7 @@ class GutachtenLLMCheckTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("gcheck", password="pass")
         self.client.login(username="gcheck", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.knowledge = SoftwareKnowledge.objects.create(
             projekt=self.projekt,
             software_name="A",
@@ -2143,7 +2143,7 @@ class GutachtenLLMCheckTests(TestCase):
 class FeatureVerificationTests(TestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(
-            software_typen=["Word", "Excel"],
+            software_typen="Word, Excel",
             beschreibung="x",
         )
         BVProjectFile.objects.create(
@@ -2224,7 +2224,7 @@ class FeatureVerificationTests(TestCase):
 
 class InitialCheckTests(TestCase):
     def setUp(self):
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
     def test_known_software_stores_description(self):
         with patch(
@@ -2273,7 +2273,7 @@ class EditKIJustificationTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("justi", password="pass")
         self.client.login(username="justi", password="pass")
-        self.projekt = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=2,
@@ -2310,7 +2310,7 @@ class EditKIJustificationTests(TestCase):
 
 class VerificationToInitialTests(TestCase):
     def setUp(self):
-        self.project = BVProject.objects.create(software_typen=["A"], beschreibung="x")
+        self.project = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             projekt=self.project,
             anlage_nr=2,
