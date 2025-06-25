@@ -1995,7 +1995,7 @@ def projekt_create(request):
             cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
 
             projekt = form.save(commit=False)
-            projekt.software_typen = cleaned_software_list
+            projekt.software_typen = ", ".join(cleaned_software_list)
             projekt.save()
             form.save_m2m()
             return redirect("projekt_detail", pk=projekt.pk)
@@ -2014,7 +2014,7 @@ def projekt_edit(request, pk):
             cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
 
             projekt = form.save(commit=False)
-            projekt.software_typen = cleaned_software_list
+            projekt.software_typen = ", ".join(cleaned_software_list)
             projekt.save()
             form.save_m2m()
             return redirect("projekt_detail", pk=projekt.pk)
