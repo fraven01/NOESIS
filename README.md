@@ -17,16 +17,6 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    ```
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 
-## Umgebungsvariablen
-
-Kopiere `.env.example` nach `.env` und f\u00fclle folgende Werte aus:
-
-- `DJANGO_SECRET_KEY` – geheimer Schl\u00fcssel f\u00fcr Django
-- `OBS_PASSWORD` – Passwort f\u00fcr die OBS-Websocket-Verbindung
-- `GOOGLE_API_KEY` **oder** `OPENAI_API_KEY`
-
-F\u00fcr DOCX-Exporte muss `pandoc` systemweit installiert sein.
-
 ## Tests und Checks
 
 Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
@@ -60,15 +50,6 @@ python manage.py qcluster
 ```
 
 Ohne diesen Prozess werden keine Hintergrundaufgaben ausgeführt.
-
-Für die gleichzeitige Ausführung von Web- und Worker-Prozess kann
-``honcho`` den `Procfile` einlesen:
-
-```bash
-honcho start
-```
-
-Damit laufen beide Dienste parallel.
 
 ## Markdown-Verarbeitung
 
