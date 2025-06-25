@@ -4,6 +4,25 @@ from django.db import models
 from pathlib import Path
 
 
+class BVProjectManager(models.Manager):
+    """Manager mit Unterstützung für das alte ``software_typen``-Feld."""
+
+    def create(self, *args, **kwargs):
+        software = kwargs.pop("software_typen", None)
+        projekt = super().create(*args, **kwargs)
+        if software:
+            if isinstance(software, str):
+                names = [s.strip() for s in software.split(",") if s.strip()]
+            else:
+                names = [s.strip() for s in software if s.strip()]
+            for name in names:
+                BVSoftware.objects.create(projekt=projekt, name=name)
+            if not projekt.title and names:
+                projekt.title = ", ".join(names)
+                projekt.save(update_fields=["title"])
+        return projekt
+
+
 def recording_upload_path(instance, filename):
     slug = (
         instance.bereich.slug if hasattr(instance.bereich, "slug") else instance.bereich
@@ -69,7 +88,6 @@ class BVProject(models.Model):
 
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
-    software_typen = models.CharField("Software-Typen", max_length=200, blank=True)
     status = models.ForeignKey(
         ProjectStatus,
         on_delete=models.PROTECT,
@@ -82,28 +100,13 @@ class BVProject(models.Model):
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
     gutachten_function_note = models.TextField("LLM-Hinweis Gutachten", blank=True)
 
+    objects = BVProjectManager()
+
     class Meta:
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        """Speichert das Projekt und bereitet ``software_typen`` auf.
-
-        Liegt ``software_typen`` als Liste vor, werden die Einträge zu einem
-        kommagetrennten String verbunden. Bei einem String bleibt die bisherige
-        Aufteilung nach Komma erhalten. Fehlt ein Titel, wird dieser aus den
-        Software-Namen gesetzt.
-        """
-        if self.software_typen:
-            if isinstance(self.software_typen, list):
-                cleaned_list = [s.strip() for s in self.software_typen if s.strip()]
-                cleaned = ", ".join(cleaned_list)
-            else:
-                cleaned = ", ".join(
-                    [s.strip() for s in str(self.software_typen).split(",") if s.strip()]
-                )
-            self.software_typen = cleaned
-            if not self.title:
-                self.title = cleaned
+        """Speichert das Projekt und legt bei Bedarf einen Status an."""
         is_new = self._state.adding
         if not self.status:
             self.status = ProjectStatus.objects.filter(is_default=True).first()
@@ -113,6 +116,32 @@ class BVProject(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def software_list(self) -> list[str]:
+        return list(self.bvsoftware_set.values_list("name", flat=True))
+
+    @property
+    def software_string(self) -> str:
+        return ", ".join(self.software_list)
+
+    # Alias f\u00fcr alte Feldbezeichnung
+    @property
+    def software_typen(self) -> str:  # pragma: no cover - kompatibel
+        return self.software_string
+
+
+class BVSoftware(models.Model):
+    """Software-Eintrag innerhalb eines Projekts."""
+
+    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
 
 
 def get_default_project_status():

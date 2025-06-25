@@ -24,6 +24,7 @@ from .models import (
     Anlage2FunctionResult,
     Anlage2GlobalPhrase,
     SoftwareKnowledge,
+    BVSoftware,
     Gutachten,
 )
 from .docx_utils import (
@@ -88,6 +89,13 @@ def setUpModule():
     create_statuses()
 
 
+def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
+    projekt = BVProject.objects.create(**kwargs)
+    for name in software or []:
+        BVSoftware.objects.create(projekt=projekt, name=name)
+    return projekt
+
+
 class AdminProjectsTests(TestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -95,8 +103,8 @@ class AdminProjectsTests(TestCase):
         self.user.groups.add(admin_group)
         self.client.login(username="admin", password="pass")
 
-        self.p1 = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.p2 = BVProject.objects.create(software_typen="B", beschreibung="y")
+        self.p1 = create_project(["A"], beschreibung="x")
+        self.p2 = create_project(["B"], beschreibung="y")
 
     def test_delete_selected_projects(self):
         url = reverse("admin_projects")
@@ -125,7 +133,7 @@ class AdminProjectCleanupTests(TestCase):
         self.user.groups.add(admin_group)
         self.client.login(username="admin2", password="pass")
 
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.projekt = create_project(["A"], beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,

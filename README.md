@@ -161,3 +161,7 @@ speichern und fließen so in die weitere Auswertung ein.
 
 Beim Anlegen eines Projekts kann jetzt ein zweistufiger LLM-Check gestartet werden. Dabei wird zuerst gepr\u00fcft, ob das Modell die jeweilige Software kennt. Nur bei einer positiven Antwort folgt Schritt zwei mit einer Kurzbeschreibung, die in der Tabelle **Software-Wissen** landet.
 Dort lassen sich die Eintr\u00e4ge bequem bearbeiten, l\u00f6schen oder als Word-Datei exportieren.
+Seit Version X werden die Software-Komponenten eines Projekts nicht mehr als
+Komma-Liste gespeichert, sondern als eigene Objekte des Modells
+``BVSoftware``. Zu einem ``BVProject`` geh\u00f6ren beliebig viele solcher
+Eintr\u00e4ge.
