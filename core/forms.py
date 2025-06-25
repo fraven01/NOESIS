@@ -465,7 +465,7 @@ class KnowledgeDescriptionForm(forms.ModelForm):
         labels = {"description": "Beschreibung"}
         widgets = {
             "description": forms.Textarea(
-                attrs={"class": "border rounded p-2", "rows": 5}
+                attrs={"class": "border rounded p-2 w-full", "rows": 20}
             )
         }
 
