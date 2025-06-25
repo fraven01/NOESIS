@@ -18,11 +18,6 @@ from .models import (
     Tile,
 )
 from django.contrib.auth.models import Group
-
-try:
-    from .models import SoftwareType
-except Exception:  # pragma: no cover - optional model
-    SoftwareType = None
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -117,13 +112,6 @@ class DocxValidationMixin:
 
 
 class BVProjectForm(DocxValidationMixin, forms.ModelForm):
-    if SoftwareType:
-        software_type = forms.ModelMultipleChoiceField(
-            queryset=SoftwareType.objects.none(),
-            widget=forms.CheckboxSelectMultiple,
-            required=False,
-            label="Software-Typen",
-        )
 
     class Meta:
         model = BVProject
@@ -143,8 +131,6 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if SoftwareType:
-            self.fields["software_type"].queryset = SoftwareType.objects.all()
         if not self.instance or not self.instance.pk:
             self.fields.pop("status", None)
         else:
