@@ -1581,7 +1581,7 @@ def admin_llm_role_import(request):
 @admin_required
 def admin_user_list(request):
     """Listet alle Benutzer mit zugehörigen Gruppen und Tiles auf."""
-    users = list(User.objects.all().prefetch_related("groups", "tiles"))
+    users = list(User.objects.all().prefetch_related("groups", "tiles", "areas"))
     context = {"users": users}
     return render(request, "admin_user_list.html", context)
 
@@ -1595,6 +1595,7 @@ def admin_edit_user_permissions(request, user_id):
     if request.method == "POST" and form.is_valid():
         user_obj.groups.set(form.cleaned_data.get("groups"))
         user_obj.tiles.set(form.cleaned_data.get("tiles"))
+        user_obj.areas.set(form.cleaned_data.get("areas"))
         messages.success(request, "Berechtigungen gespeichert")
         return redirect("admin_user_list")
     context = {"form": form, "user_obj": user_obj}
@@ -1607,7 +1608,7 @@ def admin_export_users_permissions(request):
     """Exportiert Benutzer, Gruppen und Tile-Zuordnungen als JSON."""
     users = (
         User.objects.all()
-        .prefetch_related("groups", "tiles")
+        .prefetch_related("groups", "tiles", "areas")
         .order_by("username")
     )
     data = []
@@ -1621,6 +1622,7 @@ def admin_export_users_permissions(request):
                 "is_active": user.is_active,
                 "is_staff": user.is_staff,
                 "groups": [g.name for g in user.groups.all()],
+                "areas": [a.slug for a in user.areas.all()],
                 "tiles": [t.url_name for t in user.tiles.all()],
             }
         )
@@ -1662,8 +1664,10 @@ def admin_import_users_permissions(request):
 
             group_qs = Group.objects.filter(name__in=item.get("groups", []))
             tile_qs = Tile.objects.filter(url_name__in=item.get("tiles", []))
+            area_qs = Area.objects.filter(slug__in=item.get("areas", []))
             user_obj.groups.set(group_qs)
             user_obj.tiles.set(tile_qs)
+            user_obj.areas.set(area_qs)
         messages.success(request, "Benutzerdaten importiert")
         return redirect("admin_user_list")
     return render(request, "admin_user_import.html", {"form": form})
