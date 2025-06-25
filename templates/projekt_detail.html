@@ -11,7 +11,7 @@
 <div class="lg:w-2/3">
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
-<p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_typen }}</p>
+<p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
 <form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
@@ -136,7 +136,7 @@
   <div class="bg-gray-100 p-4 rounded">
     <h3 class="font-semibold mb-2">Projektinfo</h3>
     <p><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
-    <p class="mt-1"><strong>Software:</strong> {{ projekt.software_typen }}</p>
+    <p class="mt-1"><strong>Software:</strong> {{ projekt.software_string }}</p>
     <p class="mt-1"><strong>Anlagen:</strong> {{ num_attachments }}</p>
     <p class="mt-1"><strong>Gutachten vorhanden:</strong> {% if projekt.gutachten_file %}Ja{% else %}Nein{% endif %}</p>
     <p class="mt-1"><strong>Geprüft:</strong> {{ num_reviewed }} / {{ num_attachments }}</p>

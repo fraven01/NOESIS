@@ -327,7 +327,7 @@ def generate_gutachten(
         prefix = (
             base_obj.text if base_obj else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
         )
-        prompt_text = prefix + projekt.software_typen
+        prompt_text = prefix + projekt.software_string
         prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
         text = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
     doc = Document()
@@ -375,7 +375,7 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
         knowledge = SoftwareKnowledge.objects.get(pk=software_type_id)
         target = knowledge.software_name
     else:
-        target = projekt.software_typen
+        target = projekt.software_string
 
     prompt_obj = Prompt(name="tmp", text=prefix + target, role=base_obj.role if base_obj else None)
     text = query_llm(prompt_obj, {}, model_name=model, model_type="gutachten")
@@ -780,7 +780,7 @@ def worker_verify_feature(
             use_system_role=False,
         )
 
-    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
+    software_list = projekt.software_list
 
     name = function_name_for_prompt or ""
 

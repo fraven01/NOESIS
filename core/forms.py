@@ -150,6 +150,24 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         else:
             self.fields["status"].queryset = ProjectStatus.objects.all()
 
+    def save(self, software_list: list[str] | None = None, commit: bool = True):
+        projekt = super().save(commit=False)
+        if commit:
+            projekt.save()
+        if software_list is not None:
+            from .models import BVSoftware
+
+            projekt.bvsoftware_set.all().delete()
+            cleaned = [s.strip() for s in software_list if s.strip()]
+            for name in cleaned:
+                BVSoftware.objects.create(projekt=projekt, name=name)
+            if not projekt.title and cleaned:
+                projekt.title = ", ".join(cleaned)
+                projekt.save(update_fields=["title"])
+        if commit:
+            self.save_m2m()
+        return projekt
+
 
 
 
