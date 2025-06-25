@@ -2259,7 +2259,7 @@ class FeatureVerificationTests(TestCase):
         ) as mock_q:
             worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
         first_call_ctx = mock_q.call_args_list[0].args[1]
-        self.assertEqual(first_call_ctx["function_name"], self.sub.frage_text)
+        self.assertEqual(first_call_ctx["subquestion_text"], self.sub.frage_text)
 
     def test_mixed_returns_none(self):
         with patch(

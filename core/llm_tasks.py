@@ -750,24 +750,31 @@ def worker_verify_feature(
     projekt = BVProject.objects.get(pk=project_id)
 
     obj_to_check = None
-    function_name_for_prompt: str | None = None
     lookup_key: str | None = None
+    verification_prompt_key = "anlage2_feature_verification"
+    justification_prompt_key = "anlage2_feature_justification"
+    context: dict[str, str] = {}
+    ai_function_name = ""
 
     if object_type == "function":
         obj_to_check = Anlage2Function.objects.get(pk=object_id)
-        function_name_for_prompt = obj_to_check.name
+        context["function_name"] = obj_to_check.name
         lookup_key = obj_to_check.name
+        ai_function_name = obj_to_check.name
     elif object_type == "subquestion":
         obj_to_check = Anlage2SubQuestion.objects.get(pk=object_id)
-        function_name_for_prompt = obj_to_check.frage_text
+        context["subquestion_text"] = obj_to_check.frage_text
         lookup_key = f"{obj_to_check.funktion.name}: {obj_to_check.frage_text}"
+        verification_prompt_key = "anlage2_subquestion_verification"
+        justification_prompt_key = "anlage2_subquestion_justification"
+        ai_function_name = obj_to_check.funktion.name
     else:
         raise ValueError("invalid object_type")
 
     try:
-        prompt_obj = Prompt.objects.get(name="anlage2_feature_verification")
+        prompt_obj = Prompt.objects.get(name=verification_prompt_key)
     except Prompt.DoesNotExist:
-        logger.error("Prompt 'anlage2_feature_verification' nicht gefunden!")
+        logger.error("Prompt '%s' nicht gefunden!", verification_prompt_key)
         prompt_obj = Prompt(
             text=(
                 "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
@@ -782,11 +789,11 @@ def worker_verify_feature(
 
     software_list = projekt.software_list
 
-    name = function_name_for_prompt or ""
+    name = ai_function_name
 
     individual_results: list[bool | None] = []
     for software in software_list:
-        context = {"software_name": software, "function_name": name}
+        context["software_name"] = software
         reply = query_llm(
             prompt_obj,
             context,
@@ -814,7 +821,7 @@ def worker_verify_feature(
     ai_reason = ""
     if result:
         try:
-            just_prompt_obj = Prompt.objects.get(name="anlage2_feature_justification")
+            just_prompt_obj = Prompt.objects.get(name=justification_prompt_key)
         except Prompt.DoesNotExist:
             just_prompt_obj = Prompt(
                 text=(
@@ -824,12 +831,10 @@ def worker_verify_feature(
                 use_system_role=False,
             )
         idx = individual_results.index(True) if True in individual_results else 0
+        context["software_name"] = software_list[idx]
         justification = query_llm(
             just_prompt_obj,
-            {
-                "software_name": software_list[idx],
-                "function_name": name,
-            },
+            context,
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
@@ -845,12 +850,10 @@ def worker_verify_feature(
                 ),
                 use_system_role=False,
             )
+        context["software_name"] = software_list[idx]
         ai_reply = query_llm(
             ai_check_obj,
-            {
-                "software_name": software_list[idx],
-                "function_name": name,
-            },
+            {"software_name": context["software_name"], "function_name": name},
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
@@ -875,10 +878,7 @@ def worker_verify_feature(
                 )
             ai_reason = query_llm(
                 ai_just_obj,
-                {
-                    "software_name": software_list[idx],
-                    "function_name": name,
-                },
+                {"software_name": context["software_name"], "function_name": name},
                 model_name=model_name,
                 model_type="anlagen",
                 temperature=0.1,
