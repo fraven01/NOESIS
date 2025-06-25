@@ -90,6 +90,16 @@ urlpatterns = [
     ),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
     path(
+        "projects-admin/anlage1/export/",
+        views.admin_anlage1_export,
+        name="admin_anlage1_export",
+    ),
+    path(
+        "projects-admin/anlage1/import/",
+        views.admin_anlage1_import,
+        name="admin_anlage1_import",
+    ),
+    path(
         "projects-admin/anlage2/config/",
         views.anlage2_config,
         name="anlage2_config",
