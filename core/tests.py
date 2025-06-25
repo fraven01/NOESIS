@@ -2412,6 +2412,66 @@ class UserImportExportTests(TestCase):
         self.assertTrue(user.tiles.filter(url_name="tile").exists())
 
 
+class Anlage2ConfigImportExportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("cfgadmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="cfgadmin", password="pass")
+        self.cfg = Anlage2Config.get_instance()
+
+    def test_export_contains_headings_and_phrases(self):
+        Anlage2ColumnHeading.objects.create(
+            config=self.cfg,
+            field_name="technisch_vorhanden",
+            text="Verfügbar?",
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=self.cfg,
+            phrase_type="technisch_verfuegbar_true",
+            phrase_text="ja",
+        )
+        url = reverse("admin_anlage2_config_export")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertIn(
+            {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
+            data["column_headings"],
+        )
+        self.assertIn(
+            {
+                "phrase_type": "technisch_verfuegbar_true",
+                "phrase_text": "ja",
+            },
+            data["global_phrases"],
+        )
+
+    def test_import_creates_headings(self):
+        payload = json.dumps(
+            {
+                "column_headings": [
+                    {"field_name": "ki_beteiligung", "text": "KI?"}
+                ],
+                "global_phrases": [
+                    {
+                        "phrase_type": "ki_beteiligung_true",
+                        "phrase_text": "Ja",
+                    }
+                ],
+            }
+        )
+        file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
+        url = reverse("admin_anlage2_config_import")
+        resp = self.client.post(url, {"json_file": file}, format="multipart")
+        self.assertRedirects(resp, reverse("anlage2_config"))
+        self.assertTrue(
+            Anlage2ColumnHeading.objects.filter(
+                field_name="ki_beteiligung", text="KI?"
+            ).exists()
+        )
+
+
 
 
 
