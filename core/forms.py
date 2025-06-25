@@ -376,6 +376,15 @@ class Anlage2FunctionImportForm(forms.Form):
     )
 
 
+class PromptImportForm(forms.Form):
+    """Formular für den JSON-Import der Prompts."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei der Prompts",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
+
 class PhraseForm(forms.Form):
     """Einzelnes Feld für eine Erkennungsphrase."""
 

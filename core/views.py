@@ -32,6 +32,7 @@ from .forms import (
     PhraseForm,
     Anlage2GlobalPhraseFormSet,
     Anlage2FunctionImportForm,
+    PromptImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
@@ -1204,6 +1205,52 @@ def admin_prompts(request):
 
     context = {"grouped": grouped, "roles": roles}
     return render(request, "admin_prompts.html", context)
+
+
+@login_required
+@admin_required
+def admin_prompt_export(request):
+    """Exportiert alle Prompts als JSON-Datei."""
+    items = [
+        {
+            "name": p.name,
+            "text": p.text,
+            "role_id": p.role_id,
+            "use_system_role": p.use_system_role,
+        }
+        for p in Prompt.objects.all().order_by("name")
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=prompts.json"
+    return resp
+
+
+@login_required
+@admin_required
+def admin_prompt_import(request):
+    """Importiert Prompts aus einer JSON-Datei."""
+    form = PromptImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(data)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_prompt_import")
+        for item in items:
+            name = item.get("name") or item.get("key") or ""
+            Prompt.objects.update_or_create(
+                name=name,
+                defaults={
+                    "text": item.get("text") or item.get("prompt_text", ""),
+                    "role_id": item.get("role_id"),
+                    "use_system_role": item.get("use_system_role", True),
+                },
+            )
+        messages.success(request, "Prompts importiert")
+        return redirect("admin_prompts")
+    return render(request, "admin_prompt_import.html", {"form": form})
 
 
 @login_required
