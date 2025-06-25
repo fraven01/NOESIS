@@ -10,33 +10,13 @@
         {{ form.title }}
         {{ form.title.errors }}
     </div>
-    <div>
-        <label>Software</label><br>
-        <div id="software-container">
-        {% for name in form.software_list %}
-            <div class="software-item mb-2 flex items-center">
-                <input type="text" name="software" value="{{ name }}" class="border rounded p-2 mr-2">
-                <button type="button" class="remove-software text-red-600">-</button>
-            </div>
-        {% endfor %}
-        {% if not form.software_list %}
-            <div class="software-item mb-2 flex items-center">
-                <input type="text" name="software" class="border rounded p-2 mr-2">
-                <button type="button" class="remove-software text-red-600">-</button>
-            </div>
-        {% endif %}
-        </div>
-        <button type="button" id="add-software" class="bg-gray-300 px-2 py-1 rounded">+</button>
-        {{ form.software_typen }}
-        {{ form.software_typen.errors }}
-    </div>
-    {% if form.instance.pk %}
     <div class="mb-3">
-        <label for="{{ form.beschreibung.id_for_label }}" class="form-label">Beschreibung:</label>
-        {{ form.beschreibung }}
-        <div class="form-text">Eine kurze, aussagekräftige Notiz zum Projekt.</div>
+        <label class="form-label">Software (jede Software in ein eigenes Feld):</label>
+        <div id="software-inputs-container">
+            <input type="text" name="software_typen" class="form-control mb-2">
+        </div>
+        <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
     </div>
-    {% endif %}
     {% if 'status' in form.fields %}
     <div>
         {{ form.status.label_tag }}<br>
@@ -57,8 +37,25 @@
     </div>
     {% endif %}
 </form>
+{% block extra_js %}
 <script>
-document.getElementById("add-software").addEventListener("click",()=>{const c=document.getElementById("software-container");const d=document.createElement("div");d.className="software-item mb-2 flex items-center";d.innerHTML="<input type="text" name="software" class="border rounded p-2 mr-2"><button type="button" class="remove-software text-red-600">-</button>";c.appendChild(d);});
-document.getElementById('software-container').addEventListener('click',e=>{if(e.target.classList.contains('remove-software')){e.target.parentElement.remove();}});
+document.addEventListener('DOMContentLoaded', function() {
+    const addSoftwareBtn = document.getElementById('add-software-btn');
+    const container = document.getElementById('software-inputs-container');
+
+    if (addSoftwareBtn && container) {
+        addSoftwareBtn.addEventListener('click', function() {
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'software_typen';
+            newInput.className = 'form-control mb-2';
+            newInput.placeholder = 'Weitere Software...';
+
+            container.appendChild(newInput);
+            newInput.focus();
+        });
+    }
+});
 </script>
+{% endblock %}
 {% endblock %}

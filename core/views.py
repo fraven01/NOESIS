@@ -1989,11 +1989,15 @@ def projekt_upload(request):
 @login_required
 def projekt_create(request):
     if request.method == "POST":
-        form = BVProjectForm(request.POST, request.FILES)
+        form = BVProjectForm(request.POST)
         if form.is_valid():
+            software_typen_list = request.POST.getlist("software_typen")
+            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
+
             projekt = form.save(commit=False)
-            projekt.title = form.cleaned_data.get("title", "")
+            projekt.software_typen = cleaned_software_list
             projekt.save()
+            form.save_m2m()
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
@@ -2006,7 +2010,13 @@ def projekt_edit(request, pk):
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
-            form.save()
+            software_typen_list = request.POST.getlist("software_typen")
+            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
+
+            projekt = form.save(commit=False)
+            projekt.software_typen = cleaned_software_list
+            projekt.save()
+            form.save_m2m()
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)
