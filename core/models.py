@@ -192,6 +192,17 @@ class SoftwareKnowledge(models.Model):
         return self.software_name
 
 
+class SoftwareType(models.Model):
+    """Typ einer Software-Komponente."""
+
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name
+
 
 class Gutachten(models.Model):
     """Gutachten zu einer Software-Komponente."""
