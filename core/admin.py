@@ -24,7 +24,13 @@ class PromptAdmin(admin.ModelAdmin):
 
 @admin.register(Tile)
 class TileAdmin(admin.ModelAdmin):
-    list_display = ("slug", "name", "bereich", "url_name", "image")
+    list_display = ("slug", "name", "url_name", "areas_display", "image")
+
+    def areas_display(self, obj) -> str:
+        """Zeigt die zugewiesenen Bereiche."""
+        return ", ".join(a.name for a in obj.areas.all())
+
+    areas_display.short_description = "Bereiche"
 
 
 @admin.register(UserTileAccess)

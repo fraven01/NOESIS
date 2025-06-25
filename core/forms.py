@@ -379,6 +379,11 @@ class PromptImportForm(forms.Form):
         label="JSON-Datei der Prompts",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+    clear_first = forms.BooleanField(
+        required=False,
+        label="Datenbank vorher leeren",
+        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )
 
 
 class LLMRoleImportForm(forms.Form):

@@ -291,7 +291,11 @@ class Area(models.Model):
     """Bereich wie 'work' oder 'personal'."""
 
     slug = models.SlugField(unique=True)
-    name = models.CharField(max_length=100)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Einzigartiger Name des Bereichs, z.B. 'work' oder 'personal'",
+    )
     image = models.ImageField(upload_to="area_images/", blank=True, null=True)
 
     class Meta:
@@ -509,8 +513,12 @@ class Tile(models.Model):
 
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=100)
-    bereich = models.ForeignKey("core.Area", on_delete=models.CASCADE)
     url_name = models.CharField(max_length=100)
+    areas = models.ManyToManyField(
+        Area,
+        related_name="tiles",
+        help_text="Die Bereiche, in denen diese Kachel angezeigt wird.",
+    )
     icon = models.CharField(max_length=50, blank=True)
     description = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="tile_images/", blank=True, null=True)

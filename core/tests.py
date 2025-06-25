@@ -1653,18 +1653,18 @@ class TileVisibilityTests(TestCase):
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
+        self.talkdiary.areas.add(self.personal)
         self.projekt = Tile.objects.get_or_create(
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
+        self.projekt.areas.add(work)
         self.cfg = LLMConfig.objects.first() or LLMConfig.objects.create(
             models_changed=False
         )
@@ -1714,18 +1714,18 @@ class TileAccessTests(TestCase):
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
+        self.talkdiary.areas.add(personal)
         self.projekt = Tile.objects.get_or_create(
             slug="projektverwaltung",
             defaults={
                 "name": "Projektverwaltung",
-                "bereich": work,
                 "url_name": "projekt_list",
             },
         )[0]
+        self.projekt.areas.add(work)
 
     def _login(self, name: str) -> User:
         """Erzeugt einen Benutzer und loggt ihn ein."""
@@ -1788,10 +1788,10 @@ class HomeRedirectTests(TestCase):
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
+        tile.areas.add(personal)
         UserTileAccess.objects.create(user=self.user, tile=tile)
         self.client.login(username="redir", password="pass")
 
@@ -1835,10 +1835,10 @@ class RecordingDeleteTests(TestCase):
             slug="talkdiary",
             defaults={
                 "name": "TalkDiary",
-                "bereich": self.personal,
                 "url_name": "talkdiary_personal",
             },
         )[0]
+        self.tile.areas.add(self.personal)
         UserTileAccess.objects.create(user=self.user, tile=self.tile)
         audio = SimpleUploadedFile("a.wav", b"data")
         transcript = SimpleUploadedFile("a.md", b"text")
@@ -2379,7 +2379,8 @@ class UserImportExportTests(TestCase):
 
         self.group = Group.objects.create(name="testgroup")
         area = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
-        self.tile = Tile.objects.create(slug="t1", name="T", bereich=area, url_name="tile")
+        self.tile = Tile.objects.create(slug="t1", name="T", url_name="tile")
+        self.tile.areas.add(area)
 
     def test_export_json(self):
         self.user.groups.add(self.group)

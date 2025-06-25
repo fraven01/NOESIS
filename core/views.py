@@ -147,7 +147,7 @@ def _get_whisper_model():
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
     """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
-    return list(Tile.objects.filter(bereich__slug=bereich, users=user))
+    return list(Tile.objects.filter(areas__slug=bereich, users=user))
 
 
 FIELD_RENAME = {
