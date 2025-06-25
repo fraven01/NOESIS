@@ -1243,6 +1243,8 @@ def admin_prompt_import(request):
         except Exception:  # noqa: BLE001
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_prompt_import")
+        if form.cleaned_data["clear_first"]:
+            Prompt.objects.all().delete()
         for item in items:
             name = item.get("name") or item.get("key") or ""
             Prompt.objects.update_or_create(
@@ -1625,24 +1627,28 @@ def admin_import_users_permissions(request):
 @login_required
 @admin_required
 def admin_anlage2_config_export(request):
-    """Exportiert alle globalen Phrasen als JSON-Datei."""
+    """Exportiert Spaltenüberschriften und globale Phrasen als JSON-Datei."""
     cfg = Anlage2Config.get_instance()
-    items = [
-        {"phrase_type": p.phrase_type, "phrase_text": p.phrase_text}
-        for p in cfg.global_phrases.all().order_by("phrase_type", "phrase_text")
-    ]
-    content = json.dumps(items, ensure_ascii=False, indent=2)
+    data = {
+        "column_headings": [
+            {"field_name": h.field_name, "text": h.text}
+            for h in cfg.headers.all().order_by("field_name", "id")
+        ],
+        "global_phrases": [
+            {"phrase_type": p.phrase_type, "phrase_text": p.phrase_text}
+            for p in cfg.global_phrases.all().order_by("phrase_type", "phrase_text")
+        ],
+    }
+    content = json.dumps(data, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
-    resp["Content-Disposition"] = (
-        "attachment; filename=anlage2_global_phrases.json"
-    )
+    resp["Content-Disposition"] = "attachment; filename=anlage2_config.json"
     return resp
 
 
 @login_required
 @admin_required
 def admin_anlage2_config_import(request):
-    """Importiert globale Phrasen aus einer JSON-Datei."""
+    """Importiert Spaltenüberschriften und globale Phrasen aus JSON."""
     form = Anlage2ConfigImportForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         raw = form.cleaned_data["json_file"].read().decode("utf-8")
@@ -1652,7 +1658,15 @@ def admin_anlage2_config_import(request):
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_anlage2_config_import")
         cfg = Anlage2Config.get_instance()
-        for entry in items:
+        headings = items.get("column_headings", [])
+        phrases = items.get("global_phrases", [])
+        for h in headings:
+            Anlage2ColumnHeading.objects.update_or_create(
+                config=cfg,
+                field_name=h.get("field_name"),
+                defaults={"text": h.get("text", "")},
+            )
+        for entry in phrases:
             phrase_type = entry.get("phrase_type")
             phrase_text = entry.get("phrase_text", "")
             if not phrase_type or not phrase_text:
@@ -1663,7 +1677,7 @@ def admin_anlage2_config_import(request):
                 phrase_text=phrase_text,
                 defaults={},
             )
-        messages.success(request, "Phrasen importiert")
+        messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
 

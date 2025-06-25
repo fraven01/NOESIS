@@ -383,6 +383,11 @@ class PromptImportForm(forms.Form):
         label="JSON-Datei der Prompts",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+    clear_first = forms.BooleanField(
+        required=False,
+        label="Vorhandene Prompts löschen",
+        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )
 
 
 
@@ -577,7 +582,7 @@ class ProjectStatusImportForm(forms.Form):
     """Formular für den Import von Projektstatus."""
 
 class Anlage2ConfigImportForm(forms.Form):
-    """Formular für den Import der globalen Phrasen."""
+    """Formular für den Import der Anlage-2-Konfiguration."""
 
 
     json_file = forms.FileField(
