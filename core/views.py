@@ -1053,7 +1053,7 @@ def admin_projects(request):
 
     software_filter = request.GET.get("software", "")
     if software_filter:
-        projects = projects.filter(software_typen__contains=[software_filter])
+        projects = projects.filter(software_typen__icontains=software_filter)
 
     context = {
         "projects": projects,
@@ -1585,7 +1585,7 @@ def projekt_list(request):
 
     software_filter = request.GET.get("software", "")
     if software_filter:
-        projekte = projekte.filter(software_typen__contains=[software_filter])
+        projekte = projekte.filter(software_typen__icontains=software_filter)
 
     status_filter = request.GET.get("status", "")
     if status_filter:
@@ -1610,7 +1610,9 @@ def projekt_detail(request, pk):
     anh = projekt.anlagen.all()
     reviewed = anh.filter(analysis_json__isnull=False).count()
     is_admin = request.user.groups.filter(name="admin").exists()
-    software_list = [s.strip() for s in (projekt.software_typen or []) if str(s).strip()]
+    software_list = []
+    if projekt.software_typen:
+        software_list = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
     knowledge_rows = []
     checked = 0
@@ -1662,10 +1664,7 @@ def projekt_create(request):
     if request.method == "POST":
         form = BVProjectForm(request.POST, request.FILES)
         if form.is_valid():
-            software_typen_list = request.POST.getlist("software_typen")
-            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
             projekt = form.save(commit=False)
-            projekt.software_typen = cleaned_software_list
             projekt.title = form.cleaned_data.get("title", "")
             projekt.save()
             return redirect("projekt_detail", pk=projekt.pk)
@@ -1680,11 +1679,7 @@ def projekt_edit(request, pk):
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
-            software_typen_list = request.POST.getlist("software_typen")
-            cleaned_software_list = [s.strip() for s in software_typen_list if s.strip()]
-            projekt = form.save(commit=False)
-            projekt.software_typen = cleaned_software_list
-            projekt.save()
+            form.save()
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)
@@ -2177,7 +2172,7 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
 @require_http_methods(["GET"])
 def project_detail_api(request, pk):
     projekt = BVProject.objects.get(pk=pk)
-    software_list = [s.strip() for s in (projekt.software_typen or []) if str(s).strip()]
+    software_list = [s.strip() for s in projekt.software_typen.split(",") if s.strip()]
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
     knowledge = []
     checked = 0
@@ -2669,7 +2664,7 @@ def justification_delete(request, file_id, function_key):
 def ajax_start_initial_checks(request, project_id):
     """Startet den Initialcheck für alle Software-Typen eines Projekts."""
     projekt = get_object_or_404(BVProject, pk=project_id)
-    names = [s.strip() for s in (projekt.software_typen or []) if str(s).strip()]
+    names = [s.strip() for s in projekt.software_typen.split(',') if s.strip()]
     tasks = []
     for name in names:
         sk, _ = SoftwareKnowledge.objects.get_or_create(
