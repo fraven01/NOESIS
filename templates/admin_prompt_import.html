@@ -10,6 +10,9 @@
         {{ form.json_file }}
         {{ form.json_file.errors }}
     </div>
+    <div>
+        <label class="mr-2">{{ form.clear_first }} Vorhandene Prompts löschen</label>
+    </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Hochladen &amp; Importieren</button>
 </form>
 {% endblock %}

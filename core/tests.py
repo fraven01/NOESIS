@@ -1070,6 +1070,28 @@ class AdminPromptsViewTests(TestCase):
         self.assertFalse(Prompt.objects.filter(id=self.prompt.id).exists())
 
 
+class PromptImportTests(TestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("pimport", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="pimport", password="pass")
+
+    def test_import_with_clear_first_replaces_prompts(self):
+        Prompt.objects.create(name="old", text="x")
+        payload = json.dumps([{"name": "neu", "text": "t"}])
+        file = SimpleUploadedFile("p.json", payload.encode("utf-8"))
+        url = reverse("admin_prompt_import")
+        resp = self.client.post(
+            url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("admin_prompts"))
+        self.assertEqual(Prompt.objects.count(), 1)
+        self.assertTrue(Prompt.objects.filter(name="neu").exists())
+
+
 class ReportingTests(TestCase):
     def test_gap_analysis_file_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")

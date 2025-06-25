@@ -383,6 +383,11 @@ class PromptImportForm(forms.Form):
         label="JSON-Datei der Prompts",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+    clear_first = forms.BooleanField(
+        required=False,
+        label="Vorhandene Prompts löschen",
+        widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+    )
 
 
 
@@ -391,6 +396,8 @@ class LLMRoleImportForm(forms.Form):
 
     json_file = forms.FileField(
         label="JSON-Datei der Rollen",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
 
 class Anlage1ImportForm(forms.Form):
     """Formular für den JSON-Import der Anlage-1-Fragen."""

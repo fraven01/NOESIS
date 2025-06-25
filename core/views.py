@@ -1243,6 +1243,8 @@ def admin_prompt_import(request):
         except Exception:  # noqa: BLE001
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_prompt_import")
+        if form.cleaned_data["clear_first"]:
+            Prompt.objects.all().delete()
         for item in items:
             name = item.get("name") or item.get("key") or ""
             Prompt.objects.update_or_create(
