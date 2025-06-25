@@ -43,6 +43,7 @@ from .forms import (
     KnowledgeDescriptionForm,
 
     ProjectStatusForm,
+    ProjectStatusImportForm,
     LLMRoleForm,
     LLMRoleImportForm,
     UserPermissionsForm,
@@ -1376,6 +1377,56 @@ def admin_project_statuses(request):
     statuses = list(ProjectStatus.objects.all().order_by("ordering", "name"))
     context = {"statuses": statuses}
     return render(request, "admin_project_statuses.html", context)
+
+
+@login_required
+@admin_required
+def admin_project_status_export(request):
+    """Exportiert alle Projektstatus als JSON-Datei."""
+    items = [
+        {
+            "name": s.name,
+            "key": s.key,
+            "ordering": s.ordering,
+            "is_default": s.is_default,
+            "is_done_status": s.is_done_status,
+        }
+        for s in ProjectStatus.objects.all().order_by("ordering", "name")
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=project_statuses.json"
+    return resp
+
+
+@login_required
+@admin_required
+def admin_project_status_import(request):
+    """Importiert Projektstatus aus einer JSON-Datei."""
+    form = ProjectStatusImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_project_status_import")
+        for item in items:
+            key = item.get("key")
+            if not key:
+                continue
+            ProjectStatus.objects.update_or_create(
+                key=key,
+                defaults={
+                    "name": item.get("name", ""),
+                    "ordering": item.get("ordering", 0),
+                    "is_default": item.get("is_default", False),
+                    "is_done_status": item.get("is_done_status", False),
+                },
+            )
+        messages.success(request, "Statusdaten importiert")
+        return redirect("admin_project_statuses")
+    return render(request, "admin_project_status_import.html", {"form": form})
 
 
 @login_required

@@ -565,8 +565,13 @@ class UserImportForm(forms.Form):
     )
 
 
+
+class ProjectStatusImportForm(forms.Form):
+    """Formular für den Import von Projektstatus."""
+
 class Anlage2ConfigImportForm(forms.Form):
     """Formular für den Import der globalen Phrasen."""
+
 
     json_file = forms.FileField(
         label="JSON-Datei",
