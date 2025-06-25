@@ -174,20 +174,7 @@
   </div>
 </div>
 <script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+function getCookie(name){const m=document.cookie.match('(^|;)\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 const csrftoken = getCookie('csrftoken');
 
 function loadKnowledge(){
@@ -299,14 +286,11 @@ function sendCheck(payload){
  const spinner=document.createElement('span');
  spinner.textContent='...';
  sec.appendChild(spinner);
-  fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
+ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
    method:'POST',
-   headers:{
-      'X-CSRFToken':csrftoken,
-      'X-Requested-With':'XMLHttpRequest'
-   },
+   headers:{'X-CSRFToken':csrftoken},
    body:new URLSearchParams(payload)
-  }).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);}/* reload or update */}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
+}).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);}/* reload or update */}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
 }
 
 function startChecks(){
@@ -315,10 +299,7 @@ function startChecks(){
  btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Prüfungen werden gestartet...';
 fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
   method:'POST',
-  headers:{
-    'X-CSRFToken':csrftoken,
-    'X-Requested-With':'XMLHttpRequest'
-  }
+  headers:{'X-CSRFToken':csrftoken}
 }).then(r=>r.json()).then(data=>{
    const tasks=data.tasks||[];
    const tmpl='{% url "ajax_check_task_status" "dummy" %}';
@@ -351,7 +332,7 @@ function attachGutachtenHandlers(){
       const status=document.getElementById('gutachten-status-'+knowledgeId);
       if(status){status.textContent='...';}
 
-      fetch(url,{method:'POST',headers:{'X-CSRFToken':csrftoken,'X-Requested-With':'XMLHttpRequest'},body:body})
+      fetch(url,{method:'POST',headers:{'X-CSRFToken':csrftoken},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;
           const tmpl='{% url "ajax_check_task_status" "dummy" %}';
@@ -398,14 +379,7 @@ document.addEventListener('DOMContentLoaded',function(){
       const body=new FormData();
       body.append('knowledge_id',contextId);
       body.append('user_context',text);
-      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{
-        method:'POST',
-        headers:{
-          'X-CSRFToken':csrftoken,
-          'X-Requested-With':'XMLHttpRequest'
-        },
-        body:body
-      })
+      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':csrftoken},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;
           const tmpl='{% url "ajax_check_task_status" "dummy" %}';
