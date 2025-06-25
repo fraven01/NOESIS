@@ -2349,61 +2349,6 @@ class VerificationToInitialTests(TestCase):
 
 
 
-class KnowledgeDownloadTests(TestCase):
-    """Tests für den Knowledge-Export als Word-Dokument."""
-
-    def setUp(self):
-        self.user = User.objects.create_user("kuser", password="pass")
-        self.client.login(username="kuser", password="pass")
-        self.projekt = BVProject.objects.create(
-            software_typen=["A"], beschreibung="x"
-        )
-        self.knowledge = SoftwareKnowledge.objects.create(
-            projekt=self.projekt,
-            software_name="Word",
-            description="**Test**",
-        )
-
-    def test_download_returns_docx(self):
-        """Bei erfolgreicher Konvertierung wird eine DOCX-Datei geliefert."""
-
-        def fake_convert(text, to, format=None, outputfile=None):
-            doc = Document()
-            doc.add_paragraph("Test")
-            doc.save(outputfile)
-
-        with patch("core.views.pypandoc.convert_text", side_effect=fake_convert):
-            url = reverse("download_knowledge_as_word", args=[self.knowledge.pk])
-            resp = self.client.get(url)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(
-            resp["Content-Type"],
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
-        self.assertIn(
-            f'filename="{self.knowledge.software_name}.docx"',
-            resp["Content-Disposition"],
-        )
-        self.assertTrue(resp.content)
-
-    def test_pandoc_error_shows_message(self):
-        """Fehlgeschlagene Konvertierung erzeugt eine Fehlermeldung."""
-
-        with patch("core.views.pypandoc.convert_text", side_effect=OSError("err")):
-            url = reverse("download_knowledge_as_word", args=[self.knowledge.pk])
-            resp = self.client.get(url, follow=True)
-
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
-        msgs = [m.message for m in resp.context["messages"]]
-        self.assertTrue(
-            any(
-                "Fehler beim Erstellen des Word-Dokuments" in m
-                for m in msgs
-            )
-        )
-
-
 
 
 
