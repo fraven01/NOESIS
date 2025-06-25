@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+{% block extra_head %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+{% endblock %}
 {% load recording_extras %}
 {% block title %}Anlage 2 Review{% endblock %}
 {% block content %}
@@ -101,6 +105,7 @@
 </form>
 {% endblock %}
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
 // Hilfsfunktion, um den CSRF-Token für POST-Requests zu bekommen
 function getCookie(name) {
@@ -120,6 +125,7 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('textarea').forEach(el => new EasyMDE({ element: el }));
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
