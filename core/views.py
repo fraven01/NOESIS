@@ -44,6 +44,7 @@ from .forms import (
 
     ProjectStatusForm,
     LLMRoleForm,
+    LLMRoleImportForm,
     UserPermissionsForm,
     UserImportForm,
     Anlage2ConfigImportForm,
@@ -1430,6 +1431,50 @@ def admin_llm_role_delete(request, pk):
     role = get_object_or_404(LLMRole, pk=pk)
     role.delete()
     return redirect("admin_llm_roles")
+
+
+@login_required
+@admin_required
+def admin_llm_role_export(request):
+    """Exportiert alle LLM-Rollen als JSON-Datei."""
+    roles = [
+        {
+            "name": r.name,
+            "role_prompt": r.role_prompt,
+            "is_default": r.is_default,
+        }
+        for r in LLMRole.objects.all().order_by("name")
+    ]
+    content = json.dumps(roles, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=llm_roles.json"
+    return resp
+
+
+@login_required
+@admin_required
+def admin_llm_role_import(request):
+    """Importiert LLM-Rollen aus einer JSON-Datei."""
+    form = LLMRoleImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(data)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_llm_role_import")
+        for item in items:
+            LLMRole.objects.update_or_create(
+                name=item.get("name", ""),
+                defaults={
+                    "role_prompt": item.get("role_prompt", ""),
+                    "is_default": item.get("is_default", False),
+                },
+            )
+        messages.success(request, "LLM-Rollen importiert")
+        return redirect("admin_llm_roles")
+    context = {"form": form}
+    return render(request, "admin_llm_role_import.html", context)
 
 
 @login_required

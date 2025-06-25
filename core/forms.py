@@ -385,11 +385,19 @@ class PromptImportForm(forms.Form):
     )
 
 
+
+class LLMRoleImportForm(forms.Form):
+    """Formular für den JSON-Import der LLM-Rollen."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei der Rollen",
+
 class Anlage1ImportForm(forms.Form):
     """Formular für den JSON-Import der Anlage-1-Fragen."""
 
     json_file = forms.FileField(
         label="JSON-Datei",
+
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
