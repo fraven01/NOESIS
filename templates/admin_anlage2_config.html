@@ -2,6 +2,10 @@
 {% block title %}Anlage 2 Konfiguration{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Konfiguration</h1>
+<div class="mb-4 space-x-2">
+    <a href="{% url 'admin_anlage2_config_export' %}" class="px-4 py-2 bg-gray-300 rounded">Exportieren</a>
+    <a href="{% url 'admin_anlage2_config_import' %}" class="px-4 py-2 bg-gray-300 rounded">Importieren</a>
+</div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
 
