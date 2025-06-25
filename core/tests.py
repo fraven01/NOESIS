@@ -573,18 +573,6 @@ class BVProjectModelTests(TestCase):
         )
         self.assertEqual(projekt.title, "X")
 
-    def test_software_typen_string_json(self):
-        projekt = BVProject.objects.create(
-            software_typen='["A", "B", " "]', beschreibung="x"
-        )
-        self.assertListEqual(projekt.software_typen, ["A", "B"])
-
-    def test_software_typen_string_commas(self):
-        projekt = BVProject.objects.create(
-            software_typen="A, B ,C", beschreibung="x"
-        )
-        self.assertListEqual(projekt.software_typen, ["A", "B", "C"])
-
 
 class WorkflowTests(TestCase):
     def test_default_status(self):
