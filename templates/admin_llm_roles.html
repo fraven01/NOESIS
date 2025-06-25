@@ -2,7 +2,11 @@
 {% block title %}LLM Rollen{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">LLM Rollen</h1>
-<a href="{% url 'admin_llm_role_new' %}" class="inline-block mb-4 px-4 py-2 bg-blue-600 text-white rounded">Neue Rolle hinzufügen</a>
+<div class="mb-4 space-x-2">
+    <a href="{% url 'admin_llm_role_import' %}" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</a>
+    <a href="{% url 'admin_llm_role_export' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Exportieren</a>
+    <a href="{% url 'admin_llm_role_new' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Neue Rolle hinzufügen</a>
+</div>
 <table class="min-w-full">
     <thead>
         <tr class="border-b text-left">
