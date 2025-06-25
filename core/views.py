@@ -33,6 +33,7 @@ from .forms import (
     Anlage2GlobalPhraseFormSet,
     Anlage2FunctionImportForm,
     PromptImportForm,
+    Anlage1ImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
@@ -44,8 +45,10 @@ from .forms import (
     ProjectStatusForm,
     ProjectStatusImportForm,
     LLMRoleForm,
+    LLMRoleImportForm,
     UserPermissionsForm,
     UserImportForm,
+    Anlage2ConfigImportForm,
 
 )
 from .models import (
@@ -1315,6 +1318,60 @@ def admin_anlage1(request):
 
 @login_required
 @admin_required
+def admin_anlage1_export(request):
+    """Exportiert alle Anlage-1-Fragen als JSON-Datei."""
+    questions = (
+        Anlage1Question.objects.all()
+        .prefetch_related("variants")
+        .order_by("num")
+    )
+    items = [
+        {
+            "text": q.text,
+            "variants": [v.text for v in q.variants.all()],
+            "parser_enabled": q.parser_enabled,
+            "llm_enabled": q.llm_enabled,
+        }
+        for q in questions
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    response = HttpResponse(content, content_type="application/json")
+    response["Content-Disposition"] = "attachment; filename=anlage1_questions.json"
+    return response
+
+
+@login_required
+@admin_required
+def admin_anlage1_import(request):
+    """Importiert Anlage-1-Fragen aus einer JSON-Datei."""
+    form = Anlage1ImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_anlage1_import")
+        for idx, item in enumerate(items, start=1):
+            obj, _ = Anlage1Question.objects.update_or_create(
+                text=item.get("text", ""),
+                defaults={
+                    "num": idx,
+                    "parser_enabled": item.get("parser_enabled", True),
+                    "llm_enabled": item.get("llm_enabled", True),
+                    "enabled": True,
+                },
+            )
+            obj.variants.all().delete()
+            for v_text in item.get("variants", []):
+                Anlage1QuestionVariant.objects.create(question=obj, text=v_text)
+        messages.success(request, "Fragen importiert")
+        return redirect("admin_anlage1")
+    return render(request, "admin_anlage1_import.html", {"form": form})
+
+
+@login_required
+@admin_required
 def admin_project_statuses(request):
     """Zeigt alle vorhandenen Projektstatus an."""
     statuses = list(ProjectStatus.objects.all().order_by("ordering", "name"))
@@ -1429,6 +1486,50 @@ def admin_llm_role_delete(request, pk):
 
 @login_required
 @admin_required
+def admin_llm_role_export(request):
+    """Exportiert alle LLM-Rollen als JSON-Datei."""
+    roles = [
+        {
+            "name": r.name,
+            "role_prompt": r.role_prompt,
+            "is_default": r.is_default,
+        }
+        for r in LLMRole.objects.all().order_by("name")
+    ]
+    content = json.dumps(roles, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=llm_roles.json"
+    return resp
+
+
+@login_required
+@admin_required
+def admin_llm_role_import(request):
+    """Importiert LLM-Rollen aus einer JSON-Datei."""
+    form = LLMRoleImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(data)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_llm_role_import")
+        for item in items:
+            LLMRole.objects.update_or_create(
+                name=item.get("name", ""),
+                defaults={
+                    "role_prompt": item.get("role_prompt", ""),
+                    "is_default": item.get("is_default", False),
+                },
+            )
+        messages.success(request, "LLM-Rollen importiert")
+        return redirect("admin_llm_roles")
+    context = {"form": form}
+    return render(request, "admin_llm_role_import.html", context)
+
+
+@login_required
+@admin_required
 def admin_user_list(request):
     """Listet alle Benutzer mit zugehörigen Gruppen und Tiles auf."""
     users = list(User.objects.all().prefetch_related("groups", "tiles"))
@@ -1517,6 +1618,52 @@ def admin_import_users_permissions(request):
         messages.success(request, "Benutzerdaten importiert")
         return redirect("admin_user_list")
     return render(request, "admin_user_import.html", {"form": form})
+
+
+@login_required
+@admin_required
+def admin_anlage2_config_export(request):
+    """Exportiert alle globalen Phrasen als JSON-Datei."""
+    cfg = Anlage2Config.get_instance()
+    items = [
+        {"phrase_type": p.phrase_type, "phrase_text": p.phrase_text}
+        for p in cfg.global_phrases.all().order_by("phrase_type", "phrase_text")
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = (
+        "attachment; filename=anlage2_global_phrases.json"
+    )
+    return resp
+
+
+@login_required
+@admin_required
+def admin_anlage2_config_import(request):
+    """Importiert globale Phrasen aus einer JSON-Datei."""
+    form = Anlage2ConfigImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_anlage2_config_import")
+        cfg = Anlage2Config.get_instance()
+        for entry in items:
+            phrase_type = entry.get("phrase_type")
+            phrase_text = entry.get("phrase_text", "")
+            if not phrase_type or not phrase_text:
+                continue
+            Anlage2GlobalPhrase.objects.update_or_create(
+                config=cfg,
+                phrase_type=phrase_type,
+                phrase_text=phrase_text,
+                defaults={},
+            )
+        messages.success(request, "Phrasen importiert")
+        return redirect("anlage2_config")
+    return render(request, "admin_anlage2_config_import.html", {"form": form})
 
 
 @login_required

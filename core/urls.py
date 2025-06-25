@@ -52,6 +52,8 @@ urlpatterns = [
     path("projects-admin/roles/new/", views.admin_llm_role_form, name="admin_llm_role_new"),
     path("projects-admin/roles/<int:pk>/edit/", views.admin_llm_role_form, name="admin_llm_role_edit"),
     path("projects-admin/roles/<int:pk>/delete/", views.admin_llm_role_delete, name="admin_llm_role_delete"),
+    path("projects-admin/llm-roles/export/", views.admin_llm_role_export, name="admin_llm_role_export"),
+    path("projects-admin/llm-roles/import/", views.admin_llm_role_import, name="admin_llm_role_import"),
     path(
         "projects-admin/<int:pk>/delete/",
         views.admin_project_delete,
@@ -92,9 +94,29 @@ urlpatterns = [
     ),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
     path(
+        "projects-admin/anlage1/export/",
+        views.admin_anlage1_export,
+        name="admin_anlage1_export",
+    ),
+    path(
+        "projects-admin/anlage1/import/",
+        views.admin_anlage1_import,
+        name="admin_anlage1_import",
+    ),
+    path(
         "projects-admin/anlage2/config/",
         views.anlage2_config,
         name="anlage2_config",
+    ),
+    path(
+        "projects-admin/anlage2-config/export/",
+        views.admin_anlage2_config_export,
+        name="admin_anlage2_config_export",
+    ),
+    path(
+        "projects-admin/anlage2-config/import/",
+        views.admin_anlage2_config_import,
+        name="admin_anlage2_config_import",
     ),
     path(
         "projects-admin/anlage2/",

@@ -385,6 +385,23 @@ class PromptImportForm(forms.Form):
     )
 
 
+
+class LLMRoleImportForm(forms.Form):
+    """Formular für den JSON-Import der LLM-Rollen."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei der Rollen",
+
+class Anlage1ImportForm(forms.Form):
+    """Formular für den JSON-Import der Anlage-1-Fragen."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
+
 class PhraseForm(forms.Form):
     """Einzelnes Feld für eine Erkennungsphrase."""
 
@@ -548,8 +565,13 @@ class UserImportForm(forms.Form):
     )
 
 
+
 class ProjectStatusImportForm(forms.Form):
     """Formular für den Import von Projektstatus."""
+
+class Anlage2ConfigImportForm(forms.Form):
+    """Formular für den Import der globalen Phrasen."""
+
 
     json_file = forms.FileField(
         label="JSON-Datei",
