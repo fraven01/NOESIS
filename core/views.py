@@ -33,6 +33,7 @@ from .forms import (
     Anlage2GlobalPhraseFormSet,
     Anlage2FunctionImportForm,
     PromptImportForm,
+    Anlage1ImportForm,
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
@@ -1310,6 +1311,60 @@ def admin_anlage1(request):
         return redirect("admin_anlage1")
     context = {"questions": questions}
     return render(request, "admin_anlage1.html", context)
+
+
+@login_required
+@admin_required
+def admin_anlage1_export(request):
+    """Exportiert alle Anlage-1-Fragen als JSON-Datei."""
+    questions = (
+        Anlage1Question.objects.all()
+        .prefetch_related("variants")
+        .order_by("num")
+    )
+    items = [
+        {
+            "text": q.text,
+            "variants": [v.text for v in q.variants.all()],
+            "parser_enabled": q.parser_enabled,
+            "llm_enabled": q.llm_enabled,
+        }
+        for q in questions
+    ]
+    content = json.dumps(items, ensure_ascii=False, indent=2)
+    response = HttpResponse(content, content_type="application/json")
+    response["Content-Disposition"] = "attachment; filename=anlage1_questions.json"
+    return response
+
+
+@login_required
+@admin_required
+def admin_anlage1_import(request):
+    """Importiert Anlage-1-Fragen aus einer JSON-Datei."""
+    form = Anlage1ImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("admin_anlage1_import")
+        for idx, item in enumerate(items, start=1):
+            obj, _ = Anlage1Question.objects.update_or_create(
+                text=item.get("text", ""),
+                defaults={
+                    "num": idx,
+                    "parser_enabled": item.get("parser_enabled", True),
+                    "llm_enabled": item.get("llm_enabled", True),
+                    "enabled": True,
+                },
+            )
+            obj.variants.all().delete()
+            for v_text in item.get("variants", []):
+                Anlage1QuestionVariant.objects.create(question=obj, text=v_text)
+        messages.success(request, "Fragen importiert")
+        return redirect("admin_anlage1")
+    return render(request, "admin_anlage1_import.html", {"form": form})
 
 
 @login_required
