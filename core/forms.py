@@ -547,3 +547,12 @@ class UserImportForm(forms.Form):
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
+
+class ProjectStatusImportForm(forms.Form):
+    """Formular für den Import von Projektstatus."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
