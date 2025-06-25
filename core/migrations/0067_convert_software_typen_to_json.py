@@ -1,5 +1,4 @@
 from django.db import migrations
-import json
 
 def forwards(apps, schema_editor):
     BVProject = apps.get_model('core', 'BVProject')
@@ -11,7 +10,7 @@ def forwards(apps, schema_editor):
             cleaned = [s.strip() for s in data if str(s).strip()]
         else:
             cleaned = []
-        projekt.software_typen = json.dumps(cleaned)
+        projekt.software_typen = cleaned
         projekt.save(update_fields=['software_typen'])
 
 class Migration(migrations.Migration):
