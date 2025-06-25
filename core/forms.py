@@ -68,7 +68,9 @@ class RecordingForm(forms.ModelForm):
         model = Recording
         fields = ["bereich", "audio_file"]
         widgets = {
-            "audio_file": forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+            "audio_file": forms.ClearableFileInput(
+                attrs={"class": "border rounded p-2"}
+            ),
         }
 
     def clean_audio_file(self):
@@ -122,6 +124,7 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
             required=False,
             label="Software-Typen",
         )
+
     class Meta:
         model = BVProject
         fields = ["title", "beschreibung", "software_typen", "status"]
@@ -133,7 +136,9 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": "border rounded p-2"}),
-            "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
+            "beschreibung": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 5}
+            ),
             "software_typen": forms.HiddenInput(),
             "status": forms.Select(attrs={"class": "border rounded p-2"}),
         }
@@ -165,12 +170,10 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
             raw = self.cleaned_data.get("software_typen", "")
             names = [s.strip() for s in raw.split(",") if s.strip()]
         if not names:
-            raise forms.ValidationError(
-                "Software-Typen dürfen nicht leer sein.")
+            raise forms.ValidationError("Software-Typen dürfen nicht leer sein.")
         cleaned = ", ".join(names)
         self.software_list = names
         return cleaned
-
 
 
 class BVProjectUploadForm(DocxValidationMixin, forms.Form):
@@ -178,7 +181,6 @@ class BVProjectUploadForm(DocxValidationMixin, forms.Form):
         label="DOCX-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
-
 
 
 class BVProjectFileForm(forms.ModelForm):
@@ -284,9 +286,6 @@ class Anlage1ReviewForm(forms.Form):
         return out
 
 
-
-
-
 class Anlage2ReviewForm(forms.Form):
     """Manuelle Pr\xfcfung der Funktionen aus Anlage 2."""
 
@@ -321,9 +320,7 @@ class Anlage2ReviewForm(forms.Form):
         for func in Anlage2Function.objects.order_by("name"):
             item: dict[str, object] = {}
             for field, _ in fields:
-                item[field] = self.cleaned_data.get(
-                    f"func{func.id}_{field}", False
-                )
+                item[field] = self.cleaned_data.get(f"func{func.id}_{field}", False)
             sub_dict: dict[str, dict] = {}
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 sub_item = {
@@ -335,7 +332,6 @@ class Anlage2ReviewForm(forms.Form):
                 item["subquestions"] = sub_dict
             out["functions"][str(func.id)] = item
         return out
-
 
 
 class Anlage2FunctionForm(forms.ModelForm):
@@ -385,19 +381,20 @@ class PromptImportForm(forms.Form):
     )
 
 
-
 class LLMRoleImportForm(forms.Form):
     """Formular für den JSON-Import der LLM-Rollen."""
 
     json_file = forms.FileField(
         label="JSON-Datei der Rollen",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
 
 class Anlage1ImportForm(forms.Form):
     """Formular für den JSON-Import der Anlage-1-Fragen."""
 
     json_file = forms.FileField(
         label="JSON-Datei",
-
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
@@ -442,7 +439,9 @@ class Anlage2ConfigForm(forms.ModelForm):
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
         }
         widgets = {
-            "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "enforce_subquestion_override": forms.CheckboxInput(
+                attrs={"class": "mr-2"}
+            ),
         }
 
 
@@ -474,9 +473,10 @@ class KnowledgeDescriptionForm(forms.ModelForm):
         fields = ["description"]
         labels = {"description": "Beschreibung"}
         widgets = {
-            "description": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 5})
+            "description": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 5}
+            )
         }
-
 
 
 class ProjectStatusForm(forms.ModelForm):
@@ -565,16 +565,19 @@ class UserImportForm(forms.Form):
     )
 
 
-
 class ProjectStatusImportForm(forms.Form):
     """Formular für den Import von Projektstatus."""
-
-class Anlage2ConfigImportForm(forms.Form):
-    """Formular für den Import der globalen Phrasen."""
-
 
     json_file = forms.FileField(
         label="JSON-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
 
+
+class Anlage2ConfigImportForm(forms.Form):
+    """Formular für den Import der globalen Phrasen."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
