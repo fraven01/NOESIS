@@ -134,7 +134,7 @@
     {% endfor %}
     </tbody>
 </table>
-<button id="btn-start-all-initial-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
+<button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
 
 </div>
 <div class="lg:w-1/3 mt-4 lg:mt-0">
@@ -175,7 +175,6 @@
 </div>
 <script>
 function getCookie(name){const m=document.cookie.match('(^|;)\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-const csrftoken = getCookie('csrftoken');
 
 function loadKnowledge(){
  fetch('{% url 'project_detail_api' projekt.pk %}')
@@ -288,19 +287,21 @@ function sendCheck(payload){
  sec.appendChild(spinner);
  fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
    method:'POST',
-   headers:{'X-CSRFToken':csrftoken},
+   headers:{'X-CSRFToken':getCookie('csrftoken')},
    body:new URLSearchParams(payload)
-}).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);}/* reload or update */}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
+ }).then(r=>r.json()).then(d=>{if(d.error){alert(d.error);}/* reload or update */}).catch(()=>alert('LLM-Prüfung fehlgeschlagen')).finally(()=>spinner.remove());
 }
 
 function startChecks(){
- const btn=document.getElementById('btn-start-all-initial-checks');
+ const btn=document.getElementById('start-checks');
  btn.disabled=true;
- btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Prüfungen werden gestartet...';
-fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
-  method:'POST',
-  headers:{'X-CSRFToken':csrftoken}
-}).then(r=>r.json()).then(data=>{
+ const spinner=document.createElement('span');
+ spinner.textContent=' ...';
+ btn.after(spinner);
+ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
+   method:'POST',
+   headers:{'X-CSRFToken':getCookie('csrftoken')}
+ }).then(r=>r.json()).then(data=>{
    const tasks=data.tasks||[];
    const tmpl='{% url "ajax_check_task_status" "dummy" %}';
    let done=0;
@@ -314,7 +315,7 @@ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
        });
      },3000);
    });
-}).catch(()=>{alert('Fehler beim Start');btn.disabled=false;btn.textContent='Prüfung starten';});
+ }).catch(()=>{alert('Fehler beim Start');spinner.remove();btn.disabled=false;});
 }
 
 function attachGutachtenHandlers(){
@@ -326,13 +327,11 @@ function attachGutachtenHandlers(){
       const body=new FormData();
       body.append('knowledge_id',knowledgeId);
 
-      const btn=this;
-      btn.classList.add('disabled');
-      btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Wird erstellt...';
+      this.classList.add('disabled');
       const status=document.getElementById('gutachten-status-'+knowledgeId);
       if(status){status.textContent='...';}
 
-      fetch(url,{method:'POST',headers:{'X-CSRFToken':csrftoken},body:body})
+      fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;
           const tmpl='{% url "ajax_check_task_status" "dummy" %}';
@@ -343,15 +342,13 @@ function attachGutachtenHandlers(){
               }else if(d.status==='FAIL'){
                 clearInterval(iv);
                 if(status){status.textContent='Fehler';}
-                btn.classList.remove('disabled');
-                btn.textContent='Gutachten erstellen';
-             }
+                button.classList.remove('disabled');
+              }
             });
-         },3000);
+          },3000);
         }).catch(()=>{
           if(status){status.textContent='Fehler';}
-          btn.classList.remove('disabled');
-          btn.textContent='Gutachten erstellen';
+          button.classList.remove('disabled');
         });
     });
   });
@@ -359,7 +356,7 @@ function attachGutachtenHandlers(){
 
 document.addEventListener('DOMContentLoaded',loadKnowledge);
 document.addEventListener('DOMContentLoaded',function(){
- const btn=document.getElementById('btn-start-all-initial-checks');
+ const btn=document.getElementById('start-checks');
  if(btn){btn.addEventListener('click',startChecks);}
 });
 
@@ -379,7 +376,7 @@ document.addEventListener('DOMContentLoaded',function(){
       const body=new FormData();
       body.append('knowledge_id',contextId);
       body.append('user_context',text);
-      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':csrftoken},body:body})
+      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;
           const tmpl='{% url "ajax_check_task_status" "dummy" %}';
