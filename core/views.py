@@ -1352,6 +1352,8 @@ def admin_anlage1_import(request):
         except Exception:  # noqa: BLE001
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_anlage1_import")
+        if form.cleaned_data.get("clear_first"):
+            Anlage1Question.objects.all().delete()
         for idx, item in enumerate(items, start=1):
             obj, _ = Anlage1Question.objects.update_or_create(
                 text=item.get("text", ""),
