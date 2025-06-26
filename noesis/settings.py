@@ -175,7 +175,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "DEBUG",  # Wichtig: Der Handler muss DEBUG-Meldungen verarbeiten
+            "level": "INFO",  # Zeigt nur Informationen und Fehler in der Konsole an
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
