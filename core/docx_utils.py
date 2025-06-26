@@ -26,7 +26,10 @@ HEADER_FIELDS = {
 def extract_text(path: Path) -> str:
     """Extrahiert den gesamten Text einer DOCX-Datei."""
     doc = Document(str(path))
-    return "\n".join(p.text for p in doc.paragraphs)
+    text = "\n".join(p.text for p in doc.paragraphs)
+    parser_logger = logging.getLogger("parser_debug")
+    parser_logger.debug("Rohtext aus %s: %r", path, text)
+    return text
 
 
 def get_docx_page_count(path: Path) -> int:
