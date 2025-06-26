@@ -203,6 +203,13 @@ class BVProjectFileForm(forms.ModelForm):
 class BVProjectFileJSONForm(forms.ModelForm):
     """Formular zum Bearbeiten der Analyse-Daten einer Anlage."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        nr = getattr(self.instance, "anlage_nr", None)
+        if nr == 3:
+            self.fields.pop("analysis_json", None)
+            self.fields.pop("manual_analysis_json", None)
+
     class Meta:
         model = BVProjectFile
         fields = [

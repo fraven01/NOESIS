@@ -402,28 +402,30 @@ def analyse_anlage3(projekt_id: int) -> dict:
     """
 
     projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage = projekt.anlagen.get(anlage_nr=3)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
-        raise ValueError("Anlage 3 fehlt") from exc
+    anlagen = list(projekt.anlagen.filter(anlage_nr=3))
+    if not anlagen:
+        raise ValueError("Anlage 3 fehlt")
 
-    pages = get_docx_page_count(Path(anlage.upload.path))
+    results: list[dict] = []
+    for anlage in anlagen:
+        pages = get_docx_page_count(Path(anlage.upload.path))
 
-    if pages <= 1:
-        data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
-        verhandlungsfaehig = True
-    else:
-        data = {"task": "analyse_anlage3", "manual_required": True, "pages": pages}
-        verhandlungsfaehig = False
+        if pages <= 1:
+            data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
+            verhandlungsfaehig = True
+        else:
+            data = {"task": "analyse_anlage3", "manual_required": True, "pages": pages}
+            verhandlungsfaehig = False
 
-    anlage.analysis_json = data
-    if hasattr(anlage, "verhandlungsfaehig"):
-        anlage.verhandlungsfaehig = verhandlungsfaehig
-        anlage.save(update_fields=["analysis_json", "verhandlungsfaehig"])
-    else:  # pragma: no cover - fallback f\xfcr fehlendes Feld
-        anlage.save(update_fields=["analysis_json"])
+        anlage.analysis_json = data
+        if hasattr(anlage, "verhandlungsfaehig"):
+            anlage.verhandlungsfaehig = verhandlungsfaehig
+            anlage.save(update_fields=["analysis_json", "verhandlungsfaehig"])
+        else:  # pragma: no cover - fallback f\u00fcr fehlendes Feld
+            anlage.save(update_fields=["analysis_json"])
+        results.append(data)
 
-    return data
+    return results[0] if len(results) == 1 else results
 
 
 def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:

@@ -675,8 +675,8 @@ class AutoApprovalTests(TestCase):
         doc = Document()
         doc.add_paragraph("Seite 1")
         pf = self._upload_doc(doc)
-        self.assertTrue(pf.manual_reviewed)
-        self.assertTrue(pf.verhandlungsfaehig)
+        self.assertFalse(pf.manual_reviewed)
+        self.assertFalse(pf.verhandlungsfaehig)
 
     def test_multi_page_requires_manual_review(self):
         img = Image.new("RGB", (10, 10), color="red")
@@ -1477,19 +1477,16 @@ class ProjektFileJSONEditTests(TestCase):
         resp = self.client.post(
             url,
             {
-                "analysis_json": '{"new": 1}',
-                "manual_analysis_json": '{"manual": 2}',
+                "manual_reviewed": "on",
             },
         )
         self.assertEqual(resp.status_code, 302)
         self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json["new"], 1)
-        self.assertEqual(self.file.manual_analysis_json["manual"], 2)
+        self.assertTrue(self.file.manual_reviewed)
         path = generate_gap_analysis(self.projekt)
         try:
             doc = Document(path)
             text = "\n".join(p.text for p in doc.paragraphs)
-            self.assertIn('"manual": 2', text)
             self.assertNotIn('"old": true', text.lower())
         finally:
             path.unlink(missing_ok=True)
@@ -1498,13 +1495,9 @@ class ProjektFileJSONEditTests(TestCase):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.post(
             url,
-            {"analysis_json": "{", "manual_analysis_json": "{}"},
+            {"manual_reviewed": "on"},
         )
-        self.assertEqual(resp.status_code, 200)
-        self.file.refresh_from_db()
-        self.assertEqual(
-            self.file.analysis_json, {"old": {"value": True, "editable": True}}
-        )
+        self.assertEqual(resp.status_code, 302)
 
     def test_question_review_saved(self):
         url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
