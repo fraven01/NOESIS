@@ -108,24 +108,7 @@ from django.conf import settings
 from .templatetags.recording_extras import markdownify
 
 logger = logging.getLogger(__name__)
-debug_logger = logging.getLogger("anlage2_debug")
-if not any(
-    isinstance(h, logging.FileHandler)
-    and getattr(h, "baseFilename", "").endswith("debug.log")
-    for h in debug_logger.handlers
-):
-    file_handler = logging.FileHandler(settings.BASE_DIR / "debug.log")
-    file_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    file_handler.setFormatter(formatter)
-    debug_logger.addHandler(file_handler)
-if not any(isinstance(h, logging.StreamHandler) for h in debug_logger.handlers):
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    stream_handler.setFormatter(formatter)
-    debug_logger.addHandler(stream_handler)
-debug_logger.setLevel(logging.DEBUG)
+debug_logger = logging.getLogger("parser_debug")
 
 PhraseFormSet = formset_factory(PhraseForm, extra=1, can_delete=True)
 
@@ -1133,7 +1116,6 @@ def admin_project_delete(request, pk):
             f"Error deleting project {projekt.id} ('{projekt_title}'): {e}",
             exc_info=True,
         )
-        print(f"!!! DEBUG-AUSGABE FEHLER BEIM LÖSCHEN: {type(e).__name__}: {e}")
     return redirect("admin_projects")
 
 
