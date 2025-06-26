@@ -1876,7 +1876,7 @@ class ProjektFileCheckResultTests(TestCase):
         with patch("core.views.analyse_anlage3") as mock_func:
             mock_func.return_value = {"task": "analyse_anlage3"}
             resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[pf.pk]))
+        self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
 

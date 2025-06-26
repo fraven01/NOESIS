@@ -2215,6 +2215,10 @@ def projekt_file_check_view(request, pk):
     except Exception:
         logger.exception("LLM Fehler")
         messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
+
+    if anlage.anlage_nr == 3:
+        return redirect("anlage3_review", pk=anlage.projekt_id)
+
     return redirect("projekt_file_edit_json", pk=pk)
 
 
