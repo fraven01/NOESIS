@@ -80,8 +80,8 @@ from .reporting import generate_gap_analysis, generate_management_summary
 from .llm_tasks import (
     check_anlage1,
     analyse_anlage2,
+    analyse_anlage3,
     check_anlage2,
-    check_anlage3,
     check_anlage4,
     check_anlage5,
     check_anlage6,
@@ -2134,7 +2134,7 @@ def projekt_file_check(request, pk, nr):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: check_anlage3,
+        3: analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2171,7 +2171,7 @@ def projekt_file_check_pk(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: check_anlage3,
+        3: analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2205,7 +2205,7 @@ def projekt_file_check_view(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: check_anlage3,
+        3: analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,

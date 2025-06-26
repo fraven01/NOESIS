@@ -31,6 +31,7 @@ from .docx_utils import (
     parse_anlage2_text,
     extract_text,
     _normalize_function_name,
+    get_docx_page_count,
 )
 from docx import Document
 
@@ -390,6 +391,39 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
         gutachten.save(update_fields=["text"])
 
     return str(path)
+
+
+def analyse_anlage3(projekt_id: int) -> dict:
+    """Analysiert die dritte Anlage hinsichtlich der Seitenzahl.
+
+    Erkennt automatisch ein kleines Dokument (eine Seite oder weniger) und
+    markiert die Anlage als verhandlungsf\xe4hig. Bei mehr Seiten wird ein
+    manueller Check erforderlich.
+    """
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=3)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - sollte selten passieren
+        raise ValueError("Anlage 3 fehlt") from exc
+
+    pages = get_docx_page_count(Path(anlage.upload.path))
+
+    if pages <= 1:
+        data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
+        verhandlungsfaehig = True
+    else:
+        data = {"task": "analyse_anlage3", "manual_required": True, "pages": pages}
+        verhandlungsfaehig = False
+
+    anlage.analysis_json = data
+    if hasattr(anlage, "verhandlungsfaehig"):
+        anlage.verhandlungsfaehig = verhandlungsfaehig
+        anlage.save(update_fields=["analysis_json", "verhandlungsfaehig"])
+    else:  # pragma: no cover - fallback f\xfcr fehlendes Feld
+        anlage.save(update_fields=["analysis_json"])
+
+    return data
 
 
 def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:
