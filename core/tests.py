@@ -37,6 +37,7 @@ from .docx_utils import (
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
+from PIL import Image
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .forms import BVProjectForm, BVProjectUploadForm
@@ -623,6 +624,70 @@ class ProjektFileUploadTests(TestCase):
         file_obj = self.projekt.anlagen.first()
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
+
+
+class AutoApprovalTests(TestCase):
+    """Tests für die automatische Genehmigung von Dokumenten."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("auto", password="pass")
+        self.client.login(username="auto", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def _upload_doc(self, document: Document) -> BVProjectFile:
+        """Hilfsfunktion zum Hochladen eines DOCX-Dokuments."""
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        document.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        return self.projekt.anlagen.get(anlage_nr=1)
+
+    def test_single_page_auto_approved(self):
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        pf = self._upload_doc(doc)
+        self.assertTrue(pf.manual_reviewed)
+        self.assertTrue(pf.verhandlungsfaehig)
+
+    def test_multi_page_requires_manual_review(self):
+        img = Image.new("RGB", (10, 10), color="red")
+        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+        img.save(img_tmp.name)
+        img_tmp.close()
+
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        doc.add_page_break()
+        doc.add_paragraph("Seite 2")
+        doc.add_picture(img_tmp.name)
+        Path(img_tmp.name).unlink(missing_ok=True)
+
+        pf = self._upload_doc(doc)
+        self.assertFalse(pf.manual_reviewed)
+        self.assertFalse(pf.verhandlungsfaehig)
+
+    def test_toggle_manual_review_sets_flag(self):
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        doc.add_page_break()
+        doc.add_paragraph("Seite 2")
+        pf = self._upload_doc(doc)
+
+        url = reverse("project_file_toggle_flag", args=[pf.pk, "manual_reviewed"])
+        resp = self.client.post(url, {"value": "1"})
+        self.assertEqual(resp.status_code, 302)
+        pf.refresh_from_db()
+        self.assertTrue(pf.manual_reviewed)
+        self.assertTrue(pf.verhandlungsfaehig)
 
 
 class BVProjectModelTests(TestCase):
