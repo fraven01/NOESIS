@@ -253,11 +253,6 @@ urlpatterns = [
         name="project_file_toggle_flag",
     ),
     path(
-        "work/anlage3-review/",
-        views.anlage3_review,
-        name="anlage3_review",
-    ),
-    path(
         "work/anlage/<int:pk>/email/",
         views.anlage1_generate_email,
         name="anlage1_generate_email",

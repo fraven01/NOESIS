@@ -18,20 +18,16 @@
 <form method="post" class="space-y-4">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    {% if form.analysis_json %}
     <div>
         {{ form.analysis_json.label_tag }}<br>
         {{ form.analysis_json }}
         {{ form.analysis_json.errors }}
     </div>
-    {% endif %}
-    {% if form.manual_analysis_json %}
     <div>
         {{ form.manual_analysis_json.label_tag }}<br>
         {{ form.manual_analysis_json }}
         {{ form.manual_analysis_json.errors }}
     </div>
-    {% endif %}
     <div class="space-x-2">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
         <a href="{% url 'projekt_detail' anlage.projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zur\u00fcck</a>
@@ -40,10 +36,8 @@
 </form>
 <script>
 document.getElementById('copy-email').addEventListener('click', function(){
-    const aField = document.getElementById('{{ form.analysis_json.id_for_label|default:"" }}');
-    const mField = document.getElementById('{{ form.manual_analysis_json.id_for_label|default:"" }}');
-    const analysis = aField ? aField.value : '';
-    const manual = mField ? mField.value : '';
+    const analysis = document.getElementById('{{ form.analysis_json.id_for_label }}').value;
+    const manual = document.getElementById('{{ form.manual_analysis_json.id_for_label }}').value;
     const text = `Pr\u00fcfergebnis Anlage {{ anlage.anlage_nr }}\n\nAnalyse:\n${analysis}\n\nManuelle Analyse:\n${manual}`;
     navigator.clipboard.writeText(text).then(()=>alert('In Zwischenablage kopiert'));
 });

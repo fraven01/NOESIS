@@ -2823,30 +2823,11 @@ def project_file_toggle_flag(request, pk: int, field: str):
     new_val = value in ("1", "true", "True", "on")
     setattr(project_file, field, new_val)
     project_file.save(update_fields=[field])
-    if field == "manual_reviewed":
-        if new_val and hasattr(project_file, "verhandlungsfaehig"):
-            project_file.verhandlungsfaehig = True
-            project_file.save(update_fields=["verhandlungsfaehig"])
-        projekt = project_file.projekt
-        total = projekt.anlagen.filter(anlage_nr=3).count()
-        reviewed = projekt.anlagen.filter(anlage_nr=3, manual_reviewed=True).count()
-        if total and reviewed == total:
-            try:
-                set_project_status(projekt, "ENDGEPRUEFT")
-            except Exception:
-                logger.exception("Status update failed")
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"status": "ok", field: new_val})
     if "HTTP_REFERER" in request.META:
         return redirect(request.META["HTTP_REFERER"])
     return redirect("projekt_detail", pk=project_file.projekt.pk)
-
-
-@login_required
-def anlage3_review(request):
-    """Listet alle Anlage-3-Dokumente zur manuellen Prüfung."""
-    files = BVProjectFile.objects.filter(anlage_nr=3).select_related("projekt")
-    return render(request, "anlage3_review.html", {"files": files})
 
 
 @login_required
