@@ -66,7 +66,7 @@ def _normalize_header_text(text: str) -> str:
     # Zuerst doppelt-escapte Newlines durch ein einfaches Leerzeichen ersetzen
     # Wichtig: Dies muss passieren, bevor "echte" Newlines ersetzt werden,
     # falls beides vorkommt, oder wenn die Quelle schon so escapet.
-    text = text.replace("\\n", " ")  # <-- NEUE ZEILE / ÄNDERUNG HIER!
+    text = text.replace("\\n", " ")
     # Ersetzt '\\n' durch ein Leerzeichen
 
     text = text.replace(
