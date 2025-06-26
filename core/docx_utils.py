@@ -157,8 +157,10 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     """
     logger = logging.getLogger(__name__)
     parser_logger = logging.getLogger("parser_debug")
+    parser_logger.info("parse_anlage2_text gestartet")
 
     logger.debug(f"Starte parse_anlage2_table mit Pfad: {path}")
+    parser_logger.info("parse_anlage2_table gestartet")
 
     try:
         doc = Document(str(path))
@@ -260,6 +262,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
             break
 
     logger.debug(f"Endgültige Ergebnisse: {results}")
+    parser_logger.info("parse_anlage2_table beendet")
     return results
 
 
@@ -360,4 +363,5 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 break
 
     logger.debug("parse_anlage2_text Ergebnisse: %s", results)
+    parser_logger.info("parse_anlage2_text beendet")
     return results

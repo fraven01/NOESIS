@@ -35,6 +35,7 @@ from .docx_utils import (
 from docx import Document
 
 logger = logging.getLogger(__name__)
+parser_logger = logging.getLogger("parser_debug")
 
 ANLAGE1_QUESTIONS = [
     "Frage 1: Extrahiere alle Unternehmen als Liste.",
@@ -603,7 +604,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         )
         logger.debug("Tabellenzeile: %s", row)
         if row is None:
-            logger.debug("Parser fand Funktion '%s' nicht", func.name)
+            parser_logger.debug("Parser fand Funktion '%s' nicht", func.name)
         def _val(item, key):
             value = item.get(key)
             if isinstance(value, dict) and "value" in value:
@@ -658,7 +659,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 None,
             )
             if sub_row is None:
-                logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
+                parser_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
