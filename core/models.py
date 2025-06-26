@@ -359,6 +359,7 @@ class LLMConfig(models.Model):
     default_model = models.CharField(max_length=100, blank=True)
     gutachten_model = models.CharField(max_length=100, blank=True)
     anlagen_model = models.CharField(max_length=100, blank=True)
+    vision_model = models.CharField(max_length=100, blank=True)
     available_models = models.JSONField(null=True, blank=True)
     models_changed = models.BooleanField(default=False)
 
@@ -380,6 +381,8 @@ class LLMConfig(models.Model):
             return cfg.gutachten_model or cfg.default_model or settings.GOOGLE_LLM_MODEL
         if kind == "anlagen":
             return cfg.anlagen_model or cfg.default_model or settings.GOOGLE_LLM_MODEL
+        if kind == "vision":
+            return cfg.vision_model or cfg.default_model or settings.GOOGLE_VISION_MODEL
         return cfg.default_model or settings.GOOGLE_LLM_MODEL
 
     @classmethod
@@ -406,6 +409,10 @@ class LLMConfig(models.Model):
             "anlagen": {
                 "model": cls.get_default("anlagen"),
                 "label": "Anlagen",
+            },
+            "vision": {
+                "model": cls.get_default("vision"),
+                "label": "Vision",
             },
         }
 

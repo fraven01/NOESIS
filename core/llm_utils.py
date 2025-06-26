@@ -206,3 +206,105 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
             exc_info=True,
         )
         raise
+
+
+def query_llm_with_images(prompt: str, images: list[bytes], model_name: str) -> str:
+    """Sendet einen Prompt mit Bildern an ein LLM."""
+
+    import base64
+
+    correlation_id = str(uuid.uuid4())
+
+    if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
+        logger.error(
+            "[%s] [%s] Missing LLM API key in environment.",
+            _timestamp(),
+            correlation_id,
+        )
+        raise RuntimeError("Missing LLM credentials from environment.")
+
+    if settings.GOOGLE_API_KEY:
+        try:
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            model = genai.GenerativeModel(model_name)
+            content = [prompt] + [
+                {"mime_type": "image/png", "data": img} for img in images
+            ]
+            logger.debug(
+                "[%s] [%s] Request to Google Gemini model=%s with %s images",
+                _timestamp(),
+                correlation_id,
+                model_name,
+                len(images),
+            )
+            resp = model.generate_content(content)
+            llm_response = resp.text
+            logger.debug(
+                "[%s] [%s] Response 200 %s",
+                _timestamp(),
+                correlation_id,
+                repr(llm_response)[:200],
+            )
+            return llm_response
+        except Exception as exc:  # noqa: BLE001
+            if g_exceptions and isinstance(exc, g_exceptions.NotFound):
+                logger.error(
+                    "[%s] [%s] Unbekanntes Gemini-Modell %s",
+                    _timestamp(),
+                    correlation_id,
+                    model_name,
+                )
+                raise RuntimeError(
+                    f"Unsupported Gemini model: {model_name}."
+                ) from exc
+            logger.error(
+                "[%s] [%s] LLM service error: %s",
+                _timestamp(),
+                correlation_id,
+                str(exc),
+                exc_info=True,
+            )
+            raise
+
+    endpoint = "https://api.openai.com/v1/chat/completions"
+    messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+    for img in images:
+        b64 = base64.b64encode(img).decode("ascii")
+        messages[0]["content"].append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{b64}"},
+            }
+        )
+    payload = {"model": model_name, "messages": messages}
+    logger.debug(
+        "[%s] [%s] Request to %s payload=%s",
+        _timestamp(),
+        correlation_id,
+        endpoint,
+        payload,
+    )
+    try:
+        openai.api_key = settings.OPENAI_API_KEY
+        completion = openai.ChatCompletion.create(**payload)
+        llm_response = completion.choices[0].message.content
+        logger.debug(
+            "[%s] [%s] Response %s %s",
+            _timestamp(),
+            correlation_id,
+            completion.response_ms,
+            repr(completion)[:200],
+        )
+        return llm_response
+    except Exception as exc:  # noqa: BLE001
+        status = getattr(exc, "http_status", "N/A")
+        body = getattr(exc, "http_body", "")
+        logger.error(
+            "[%s] [%s] LLM service error: %s %s",
+            _timestamp(),
+            correlation_id,
+            status,
+            body,
+            exc_info=True,
+        )
+        raise

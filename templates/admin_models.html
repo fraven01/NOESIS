@@ -45,6 +45,17 @@
                 {% endfor %}
                 </td>
             </tr>
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">Vision</td>
+                <td class="py-1">
+                {% for m in models %}
+                    <label class="ml-2">
+                        <input type="radio" name="vision_model" value="{{ m }}" {% if m == config.vision_model %}checked{% endif %}>
+                        {{ m }}
+                    </label>
+                {% endfor %}
+                </td>
+            </tr>
         </tbody>
     </table>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
