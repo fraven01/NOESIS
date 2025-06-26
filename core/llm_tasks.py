@@ -257,6 +257,10 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     if analysis_result:
         logger.info("Tabellen-Parser verwendet")
     else:
+        parser_logger.debug(
+            "Textinhalt vor Text-Parser:\n%s",
+            project_file.text_content,
+        )
         analysis_result = parse_anlage2_text(project_file.text_content)
         logger.info("Text-Parser als Fallback verwendet")
 
