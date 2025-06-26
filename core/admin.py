@@ -7,6 +7,7 @@ from .models import (
     Tile,
     UserTileAccess,
     Area,
+    BVProject,
     BVProjectFile,
     Anlage2Function,
     Anlage2FunctionResult,
@@ -57,9 +58,40 @@ admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
 
+@admin.register(BVProject)
+class BVProjectAdmin(admin.ModelAdmin):
+    """Benutzerfreundliche Darstellung von BV-Projekten im Admin."""
+
+    list_display = ("title", "status", "created_at", "software_typen")
+    list_filter = ("status",)
+    search_fields = ("title", "beschreibung", "software_typen")
+    fieldsets = (
+        (
+            "Allgemeine Projektinformationen",
+            {"fields": ("title", "software_typen", "status")},
+        ),
+        (
+            "Inhaltliche Beschreibung",
+            {"classes": ("collapse",), "fields": ("beschreibung",)},
+        ),
+        (
+            "Klassifizierung & Gutachten (Automatisch generiert)",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "classification_json",
+                    "gutachten_file",
+                    "gutachten_function_note",
+                ),
+            },
+        ),
+    )
+
+
 @admin.register(Anlage2Function)
 class Anlage2FunctionAdmin(admin.ModelAdmin):
     list_display = ("name",)
+    search_fields = ("name",)
 
 
 @admin.register(Anlage2FunctionResult)
@@ -69,7 +101,9 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "funktion",
         "technisch_verfuegbar",
         "ki_beteiligung",
+        "source",
     )
+    list_filter = ("source", "technisch_verfuegbar", "ki_beteiligung")
 
 
 @admin.register(BVProjectFile)
