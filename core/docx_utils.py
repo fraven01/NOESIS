@@ -2,6 +2,7 @@ from pathlib import Path
 from docx import Document
 import logging
 import re
+import zipfile
 
 from .models import (
     Anlage2Config,
@@ -59,6 +60,26 @@ def get_docx_page_count(path: Path) -> int:
             section_breaks += 1
 
     return 1 + page_breaks + section_breaks
+
+
+def extract_images(path: Path) -> list[bytes]:
+    """Extrahiert alle eingebetteten Bilder aus einer DOCX-Datei.
+
+    Die Funktion liest das DOCX-Archiv als ZIP und gibt die rohen
+    Bilddaten aus dem Unterordner ``word/media`` zurück.
+    """
+
+    logger = logging.getLogger(__name__)
+    images: list[bytes] = []
+    try:
+        with zipfile.ZipFile(path) as zf:
+            for name in zf.namelist():
+                if name.startswith("word/media/"):
+                    with zf.open(name) as fh:
+                        images.append(fh.read())
+    except Exception as exc:  # pragma: no cover - ungültige Datei
+        logger.error("Fehler beim Extrahieren der Bilder aus %s: %s", path, exc)
+    return images
 
 
 def _parse_cell_value(text: str) -> dict[str, object]:

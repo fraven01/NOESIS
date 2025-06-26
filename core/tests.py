@@ -30,6 +30,7 @@ from .models import (
 from .docx_utils import (
     extract_text,
     get_docx_page_count,
+    extract_images,
     parse_anlage2_table,
     parse_anlage2_text,
     _normalize_header_text,
@@ -37,6 +38,7 @@ from .docx_utils import (
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
+from PIL import Image
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .forms import BVProjectForm, BVProjectUploadForm
@@ -537,6 +539,24 @@ class DocxExtractTests(TestCase):
                 },
             ],
         )
+
+    def test_extract_images(self):
+        img = Image.new("RGB", (1, 1), color="blue")
+        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+        img.save(img_tmp.name)
+        img_tmp.close()
+        doc = Document()
+        doc.add_picture(img_tmp.name)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = extract_images(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            Path(img_tmp.name).unlink(missing_ok=True)
+        self.assertEqual(len(data), 1)
+        self.assertTrue(data[0].startswith(b"\x89PNG"))
 
 
 class BVProjectFormTests(TestCase):
