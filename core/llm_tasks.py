@@ -602,6 +602,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             None,
         )
         logger.debug("Tabellenzeile: %s", row)
+        if row is None:
+            logger.debug("Parser fand Funktion '%s' nicht", func.name)
         def _val(item, key):
             value = item.get(key)
             if isinstance(value, dict) and "value" in value:
@@ -646,6 +648,17 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         sub_list: list[dict] = []
         # Für jede Subfrage ebenfalls LLM befragen
         for sub in func.anlage2subquestion_set.all().order_by("id"):
+            sub_name = f"{func.name}: {sub.frage_text}"
+            sub_row = next(
+                (
+                    r
+                    for r in table
+                    if _normalize_function_name(r["funktion"]) == _normalize_function_name(sub_name)
+                ),
+                None,
+            )
+            if sub_row is None:
+                logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
