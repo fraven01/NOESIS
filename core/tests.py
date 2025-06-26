@@ -29,6 +29,7 @@ from .models import (
 )
 from .docx_utils import (
     extract_text,
+    get_docx_page_count,
     parse_anlage2_table,
     parse_anlage2_text,
     _normalize_header_text,
@@ -180,6 +181,32 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertIn("Das ist ein Test", text)
+
+    def test_get_docx_page_count_single(self):
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_docx_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 1)
+
+    def test_get_docx_page_count_two_pages(self):
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        doc.add_page_break()
+        doc.add_paragraph("Seite 2")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_docx_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 2)
 
     def test_normalize_header_text_variants(self):
         cases = {
