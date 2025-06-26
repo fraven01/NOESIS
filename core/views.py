@@ -2002,7 +2002,7 @@ def projekt_list(request):
 def projekt_detail(request, pk):
     projekt = BVProject.objects.get(pk=pk)
     anh = projekt.anlagen.all()
-    reviewed = anh.filter(analysis_json__isnull=False).count()
+    reviewed = anh.filter(manual_reviewed=True).count()
     is_admin = request.user.groups.filter(name="admin").exists()
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
@@ -2809,6 +2809,24 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
     project_file.save(update_fields=["verification_json", "manual_analysis_json"])
 
     return JsonResponse({"status": "success"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def project_file_toggle_flag(request, pk: int, field: str):
+    """Setzt ein Bool-Feld bei einer Anlage."""
+    if field not in {"manual_reviewed", "verhandlungsfaehig"}:
+        return HttpResponseBadRequest("invalid")
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    value = request.POST.get("value")
+    new_val = value in ("1", "true", "True", "on")
+    setattr(project_file, field, new_val)
+    project_file.save(update_fields=[field])
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"status": "ok", field: new_val})
+    if "HTTP_REFERER" in request.META:
+        return redirect(request.META["HTTP_REFERER"])
+    return redirect("projekt_detail", pk=project_file.projekt.pk)
 
 
 @login_required

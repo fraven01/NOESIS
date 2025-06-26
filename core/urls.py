@@ -248,6 +248,11 @@ urlpatterns = [
         name="ajax_reset_all_reviews",
     ),
     path(
+        "work/anlage/<int:pk>/toggle/<str:field>/",
+        views.project_file_toggle_flag,
+        name="project_file_toggle_flag",
+    ),
+    path(
         "work/anlage/<int:pk>/email/",
         views.anlage1_generate_email,
         name="anlage1_generate_email",

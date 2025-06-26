@@ -579,6 +579,23 @@ class BVProjectFileTests(TestCase):
             list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3]
         )
 
+    def test_default_flags(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content="d",
+        )
+        self.assertFalse(pf.manual_reviewed)
+        self.assertFalse(pf.verhandlungsfaehig)
+        pf.manual_reviewed = True
+        pf.verhandlungsfaehig = True
+        pf.save()
+        pf.refresh_from_db()
+        self.assertTrue(pf.manual_reviewed)
+        self.assertTrue(pf.verhandlungsfaehig)
+
 
 class ProjektFileUploadTests(TestCase):
     def setUp(self):

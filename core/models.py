@@ -202,6 +202,8 @@ class BVProjectFile(models.Model):
         null=True,
         help_text="Ergebnis der KI-gestützten Verifizierung der Funktionen.",
     )
+    manual_reviewed = models.BooleanField("Manuell geprüft", default=False)
+    verhandlungsfaehig = models.BooleanField("Verhandlungsfähig", default=False)
 
     class Meta:
         ordering = ["anlage_nr"]
