@@ -156,6 +156,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     ``note``.
     """
     logger = logging.getLogger(__name__)
+    parser_logger = logging.getLogger("parser_debug")
 
     logger.debug(f"Starte parse_anlage2_table mit Pfad: {path}")
 
@@ -226,9 +227,11 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
             if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
                 current_main_function_name = main_col_text
+                parser_logger.debug("Hauptfunktion erkannt: %s", current_main_function_name)
                 row_data = {"funktion": current_main_function_name}
             elif sub_col_text and current_main_function_name:
                 full_name = f"{current_main_function_name}: {sub_col_text}"
+                parser_logger.debug("Unterfrage erkannt: %s", full_name)
                 row_data = {"funktion": full_name}
 
             if row_data is None:
@@ -242,6 +245,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
                 if idx is not None:
                     row_data[col_name] = _parse_cell_value(row.cells[idx].text)
 
+            parser_logger.debug("Verarbeite Zeile %s: %s", row_idx, row_data)
             logger.debug(
                 "Zeile %s: Funktion '%s' Daten %s",
                 row_idx,
@@ -270,6 +274,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     """
 
     logger = logging.getLogger(__name__)
+    parser_logger = logging.getLogger("parser_debug")
     if not text_content:
         return []
 
@@ -333,6 +338,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             for sub, aliases in sub_map.get(last_func.id, []):
                 if _match(aliases, lower):
                     full_name = f"{last_main['funktion']}: {sub.frage_text}"
+                    parser_logger.debug("Unterfrage erkannt: %s", full_name)
                     row = {"funktion": full_name}
                     row.update(_extract_values(lower))
                     results.append(row)
@@ -344,6 +350,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         # Suche nach einer neuen Hauptfunktion
         for func, aliases in functions:
             if _match(aliases, lower):
+                parser_logger.debug("Hauptfunktion erkannt: %s", func.name)
                 row = {"funktion": func.name}
                 row.update(_extract_values(lower))
                 results.append(row)

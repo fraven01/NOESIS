@@ -189,6 +189,12 @@ LOGGING = {
             "filename": BASE_DIR / "llm-debug.log",
             "formatter": "llm_formatter",
         },
+        "parser_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "parser-debug.log",
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
@@ -216,6 +222,11 @@ LOGGING = {
         # Wenn dein Skript z.B. in myapp/utils.py liegt, wäre __name__ 'myapp.utils'
         "bv_project_tasks": {  # Passe dies an den tatsächlichen Modulnamen an, wenn du nur diesen spezifischen Logger debuggen möchtest
             "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "parser_debug": {
+            "handlers": ["parser_file"],
             "level": "DEBUG",
             "propagate": False,
         },
