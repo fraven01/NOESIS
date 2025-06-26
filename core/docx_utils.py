@@ -347,21 +347,39 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     functions: list[tuple[Anlage2Function, list[str]]] = []
     for func in Anlage2Function.objects.all():
         aliases = [a.lower() for a in _get_list(func.detection_phrases, "name_aliases")]
+        parser_logger.debug("Funktion '%s' Aliase: %s", func.name, aliases)
         functions.append((func, aliases))
 
     # Unterfragen pro Funktion sammeln
     sub_map: dict[int, list[tuple[Anlage2SubQuestion, list[str]]]] = {}
     for sub in Anlage2SubQuestion.objects.select_related("funktion"):
         aliases = [a.lower() for a in _get_list(sub.detection_phrases, "name_aliases")]
+        parser_logger.debug(
+            "Unterfrage '%s' (%s) Aliase: %s",
+            sub.frage_text,
+            sub.funktion.name,
+            aliases,
+        )
         sub_map.setdefault(sub.funktion_id, []).append((sub, aliases))
 
     def _match(phrases: list[str], line: str) -> bool:
-        return any(p in line for p in phrases if p)
+        for ph in [p for p in phrases if p]:
+            parser_logger.debug("Prüfe Alias '%s' gegen Zeile '%s'", ph, line)
+            if ph in line:
+                parser_logger.debug("-> Treffer")
+                return True
+        return False
 
     cfg = Anlage2Config.get_instance()
     gp_dict: dict[str, list[str]] = {}
     for gp in cfg.global_phrases.all():
+        parser_logger.debug(
+            "Globale Phrase '%s': %s",
+            gp.phrase_type,
+            gp.phrase_text,
+        )
         gp_dict.setdefault(gp.phrase_type, []).append(gp.phrase_text.lower())
+    parser_logger.debug("Gesammelte globale Phrasen: %s", gp_dict)
 
     def _extract_values(line: str) -> dict[str, dict[str, object]]:
         result: dict[str, dict[str, object]] = {}
@@ -378,6 +396,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 val = False
             if val is not None:
                 result[field] = {"value": val, "note": None}
+                parser_logger.debug(
+                    "Extrahierter Wert für %s: %s", field, val
+                )
         return result
 
     lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
@@ -386,6 +407,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     last_func: Anlage2Function | None = None
 
     for line in lines:
+        parser_logger.debug("Prüfe Zeile: %s", line)
         lower = line.lower()
         if not lower:
             continue
@@ -417,6 +439,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 last_func = func
                 found = True
                 break
+
+        if not found:
+            parser_logger.debug("Keine Funktion erkannt für Zeile: %s", line)
 
     logger.debug("parse_anlage2_text Ergebnisse: %s", results)
     parser_logger.info("parse_anlage2_text beendet")
