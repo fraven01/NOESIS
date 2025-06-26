@@ -333,6 +333,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     logger = logging.getLogger(__name__)
     parser_logger = logging.getLogger("parser_debug")
+    parser_logger.info("parse_anlage2_text gestartet")
     if not text_content:
         return []
 
