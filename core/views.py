@@ -1313,6 +1313,7 @@ def admin_models(request):
         cfg.default_model = request.POST.get("default_model", cfg.default_model)
         cfg.gutachten_model = request.POST.get("gutachten_model", cfg.gutachten_model)
         cfg.anlagen_model = request.POST.get("anlagen_model", cfg.anlagen_model)
+        cfg.vision_model = request.POST.get("vision_model", cfg.vision_model)
         cfg.models_changed = False
         cfg.save()
         return redirect("admin_models")

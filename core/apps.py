@@ -22,6 +22,7 @@ class CoreConfig(AppConfig):
                     "default_model": settings.GOOGLE_LLM_MODEL,
                     "gutachten_model": settings.GOOGLE_LLM_MODEL,
                     "anlagen_model": settings.GOOGLE_LLM_MODEL,
+                    "vision_model": settings.GOOGLE_VISION_MODEL,
                 },
             )
 
