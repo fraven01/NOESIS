@@ -28,6 +28,39 @@ def extract_text(path: Path) -> str:
     return "\n".join(p.text for p in doc.paragraphs)
 
 
+def get_docx_page_count(path: Path) -> int:
+    """Ermittelt die Seitenzahl eines DOCX-Dokuments.
+
+    Es werden sowohl manuelle Seitenumbrüche (``<w:br w:type="page"/>``)
+    als auch Abschnittswechsel gezählt, sofern sie einen neuen
+    Seitenumbruch bewirken. Ein einfaches Dokument besitzt somit immer
+    mindestens eine Seite.
+    """
+
+    doc = Document(str(path))
+    root = doc.part.element
+
+    # Zähle explizite Seitenumbrüche
+    page_breaks = len(root.xpath('.//w:br[@w:type="page"]'))
+
+    # Abschnittswechsel können ebenfalls neue Seiten erzeugen. Das
+    # abschließende ``sectPr`` beschreibt lediglich das letzte
+    # Abschnittslayout und zählt daher nicht als Umbruch.
+    section_breaks = 0
+    sect_prs = root.xpath('.//w:sectPr')
+    for sp in sect_prs[1:]:
+        type_el = sp.xpath('./w:type')
+        val = (
+            type_el[0].get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
+            if type_el
+            else None
+        )
+        if val != 'continuous':
+            section_breaks += 1
+
+    return 1 + page_breaks + section_breaks
+
+
 def _parse_cell_value(text: str) -> dict[str, object]:
     """Parst eine Tabellenzelle mit optionaler Zusatzinfo.
 
