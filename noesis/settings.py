@@ -196,6 +196,7 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "parser-debug.log",
             "formatter": "verbose",
+            "encoding": "utf-8",
         },
     },
     "loggers": {
