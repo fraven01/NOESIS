@@ -49,6 +49,7 @@ from .llm_tasks import (
     check_anlage1,
     check_anlage2,
     analyse_anlage2,
+    analyse_anlage3,
     check_anlage2_functions,
     worker_verify_feature,
     worker_generate_gutachten,
@@ -856,6 +857,56 @@ class LLMTasksTests(TestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertEqual(data["missing"]["value"], [])
         self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
+
+    def test_analyse_anlage3_auto_ok(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("c.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["auto_ok"])  # pages <= 1
+        self.assertEqual(file_obj.analysis_json["auto_ok"], True)
+        if hasattr(file_obj, "verhandlungsfaehig"):
+            self.assertTrue(file_obj.verhandlungsfaehig)
+
+    def test_analyse_anlage3_manual_required(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        doc.add_page_break()
+        doc.add_paragraph("Seite 2")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("d.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["manual_required"])  # pages > 1
+        self.assertEqual(file_obj.analysis_json["manual_required"], True)
+        if hasattr(file_obj, "verhandlungsfaehig"):
+            self.assertFalse(file_obj.verhandlungsfaehig)
 
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1686,6 +1737,20 @@ class ProjektFileCheckResultTests(TestCase):
             mock_func.return_value = {"task": "check_anlage2"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+
+    def test_anlage3_uses_analysis(self):
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("c.txt", b"x"),
+            text_content="T",
+        )
+        url = reverse("projekt_file_check_view", args=[pf.pk])
+        with patch("core.views.analyse_anlage3") as mock_func:
+            mock_func.return_value = {"task": "analyse_anlage3"}
+            resp = self.client.get(url)
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[pf.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
 
