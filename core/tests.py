@@ -675,8 +675,8 @@ class AutoApprovalTests(TestCase):
         doc = Document()
         doc.add_paragraph("Seite 1")
         pf = self._upload_doc(doc)
-        self.assertTrue(pf.manual_reviewed)
-        self.assertTrue(pf.verhandlungsfaehig)
+        self.assertFalse(pf.manual_reviewed)
+        self.assertFalse(pf.verhandlungsfaehig)
 
     def test_multi_page_requires_manual_review(self):
         img = Image.new("RGB", (10, 10), color="red")
@@ -707,7 +707,28 @@ class AutoApprovalTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         pf.refresh_from_db()
         self.assertTrue(pf.manual_reviewed)
-        self.assertTrue(pf.verhandlungsfaehig)
+        self.assertFalse(pf.verhandlungsfaehig)
+
+    def test_project_status_updated_after_all_anlage3_reviewed(self):
+        pf1 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="x",
+        )
+        pf2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("b.txt", b"x"),
+            text_content="y",
+        )
+
+        for pf in (pf1, pf2):
+            url = reverse("project_file_toggle_flag", args=[pf.pk, "manual_reviewed"])
+            self.client.post(url, {"value": "1"})
+
+        self.projekt.refresh_from_db()
+        self.assertEqual(self.projekt.status.key, "ENDGEPRUEFT")
 
 
 class BVProjectModelTests(TestCase):
@@ -971,6 +992,47 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json["manual_required"], True)
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
+
+    def test_analyse_anlage3_multiple_files(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+        doc1 = Document()
+        doc1.add_paragraph("Seite 1")
+        tmp1 = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc1.save(tmp1.name)
+        tmp1.close()
+        with open(tmp1.name, "rb") as fh:
+            upload1 = SimpleUploadedFile("e.docx", fh.read())
+        Path(tmp1.name).unlink(missing_ok=True)
+        pf1 = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload1,
+            text_content="x",
+        )
+
+        doc2 = Document()
+        doc2.add_paragraph("Seite 1")
+        doc2.add_page_break()
+        doc2.add_paragraph("Seite 2")
+        tmp2 = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc2.save(tmp2.name)
+        tmp2.close()
+        with open(tmp2.name, "rb") as fh:
+            upload2 = SimpleUploadedFile("f.docx", fh.read())
+        Path(tmp2.name).unlink(missing_ok=True)
+        pf2 = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload2,
+            text_content="y",
+        )
+
+        analyse_anlage3(projekt.pk)
+        pf1.refresh_from_db()
+        pf2.refresh_from_db()
+        self.assertIsNotNone(pf1.analysis_json)
+        self.assertIsNotNone(pf2.analysis_json)
 
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1450,7 +1512,7 @@ class ProjektFileJSONEditTests(TestCase):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
             projekt=self.projekt,
-            anlage_nr=3,
+            anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
             analysis_json={"old": {"value": True, "editable": True}},
