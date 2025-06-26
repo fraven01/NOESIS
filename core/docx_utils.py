@@ -173,6 +173,9 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     logger.debug("Erzeugtes Header-Mapping: %s", header_map)
 
     results: list[dict[str, object]] = []
+    if not doc.tables:
+        logger.debug("Keine Tabellen im Dokument gefunden")
+        parser_logger.debug("Keine Tabellen im Dokument gefunden")
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
         headers = [
