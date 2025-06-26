@@ -29,6 +29,7 @@ python manage.py test
 ## Logging
 
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
+Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis. Das Log hilft beim Nachvollziehen der Tabellen- und Textanalyse.
 
 ## Datenbankmigrationen
 
