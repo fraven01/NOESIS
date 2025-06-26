@@ -157,8 +157,6 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     """
     logger = logging.getLogger(__name__)
     parser_logger = logging.getLogger("parser_debug")
-    parser_logger.info("parse_anlage2_text gestartet")
-
     logger.debug(f"Starte parse_anlage2_table mit Pfad: {path}")
     parser_logger.info("parse_anlage2_table gestartet")
 
