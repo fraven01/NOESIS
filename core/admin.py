@@ -7,6 +7,7 @@ from .models import (
     Tile,
     UserTileAccess,
     Area,
+    BVProjectFile,
     Anlage2Function,
     Anlage2FunctionResult,
 )
@@ -69,5 +70,16 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "technisch_verfuegbar",
         "ki_beteiligung",
     )
+
+
+@admin.register(BVProjectFile)
+class BVProjectFileAdmin(admin.ModelAdmin):
+    list_display = (
+        "projekt",
+        "anlage_nr",
+        "manual_reviewed",
+        "verhandlungsfaehig",
+    )
+    list_editable = ("manual_reviewed", "verhandlungsfaehig")
 
 

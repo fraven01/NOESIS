@@ -25,6 +25,14 @@
         {{ form.manual_analysis_json }}
         {{ form.manual_analysis_json.errors }}
     </div>
+    <div>
+        {{ form.manual_reviewed }} {{ form.manual_reviewed.label_tag }}
+        {{ form.manual_reviewed.errors }}
+    </div>
+    <div>
+        {{ form.verhandlungsfaehig }} {{ form.verhandlungsfaehig.label_tag }}
+        {{ form.verhandlungsfaehig.errors }}
+    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
 </form>
 {% endblock %}

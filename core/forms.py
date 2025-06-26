@@ -167,12 +167,21 @@ class BVProjectUploadForm(DocxValidationMixin, forms.Form):
 class BVProjectFileForm(forms.ModelForm):
     class Meta:
         model = BVProjectFile
-        fields = ["anlage_nr", "upload", "manual_comment", "manual_analysis_json"]
+        fields = [
+            "anlage_nr",
+            "upload",
+            "manual_comment",
+            "manual_analysis_json",
+            "manual_reviewed",
+            "verhandlungsfaehig",
+        ]
         labels = {
             "anlage_nr": "Anlage Nr",
             "upload": "Datei",
             "manual_comment": "Kommentar",
             "manual_analysis_json": "Manuelle Analyse (JSON)",
+            "manual_reviewed": "Manuell geprüft",
+            "verhandlungsfaehig": "Verhandlungsfähig",
         }
         widgets = {
             "anlage_nr": forms.Select(
@@ -186,6 +195,8 @@ class BVProjectFileForm(forms.ModelForm):
             "manual_analysis_json": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 5}
             ),
+            "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
 
 
@@ -194,10 +205,17 @@ class BVProjectFileJSONForm(forms.ModelForm):
 
     class Meta:
         model = BVProjectFile
-        fields = ["analysis_json", "manual_analysis_json"]
+        fields = [
+            "analysis_json",
+            "manual_analysis_json",
+            "manual_reviewed",
+            "verhandlungsfaehig",
+        ]
         labels = {
             "analysis_json": "Automatische Analyse (JSON)",
             "manual_analysis_json": "Manuelle Analyse (JSON)",
+            "manual_reviewed": "Manuell geprüft",
+            "verhandlungsfaehig": "Verhandlungsfähig",
         }
         widgets = {
             "analysis_json": forms.Textarea(
@@ -206,6 +224,8 @@ class BVProjectFileJSONForm(forms.ModelForm):
             "manual_analysis_json": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 10}
             ),
+            "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
 
 
