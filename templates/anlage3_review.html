@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Anlage 3 Review{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 3 Dateien für {{ projekt.title }} prüfen</h1>
+<table class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">Geprüft</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in anlagen %}
+        <tr class="border-t">
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="2">Keine Anlagen vorhanden</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+{% endblock %}

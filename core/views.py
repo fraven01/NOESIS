@@ -2032,6 +2032,15 @@ def projekt_detail(request, pk):
 
 
 @login_required
+def anlage3_review(request, pk):
+    """Zeigt alle Dateien der Anlage 3 mit Review-Option."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    anlagen = projekt.anlagen.filter(anlage_nr=3)
+    context = {"projekt": projekt, "anlagen": anlagen}
+    return render(request, "anlage3_review.html", context)
+
+
+@login_required
 def projekt_upload(request):
     if request.method == "POST":
         form = BVProjectUploadForm(request.POST, request.FILES)
@@ -2823,6 +2832,16 @@ def project_file_toggle_flag(request, pk: int, field: str):
     new_val = value in ("1", "true", "True", "on")
     setattr(project_file, field, new_val)
     project_file.save(update_fields=[field])
+    if (
+        field == "manual_reviewed"
+        and project_file.anlage_nr == 3
+        and project_file.projekt.anlagen.filter(anlage_nr=3).count()
+        == project_file.projekt.anlagen.filter(anlage_nr=3, manual_reviewed=True).count()
+    ):
+        try:
+            set_project_status(project_file.projekt, "ENDGEPRUEFT")
+        except ValueError:
+            pass
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"status": "ok", field: new_val})
     if "HTTP_REFERER" in request.META:
