@@ -2001,7 +2001,7 @@ def projekt_list(request):
 
 @login_required
 def projekt_detail(request, pk):
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     anh = projekt.anlagen.all()
     reviewed = anh.filter(manual_reviewed=True).count()
     is_admin = request.user.groups.filter(name="admin").exists()
@@ -2067,7 +2067,7 @@ def projekt_create(request):
 
 @login_required
 def projekt_edit(request, pk):
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
@@ -2087,7 +2087,7 @@ def projekt_edit(request, pk):
 
 @login_required
 def projekt_file_upload(request, pk):
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     if request.method == "POST":
         form = BVProjectFileForm(request.POST, request.FILES)
         if form.is_valid():
@@ -2564,7 +2564,7 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
 @login_required
 @require_http_methods(["GET"])
 def project_detail_api(request, pk):
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
     knowledge = []
@@ -2601,7 +2601,7 @@ def project_detail_api(request, pk):
 @require_http_methods(["POST"])
 def projekt_status_update(request, pk):
     """Aktualisiert den Projektstatus."""
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     status = request.POST.get("status")
     try:
         set_project_status(projekt, status)
@@ -2833,7 +2833,7 @@ def project_file_toggle_flag(request, pk: int, field: str):
 @login_required
 def projekt_gap_analysis(request, pk):
     """Stellt die Gap-Analyse als Download bereit."""
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     path = generate_gap_analysis(projekt)
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
 
@@ -2841,7 +2841,7 @@ def projekt_gap_analysis(request, pk):
 @login_required
 def projekt_management_summary(request, pk):
     """Stellt die Management-Zusammenfassung als Download bereit."""
-    projekt = BVProject.objects.get(pk=pk)
+    projekt = get_object_or_404(BVProject, pk=pk)
     path = generate_management_summary(projekt)
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
 
