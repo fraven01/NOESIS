@@ -164,7 +164,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
         logger.debug(f"Dokument erfolgreich geladen: {path}")
     except Exception as e:  # pragma: no cover - ungültige Datei
         logger.error(f"Fehler beim Laden der Datei {path}: {e}")
-        return {}
+        return []
 
     cfg = Anlage2Config.get_instance()
     logger.debug("Aktive Anlage2Config: %s", cfg)

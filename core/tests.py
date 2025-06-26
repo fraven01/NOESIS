@@ -463,6 +463,17 @@ class DocxExtractTests(TestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
 
+    def test_parse_anlage2_table_invalid_docx(self):
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        tmp.write(b"invalid")
+        tmp.close()
+        try:
+            data = parse_anlage2_table(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+
+        self.assertEqual(data, [])
+
     def test_parse_anlage2_text(self):
         func = Anlage2Function.objects.create(
             name="Login",
