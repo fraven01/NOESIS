@@ -2419,11 +2419,17 @@ def projekt_file_edit_json(request, pk):
                         if old in sub and new not in sub:
                             sub[new] = sub[old]
                     answers[f"{name}: {s_text}"] = sub
-        debug_logger.debug("Answers Inhalt vor Verarbeitung: %s", answers)
         rows = []
         fields_def = get_anlage2_fields()
 
         for func in Anlage2Function.objects.order_by("name"):
+            debug_logger.info("--- Starte Prüfung für Funktion: '%s' ---", func.name)
+            aliases = func.detection_phrases.get("name_aliases", [])
+            debug_logger.debug("Suche nach Namens-Aliasen: %s", aliases)
+            if answers.get(func.name):
+                debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+            else:
+                debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
             rows.append(
                 _build_row_data(
                     func.name,
@@ -2440,7 +2446,16 @@ def projekt_file_edit_json(request, pk):
                 )
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
+                debug_logger.info(
+                    "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
+                )
+                aliases = sub.detection_phrases.get("name_aliases", [])
+                debug_logger.debug("Suche nach Namens-Aliasen: %s", aliases)
                 lookup_key = f"{func.name}: {sub.frage_text}"
+                if answers.get(lookup_key):
+                    debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+                else:
+                    debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
                 rows.append(
                     _build_row_data(
                         sub.frage_text,
@@ -2457,10 +2472,6 @@ def projekt_file_edit_json(request, pk):
                         sub_id=sub.id,
                     )
                 )
-        debug_logger.debug(
-            "Endgültige Rows: %s",
-            json.dumps(rows, default=str, ensure_ascii=False, indent=2),
-        )
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
