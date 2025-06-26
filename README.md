@@ -166,3 +166,23 @@ Seit Version X werden die Software-Komponenten eines Projekts nicht mehr als
 Komma-Liste gespeichert, sondern als eigene Objekte des Modells
 ``BVSoftware``. Zu einem ``BVProject`` geh\u00f6ren beliebig viele solcher
 Eintr\u00e4ge.
+
+### Seitenzahl von DOCX-Dateien ermitteln
+
+Mit der Utility-Funktion `get_docx_page_count()` lässt sich die Seitenanzahl einer Word-Datei bestimmen. Gezählt werden sowohl eingefügte Seitenumbrüche als auch Abschnittswechsel. Ein Dokument besitzt dadurch immer mindestens eine Seite.
+
+### Manuelle Review-Flags
+
+Anlagen verfügen über zwei Statusfelder:
+- `manual_reviewed` – kennzeichnet, dass die Datei manuell geprüft wurde.
+- `verhandlungsfaehig` – markiert die Anlage als verhandlungsfähig.
+
+Die Werte lassen sich in der Projektansicht per Button umschalten und auch in den Formularen bearbeiten.
+
+### Bilder aus Anlagen extrahieren
+
+Beim Hochladen einer DOCX-Datei werden alle eingebetteten Bilder mit `python-docx` extrahiert und im Upload-Verzeichnis gespeichert. Diese Dateien können anschließend vom Vision‑Modell ausgewertet werden.
+
+### Vision-Modell
+
+Standardmäßig nutzt NOESIS das Modell `gpt-4o`, das sowohl Texte als auch Bilder verarbeiten kann. Für den Betrieb muss die Umgebungsvariable `OPENAI_API_KEY` gesetzt sein. Alternativ kann ein Gemini-Modell über `GOOGLE_API_KEY` verwendet werden. Die verfügbaren Namen finden sich in `GOOGLE_AVAILABLE_MODELS` in `noesis/settings.py`.
