@@ -2,6 +2,7 @@ from pathlib import Path
 from docx import Document
 import logging
 import re
+import string
 import zipfile
 
 from .models import (
@@ -146,9 +147,15 @@ def _normalize_function_name(name: str) -> str:
 
 def _normalize_snippet(text: str) -> str:
     """Normalisiert Textschnipsel für Alias-Vergleiche."""
-    text = text.replace("\n", " ").replace("\t", " ").replace("\u00b6", " ")
+    text = (
+        text.replace("\n", " ")
+        .replace("\t", " ")
+        .replace("\u00b6", " ")
+        .replace("\xa0", " ")
+    )
     text = text.lower()
     text = re.sub(r"[\-_/]+", " ", text)
+    text = text.translate(str.maketrans("", "", string.punctuation))
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
