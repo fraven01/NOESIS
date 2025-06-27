@@ -661,6 +661,25 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+    def test_parse_anlage2_text_merges_duplicate_functions(self):
+        func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Login tv ja\nLogin ki nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                }
+            ],
+        )
+
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")
         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")

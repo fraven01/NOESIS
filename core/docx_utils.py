@@ -354,14 +354,16 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
 
 def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
-    """Parst den Text einer Anlage 2 mittels Datenbankregeln.
+    """Parst den Text einer Anlage 2 anhand der Datenbankregeln.
 
-    Die Funktion durchsucht den übergebenen Text zeilenweise nach
-    Funktionsnamen und Unterfragen. Welche Phrasen dabei jeweils eine
-    Übereinstimmung darstellen, wird über die ``detection_phrases`` der
-    Funktionen bzw. Unterfragen bestimmt. Die Phrasen zur Ermittlung der
-    Feldwerte werden aus den ``text_*``‑Feldern der :class:`Anlage2Config`
-    geladen.
+    Zeile für Zeile wird nach Hauptfunktionen und zugehörigen Unterfragen
+    gesucht. Die Erkennung erfolgt über die ``detection_phrases`` der
+    jeweiligen Objekte. Phrasen zur Bestimmung der Feldwerte stammen aus den
+    ``text_*``‑Feldern der :class:`Anlage2Config`.
+
+    Wiederholt auftretende Hauptfunktionen werden zusammengeführt, sodass pro
+    Funktion nur ein Ergebnis-Dictionary existiert. Unterfragen werden stets
+    dem aktuell aktiven Haupteintrag zugeordnet.
     """
 
     logger = logging.getLogger(__name__)
@@ -511,6 +513,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
     results: list[dict[str, object]] = []
+    # Mapping der Hauptfunktionen auf ihre Ergebnis-Dictionaries
+    results_by_func: dict[str, dict[str, object]] = {}
     last_main: dict[str, object] | None = None
     last_func: Anlage2Function | None = None
 
@@ -554,9 +558,16 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 raw_line=line,
             ):
                 parser_logger.debug("Hauptfunktion erkannt: %s", func.name)
-                row = {"funktion": func.name}
-                row.update(_extract_values(norm_line, line))
-                results.append(row)
+                new_data = {"funktion": func.name}
+                new_data.update(_extract_values(norm_line, line))
+                if func.name in results_by_func:
+                    # Bereits vorhandene Daten ergänzen
+                    row = results_by_func[func.name]
+                    row.update(new_data)
+                else:
+                    row = new_data
+                    results_by_func[func.name] = row
+                    results.append(row)
                 last_main = row
                 last_func = func
                 found = True
