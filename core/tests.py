@@ -30,6 +30,7 @@ from .models import (
 from .docx_utils import (
     extract_text,
     get_docx_page_count,
+    get_pdf_page_count,
     extract_images,
     parse_anlage2_table,
     parse_anlage2_text,
@@ -39,6 +40,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
 from PIL import Image
+import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .forms import BVProjectForm, BVProjectUploadForm
@@ -207,6 +209,31 @@ class DocxExtractTests(TestCase):
         tmp.close()
         try:
             count = get_docx_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 2)
+
+    def test_get_pdf_page_count_single(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_pdf_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 1)
+
+    def test_get_pdf_page_count_two_pages(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_pdf_page_count(Path(tmp.name))
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertEqual(count, 2)
@@ -752,6 +779,26 @@ class ProjektFileUploadTests(TestCase):
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
 
+    def test_pdf_upload_stores_bytes(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        file_obj = self.projekt.anlagen.get(anlage_nr=3)
+        self.assertEqual(file_obj.text_content, "")
+
 
 class AutoApprovalTests(TestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
@@ -1116,6 +1163,51 @@ class LLMTasksTests(TestCase):
         self.assertEqual(file_obj.analysis_json["manual_required"], True)
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
+
+    def test_analyse_anlage3_pdf_auto_ok(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("c.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["auto_ok"])  # pages <= 1
+        self.assertEqual(file_obj.analysis_json["auto_ok"], True)
+
+    def test_analyse_anlage3_pdf_manual_required(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pdf = fitz.open()
+        pdf.new_page()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("d.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["manual_required"])  # pages > 1
+        self.assertEqual(file_obj.analysis_json["manual_required"], True)
 
     def test_analyse_anlage3_multiple_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")

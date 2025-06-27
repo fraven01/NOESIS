@@ -2085,7 +2085,8 @@ def projekt_file_upload(request, pk):
         if form.is_valid():
             uploaded = form.cleaned_data["upload"]
             content = ""
-            if uploaded.name.lower().endswith(".docx"):
+            lower_name = uploaded.name.lower()
+            if lower_name.endswith(".docx"):
                 from tempfile import NamedTemporaryFile
 
                 tmp = NamedTemporaryFile(delete=False, suffix=".docx")
@@ -2096,6 +2097,9 @@ def projekt_file_upload(request, pk):
                     content = extract_text(Path(tmp.name))
                 finally:
                     Path(tmp.name).unlink(missing_ok=True)
+            elif lower_name.endswith(".pdf"):
+                uploaded.read()  # Bytes einlesen, aber nicht dekodieren
+                uploaded.seek(0)
             else:
                 try:
                     content = uploaded.read().decode("utf-8")

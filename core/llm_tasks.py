@@ -32,6 +32,7 @@ from .docx_utils import (
     extract_text,
     _normalize_function_name,
     get_docx_page_count,
+    get_pdf_page_count,
 )
 from docx import Document
 
@@ -444,7 +445,11 @@ def analyse_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
     result: dict | None = None
     for anlage in anlagen:
         anlage3_logger.debug("Prüfe Datei %s", anlage.upload.path)
-        pages = get_docx_page_count(Path(anlage.upload.path))
+        path = Path(anlage.upload.path)
+        if path.suffix.lower() == ".pdf":
+            pages = get_pdf_page_count(path)
+        else:
+            pages = get_docx_page_count(path)
         anlage3_logger.debug("Seitenzahl der Datei: %s", pages)
 
         if pages <= 1:

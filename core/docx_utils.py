@@ -68,6 +68,15 @@ def get_docx_page_count(path: Path) -> int:
     return 1 + page_breaks + section_breaks
 
 
+def get_pdf_page_count(path: Path) -> int:
+    """Ermittelt die Seitenzahl eines PDF-Dokuments."""
+
+    import fitz  # PyMuPDF
+
+    with fitz.open(str(path)) as pdf:
+        return pdf.page_count
+
+
 def extract_images(path: Path) -> list[bytes]:
     """Extrahiert alle eingebetteten Bilder aus einer DOCX-Datei.
 
