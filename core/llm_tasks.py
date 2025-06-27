@@ -263,7 +263,12 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
-    analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+    try:
+        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
+        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        analysis_result = []
+
     if analysis_result:
         logger.info("Tabellen-Parser verwendet")
     else:
@@ -732,7 +737,15 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     logger.debug("Anlage 2 Pfad: %s", anlage.upload.path)
-    table = parse_anlage2_table(Path(anlage.upload.path))
+    parser_error: str | None = None
+    try:
+        table = parse_anlage2_table(Path(anlage.upload.path))
+    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
+        parser_error = str(exc)
+        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        anlage.analysis_json = {"parser_error": parser_error}
+        anlage.save(update_fields=["analysis_json"])
+        table = parse_anlage2_text(anlage.text_content)
     logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
     logger.debug("Collected project text: %r", text)
@@ -851,6 +864,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         results.append(entry)
 
     data = {"task": "check_anlage2", "functions": results}
+    if parser_error:
+        data["parser_error"] = parser_error
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     logger.debug("check_anlage2 Ergebnis: %s", data)
