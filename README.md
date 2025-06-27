@@ -96,6 +96,18 @@ Funktionen oder Unterfragen ausgefüllt wurden. Eine Abfrage zum
 **KI‑Beteiligung**‑Flag findet dabei nicht statt. In der Detailansicht kann im
 Bedarfsfall eine weitergehende Prüfung per LLM ausgelöst werden.
 
+Daneben bietet die Detailansicht einen separaten **Parser**‑Button. Dieser
+ruft nur den Dokumentparser auf, ohne die Ergebnisse mit der
+Systembeschreibung abzugleichen. Nach Änderungen an Aliaslisten lässt sich so
+die Tabelle unkompliziert neu einlesen. Findet der Tabellenparser keine Daten,
+greift automatisch der Textparser als Fallback. Sämtliche Schritte landen in der
+Logdatei `parser-debug.log`.
+
+Eine LLM‑gestützte Prüfung ist nur nötig, wenn das Layout deutlich von der
+erwarteten Struktur abweicht oder ungewöhnliche Formulierungen verwendet werden.
+Liegt die Anlage etwa nur als Fließtext vor oder enthält sie unbekannte
+Bezeichnungen, hilft der LLM‑Check, die Funktionen richtig zuzuordnen.
+
 ### Kachel-Zugriff verwalten
 
 Im Admin-Bereich können einzelnen Benutzern Kacheln zugewiesen werden. Nach der
