@@ -238,6 +238,11 @@ urlpatterns = [
         name="projekt_file_check_view",
     ),
     path(
+        "work/anlage/<int:pk>/parse/",
+        views.projekt_file_parse_anlage2,
+        name="projekt_file_parse_anlage2",
+    ),
+    path(
         "work/anlage/<int:pk>/edit-json/",
         views.projekt_file_edit_json,
         name="projekt_file_edit_json",

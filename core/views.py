@@ -86,6 +86,7 @@ from .llm_tasks import (
     check_anlage5,
     check_anlage6,
     check_anlage2_functions,
+    run_anlage2_analysis,
     check_gutachten_functions,
     generate_gutachten,
     get_prompt,
@@ -2219,6 +2220,16 @@ def projekt_file_check_view(request, pk):
     if anlage.anlage_nr == 3:
         return redirect("anlage3_review", pk=anlage.projekt_id)
 
+    return redirect("projekt_file_edit_json", pk=pk)
+
+
+@login_required
+def projekt_file_parse_anlage2(request, pk):
+    """Parst Anlage 2 ohne LLM-Aufrufe."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    if anlage.anlage_nr != 2:
+        raise Http404
+    run_anlage2_analysis(anlage)
     return redirect("projekt_file_edit_json", pk=pk)
 
 
