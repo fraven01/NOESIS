@@ -369,9 +369,17 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         )
         sub_map.setdefault(sub.funktion_id, []).append((sub, aliases))
 
-    def _match(phrases: list[str], line: str) -> bool:
+    def _match(phrases: list[str], line: str, origin: str | None = None) -> bool:
         for ph in [p for p in phrases if p]:
-            parser_logger.debug("Prüfe Alias '%s' gegen Zeile '%s'", ph, line)
+            if origin:
+                parser_logger.debug(
+                    "Prüfe Alias '%s' aus '%s' gegen Zeile '%s'",
+                    ph,
+                    origin,
+                    line,
+                )
+            else:
+                parser_logger.debug("Prüfe Alias '%s' gegen Zeile '%s'", ph, line)
             if ph in line:
                 parser_logger.debug("-> Treffer")
                 return True
@@ -397,9 +405,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             "ki_beteiligung",
         ]:
             val = None
-            if _match(gp_dict.get(f"{field}_true", []), line):
+            if _match(gp_dict.get(f"{field}_true", []), line, origin=f"{field}_true"):
                 val = True
-            elif _match(gp_dict.get(f"{field}_false", []), line):
+            elif _match(gp_dict.get(f"{field}_false", []), line, origin=f"{field}_false"):
                 val = False
             if val is not None:
                 result[field] = {"value": val, "note": None}
@@ -424,7 +432,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         # Prüfe zuerst auf Unterfragen der zuletzt gefundenen Funktion
         if last_func:
             for sub, aliases in sub_map.get(last_func.id, []):
-                if _match(aliases, lower):
+                if _match(aliases, lower, origin=f"Unterfrage {sub.frage_text}"):
                     full_name = f"{last_main['funktion']}: {sub.frage_text}"
                     parser_logger.debug("Unterfrage erkannt: %s", full_name)
                     row = {"funktion": full_name}
@@ -437,7 +445,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
         # Suche nach einer neuen Hauptfunktion
         for func, aliases in functions:
-            if _match(aliases, lower):
+            if _match(aliases, lower, origin=f"Funktion {func.name}"):
                 parser_logger.debug("Hauptfunktion erkannt: %s", func.name)
                 row = {"funktion": func.name}
                 row.update(_extract_values(lower))
