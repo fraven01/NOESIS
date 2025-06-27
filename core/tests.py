@@ -39,6 +39,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
 from PIL import Image
+from fpdf import FPDF
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .forms import BVProjectForm, BVProjectUploadForm
@@ -657,6 +658,26 @@ class DocxExtractTests(TestCase):
         doc.add_picture(img_tmp.name)
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
         doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = extract_images(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            Path(img_tmp.name).unlink(missing_ok=True)
+        self.assertEqual(len(data), 1)
+        self.assertTrue(data[0].startswith(b"\x89PNG"))
+
+    def test_extract_pdf_images(self):
+        img = Image.new("RGB", (1, 1), color="red")
+        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+        img.save(img_tmp.name)
+        img_tmp.close()
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.image(img_tmp.name, x=10, y=10, w=10)
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.output(tmp.name)
         tmp.close()
         try:
             data = extract_images(Path(tmp.name))
@@ -1433,8 +1454,7 @@ class PromptTests(TestCase):
     def test_check_anlage3_vision_prompt_text(self):
         p = Prompt.objects.get(name="check_anlage3_vision")
         expected = (
-            "Pr\u00fcfe die folgende Anlage auf Basis der Bilder. "
-            "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
+            "Dies ist eine Auswertung, die nach BetrVG 87 Abs. 1 Nr. 6 begutachtet werden soll. ..."
         )
         self.assertEqual(p.text, expected)
 
@@ -2753,6 +2773,39 @@ class InitialCheckTests(TestCase):
             worker_run_initial_check(sk.pk, user_context="Hint")
         prompt_text = mock_q.call_args[0][0].text
         self.assertIn("Hint", prompt_text)
+
+
+class Anlage3VisionTests(TestCase):
+    def setUp(self):
+        create_statuses()
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_worker_run_anlage3_vision(self):
+        img = Image.new("RGB", (1, 1), color="red")
+        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+        img.save(img_tmp.name)
+        img_tmp.close()
+        doc = Document()
+        doc.add_picture(img_tmp.name)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("a.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="x",
+        )
+        with patch(
+            "core.llm_tasks.query_llm_with_images", return_value=json.dumps({"summary": "OK"})
+        ) as mock_q:
+            result = worker_run_anlage3_vision(pf.pk)
+        self.assertEqual(result["summary"], "OK")
+        mock_q.assert_called_once()
+        Path(tmp.name).unlink(missing_ok=True)
+        Path(img_tmp.name).unlink(missing_ok=True)
 
 
 

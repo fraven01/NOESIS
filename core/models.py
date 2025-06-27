@@ -681,3 +681,21 @@ class Anlage2SubQuestion(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.frage_text
+
+
+class Anlage3VisionResult(models.Model):
+    """Ergebnis des Vision-Checks von Anlage 3."""
+
+    project_file = models.ForeignKey(BVProjectFile, on_delete=models.CASCADE)
+    summary = models.TextField(blank=True)
+    geeignetheit = models.TextField(blank=True)
+    erforderlichkeit = models.TextField(blank=True)
+    verhaeltnismaessigkeit = models.TextField(blank=True)
+    hinweise = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"Vision Ergebnis {self.pk}"
