@@ -57,6 +57,7 @@ from .llm_tasks import (
     worker_verify_feature,
     worker_generate_gutachten,
     worker_run_initial_check,
+    worker_run_anlage3_vision,
     get_prompt,
     generate_gutachten,
     run_anlage2_analysis,
@@ -2022,6 +2023,41 @@ class WorkerGenerateGutachtenTests(TestCase):
         self.assertEqual(gutachten.text, "Neu")
         self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
         Path(path).unlink(missing_ok=True)
+
+
+class WorkerAnlage3VisionTests(TestCase):
+    def setUp(self):
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("A")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("v.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+    def test_worker_runs_vision_check(self):
+        reply = json.dumps({"ok": True})
+        with patch("core.llm_tasks.query_llm_with_images", return_value=reply):
+            data = worker_run_anlage3_vision(self.projekt.pk)
+        self.assertTrue(data["ok"]["value"])
+        file_obj = self.projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
+
+    def test_model_name_is_forwarded(self):
+        with patch(
+            "core.llm_tasks.query_llm_with_images",
+            return_value=json.dumps({"ok": False}),
+        ) as mock_q:
+            worker_run_anlage3_vision(self.projekt.pk, model_name="vision")
+        self.assertEqual(mock_q.call_args[0][2], "vision")
 
 
 class GutachtenEditDeleteTests(TestCase):

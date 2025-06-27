@@ -1171,6 +1171,12 @@ def worker_run_initial_check(
     return result
 
 
+def worker_run_anlage3_vision(project_id: int, model_name: str | None = None) -> dict:
+    """Führt die Vision-Prüfung für Anlage 3 im Hintergrund aus."""
+
+    return check_anlage3_vision(project_id, model_name=model_name)
+
+
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
     """Prüft das Gutachten auf fehlende Funktionen."""
     projekt = BVProject.objects.get(pk=projekt_id)
