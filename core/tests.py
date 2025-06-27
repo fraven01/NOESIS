@@ -609,6 +609,24 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+    def test_parse_anlage2_text_normalizes_variants(self):
+        func = Anlage2Function.objects.create(name="User Login")
+        cfg = Anlage2Config.get_instance()
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
+        )
+        text = "User-Login   tv ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "User Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")
         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")

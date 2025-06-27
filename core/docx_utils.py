@@ -144,6 +144,15 @@ def _normalize_function_name(name: str) -> str:
     return re.sub(r"[ \t]+", " ", text)
 
 
+def _normalize_snippet(text: str) -> str:
+    """Normalisiert Textschnipsel für Alias-Vergleiche."""
+    text = text.replace("\n", " ").replace("\t", " ").replace("\u00b6", " ")
+    text = text.lower()
+    text = re.sub(r"[\-_/]+", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
 def _build_header_map(cfg: Anlage2Config | None) -> dict[str, str]:
     """Erzeugt ein Mapping aller bekannten Header auf ihre kanonische Form.
 
@@ -349,18 +358,18 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     # Alle Funktionen mit ihren Aliases vorbereiten
     functions: list[tuple[Anlage2Function, list[str]]] = []
     for func in Anlage2Function.objects.all():
-        alias_list = [func.name.lower()]
-        alias_list += [a.lower() for a in _get_list(func.detection_phrases, "name_aliases")]
-        aliases = list(dict.fromkeys(alias_list))
+        alias_list = [func.name]
+        alias_list += _get_list(func.detection_phrases, "name_aliases")
+        aliases = list(dict.fromkeys(_normalize_snippet(a) for a in alias_list))
         parser_logger.debug("Funktion '%s' Aliase: %s", func.name, aliases)
         functions.append((func, aliases))
 
     # Unterfragen pro Funktion sammeln
     sub_map: dict[int, list[tuple[Anlage2SubQuestion, list[str]]]] = {}
     for sub in Anlage2SubQuestion.objects.select_related("funktion"):
-        alias_list = [sub.frage_text.lower()]
-        alias_list += [a.lower() for a in _get_list(sub.detection_phrases, "name_aliases")]
-        aliases = list(dict.fromkeys(alias_list))
+        alias_list = [sub.frage_text]
+        alias_list += _get_list(sub.detection_phrases, "name_aliases")
+        aliases = list(dict.fromkeys(_normalize_snippet(a) for a in alias_list))
         parser_logger.debug(
             "Unterfrage '%s' (%s) Aliase: %s",
             sub.frage_text,
@@ -393,10 +402,12 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
             gp.phrase_type,
             gp.phrase_text,
         )
-        gp_dict.setdefault(gp.phrase_type, []).append(gp.phrase_text.lower())
+        norm = _normalize_snippet(gp.phrase_text)
+        gp_dict.setdefault(gp.phrase_type, []).append(norm)
     parser_logger.debug("Gesammelte globale Phrasen: %s", gp_dict)
 
     def _extract_values(line: str) -> dict[str, dict[str, object]]:
+        """Extrahiert Werte aus einer bereits normalisierten Zeile."""
         result: dict[str, dict[str, object]] = {}
         for field in [
             "technisch_verfuegbar",
@@ -423,8 +434,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     for line in lines:
         parser_logger.debug("Prüfe Zeile: %s", line)
-        lower = line.lower()
-        if not lower:
+        norm_line = _normalize_snippet(line)
+        if not norm_line:
             continue
 
         found = False
@@ -432,11 +443,11 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         # Prüfe zuerst auf Unterfragen der zuletzt gefundenen Funktion
         if last_func:
             for sub, aliases in sub_map.get(last_func.id, []):
-                if _match(aliases, lower, origin=f"Unterfrage {sub.frage_text}"):
+                if _match(aliases, norm_line, origin=f"Unterfrage {sub.frage_text}"):
                     full_name = f"{last_main['funktion']}: {sub.frage_text}"
                     parser_logger.debug("Unterfrage erkannt: %s", full_name)
                     row = {"funktion": full_name}
-                    row.update(_extract_values(lower))
+                    row.update(_extract_values(norm_line))
                     results.append(row)
                     found = True
                     break
@@ -445,10 +456,10 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
         # Suche nach einer neuen Hauptfunktion
         for func, aliases in functions:
-            if _match(aliases, lower, origin=f"Funktion {func.name}"):
+            if _match(aliases, norm_line, origin=f"Funktion {func.name}"):
                 parser_logger.debug("Hauptfunktion erkannt: %s", func.name)
                 row = {"funktion": func.name}
-                row.update(_extract_values(lower))
+                row.update(_extract_values(norm_line))
                 results.append(row)
                 last_main = row
                 last_func = func
