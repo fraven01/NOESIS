@@ -199,6 +199,21 @@ class BVProjectFileForm(forms.ModelForm):
             "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
 
+    def clean_upload(self):
+        """Prüft die Dateiendung abhängig von der Anlagen-Nummer."""
+
+        f = self.cleaned_data["upload"]
+        ext = Path(f.name).suffix.lower()
+        nr = self.cleaned_data.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
+
+        if nr == 3:
+            if ext not in [".docx", ".pdf"]:
+                raise forms.ValidationError("Nur .docx oder .pdf erlaubt für Anlage 3")
+        else:
+            if ext != ".docx":
+                raise forms.ValidationError("Nur .docx Dateien erlaubt")
+        return f
+
 
 class BVProjectFileJSONForm(forms.ModelForm):
     """Formular zum Bearbeiten der Analyse-Daten einer Anlage."""
