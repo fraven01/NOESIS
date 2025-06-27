@@ -417,15 +417,23 @@ def worker_generate_gutachten(
     return str(path)
 
 
-def analyse_anlage3(projekt_id: int) -> dict:
+def analyse_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
     """Analysiert die dritte Anlage hinsichtlich der Seitenzahl.
 
     Erkennt automatisch ein kleines Dokument (eine Seite oder weniger) und
     markiert die Anlage als verhandlungsf\xe4hig. Bei mehr Seiten wird ein
     manueller Check erforderlich.
+
+    :param projekt_id: ID des Projekts
+    :param model_name: Optionaler Name des LLM-Modells (wird aktuell
+        nicht verwendet)
     """
 
-    anlage3_logger.debug("Starte analyse_anlage3 für Projekt %s", projekt_id)
+    anlage3_logger.debug(
+        "Starte analyse_anlage3 für Projekt %s mit Modell %s",
+        projekt_id,
+        model_name,
+    )
     projekt = BVProject.objects.get(pk=projekt_id)
     anlagen = list(projekt.anlagen.filter(anlage_nr=3))
     if not anlagen:
