@@ -288,6 +288,8 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     table_data = parse_anlage2_table(Path(anlage2.upload.path))
+    if not table_data:
+        table_data = parse_anlage2_text(anlage2.text_content)
     table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
 
