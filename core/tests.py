@@ -59,6 +59,7 @@ from .llm_tasks import (
     worker_run_initial_check,
     get_prompt,
     generate_gutachten,
+    run_anlage2_analysis,
     parse_anlage1_questions,
     _parse_anlage2,
 )
@@ -1071,6 +1072,49 @@ class LLMTasksTests(TestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertEqual(data, expected)
         self.assertEqual(file_obj.analysis_json, expected)
+
+    def test_run_anlage2_analysis_valueerror_fallback(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        expected = [{"funktion": "Login"}]
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("bad")
+        ), patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=expected
+        ) as mock_text:
+            result = run_anlage2_analysis(pf)
+        mock_text.assert_called_once()
+        pf.refresh_from_db()
+        self.assertEqual(json.loads(pf.analysis_json), expected)
+        self.assertEqual(result, expected)
+
+    def test_check_anlage2_table_error_fallback(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"d"),
+            text_content="dummy",
+        )
+        Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({"technisch_verfuegbar": True})
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("fail")
+        ), patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[]
+        ) as mock_text, patch(
+            "core.llm_tasks.query_llm", return_value=llm_reply
+        ):
+            data = check_anlage2(projekt.pk)
+        mock_text.assert_called_once()
+        file_obj = projekt.anlagen.get(anlage_nr=2)
+        self.assertEqual(data.get("parser_error"), "fail")
+        self.assertEqual(file_obj.analysis_json.get("parser_error"), "fail")
 
     def test_analyse_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
