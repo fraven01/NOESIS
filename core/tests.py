@@ -545,15 +545,10 @@ class DocxExtractTests(TestCase):
             detection_phrases={"name_aliases": ["warum"]},
         )
         cfg = Anlage2Config.get_instance()
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
-        )
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_false", phrase_text="tv nein"
-        )
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="ki_beteiligung_false", phrase_text="ki nein"
-        )
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
         text = "Login tv ja ki nein\nWarum? tv nein"
         data = parse_anlage2_text(text)
         self.assertEqual(
@@ -578,15 +573,10 @@ class DocxExtractTests(TestCase):
             frage_text="Warum?",
         )
         cfg = Anlage2Config.get_instance()
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
-        )
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_false", phrase_text="tv nein"
-        )
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="ki_beteiligung_false", phrase_text="ki nein"
-        )
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
         text = "Login tv ja ki nein\nWarum? tv nein"
         data = parse_anlage2_text(text)
         self.assertEqual(
@@ -615,14 +605,9 @@ class DocxExtractTests(TestCase):
             detection_phrases={"name_aliases": ["reason"]},
         )
         cfg = Anlage2Config.get_instance()
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
-        )
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg,
-            phrase_type="technisch_verfuegbar_false",
-            phrase_text="tv nein",
-        )
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.save()
         text = "Anmelden tv ja\nGrund? tv nein"
         data = parse_anlage2_text(text)
         self.assertEqual(
@@ -642,9 +627,8 @@ class DocxExtractTests(TestCase):
     def test_parse_anlage2_text_normalizes_variants(self):
         func = Anlage2Function.objects.create(name="User Login")
         cfg = Anlage2Config.get_instance()
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
-        )
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
         text = "User-Login   tv ja"
         data = parse_anlage2_text(text)
         self.assertEqual(
@@ -663,9 +647,8 @@ class DocxExtractTests(TestCase):
             detection_phrases={"name_aliases": ["Analyse-/Reportingfunktionen"]},
         )
         cfg = Anlage2Config.get_instance()
-        Anlage2GlobalPhrase.objects.create(
-            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
-        )
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
         text = "Analyse- / Reportingfunktionen tv ja"
         data = parse_anlage2_text(text)
         self.assertEqual(

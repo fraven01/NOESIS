@@ -360,7 +360,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     Funktionsnamen und Unterfragen. Welche Phrasen dabei jeweils eine
     Übereinstimmung darstellen, wird über die ``detection_phrases`` der
     Funktionen bzw. Unterfragen bestimmt. Die Phrasen zur Ermittlung der
-    Feldwerte liegen hingegen zentral im Modell ``Anlage2GlobalPhrase``.
+    Feldwerte werden aus den ``text_*``‑Feldern der :class:`Anlage2Config`
+    geladen.
     """
 
     logger = logging.getLogger(__name__)
@@ -461,14 +462,22 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     cfg = Anlage2Config.get_instance()
     gp_dict: dict[str, list[str]] = {}
-    for gp in cfg.global_phrases.all():
-        parser_logger.debug(
-            "Globale Phrase '%s': %s",
-            gp.phrase_type,
-            gp.phrase_text,
-        )
-        norm = _normalize_snippet(gp.phrase_text)
-        gp_dict.setdefault(gp.phrase_type, []).append(norm)
+    phrase_fields = [
+        "technisch_verfuegbar_true",
+        "technisch_verfuegbar_false",
+        "einsatz_telefonica_true",
+        "einsatz_telefonica_false",
+        "zur_lv_kontrolle_true",
+        "zur_lv_kontrolle_false",
+        "ki_beteiligung_true",
+        "ki_beteiligung_false",
+    ]
+    for field in phrase_fields:
+        phrases = getattr(cfg, f"text_{field}", []) or []
+        for ph in phrases:
+            parser_logger.debug("Globale Phrase '%s': %s", field, ph)
+            norm = _normalize_snippet(ph)
+            gp_dict.setdefault(field, []).append(norm)
     parser_logger.debug("Gesammelte globale Phrasen: %s", gp_dict)
 
     def _extract_values(line: str, raw_line: str) -> dict[str, dict[str, object]]:

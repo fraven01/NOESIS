@@ -464,14 +464,40 @@ class Anlage2ConfigForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Config
-        fields = ["enforce_subquestion_override"]
+        fields = [
+            "enforce_subquestion_override",
+            "text_technisch_verfuegbar_true",
+            "text_technisch_verfuegbar_false",
+            "text_einsatz_telefonica_true",
+            "text_einsatz_telefonica_false",
+            "text_zur_lv_kontrolle_true",
+            "text_zur_lv_kontrolle_false",
+            "text_ki_beteiligung_true",
+            "text_ki_beteiligung_false",
+        ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+            "text_technisch_verfuegbar_true": "Text: technisch verfügbar Ja",
+            "text_technisch_verfuegbar_false": "Text: technisch verfügbar Nein",
+            "text_einsatz_telefonica_true": "Text: Einsatz Telefónica Ja",
+            "text_einsatz_telefonica_false": "Text: Einsatz Telefónica Nein",
+            "text_zur_lv_kontrolle_true": "Text: Zur LV-Kontrolle Ja",
+            "text_zur_lv_kontrolle_false": "Text: Zur LV-Kontrolle Nein",
+            "text_ki_beteiligung_true": "Text: KI-Beteiligung Ja",
+            "text_ki_beteiligung_false": "Text: KI-Beteiligung Nein",
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
+            "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
+            "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_false": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_true": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_false": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_true": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_false": forms.Textarea(attrs={"rows": 2}),
         }
 
 
