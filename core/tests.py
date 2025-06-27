@@ -1050,6 +1050,23 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data["missing"]["value"], [])
         self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
 
+    def test_analyse_anlage2_text_fallback(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+            text_content="dummy",
+        )
+
+        expected = [{"funktion": "Login"}]
+        with patch("core.llm_tasks.parse_anlage2_table", return_value=[]), patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=expected
+        ) as mock_text:
+            data = analyse_anlage2(projekt.pk)
+        mock_text.assert_called_once()
+        self.assertEqual(data["functions"]["value"], expected)
+
     def test_analyse_anlage3_auto_ok(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         doc = Document()
