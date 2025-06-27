@@ -1470,7 +1470,7 @@ class PromptTests(TestCase):
     def test_check_anlage3_vision_prompt_text(self):
         p = Prompt.objects.get(name="check_anlage3_vision")
         expected = (
-            "Pr\u00fcfe die folgende Anlage auf Basis der Bilder. "
+            "Pr\u00fcfe die folgenden Bilder der Anlage. "
             "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
         )
         self.assertEqual(p.text, expected)
