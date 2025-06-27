@@ -25,12 +25,11 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .llm_utils import query_llm, query_llm_with_images
+from .llm_utils import query_llm
 from .docx_utils import (
     parse_anlage2_table,
     parse_anlage2_text,
     extract_text,
-    extract_images,
     _normalize_function_name,
     get_docx_page_count,
 )
@@ -1094,39 +1093,6 @@ def worker_run_initial_check(
     sk.last_checked = timezone.now()
     sk.save(update_fields=["is_known_by_llm", "description", "last_checked"])
     return result
-
-
-def worker_run_anlage3_vision(file_id: int) -> dict[str, object]:
-    """Führt einen Vision-Check für Anlage 3 durch."""
-
-    pf = BVProjectFile.objects.get(pk=file_id, anlage_nr=3)
-    path = Path(settings.MEDIA_ROOT) / pf.upload.name
-    images = extract_images(path)
-
-    prompt_text = get_prompt(
-        "check_anlage3_vision",
-        "Dies ist eine Auswertung, die nach BetrVG 87 Abs. 1 Nr. 6 begutachtet werden soll. ...",
-    )
-    model_name = LLMConfig.get_default("vision")
-    try:
-        reply = query_llm_with_images(prompt_text, images, model_name)
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        logger.exception("worker_run_anlage3_vision: LLM Fehler")
-        data = {}
-
-    result = Anlage3VisionResult.objects.create(
-        project_file=pf,
-        summary=data.get("summary", ""),
-        geeignetheit=data.get("geeignetheit", ""),
-        erforderlichkeit=data.get("erforderlichkeit", ""),
-        verhaeltnismaessigkeit=data.get("verhaeltnismaessigkeit", ""),
-        hinweise=data.get("hinweise", ""),
-    )
-    return {
-        "id": result.pk,
-        "summary": result.summary,
-    }
 
 
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
