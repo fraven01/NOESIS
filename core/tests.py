@@ -41,7 +41,7 @@ from docx import Document
 from PIL import Image
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .forms import BVProjectForm, BVProjectUploadForm
+from .forms import BVProjectForm, BVProjectUploadForm, BVProjectFileJSONForm
 from .workflow import set_project_status
 from .models import ProjectStatus
 from .llm_tasks import (
@@ -50,6 +50,7 @@ from .llm_tasks import (
     check_anlage2,
     analyse_anlage2,
     analyse_anlage3,
+    check_anlage3_vision,
     check_anlage2_functions,
     worker_verify_feature,
     worker_generate_gutachten,
@@ -724,6 +725,18 @@ class BVProjectFileTests(TestCase):
         self.assertTrue(pf.manual_reviewed)
         self.assertTrue(pf.verhandlungsfaehig)
 
+    def test_json_form_shows_analysis_field_for_anlage3(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+            analysis_json={"ok": True},
+        )
+        form = BVProjectFileJSONForm(instance=pf)
+        self.assertIn("analysis_json", form.fields)
+
 
 class ProjektFileUploadTests(TestCase):
     def setUp(self):
@@ -1157,6 +1170,30 @@ class LLMTasksTests(TestCase):
         pf2.refresh_from_db()
         self.assertIsNotNone(pf1.analysis_json)
         self.assertIsNotNone(pf2.analysis_json)
+
+    def test_check_anlage3_vision_stores_json(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("A")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("g.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        llm_reply = json.dumps({"ok": True, "hinweis": "x"})
+        with patch("core.llm_tasks.query_llm_with_images", return_value=llm_reply):
+            data = check_anlage3_vision(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["ok"]["value"])
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1999,6 +2036,20 @@ class ProjektFileCheckResultTests(TestCase):
         url = reverse("projekt_file_check_view", args=[pf.pk])
         with patch("core.views.analyse_anlage3") as mock_func:
             mock_func.return_value = {"task": "analyse_anlage3"}
+            resp = self.client.get(url)
+        self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+
+    def test_anlage3_llm_param_triggers_vision_check(self):
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("d.txt", b"x"),
+            text_content="T",
+        )
+        url = reverse("projekt_file_check_view", args=[pf.pk]) + "?llm=1"
+        with patch("core.views.check_anlage3_vision") as mock_func:
+            mock_func.return_value = {"task": "check_anlage3_vision"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)

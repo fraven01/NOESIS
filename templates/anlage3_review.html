@@ -7,6 +7,7 @@
     <thead>
         <tr>
             <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">LLM-Prüfung</th>
             <th class="px-2 py-1 text-center">Geprüft</th>
         </tr>
     </thead>
@@ -14,6 +15,12 @@
     {% for a in anlagen %}
         <tr class="border-t">
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'projekt_file_check_view' a.pk %}?llm=1">
+                    {% csrf_token %}
+                    <button class="bg-purple-600 text-white px-2 py-1 rounded">LLM-Prüfung</button>
+                </form>
+            </td>
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
                     {% csrf_token %}
@@ -24,8 +31,21 @@
                 </form>
             </td>
         </tr>
+        {% if a.analysis_json %}
+        <tr class="border-b">
+            <td colspan="3">
+                <div class="prose max-w-none bg-gray-100 p-2 rounded">
+                    {{ a.analysis_json|tojson|markdownify }}
+                </div>
+                <div class="mt-1 space-x-2">
+                    <a href="{% url 'projekt_file_edit_json' a.pk %}" class="btn-action">Bearbeiten</a>
+                    <a href="{{ a.upload.url }}" class="text-blue-700 underline">Download</a>
+                </div>
+            </td>
+        </tr>
+        {% endif %}
     {% empty %}
-        <tr><td colspan="2">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="3">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
