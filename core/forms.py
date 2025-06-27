@@ -206,7 +206,6 @@ class BVProjectFileJSONForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.anlage_nr == 3:
-            self.fields.pop("analysis_json", None)
             self.fields.pop("manual_analysis_json", None)
 
     class Meta:

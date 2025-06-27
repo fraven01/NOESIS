@@ -25,12 +25,13 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .llm_utils import query_llm
+from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     parse_anlage2_table,
     parse_anlage2_text,
     extract_text,
     _normalize_function_name,
+    extract_images,
     get_docx_page_count,
 )
 from docx import Document
@@ -471,6 +472,61 @@ def analyse_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
             result = data
 
     anlage3_logger.debug("Analyse abgeschlossen mit Ergebnis: %s", result)
+    return result or {}
+
+
+def _read_pdf_images(path: Path) -> list[bytes]:
+    """Liest die Bytes einer PDF-Datei ein."""
+    try:
+        with open(path, "rb") as fh:
+            return [fh.read()]
+    except Exception as exc:  # pragma: no cover - ungültige Datei
+        anlage3_logger.error("Fehler beim Lesen des PDF %s: %s", path, exc)
+        return []
+
+
+def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict:
+    """Prüft Anlage 3 anhand der enthaltenen Bilder."""
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+    anlagen = projekt.anlagen.filter(anlage_nr=3)
+    if not anlagen:
+        raise ValueError("Anlage 3 fehlt")
+
+    prompt_obj = Prompt.objects.filter(name="check_anlage3_vision").first()
+    prompt = (
+        prompt_obj.text
+        if prompt_obj
+        else "Prüfe die folgende Anlage auf Basis der Bilder. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+    )
+    model = model_name or LLMConfig.get_default("vision")
+    result: dict | None = None
+    for anlage in anlagen:
+        path = Path(anlage.upload.path)
+        if path.suffix.lower() == ".docx":
+            images = extract_images(path)
+        elif path.suffix.lower() == ".pdf":
+            images = _read_pdf_images(path)
+        else:
+            try:
+                with open(path, "rb") as fh:
+                    images = [fh.read()]
+            except Exception as exc:  # pragma: no cover - ungültige Datei
+                anlage3_logger.error("Fehler beim Lesen von %s: %s", path, exc)
+                images = []
+
+        reply = query_llm_with_images(prompt, images, model)
+        try:
+            data = json.loads(reply)
+        except Exception:  # noqa: BLE001
+            data = {"raw": reply}
+
+        data = _add_editable_flags(data)
+        anlage.analysis_json = data
+        anlage.save(update_fields=["analysis_json"])
+        if result is None:
+            result = data
+
     return result or {}
 
 

@@ -82,6 +82,7 @@ from .llm_tasks import (
     analyse_anlage2,
     analyse_anlage3,
     check_anlage2,
+    check_anlage3_vision,
     check_anlage4,
     check_anlage5,
     check_anlage6,
@@ -2127,7 +2128,7 @@ def projekt_file_check(request, pk, nr):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2164,7 +2165,7 @@ def projekt_file_check_pk(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2198,7 +2199,7 @@ def projekt_file_check_view(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
