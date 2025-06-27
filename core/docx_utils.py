@@ -68,8 +68,12 @@ def get_docx_page_count(path: Path) -> int:
     return 1 + page_breaks + section_breaks
 
 
-def extract_docx_images(path: Path) -> list[bytes]:
-    """Extrahiert Bilder aus einer DOCX-Datei."""
+def extract_images(path: Path) -> list[bytes]:
+    """Extrahiert alle eingebetteten Bilder aus einer DOCX-Datei.
+
+    Die Funktion liest das DOCX-Archiv als ZIP und gibt die rohen
+    Bilddaten aus dem Unterordner ``word/media`` zurück.
+    """
 
     logger = logging.getLogger(__name__)
     images: list[bytes] = []
@@ -82,35 +86,6 @@ def extract_docx_images(path: Path) -> list[bytes]:
     except Exception as exc:  # pragma: no cover - ungültige Datei
         logger.error("Fehler beim Extrahieren der Bilder aus %s: %s", path, exc)
     return images
-
-
-def extract_pdf_images(path: Path) -> list[bytes]:
-    """Extrahiert Bilder aus einer PDF-Datei."""
-
-    logger = logging.getLogger(__name__)
-    images: list[bytes] = []
-    try:
-        import fitz  # PyMuPDF
-
-        doc = fitz.open(str(path))
-        for page in doc:
-            for img in page.get_images(full=True):
-                xref = img[0]
-                data = doc.extract_image(xref)
-                if data and "image" in data:
-                    images.append(data["image"])
-    except Exception as exc:  # pragma: no cover - ungültige Datei
-        logger.error("Fehler beim Extrahieren der Bilder aus %s: %s", path, exc)
-    return images
-
-
-def extract_images(path: Path) -> list[bytes]:
-    """Extrahiert Bilder aus DOCX- oder PDF-Dateien."""
-
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        return extract_pdf_images(path)
-    return extract_docx_images(path)
 
 
 def _parse_cell_value(text: str) -> dict[str, object]:

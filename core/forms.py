@@ -16,7 +16,6 @@ from .models import (
     LLMRole,
     Prompt,
     Tile,
-    Anlage3VisionResult,
 )
 from django.contrib.auth.models import Group
 from .llm_tasks import ANLAGE1_QUESTIONS
@@ -493,24 +492,6 @@ class KnowledgeDescriptionForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"class": "border rounded p-2 w-full", "rows": 20}
             )
-        }
-
-
-class Anlage3VisionForm(forms.ModelForm):
-    """Formular zum Bearbeiten eines Vision-Checks."""
-
-    class Meta:
-        model = Anlage3VisionResult
-        fields = [
-            "summary",
-            "geeignetheit",
-            "erforderlichkeit",
-            "verhaeltnismaessigkeit",
-            "hinweise",
-        ]
-        widgets = {
-            field: forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4})
-            for field in fields
         }
 
 

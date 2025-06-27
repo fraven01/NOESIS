@@ -8,7 +8,6 @@
         <tr>
             <th class="px-2 py-1">Datei</th>
             <th class="px-2 py-1 text-center">Geprüft</th>
-            <th class="px-2 py-1 text-center">Vision-Check</th>
         </tr>
     </thead>
     <tbody>
@@ -24,55 +23,11 @@
                     </button>
                 </form>
             </td>
-            <td class="px-2 py-1 text-center">
-                <button type="button" class="start-vision bg-blue-600 text-white px-2 py-1 rounded" data-file-id="{{ a.pk }}">Start</button>
-            </td>
         </tr>
     {% empty %}
         <tr><td colspan="2">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
-<h2 class="text-xl font-semibold mb-2">Vision Ergebnisse</h2>
-<table class="mb-4 w-full text-left">
-    <thead>
-        <tr>
-            <th class="px-2 py-1">Datei</th>
-            <th class="px-2 py-1">Erstellt</th>
-            <th class="px-2 py-1">Aktion</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for r in vision_results %}
-        <tr class="border-t">
-            <td class="px-2 py-1">{{ r.project_file.upload.name|basename }}</td>
-            <td class="px-2 py-1">{{ r.created_at|date:"d.m.Y H:i" }}</td>
-            <td class="px-2 py-1 space-x-2">
-                <a href="{% url 'anlage3_vision_edit' r.id %}" class="text-blue-700 underline">Bearbeiten</a>
-                <a href="{% url 'anlage3_vision_download' r.id %}" class="text-blue-700 underline">Download</a>
-                <form method="post" action="{% url 'anlage3_vision_delete' r.id %}" class="inline">
-                    {% csrf_token %}
-                    <button class="text-red-700" onclick="return confirm('Löschen?');">Löschen</button>
-                </form>
-            </td>
-        </tr>
-    {% empty %}
-        <tr><td colspan="3">Keine Ergebnisse</td></tr>
-    {% endfor %}
-    </tbody>
-</table>
 <a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
-{% endblock %}
-{% block extra_js %}
-<script>
-function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
-document.querySelectorAll('.start-vision').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const body=new FormData();
-    body.append('file_id',btn.dataset.fileId);
-    fetch('{% url "ajax_start_anlage3_vision" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body})
-      .then(r=>r.json()).then(()=>location.reload());
-  });
-});
-</script>
 {% endblock %}
