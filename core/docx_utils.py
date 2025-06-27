@@ -422,6 +422,13 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                         ph,
                         line,
                     )
+            parser_logger.debug(
+                "Finaler Vergleich: %r (%s) in %r (%s)",
+                ph,
+                type(ph).__name__,
+                line,
+                type(line).__name__,
+            )
             if ph in line:
                 parser_logger.debug("-> Treffer")
                 return True
