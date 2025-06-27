@@ -112,6 +112,7 @@ Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
 ### Funktionskatalog verwalten
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
+Fehlt bei einer Funktion oder Unterfrage das Feld `name_aliases`, verwendet der Textparser automatisch den Funktionsnamen bzw. den Fragetext als Alias.
 
 ### Anlage‑2‑Konfiguration importieren/exportieren
 

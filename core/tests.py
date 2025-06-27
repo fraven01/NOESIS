@@ -524,7 +524,40 @@ class DocxExtractTests(TestCase):
         Anlage2GlobalPhrase.objects.create(
             config=cfg, phrase_type="ki_beteiligung_false", phrase_text="ki nein"
         )
-        text = "Login tv ja ki nein\nWarum tv nein"
+        text = "Login tv ja ki nein\nWarum? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {
+                    "funktion": "Login: Warum?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
+
+    def test_parse_anlage2_text_default_aliases(self):
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+        )
+        cfg = Anlage2Config.get_instance()
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="technisch_verfuegbar_true", phrase_text="tv ja"
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="technisch_verfuegbar_false", phrase_text="tv nein"
+        )
+        Anlage2GlobalPhrase.objects.create(
+            config=cfg, phrase_type="ki_beteiligung_false", phrase_text="ki nein"
+        )
+        text = "Login tv ja ki nein\nWarum? tv nein"
         data = parse_anlage2_text(text)
         self.assertEqual(
             data,
