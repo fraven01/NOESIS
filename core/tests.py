@@ -1742,6 +1742,11 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(form.initial["q1_hinweis"], "H")
         self.assertEqual(form.initial["q1_vorschlag"], "V")
 
+    def test_edit_page_has_mde(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "easymde.min.css")
+
 
 class Anlage2ReviewTests(TestCase):
     def setUp(self):
@@ -1915,6 +1920,31 @@ class KnowledgeDescriptionEditTests(TestCase):
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
         self.knowledge.refresh_from_db()
         self.assertEqual(self.knowledge.description, "Neu")
+
+
+class ProjektFileDeleteResultTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("deluser", password="pass")
+        self.client.login(username="deluser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("d.txt", b"data"),
+            text_content="Text",
+            analysis_json={"auto_ok": True},
+            manual_reviewed=True,
+            verhandlungsfaehig=True,
+        )
+
+    def test_delete_resets_fields(self):
+        url = reverse("projekt_file_delete_result", args=[self.file.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
+        self.file.refresh_from_db()
+        self.assertIsNone(self.file.analysis_json)
+        self.assertFalse(self.file.manual_reviewed)
+        self.assertFalse(self.file.verhandlungsfaehig)
 
 
 class ProjektFileCheckResultTests(TestCase):
