@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load recording_extras %}
 {% block title %}Anlage 1 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 1 Fragen prüfen</h1>
@@ -22,7 +23,7 @@
             <tr>
                 <td class="border px-2">{{ num }}</td>
                 <td class="border px-2">{{ question }}</td>
-                <td class="border px-2">{{ ans }}</td>
+                <td class="border px-2">{{ ans|markdownify }}</td>
                 <td class="border px-2">{{ status_field }}</td>
                 <td class="border px-2">{{ hinweis_field }}</td>
                 <td class="border px-2">{{ vorschlag_field }}</td>

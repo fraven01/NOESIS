@@ -2863,6 +2863,37 @@ def project_file_toggle_flag(request, pk: int, field: str):
 
 
 @login_required
+@require_http_methods(["POST"])
+def projekt_file_delete_result(request, pk: int):
+    """Löscht Analyse- und Review-Ergebnisse einer Anlage."""
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+
+    if project_file.anlage_nr == 2:
+        Anlage2FunctionResult.objects.filter(
+            projekt=project_file.projekt
+        ).exclude(source="parser").delete()
+        project_file.verification_json = {}
+
+    project_file.analysis_json = None
+    project_file.manual_analysis_json = None
+    project_file.manual_reviewed = False
+    project_file.verhandlungsfaehig = False
+    project_file.save(
+        update_fields=[
+            "analysis_json",
+            "manual_analysis_json",
+            "manual_reviewed",
+            "verhandlungsfaehig",
+            "verification_json",
+        ]
+    )
+
+    if project_file.anlage_nr == 3:
+        return redirect("anlage3_review", pk=project_file.projekt.pk)
+    return redirect("projekt_detail", pk=project_file.projekt.pk)
+
+
+@login_required
 def projekt_gap_analysis(request, pk):
     """Stellt die Gap-Analyse als Download bereit."""
     projekt = get_object_or_404(BVProject, pk=pk)

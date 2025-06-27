@@ -248,6 +248,11 @@ urlpatterns = [
         name="projekt_file_edit_json",
     ),
     path(
+        "work/anlage/<int:pk>/delete-result/",
+        views.projekt_file_delete_result,
+        name="projekt_file_delete_result",
+    ),
+    path(
         "work/anlage/<int:pk>/reset-all-reviews/",
         views.ajax_reset_all_reviews,
         name="ajax_reset_all_reviews",
