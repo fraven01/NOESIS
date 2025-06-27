@@ -203,6 +203,10 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
     if not text_content:
         return None
     text = text_content.replace("\u00b6", "\n")
+    parser_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
+    parser_logger.debug(
+        f"--- ANFANG ROH-TEXT ANLAGE 2 ---\n{text}\n--- ENDE ROH-TEXT ANLAGE 2 ---"
+    )
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
     table_like = any(
