@@ -52,15 +52,17 @@ def get_docx_page_count(path: Path) -> int:
     # abschließende ``sectPr`` beschreibt lediglich das letzte
     # Abschnittslayout und zählt daher nicht als Umbruch.
     section_breaks = 0
-    sect_prs = root.xpath('.//w:sectPr')
+    sect_prs = root.xpath(".//w:sectPr")
     for sp in sect_prs[1:]:
-        type_el = sp.xpath('./w:type')
+        type_el = sp.xpath("./w:type")
         val = (
-            type_el[0].get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
+            type_el[0].get(
+                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val"
+            )
             if type_el
             else None
         )
-        if val != 'continuous':
+        if val != "continuous":
             section_breaks += 1
 
     return 1 + page_breaks + section_breaks
@@ -303,7 +305,9 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
             if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
                 current_main_function_name = main_col_text
-                parser_logger.debug("Hauptfunktion erkannt: %s", current_main_function_name)
+                parser_logger.debug(
+                    "Hauptfunktion erkannt: %s", current_main_function_name
+                )
                 row_data = {"funktion": current_main_function_name}
             elif sub_col_text and current_main_function_name:
                 full_name = f"{current_main_function_name}: {sub_col_text}"
@@ -367,6 +371,9 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     for func in Anlage2Function.objects.all():
         alias_list = [func.name]
         alias_list += _get_list(func.detection_phrases, "name_aliases")
+        parser_logger.debug(
+            "Lade Aliase für Funktion '%s': Original-Aliase: %s", func.name, alias_list
+        )
         aliases = list(dict.fromkeys(_normalize_snippet(a) for a in alias_list))
         parser_logger.debug("Funktion '%s' Aliase: %s", func.name, aliases)
         functions.append((func, aliases))
@@ -437,6 +444,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 line,
                 type(line).__name__,
             )
+            parser_logger.debug("Finaler Vergleich: %r in %r", ph, line)
             if ph in line:
                 parser_logger.debug("-> Treffer")
                 return True
@@ -480,9 +488,7 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 val = False
             if val is not None:
                 result[field] = {"value": val, "note": None}
-                parser_logger.debug(
-                    "Extrahierter Wert für %s: %s", field, val
-                )
+                parser_logger.debug("Extrahierter Wert für %s: %s", field, val)
         return result
 
     lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
@@ -493,6 +499,10 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     for line in lines:
         parser_logger.debug("Prüfe Zeile: %s", line)
         norm_line = _normalize_snippet(line)
+        parser_logger.debug(
+            f"Zeile | ROH: {repr(line)} | NORMALISIERT: {repr(norm_line)}"
+        )
+
         if not norm_line:
             continue
 
