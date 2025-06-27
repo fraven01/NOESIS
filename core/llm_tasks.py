@@ -37,6 +37,7 @@ from docx import Document
 
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
+anlage3_logger = logging.getLogger("anlage3_debug")
 
 ANLAGE1_QUESTIONS = [
     "Frage 1: Extrahiere alle Unternehmen als Liste.",
@@ -215,10 +216,13 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
     if table_like:
         base_obj = Prompt.objects.filter(name="anlage2_table").first()
         prompt_text = (
-            (base_obj.text if base_obj else "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n")
-            + text_content
+            base_obj.text
+            if base_obj
+            else "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n"
+        ) + text_content
+        prompt_obj = Prompt(
+            name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
         )
-        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
         reply = query_llm(prompt_obj, {}, model_name=None, model_type="anlagen")
         try:
             data = json.loads(reply)
@@ -313,7 +317,9 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
         else "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xfcsseln 'kategorie' und 'begruendung' zur\xfcck.\n\n"
     )
     prompt_text = prefix + _collect_text(projekt)
-    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+    prompt_obj = Prompt(
+        name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+    )
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="default")
     try:
         data = json.loads(reply)
@@ -335,10 +341,14 @@ def generate_gutachten(
     if text is None:
         base_obj = Prompt.objects.filter(name="generate_gutachten").first()
         prefix = (
-            base_obj.text if base_obj else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
+            base_obj.text
+            if base_obj
+            else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
         )
         prompt_text = prefix + projekt.software_string
-        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+        prompt_obj = Prompt(
+            name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+        )
         text = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
     doc = Document()
     for line in text.splitlines():
@@ -358,7 +368,9 @@ def generate_gutachten(
     return path
 
 
-def worker_generate_gutachten(project_id: int, software_type_id: int | None = None) -> str:
+def worker_generate_gutachten(
+    project_id: int, software_type_id: int | None = None
+) -> str:
     """Erzeugt im Hintergrund ein Gutachten.
 
     Ist ``software_type_id`` angegeben, wird ein Gutachten f\u00fcr die
@@ -378,7 +390,11 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     model = LLMConfig.get_default("gutachten")
 
     base_obj = Prompt.objects.filter(name="generate_gutachten").first()
-    prefix = base_obj.text if base_obj else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
+    prefix = (
+        base_obj.text
+        if base_obj
+        else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
+    )
 
     knowledge = None
     if software_type_id:
@@ -387,14 +403,14 @@ def worker_generate_gutachten(project_id: int, software_type_id: int | None = No
     else:
         target = projekt.software_string
 
-    prompt_obj = Prompt(name="tmp", text=prefix + target, role=base_obj.role if base_obj else None)
+    prompt_obj = Prompt(
+        name="tmp", text=prefix + target, role=base_obj.role if base_obj else None
+    )
     text = query_llm(prompt_obj, {}, model_name=model, model_type="gutachten")
     path = generate_gutachten(projekt.id, text, model_name=model)
 
     if knowledge:
-        gutachten, _ = Gutachten.objects.get_or_create(
-            software_knowledge=knowledge
-        )
+        gutachten, _ = Gutachten.objects.get_or_create(software_knowledge=knowledge)
         gutachten.text = text
         gutachten.save(update_fields=["text"])
 
@@ -409,6 +425,7 @@ def analyse_anlage3(projekt_id: int) -> dict:
     manueller Check erforderlich.
     """
 
+    anlage3_logger.debug("Starte analyse_anlage3 für Projekt %s", projekt_id)
     projekt = BVProject.objects.get(pk=projekt_id)
     anlagen = list(projekt.anlagen.filter(anlage_nr=3))
     if not anlagen:
@@ -416,7 +433,9 @@ def analyse_anlage3(projekt_id: int) -> dict:
 
     result: dict | None = None
     for anlage in anlagen:
+        anlage3_logger.debug("Prüfe Datei %s", anlage.upload.path)
         pages = get_docx_page_count(Path(anlage.upload.path))
+        anlage3_logger.debug("Seitenzahl der Datei: %s", pages)
 
         if pages <= 1:
             data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
@@ -429,6 +448,8 @@ def analyse_anlage3(projekt_id: int) -> dict:
             }
             verhandlungsfaehig = False
 
+        anlage3_logger.debug("Analyseergebnis: %s", data)
+
         anlage.analysis_json = data
         if hasattr(anlage, "verhandlungsfaehig"):
             anlage.verhandlungsfaehig = verhandlungsfaehig
@@ -439,6 +460,7 @@ def analyse_anlage3(projekt_id: int) -> dict:
         if result is None:
             result = data
 
+    anlage3_logger.debug("Analyse abgeschlossen mit Ergebnis: %s", result)
     return result or {}
 
 
@@ -454,10 +476,14 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
 
     base_obj = Prompt.objects.filter(name=f"check_anlage{nr}").first()
     prefix = (
-        base_obj.text if base_obj else "Pr\xfcfe die folgende Anlage auf Vollst\xe4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xfcck:\n\n"
+        base_obj.text
+        if base_obj
+        else "Pr\xfcfe die folgende Anlage auf Vollst\xe4ndigkeit. Gib ein JSON mit 'ok' und 'hinweis' zur\xfcck:\n\n"
     )
     prompt_text = prefix + anlage.text_content
-    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+    prompt_obj = Prompt(
+        name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+    )
 
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
     try:
@@ -534,9 +560,13 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         parts.insert(insert_at, _ANLAGE1_IT)
         parts.append(_ANLAGE1_SUFFIX)
         prefix = "".join(parts)
-        base_obj = Prompt.objects.filter(name=f"anlage1_q{llm_questions[0].num}").first()
+        base_obj = Prompt.objects.filter(
+            name=f"anlage1_q{llm_questions[0].num}"
+        ).first()
         prompt_text = prefix + anlage.text_content
-        prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+        prompt_obj = Prompt(
+            name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+        )
 
         logger.debug(
             "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r",
@@ -586,7 +616,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
                 prompt_text,
             )
             try:
-                reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+                reply = query_llm(
+                    prompt_obj, {}, model_name=model_name, model_type="anlagen"
+                )
                 logger.debug(
                     "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
                 )
@@ -655,13 +687,18 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         logger.debug("Tabellenzeile: %s", row)
         if row is None:
             parser_logger.debug("Parser fand Funktion '%s' nicht", func.name)
+
         def _val(item, key):
             value = item.get(key)
             if isinstance(value, dict) and "value" in value:
                 return value["value"]
             return value
 
-        if row and _val(row, "technisch_verfuegbar") is not None and _val(row, "ki_beteiligung") is not None:
+        if (
+            row
+            and _val(row, "technisch_verfuegbar") is not None
+            and _val(row, "ki_beteiligung") is not None
+        ):
             vals = {
                 "technisch_verfuegbar": row.get("technisch_verfuegbar"),
                 "ki_beteiligung": row.get("ki_beteiligung"),
@@ -671,9 +708,13 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         else:
             # Sonst LLM befragen
             prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
-            logger.debug("LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text)
+            logger.debug(
+                "LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text
+            )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
-            reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+            reply = query_llm(
+                prompt_obj, {}, model_name=model_name, model_type="anlagen"
+            )
             logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
             try:
                 raw = json.loads(reply)
@@ -704,7 +745,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 (
                     r
                     for r in table
-                    if _normalize_function_name(r["funktion"]) == _normalize_function_name(sub_name)
+                    if _normalize_function_name(r["funktion"])
+                    == _normalize_function_name(sub_name)
                 ),
                 None,
             )
@@ -715,7 +757,9 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
             )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
-            reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+            reply = query_llm(
+                prompt_obj, {}, model_name=model_name, model_type="anlagen"
+            )
             logger.debug(
                 "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
             )
@@ -740,7 +784,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     anlage.save(update_fields=["analysis_json"])
     logger.debug("check_anlage2 Ergebnis: %s", data)
     return data
-
 
 
 def check_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
@@ -911,13 +954,17 @@ def worker_verify_feature(
                 use_system_role=False,
             )
         context["software_name"] = software_list[idx]
-        ai_reply = query_llm(
-            ai_check_obj,
-            {"software_name": context["software_name"], "function_name": name},
-            model_name=model_name,
-            model_type="anlagen",
-            temperature=0.1,
-        ).strip().lower()
+        ai_reply = (
+            query_llm(
+                ai_check_obj,
+                {"software_name": context["software_name"], "function_name": name},
+                model_name=model_name,
+                model_type="anlagen",
+                temperature=0.1,
+            )
+            .strip()
+            .lower()
+        )
         if ai_reply.startswith("ja"):
             ai_involved = True
         elif ai_reply.startswith("nein"):
@@ -927,7 +974,9 @@ def worker_verify_feature(
 
         if ai_involved:
             try:
-                ai_just_obj = Prompt.objects.get(name="anlage2_ai_involvement_justification")
+                ai_just_obj = Prompt.objects.get(
+                    name="anlage2_ai_involvement_justification"
+                )
             except Prompt.DoesNotExist:
                 ai_just_obj = Prompt(
                     text=(
@@ -952,9 +1001,7 @@ def worker_verify_feature(
         "ki_beteiligt_begruendung": ai_reason,
     }
 
-    pf = (
-        BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
-    )
+    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
     if not pf:
         return verification_result
 
@@ -981,7 +1028,9 @@ def worker_verify_feature(
     return verification_result
 
 
-def worker_run_initial_check(knowledge_id: int, user_context: str | None = None) -> dict[str, object]:
+def worker_run_initial_check(
+    knowledge_id: int, user_context: str | None = None
+) -> dict[str, object]:
     """Führt eine zweistufige LLM-Abfrage zu einer Software durch.
 
     ``user_context`` ermöglicht Zusatzinformationen, falls die Software nicht
@@ -1053,7 +1102,9 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
             "Gib eine kurze Empfehlung als Text zurück.\n\n"
         )
     )
-    prompt_obj = Prompt(name="tmp", text=prefix + text, role=base_obj.role if base_obj else None)
+    prompt_obj = Prompt(
+        name="tmp", text=prefix + text, role=base_obj.role if base_obj else None
+    )
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])
