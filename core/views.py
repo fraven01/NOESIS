@@ -82,6 +82,7 @@ from .llm_tasks import (
     analyse_anlage2,
     analyse_anlage3,
     check_anlage2,
+    check_anlage3_vision,
     check_anlage4,
     check_anlage5,
     check_anlage6,
@@ -2085,7 +2086,8 @@ def projekt_file_upload(request, pk):
         if form.is_valid():
             uploaded = form.cleaned_data["upload"]
             content = ""
-            if uploaded.name.lower().endswith(".docx"):
+            lower_name = uploaded.name.lower()
+            if lower_name.endswith(".docx"):
                 from tempfile import NamedTemporaryFile
 
                 tmp = NamedTemporaryFile(delete=False, suffix=".docx")
@@ -2096,6 +2098,9 @@ def projekt_file_upload(request, pk):
                     content = extract_text(Path(tmp.name))
                 finally:
                     Path(tmp.name).unlink(missing_ok=True)
+            elif lower_name.endswith(".pdf"):
+                uploaded.read()  # Bytes einlesen, aber nicht dekodieren
+                uploaded.seek(0)
             else:
                 try:
                     content = uploaded.read().decode("utf-8")
@@ -2127,7 +2132,7 @@ def projekt_file_check(request, pk, nr):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2164,7 +2169,7 @@ def projekt_file_check_pk(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2198,7 +2203,7 @@ def projekt_file_check_view(request, pk):
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
-        3: analyse_anlage3,
+        3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: check_anlage4,
         5: check_anlage5,
         6: check_anlage6,
@@ -2854,6 +2859,37 @@ def project_file_toggle_flag(request, pk: int, field: str):
         return JsonResponse({"status": "ok", field: new_val})
     if "HTTP_REFERER" in request.META:
         return redirect(request.META["HTTP_REFERER"])
+    return redirect("projekt_detail", pk=project_file.projekt.pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def projekt_file_delete_result(request, pk: int):
+    """Löscht Analyse- und Review-Ergebnisse einer Anlage."""
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+
+    if project_file.anlage_nr == 2:
+        Anlage2FunctionResult.objects.filter(
+            projekt=project_file.projekt
+        ).exclude(source="parser").delete()
+        project_file.verification_json = {}
+
+    project_file.analysis_json = None
+    project_file.manual_analysis_json = None
+    project_file.manual_reviewed = False
+    project_file.verhandlungsfaehig = False
+    project_file.save(
+        update_fields=[
+            "analysis_json",
+            "manual_analysis_json",
+            "manual_reviewed",
+            "verhandlungsfaehig",
+            "verification_json",
+        ]
+    )
+
+    if project_file.anlage_nr == 3:
+        return redirect("anlage3_review", pk=project_file.projekt.pk)
     return redirect("projekt_detail", pk=project_file.projekt.pk)
 
 

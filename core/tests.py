@@ -30,6 +30,7 @@ from .models import (
 from .docx_utils import (
     extract_text,
     get_docx_page_count,
+    get_pdf_page_count,
     extract_images,
     parse_anlage2_table,
     parse_anlage2_text,
@@ -39,9 +40,10 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
 from PIL import Image
+import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .forms import BVProjectForm, BVProjectUploadForm
+from .forms import BVProjectForm, BVProjectUploadForm, BVProjectFileJSONForm
 from .workflow import set_project_status
 from .models import ProjectStatus
 from .llm_tasks import (
@@ -50,6 +52,7 @@ from .llm_tasks import (
     check_anlage2,
     analyse_anlage2,
     analyse_anlage3,
+    check_anlage3_vision,
     check_anlage2_functions,
     worker_verify_feature,
     worker_generate_gutachten,
@@ -207,6 +210,31 @@ class DocxExtractTests(TestCase):
         tmp.close()
         try:
             count = get_docx_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 2)
+
+    def test_get_pdf_page_count_single(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_pdf_page_count(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+        self.assertEqual(count, 1)
+
+    def test_get_pdf_page_count_two_pages(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        try:
+            count = get_pdf_page_count(Path(tmp.name))
         finally:
             Path(tmp.name).unlink(missing_ok=True)
         self.assertEqual(count, 2)
@@ -724,6 +752,18 @@ class BVProjectFileTests(TestCase):
         self.assertTrue(pf.manual_reviewed)
         self.assertTrue(pf.verhandlungsfaehig)
 
+    def test_json_form_shows_analysis_field_for_anlage3(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+            analysis_json={"ok": True},
+        )
+        form = BVProjectFileJSONForm(instance=pf)
+        self.assertIn("analysis_json", form.fields)
+
 
 class ProjektFileUploadTests(TestCase):
     def setUp(self):
@@ -751,6 +791,26 @@ class ProjektFileUploadTests(TestCase):
         file_obj = self.projekt.anlagen.first()
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
+
+    def test_pdf_upload_stores_bytes(self):
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        file_obj = self.projekt.anlagen.get(anlage_nr=3)
+        self.assertEqual(file_obj.text_content, "")
 
 
 class AutoApprovalTests(TestCase):
@@ -1117,6 +1177,51 @@ class LLMTasksTests(TestCase):
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
 
+    def test_analyse_anlage3_pdf_auto_ok(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pdf = fitz.open()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("c.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["auto_ok"])  # pages <= 1
+        self.assertEqual(file_obj.analysis_json["auto_ok"], True)
+
+    def test_analyse_anlage3_pdf_manual_required(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pdf = fitz.open()
+        pdf.new_page()
+        pdf.new_page()
+        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("d.pdf", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        data = analyse_anlage3(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["manual_required"])  # pages > 1
+        self.assertEqual(file_obj.analysis_json["manual_required"], True)
+
     def test_analyse_anlage3_multiple_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
@@ -1157,6 +1262,30 @@ class LLMTasksTests(TestCase):
         pf2.refresh_from_db()
         self.assertIsNotNone(pf1.analysis_json)
         self.assertIsNotNone(pf2.analysis_json)
+
+    def test_check_anlage3_vision_stores_json(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_paragraph("A")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("g.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=upload,
+            text_content="ignored",
+        )
+
+        llm_reply = json.dumps({"ok": True, "hinweis": "x"})
+        with patch("core.llm_tasks.query_llm_with_images", return_value=llm_reply):
+            data = check_anlage3_vision(projekt.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=3)
+        self.assertTrue(data["ok"]["value"])
+        self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1433,7 +1562,7 @@ class PromptTests(TestCase):
     def test_check_anlage3_vision_prompt_text(self):
         p = Prompt.objects.get(name="check_anlage3_vision")
         expected = (
-            "Pr\u00fcfe die folgende Anlage auf Basis der Bilder. "
+            "Pr\u00fcfe die folgenden Bilder der Anlage. "
             "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
         )
         self.assertEqual(p.text, expected)
@@ -1742,6 +1871,11 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertEqual(form.initial["q1_hinweis"], "H")
         self.assertEqual(form.initial["q1_vorschlag"], "V")
 
+    def test_edit_page_has_mde(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "easymde.min.css")
+
 
 class Anlage2ReviewTests(TestCase):
     def setUp(self):
@@ -1917,6 +2051,31 @@ class KnowledgeDescriptionEditTests(TestCase):
         self.assertEqual(self.knowledge.description, "Neu")
 
 
+class ProjektFileDeleteResultTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("deluser", password="pass")
+        self.client.login(username="deluser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("d.txt", b"data"),
+            text_content="Text",
+            analysis_json={"auto_ok": True},
+            manual_reviewed=True,
+            verhandlungsfaehig=True,
+        )
+
+    def test_delete_resets_fields(self):
+        url = reverse("projekt_file_delete_result", args=[self.file.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
+        self.file.refresh_from_db()
+        self.assertIsNone(self.file.analysis_json)
+        self.assertFalse(self.file.manual_reviewed)
+        self.assertFalse(self.file.verhandlungsfaehig)
+
+
 class ProjektFileCheckResultTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")
@@ -1999,6 +2158,20 @@ class ProjektFileCheckResultTests(TestCase):
         url = reverse("projekt_file_check_view", args=[pf.pk])
         with patch("core.views.analyse_anlage3") as mock_func:
             mock_func.return_value = {"task": "analyse_anlage3"}
+            resp = self.client.get(url)
+        self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
+        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+
+    def test_anlage3_llm_param_triggers_vision_check(self):
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("d.txt", b"x"),
+            text_content="T",
+        )
+        url = reverse("projekt_file_check_view", args=[pf.pk]) + "?llm=1"
+        with patch("core.views.check_anlage3_vision") as mock_func:
+            mock_func.return_value = {"task": "check_anlage3_vision"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)

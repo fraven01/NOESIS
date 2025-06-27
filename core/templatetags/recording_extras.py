@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import json
 import markdown
 from django import template
 from django.utils.safestring import mark_safe
@@ -55,3 +55,12 @@ def markdownify(text: str) -> str:
 
     html = markdown.markdown(text, extensions=extensions)
     return mark_safe(html)
+
+
+@register.filter
+def tojson(value) -> str:
+    """Wandelt ein Python-Objekt in formatiertes JSON um."""
+    try:
+        return json.dumps(value, indent=2, ensure_ascii=False)
+    except Exception:  # pragma: no cover - ungültige Daten
+        return str(value)
