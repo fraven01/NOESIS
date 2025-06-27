@@ -391,7 +391,15 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         origin: str | None = None,
         raw_line: str | None = None,
     ) -> bool:
-        for ph in [p for p in phrases if p]:
+        valid_phrases = [p for p in phrases if p]
+        if not valid_phrases:
+            parser_logger.debug(
+                "Keine gültigen Aliase zum Prüfen für '%s' vorhanden. Überspringe.",
+                origin or "Unbekannt",
+            )
+            return False
+
+        for ph in valid_phrases:
             if origin:
                 if raw_line is not None:
                     parser_logger.debug(
