@@ -350,6 +350,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     functions: list[tuple[Anlage2Function, list[str]]] = []
     for func in Anlage2Function.objects.all():
         aliases = [a.lower() for a in _get_list(func.detection_phrases, "name_aliases")]
+        if not aliases:
+            aliases = [func.name.lower()]
         parser_logger.debug("Funktion '%s' Aliase: %s", func.name, aliases)
         functions.append((func, aliases))
 
@@ -357,6 +359,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     sub_map: dict[int, list[tuple[Anlage2SubQuestion, list[str]]]] = {}
     for sub in Anlage2SubQuestion.objects.select_related("funktion"):
         aliases = [a.lower() for a in _get_list(sub.detection_phrases, "name_aliases")]
+        if not aliases:
+            aliases = [sub.frage_text.lower()]
         parser_logger.debug(
             "Unterfrage '%s' (%s) Aliase: %s",
             sub.frage_text,
