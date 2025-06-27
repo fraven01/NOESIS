@@ -203,3 +203,5 @@ media/
 .env
 debug.txt
 debug.log
+.vscode/launch.json
+.vscode/
