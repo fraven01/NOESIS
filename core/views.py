@@ -41,6 +41,7 @@ from .forms import (
     JustificationForm,
 
     KnowledgeDescriptionForm,
+    Anlage3VisionForm,
 
     ProjectStatusForm,
     ProjectStatusImportForm,
@@ -68,6 +69,7 @@ from .models import (
     Anlage2FunctionResult,
     SoftwareKnowledge,
     Gutachten,
+    Anlage3VisionResult,
     Tile,
     Area,
     ProjectStatus,
@@ -86,6 +88,7 @@ from .llm_tasks import (
     check_anlage5,
     check_anlage6,
     check_anlage2_functions,
+    run_anlage2_analysis,
     check_gutachten_functions,
     generate_gutachten,
     get_prompt,
@@ -2018,7 +2021,14 @@ def anlage3_review(request, pk):
     """Zeigt alle Dateien der Anlage 3 mit Review-Option."""
     projekt = get_object_or_404(BVProject, pk=pk)
     anlagen = projekt.anlagen.filter(anlage_nr=3)
-    context = {"projekt": projekt, "anlagen": anlagen}
+    results = Anlage3VisionResult.objects.filter(
+        project_file__projekt=projekt
+    ).select_related("project_file")
+    context = {
+        "projekt": projekt,
+        "anlagen": anlagen,
+        "vision_results": results,
+    }
     return render(request, "anlage3_review.html", context)
 
 
@@ -2219,6 +2229,16 @@ def projekt_file_check_view(request, pk):
     if anlage.anlage_nr == 3:
         return redirect("anlage3_review", pk=anlage.projekt_id)
 
+    return redirect("projekt_file_edit_json", pk=pk)
+
+
+@login_required
+def projekt_file_parse_anlage2(request, pk):
+    """Parst Anlage 2 ohne LLM-Aufrufe."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    if anlage.anlage_nr != 2:
+        raise Http404
+    run_anlage2_analysis(anlage)
     return redirect("projekt_file_edit_json", pk=pk)
 
 
@@ -3130,6 +3150,24 @@ def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
 
 
 @login_required
+@require_POST
+def ajax_start_anlage3_vision(request) -> JsonResponse:
+    """Startet den Vision-Check für eine Anlage 3."""
+
+    file_id = request.POST.get("file_id")
+    try:
+        file_id = int(file_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    if not BVProjectFile.objects.filter(pk=file_id, anlage_nr=3).exists():
+        return JsonResponse({"error": "invalid"}, status=400)
+
+    task_id = async_task("core.llm_tasks.worker_run_anlage3_vision", file_id)
+    return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
 def edit_knowledge_description(request, knowledge_id):
     """Bearbeitet die Beschreibung eines Knowledge-Eintrags."""
     knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
@@ -3190,6 +3228,80 @@ def download_knowledge_as_word(request, knowledge_id):
             "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
         )
         return redirect("projekt_detail", pk=knowledge.projekt.pk)
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+
+@login_required
+def anlage3_vision_edit(request, pk):
+    """Bearbeitet ein Vision-Ergebnis."""
+
+    entry = get_object_or_404(Anlage3VisionResult, pk=pk)
+    if request.method == "POST":
+        form = Anlage3VisionForm(request.POST, instance=entry)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Ergebnis gespeichert")
+            return redirect("anlage3_review", pk=entry.project_file.projekt.pk)
+    else:
+        form = Anlage3VisionForm(instance=entry)
+    return render(
+        request,
+        "anlage3_vision_edit.html",
+        {"form": form, "entry": entry},
+    )
+
+
+@login_required
+@require_POST
+def anlage3_vision_delete(request, pk):
+    """Löscht ein Vision-Ergebnis."""
+
+    entry = get_object_or_404(Anlage3VisionResult, pk=pk)
+    proj_pk = entry.project_file.projekt.pk
+    entry.delete()
+    return redirect("anlage3_review", pk=proj_pk)
+
+
+@login_required
+def anlage3_vision_download(request, pk):
+    """Stellt das Ergebnis als DOCX bereit."""
+
+    entry = get_object_or_404(Anlage3VisionResult, pk=pk)
+    text = (
+        f"# Zusammenfassung\n{entry.summary}\n\n## Geeignetheit\n{entry.geeignetheit}\n"
+        f"\n## Erforderlichkeit\n{entry.erforderlichkeit}\n"
+        f"\n## Verhältnismäßigkeit\n{entry.verhaeltnismaessigkeit}\n"
+        f"\n## Hinweise\n{entry.hinweise}\n"
+    )
+    temp_file_path = os.path.join(
+        tempfile.gettempdir(), f"anlage3_vision_{pk}.docx"
+    )
+    try:
+        html_content = markdown.markdown(text, extensions=["extra", "admonition", "toc"])
+        pypandoc.convert_text(
+            html_content,
+            "docx",
+            format="html",
+            outputfile=temp_file_path,
+        )
+        with open(temp_file_path, "rb") as fh:
+            response = HttpResponse(
+                fh.read(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="anlage3_vision_{pk}.docx"'
+            )
+            return response
+    except (IOError, OSError) as e:
+        logger.error("Pandoc-Fehler beim Export %s", e)
+        messages.error(
+            request,
+            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
+        )
+        return redirect("anlage3_review", pk=entry.project_file.projekt.pk)
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)

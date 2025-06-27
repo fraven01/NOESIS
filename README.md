@@ -149,6 +149,13 @@ bejaht wird, folgt Stufe 2 mit der Einschätzung, ob üblicherweise eine
 KI‑Beteiligung vorliegt. Beide Ergebnisse erscheinen anschließend direkt in der
 Tabelle, wobei die Begründung weiterhin über den Info‑Link abrufbar ist.
 
+### Anlage‑3 Vision Check
+
+PDF‑ und DOCX‑Dateien der dritten Anlage können nun automatisch von einem
+Vision‑Modell ausgewertet werden. Die extrahierten Bilder werden dem Modell
+zusammen mit dem Prompt `check_anlage3_vision` übergeben und das Ergebnis als
+Markdown gespeichert.
+
 Die Antwort auf die KI-Frage wird unter `ki_beteiligt` gespeichert. Gibt das
 Modell "Ja" zurück, folgt zudem eine kurze Erläuterung, die im Feld
 `ki_beteiligt_begruendung` landet.
@@ -185,6 +192,9 @@ Die Werte lassen sich in der Projektansicht per Button umschalten und auch in de
 ### Bilder aus Anlagen extrahieren
 
 Beim Hochladen einer DOCX-Datei werden alle eingebetteten Bilder mit `python-docx` extrahiert und im Upload-Verzeichnis gespeichert. Diese Dateien können anschließend vom Vision‑Modell ausgewertet werden.
+Seit Version 0.2 unterstützt NOESIS auch PDF-Dateien. Die Bilder werden dabei
+über **PyMuPDF** gelesen. Für diese Funktion muss das Paket `PyMuPDF`
+installiert sein.
 
 ### Vision-Modell
 

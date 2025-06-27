@@ -238,6 +238,11 @@ urlpatterns = [
         name="projekt_file_check_view",
     ),
     path(
+        "work/anlage/<int:pk>/parse/",
+        views.projekt_file_parse_anlage2,
+        name="projekt_file_parse_anlage2",
+    ),
+    path(
         "work/anlage/<int:pk>/edit-json/",
         views.projekt_file_edit_json,
         name="projekt_file_edit_json",
@@ -309,6 +314,11 @@ urlpatterns = [
         name="ajax_rerun_initial_check_with_context",
     ),
     path(
+        "ajax/start-anlage3-vision/",
+        views.ajax_start_anlage3_vision,
+        name="ajax_start_anlage3_vision",
+    ),
+    path(
         "knowledge/<int:knowledge_id>/edit/",
         views.edit_knowledge_description,
         name="edit_knowledge_description",
@@ -322,6 +332,21 @@ urlpatterns = [
         "knowledge/<int:knowledge_id>/download/",
         views.download_knowledge_as_word,
         name="download_knowledge_as_word",
+    ),
+    path(
+        "vision/<int:pk>/edit/",
+        views.anlage3_vision_edit,
+        name="anlage3_vision_edit",
+    ),
+    path(
+        "vision/<int:pk>/delete/",
+        views.anlage3_vision_delete,
+        name="anlage3_vision_delete",
+    ),
+    path(
+        "vision/<int:pk>/download/",
+        views.anlage3_vision_download,
+        name="anlage3_vision_download",
     ),
     path(
         "login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"
