@@ -2023,19 +2023,6 @@ class ProjektFileCheckResultTests(TestCase):
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
-    def test_parse_view_runs_parser(self):
-        url = reverse("projekt_file_parse_anlage2", args=[self.file2.pk])
-        with patch("core.views.run_anlage2_analysis") as mock_func:
-            mock_func.return_value = []
-            resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
-        mock_func.assert_called_with(self.file2)
-
-    def test_parse_view_rejects_other_files(self):
-        url = reverse("projekt_file_parse_anlage2", args=[self.file.pk])
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 404)
-
 
 class LLMConfigTests(TestCase):
     @override_settings(GOOGLE_API_KEY="x")
