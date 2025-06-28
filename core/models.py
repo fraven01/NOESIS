@@ -508,14 +508,46 @@ class Anlage2Config(models.Model):
         default="auto",
     )
 
-    text_technisch_verfuegbar_true = models.JSONField(default=list, blank=True)
-    text_technisch_verfuegbar_false = models.JSONField(default=list, blank=True)
-    text_einsatz_telefonica_true = models.JSONField(default=list, blank=True)
-    text_einsatz_telefonica_false = models.JSONField(default=list, blank=True)
-    text_zur_lv_kontrolle_true = models.JSONField(default=list, blank=True)
-    text_zur_lv_kontrolle_false = models.JSONField(default=list, blank=True)
-    text_ki_beteiligung_true = models.JSONField(default=list, blank=True)
-    text_ki_beteiligung_false = models.JSONField(default=list, blank=True)
+    text_technisch_verfuegbar_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_technisch_verfuegbar_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_einsatz_telefonica_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_einsatz_telefonica_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_zur_lv_kontrolle_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_zur_lv_kontrolle_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_ki_beteiligung_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_ki_beteiligung_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
 
     class Meta:
         verbose_name = "Anlage2 Konfiguration"
