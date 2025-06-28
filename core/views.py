@@ -1671,12 +1671,10 @@ def admin_anlage2_config_export(request):
         "text",
     )
 
-
     text_fields = [
         f.name for f in Anlage2Config._meta.get_fields() if f.name.startswith("text_")
     ]
     text_phrases = {field: getattr(cfg, field) for field in text_fields}
-
 
     data = {
         "global_phrases": list(global_phrases),
@@ -1723,24 +1721,13 @@ def admin_anlage2_config_import(request):
                 defaults={"text": h.get("text", "")},
             )
 
-        phrase_fields = [
-            "technisch_verfuegbar_true",
-            "technisch_verfuegbar_false",
-            "einsatz_telefonica_true",
-            "einsatz_telefonica_false",
-            "zur_lv_kontrolle_true",
-            "zur_lv_kontrolle_false",
-            "ki_beteiligung_true",
-            "ki_beteiligung_false",
+        text_fields = [
+            f.name for f in Anlage2Config._meta.get_fields() if f.name.startswith("text_")
         ]
-        updated = False
-        for field in phrase_fields:
+        for field in text_fields:
             if field in text_phrases_data:
-                setattr(cfg, f"text_{field}", text_phrases_data[field])
-                updated = True
-        if updated:
-            cfg.save(update_fields=[f"text_{f}" for f in phrase_fields])
-
+                setattr(cfg, field, text_phrases_data[field])
+        cfg.save(update_fields=text_fields)
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
