@@ -128,6 +128,9 @@ Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
 Alias. Zusätzliche Varianten können über das Feld `name_aliases` hinterlegt
 werden. Doppelte Einträge werden automatisch ignoriert.
 
+Erkennungsphrasen werden einfach zeilenweise eingegeben.
+JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
+
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
