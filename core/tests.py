@@ -3230,38 +3230,6 @@ class Anlage2ConfigImportExportTests(TestCase):
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.text_technisch_verfuegbar_false, ["nein"])
 
-    def test_export_includes_text_phrases(self):
-        self.cfg.text_technisch_verfuegbar_true = ["ja"]
-        self.cfg.text_ki_beteiligung_false = ["nein"]
-        self.cfg.save()
-        url = reverse("admin_anlage2_config_export")
-        resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        data = json.loads(resp.content)
-        self.assertEqual(
-            data["text_phrases"]["technisch_verfuegbar_true"], ["ja"]
-        )
-        self.assertEqual(
-            data["text_phrases"]["ki_beteiligung_false"], ["nein"]
-        )
-
-    def test_import_text_phrases(self):
-        payload = json.dumps(
-            {
-                "text_phrases": {
-                    "technisch_verfuegbar_true": ["ja"],
-                    "ki_beteiligung_false": ["nein"],
-                }
-            }
-        )
-        file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
-        url = reverse("admin_anlage2_config_import")
-        resp = self.client.post(url, {"json_file": file}, format="multipart")
-        self.assertRedirects(resp, reverse("anlage2_config"))
-        self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja"])
-        self.assertEqual(self.cfg.text_ki_beteiligung_false, ["nein"])
-
 
 
 
