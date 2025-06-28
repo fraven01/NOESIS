@@ -6,6 +6,11 @@
     <a href="{% url 'admin_anlage2_config_export' %}" class="px-4 py-2 bg-gray-300 rounded">Exportieren</a>
     <a href="{% url 'admin_anlage2_config_import' %}" class="px-4 py-2 bg-gray-300 rounded">Importieren</a>
 </div>
+<p class="text-sm mb-4">
+    Die exportierte JSON-Datei enthält neben <code>alias_headings</code>
+    und <code>global_phrases</code> jetzt auch ein Objekt
+    <code>text_phrases</code>.
+</p>
 <form method="post" class="space-y-4">
     {% csrf_token %}
 
@@ -18,6 +23,8 @@
             {{ config_form.enforce_subquestion_override.help_text }}
         </p>
     </div>
+
+    <h2 class="text-xl font-semibold mt-6 mb-2">Textparser‑Phrasen</h2>
 
     <div class="grid grid-cols-2 gap-4">
         <div>

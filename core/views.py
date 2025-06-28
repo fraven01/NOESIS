@@ -1660,7 +1660,7 @@ def admin_import_users_permissions(request):
 @login_required
 @admin_required
 def admin_anlage2_config_export(request):
-    """Exportiert Spaltenüberschriften und globale Phrasen als JSON-Datei."""
+    """Exportiert die Anlage-2-Konfiguration als JSON-Datei."""
     cfg = Anlage2Config.get_instance()
     global_phrases = Anlage2GlobalPhrase.objects.all().values(
         "phrase_type",
@@ -1670,19 +1670,14 @@ def admin_anlage2_config_export(request):
         "field_name",
         "text",
     )
-    phrase_fields = [
-        "technisch_verfuegbar_true",
-        "technisch_verfuegbar_false",
-        "einsatz_telefonica_true",
-        "einsatz_telefonica_false",
-        "zur_lv_kontrolle_true",
-        "zur_lv_kontrolle_false",
-        "ki_beteiligung_true",
-        "ki_beteiligung_false",
+
+
+    text_fields = [
+        f.name for f in Anlage2Config._meta.get_fields() if f.name.startswith("text_")
     ]
-    text_phrases = {
-        field: getattr(cfg, f"text_{field}") for field in phrase_fields
-    }
+    text_phrases = {field: getattr(cfg, field) for field in text_fields}
+
+
     data = {
         "global_phrases": list(global_phrases),
         "alias_headings": list(alias_headings),
@@ -1727,6 +1722,7 @@ def admin_anlage2_config_import(request):
                 field_name=h.get("field_name"),
                 defaults={"text": h.get("text", "")},
             )
+
         phrase_fields = [
             "technisch_verfuegbar_true",
             "technisch_verfuegbar_false",
@@ -1744,6 +1740,7 @@ def admin_anlage2_config_import(request):
                 updated = True
         if updated:
             cfg.save(update_fields=[f"text_{f}" for f in phrase_fields])
+
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
