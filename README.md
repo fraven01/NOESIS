@@ -131,12 +131,16 @@ werden. Doppelte Einträge werden automatisch ignoriert.
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
-Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
+Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen und ein zusätzliches Objekt:
 
 ```json
 {
   "column_headings": [{"field_name": "technisch_vorhanden", "text": "Verfügbar?"}],
-  "global_phrases": [{"phrase_type": "technisch_verfuegbar_true", "phrase_text": "ja"}]
+  "global_phrases": [{"phrase_type": "technisch_verfuegbar_true", "phrase_text": "ja"}],
+  "text_phrases": {
+    "text_technisch_verfuegbar_true": ["tv ja"],
+    "text_technisch_verfuegbar_false": []
+  }
 }
 ```
 

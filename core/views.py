@@ -1660,7 +1660,7 @@ def admin_import_users_permissions(request):
 @login_required
 @admin_required
 def admin_anlage2_config_export(request):
-    """Exportiert Spaltenüberschriften und globale Phrasen als JSON-Datei."""
+    """Exportiert die Anlage-2-Konfiguration als JSON-Datei."""
     cfg = Anlage2Config.get_instance()
     global_phrases = Anlage2GlobalPhrase.objects.all().values(
         "phrase_type",
@@ -1670,9 +1670,16 @@ def admin_anlage2_config_export(request):
         "field_name",
         "text",
     )
+
+    text_fields = [
+        f.name for f in Anlage2Config._meta.get_fields() if f.name.startswith("text_")
+    ]
+    text_phrases = {field: getattr(cfg, field) for field in text_fields}
+
     data = {
         "global_phrases": list(global_phrases),
         "alias_headings": list(alias_headings),
+        "text_phrases": text_phrases,
     }
     content = json.dumps(data, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
@@ -1695,6 +1702,7 @@ def admin_anlage2_config_import(request):
         cfg = Anlage2Config.get_instance()
         global_phrases_data = items.get("global_phrases", [])
         alias_headings_data = items.get("alias_headings", [])
+        text_phrases_data = items.get("text_phrases", {})
         for entry in global_phrases_data:
             phrase_type = entry.get("phrase_type")
             phrase_text = entry.get("phrase_text", "")
@@ -1712,6 +1720,14 @@ def admin_anlage2_config_import(request):
                 field_name=h.get("field_name"),
                 defaults={"text": h.get("text", "")},
             )
+
+        text_fields = [
+            f.name for f in Anlage2Config._meta.get_fields() if f.name.startswith("text_")
+        ]
+        for field in text_fields:
+            if field in text_phrases_data:
+                setattr(cfg, field, text_phrases_data[field])
+        cfg.save(update_fields=text_fields)
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
