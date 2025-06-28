@@ -205,6 +205,13 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
+        "anlage2_admin_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "debug-admin_anlage2_funktionen.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
@@ -242,6 +249,11 @@ LOGGING = {
         },
         "anlage3_debug": {
             "handlers": ["anlage3_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "anlage2_admin_debug": {
+            "handlers": ["anlage2_admin_file"],
             "level": "DEBUG",
             "propagate": False,
         },
