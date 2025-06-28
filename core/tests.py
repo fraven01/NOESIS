@@ -3179,6 +3179,8 @@ class Anlage2ConfigImportExportTests(TestCase):
             phrase_type="technisch_verfuegbar_true",
             phrase_text="ja",
         )
+        self.cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        self.cfg.save()
         url = reverse("admin_anlage2_config_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -3194,6 +3196,10 @@ class Anlage2ConfigImportExportTests(TestCase):
             },
             data["global_phrases"],
         )
+        self.assertEqual(
+            data["text_phrases"]["text_technisch_verfuegbar_true"],
+            ["tv ja"],
+        )
 
     def test_import_creates_headings(self):
         payload = json.dumps(
@@ -3207,6 +3213,9 @@ class Anlage2ConfigImportExportTests(TestCase):
                         "phrase_text": "Ja",
                     }
                 ],
+                "text_phrases": {
+                    "text_technisch_verfuegbar_false": ["nein"]
+                },
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
@@ -3218,6 +3227,8 @@ class Anlage2ConfigImportExportTests(TestCase):
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
         )
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_false, ["nein"])
 
 
 
