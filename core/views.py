@@ -1811,7 +1811,7 @@ def anlage2_function_form(request, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             funktion = form.save(commit=False)
-            detection_phrases = form.cleaned_data.get("detection_phrases") or {}
+            detection_phrases = copy.deepcopy(funktion.detection_phrases) if funktion else {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
@@ -1930,7 +1930,7 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             subquestion = form.save(commit=False)
-            detection_phrases = form.cleaned_data.get("detection_phrases") or {}
+            detection_phrases = copy.deepcopy(subquestion.detection_phrases) if subquestion.pk else {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
