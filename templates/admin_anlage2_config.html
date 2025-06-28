@@ -10,6 +10,7 @@
     {% csrf_token %}
     {{ config_form.non_field_errors }}
     <input type="hidden" name="active_tab" id="active_tab" value="{{ active_tab }}">
+    <input type="hidden" name="phrase_key" id="phrase_key" value="">
     <nav class="space-x-2 mb-4">
         <button type="button" data-tab="table" class="tab-btn px-3 py-1 bg-gray-200 rounded">Tabellen-Parser</button>
         <button type="button" data-tab="text" class="tab-btn px-3 py-1 bg-gray-200 rounded">Text-Parser</button>
@@ -113,6 +114,7 @@
                 </div>
             </div>
             <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ key }}">+ Weitere Phrase hinzufügen</button>
+            <button type="submit" name="action" value="save_phrase_set" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded" onclick="document.getElementById('phrase_key').value='{{ key }}'">Speichern</button>
         </div>
         {% endfor %}
         <button type="submit" name="action" value="save_text" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
