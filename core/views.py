@@ -1751,21 +1751,15 @@ def anlage2_config(request):
             for key, _ in categories:
                 fs = phrase_sets[key]
                 for form in fs.forms:
-                    phrase = form.cleaned_data.get("phrase_text", "").strip()
-                    if form.cleaned_data.get("DELETE") or (
-                        form.instance.pk and not phrase
-                    ):
+                    if form.cleaned_data.get("DELETE"):
                         if form.instance.pk:
                             form.instance.delete()
-                        continue
-                    if not phrase:
                         continue
                     if not form.has_changed() and form.instance.pk:
                         continue
                     inst = form.save(commit=False)
                     inst.config = cfg
                     inst.phrase_type = key
-                    inst.phrase_text = phrase
                     inst.save()
             return redirect("anlage2_config")
     else:

@@ -442,12 +442,6 @@ class PhraseForm(forms.Form):
 class Anlage2GlobalPhraseForm(forms.ModelForm):
     """Formular für eine globale Erkennungsphrase."""
 
-    phrase_text = forms.CharField(
-        label="",
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-    )
-
     class Meta:
         model = Anlage2GlobalPhrase
         fields = ["phrase_text"]
