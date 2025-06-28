@@ -574,7 +574,16 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 break
 
         if not found:
-            parser_logger.debug("Keine Funktion erkannt für Zeile: %s", line)
+            extra_values = _extract_values(norm_line, line)
+            if extra_values and last_main is not None:
+                parser_logger.debug(
+                    "Ergänze letzte Funktion %s um Werte %s",
+                    last_main.get("funktion"),
+                    extra_values,
+                )
+                last_main.update(extra_values)
+            else:
+                parser_logger.debug("Keine Funktion erkannt für Zeile: %s", line)
 
     logger.debug("parse_anlage2_text Ergebnisse: %s", results)
     parser_logger.info("parse_anlage2_text beendet")
