@@ -1670,9 +1670,23 @@ def admin_anlage2_config_export(request):
         "field_name",
         "text",
     )
+    phrase_fields = [
+        "technisch_verfuegbar_true",
+        "technisch_verfuegbar_false",
+        "einsatz_telefonica_true",
+        "einsatz_telefonica_false",
+        "zur_lv_kontrolle_true",
+        "zur_lv_kontrolle_false",
+        "ki_beteiligung_true",
+        "ki_beteiligung_false",
+    ]
+    text_phrases = {
+        field: getattr(cfg, f"text_{field}") for field in phrase_fields
+    }
     data = {
         "global_phrases": list(global_phrases),
         "alias_headings": list(alias_headings),
+        "text_phrases": text_phrases,
     }
     content = json.dumps(data, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
@@ -1695,6 +1709,7 @@ def admin_anlage2_config_import(request):
         cfg = Anlage2Config.get_instance()
         global_phrases_data = items.get("global_phrases", [])
         alias_headings_data = items.get("alias_headings", [])
+        text_phrases_data = items.get("text_phrases", {})
         for entry in global_phrases_data:
             phrase_type = entry.get("phrase_type")
             phrase_text = entry.get("phrase_text", "")
@@ -1712,6 +1727,23 @@ def admin_anlage2_config_import(request):
                 field_name=h.get("field_name"),
                 defaults={"text": h.get("text", "")},
             )
+        phrase_fields = [
+            "technisch_verfuegbar_true",
+            "technisch_verfuegbar_false",
+            "einsatz_telefonica_true",
+            "einsatz_telefonica_false",
+            "zur_lv_kontrolle_true",
+            "zur_lv_kontrolle_false",
+            "ki_beteiligung_true",
+            "ki_beteiligung_false",
+        ]
+        updated = False
+        for field in phrase_fields:
+            if field in text_phrases_data:
+                setattr(cfg, f"text_{field}", text_phrases_data[field])
+                updated = True
+        if updated:
+            cfg.save(update_fields=[f"text_{f}" for f in phrase_fields])
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
