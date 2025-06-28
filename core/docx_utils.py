@@ -354,13 +354,16 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
 
 def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
-    """Parst den Text einer Anlage 2 mittels Datenbankregeln.
+    """Parst den Text einer Anlage 2 anhand der Datenbankregeln.
 
-    Die Funktion durchsucht den übergebenen Text zeilenweise nach
-    Funktionsnamen und Unterfragen. Welche Phrasen dabei jeweils eine
-    Übereinstimmung darstellen, wird über die ``detection_phrases`` der
-    Funktionen bzw. Unterfragen bestimmt. Die Phrasen zur Ermittlung der
-    Feldwerte liegen hingegen zentral im Modell ``Anlage2GlobalPhrase``.
+    Zeile für Zeile wird nach Hauptfunktionen und zugehörigen Unterfragen
+    gesucht. Die Erkennung erfolgt über die ``detection_phrases`` der
+    jeweiligen Objekte. Phrasen zur Bestimmung der Feldwerte stammen aus den
+    ``text_*``‑Feldern der :class:`Anlage2Config`.
+
+    Wiederholt auftretende Hauptfunktionen werden zusammengeführt, sodass pro
+    Funktion nur ein Ergebnis-Dictionary existiert. Unterfragen werden stets
+    dem aktuell aktiven Haupteintrag zugeordnet.
     """
 
     logger = logging.getLogger(__name__)
@@ -461,14 +464,22 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     cfg = Anlage2Config.get_instance()
     gp_dict: dict[str, list[str]] = {}
-    for gp in cfg.global_phrases.all():
-        parser_logger.debug(
-            "Globale Phrase '%s': %s",
-            gp.phrase_type,
-            gp.phrase_text,
-        )
-        norm = _normalize_snippet(gp.phrase_text)
-        gp_dict.setdefault(gp.phrase_type, []).append(norm)
+    phrase_fields = [
+        "technisch_verfuegbar_true",
+        "technisch_verfuegbar_false",
+        "einsatz_telefonica_true",
+        "einsatz_telefonica_false",
+        "zur_lv_kontrolle_true",
+        "zur_lv_kontrolle_false",
+        "ki_beteiligung_true",
+        "ki_beteiligung_false",
+    ]
+    for field in phrase_fields:
+        phrases = getattr(cfg, f"text_{field}", []) or []
+        for ph in phrases:
+            parser_logger.debug("Globale Phrase '%s': %s", field, ph)
+            norm = _normalize_snippet(ph)
+            gp_dict.setdefault(field, []).append(norm)
     parser_logger.debug("Gesammelte globale Phrasen: %s", gp_dict)
 
     def _extract_values(line: str, raw_line: str) -> dict[str, dict[str, object]]:
@@ -502,6 +513,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
 
     lines = [l.strip() for l in text_content.replace("\u00b6", "\n").splitlines()]
     results: list[dict[str, object]] = []
+    # Mapping der Hauptfunktionen auf ihre Ergebnis-Dictionaries
+    results_by_func: dict[str, dict[str, object]] = {}
     last_main: dict[str, object] | None = None
     last_func: Anlage2Function | None = None
 
@@ -545,16 +558,32 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
                 raw_line=line,
             ):
                 parser_logger.debug("Hauptfunktion erkannt: %s", func.name)
-                row = {"funktion": func.name}
-                row.update(_extract_values(norm_line, line))
-                results.append(row)
+                new_data = {"funktion": func.name}
+                new_data.update(_extract_values(norm_line, line))
+                if func.name in results_by_func:
+                    # Bereits vorhandene Daten ergänzen
+                    row = results_by_func[func.name]
+                    row.update(new_data)
+                else:
+                    row = new_data
+                    results_by_func[func.name] = row
+                    results.append(row)
                 last_main = row
                 last_func = func
                 found = True
                 break
 
         if not found:
-            parser_logger.debug("Keine Funktion erkannt für Zeile: %s", line)
+            extra_values = _extract_values(norm_line, line)
+            if extra_values and last_main is not None:
+                parser_logger.debug(
+                    "Ergänze letzte Funktion %s um Werte %s",
+                    last_main.get("funktion"),
+                    extra_values,
+                )
+                last_main.update(extra_values)
+            else:
+                parser_logger.debug("Keine Funktion erkannt für Zeile: %s", line)
 
     logger.debug("parse_anlage2_text Ergebnisse: %s", results)
     parser_logger.info("parse_anlage2_text beendet")

@@ -103,6 +103,9 @@ die Tabelle unkompliziert neu einlesen. Findet der Tabellenparser keine Daten,
 greift automatisch der Textparser als Fallback. Sämtliche Schritte landen in der
 Logdatei `parser-debug.log`.
 
+Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
+jede Zeile wird als eigene Phrase gespeichert.
+
 Eine LLM‑gestützte Prüfung ist nur nötig, wenn das Layout deutlich von der
 erwarteten Struktur abweicht oder ungewöhnliche Formulierungen verwendet werden.
 Liegt die Anlage etwa nur als Fließtext vor oder enthält sie unbekannte
@@ -128,6 +131,9 @@ Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
 Alias. Zusätzliche Varianten können über das Feld `name_aliases` hinterlegt
 werden. Doppelte Einträge werden automatisch ignoriert.
 
+Erkennungsphrasen werden einfach zeilenweise eingegeben.
+JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
+
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
@@ -142,6 +148,12 @@ Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
 
 Beim Import wird dieselbe Struktur erwartet. Fehlen einzelne Bereiche, werden
 lediglich die vorhandenen Daten eingelesen.
+
+Die Konfigurationsseite ist in drei Tabs unterteilt: **Tabellen‑Parser**,
+**Text‑Parser** und **Allgemein**. Im Bereich *Allgemein* lässt sich der neue
+Feldwert `parser_mode` setzen. Er bestimmt, ob beim Einlesen der Anlage nur der
+Tabellenparser, nur der Textparser oder der bisherige automatische Fallback
+verwendet wird.
 
 ### KI-Begründung per Tooltip
 

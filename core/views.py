@@ -13,6 +13,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
+from django.urls import reverse
 import subprocess
 import whisper
 import torch
@@ -111,6 +112,7 @@ from .templatetags.recording_extras import markdownify
 
 logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("parser_debug")
+admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 
 PhraseFormSet = formset_factory(PhraseForm, extra=1, can_delete=True)
 
@@ -1724,23 +1726,18 @@ def anlage2_config(request):
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     categories = Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES
+    active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
     phrase_sets: dict[str, Anlage2GlobalPhraseFormSet] = {}
-    cfg_form = (
-        Anlage2ConfigForm(request.POST, instance=cfg)
-        if request.method == "POST"
-        else Anlage2ConfigForm(instance=cfg)
-    )
 
     if request.method == "POST":
-        for key, _ in categories:
-            qs = cfg.global_phrases.filter(phrase_type=key)
-            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
-                request.POST, prefix=key, queryset=qs
-            )
-        if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
-            cfg_form.save()
+        action = request.POST.get("action") or "save_general"
+        admin_a2_logger.debug("Aktion %s ausgelöst", action)
+
+        if action == "save_table":
+            admin_a2_logger.debug("Speichere Tabellen-Parser Konfiguration")
             for h in aliases:
                 if request.POST.get(f"delete{h.id}"):
+                    admin_a2_logger.debug("Lösche Überschrift %s -> %s", h.field_name, h.text)
                     h.delete()
             new_field = request.POST.get("new_field")
             new_text = request.POST.get("new_text")
@@ -1748,11 +1745,33 @@ def anlage2_config(request):
                 Anlage2ColumnHeading.objects.create(
                     config=cfg, field_name=new_field, text=new_text
                 )
-            for key, _ in categories:
-                fs = phrase_sets[key]
+                admin_a2_logger.debug("Neue Überschrift %s -> %s", new_field, new_text)
+            return redirect(f"{reverse('anlage2_config')}?tab=table")
+
+        if action == "save_phrase_set":
+            key = request.POST.get("phrase_key")
+            admin_a2_logger.debug("Speichere Phrase-Set %s", key)
+            cfg_form = Anlage2ConfigForm(instance=cfg)
+            qs = cfg.global_phrases.filter(phrase_type=key)
+
+            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
+                request.POST,
+                prefix=key,
+                queryset=qs,
+            )
+
+            fs = phrase_sets[key]
+            if fs.is_valid():
                 for form in fs.forms:
                     if form.cleaned_data.get("DELETE"):
                         if form.instance.pk:
+
+                            admin_a2_logger.debug(
+                                "Lösche Phrase (%s): %s",
+                                key,
+                                form.instance.phrase_text,
+                            )
+
                             form.instance.delete()
                         continue
                     if not form.has_changed() and form.instance.pk:
@@ -1761,8 +1780,87 @@ def anlage2_config(request):
                     inst.config = cfg
                     inst.phrase_type = key
                     inst.save()
-            return redirect("anlage2_config")
-    else:
+
+                    admin_a2_logger.debug(
+                        "Gespeicherte Phrase (%s): %s (id=%s)",
+                        key,
+                        inst.phrase_text,
+                        inst.pk,
+                    )
+                messages.success(request, "Phrasen gespeichert")
+            else:
+                admin_a2_logger.debug(
+                    "Ungültige Eingabe für %s: %s",
+                    key,
+                    fs.errors,
+                )
+
+                messages.error(request, "Ungültige Eingabe")
+            return redirect(f"{reverse('anlage2_config')}?tab=text")
+
+        if action == "save_text":
+            admin_a2_logger.debug("Speichere alle Text-Parser Einstellungen")
+            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
+            for key, _ in categories:
+                qs = cfg.global_phrases.filter(phrase_type=key)
+                phrase_sets[key] = Anlage2GlobalPhraseFormSet(
+                    request.POST,
+                    prefix=key,
+                    queryset=qs,
+                )
+            if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
+
+                admin_a2_logger.debug(
+                    "Geänderte Felder: %r",
+                    {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data},
+                )
+
+                cfg_form.save()
+                for key, _ in categories:
+                    fs = phrase_sets[key]
+                    for form in fs.forms:
+                        if form.cleaned_data.get("DELETE"):
+                            if form.instance.pk:
+
+                                admin_a2_logger.debug(
+                                    "Lösche Phrase (%s): %s",
+                                    key,
+                                    form.instance.phrase_text,
+                                )
+
+                                form.instance.delete()
+                            continue
+                        if not form.has_changed() and form.instance.pk:
+                            continue
+                        inst = form.save(commit=False)
+                        inst.config = cfg
+                        inst.phrase_type = key
+                        inst.save()
+
+                        admin_a2_logger.debug(
+                            "Gespeicherte Phrase (%s): %s (id=%s)",
+                            key,
+                            inst.phrase_text,
+                            inst.pk,
+                        )
+
+                return redirect(f"{reverse('anlage2_config')}?tab=text")
+            admin_a2_logger.debug(
+                "Ungültige Konfiguration: %s | %s",
+                cfg_form.errors,
+                {k: fs.errors for k, fs in phrase_sets.items()},
+            )
+
+        if action == "save_general":
+            admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
+            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
+            if cfg_form.is_valid():
+                admin_a2_logger.debug("Geänderte Felder: %r", {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data})
+                cfg_form.save()
+                return redirect(f"{reverse('anlage2_config')}?tab=general")
+
+    cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
+    if not phrase_sets:
         for key, _ in categories:
             qs = cfg.global_phrases.filter(phrase_type=key)
             phrase_sets[key] = Anlage2GlobalPhraseFormSet(prefix=key, queryset=qs)
@@ -1773,6 +1871,7 @@ def anlage2_config(request):
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "phrase_sets": [(k, label, phrase_sets[k]) for k, label in categories],
+        "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)
 
@@ -1800,12 +1899,14 @@ def anlage2_function_form(request, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             funktion = form.save(commit=False)
+            detection_phrases = copy.deepcopy(funktion.detection_phrases) if funktion else {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
                 if row.get("phrase") and not row.get("DELETE")
             ]
-            funktion.detection_phrases = {"name_aliases": phrases}
+            detection_phrases["name_aliases"] = phrases
+            funktion.detection_phrases = detection_phrases
             funktion.save()
             return redirect("anlage2_function_edit", funktion.pk)
     else:
@@ -1917,12 +2018,14 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             subquestion = form.save(commit=False)
+            detection_phrases = copy.deepcopy(subquestion.detection_phrases) if subquestion.pk else {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
                 if row.get("phrase") and not row.get("DELETE")
             ]
-            subquestion.detection_phrases = {"name_aliases": phrases}
+            detection_phrases["name_aliases"] = phrases
+            subquestion.detection_phrases = detection_phrases
             subquestion.save()
             return redirect("anlage2_function_edit", funktion.pk)
     else:

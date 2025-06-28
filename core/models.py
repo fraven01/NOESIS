@@ -496,6 +496,59 @@ class Anlage2Config(models.Model):
         ),
     )
 
+    PARSER_CHOICES = [
+        ("auto", "Automatisch"),
+        ("table_only", "Nur Tabellen"),
+        ("text_only", "Nur Text"),
+    ]
+
+    parser_mode = models.CharField(
+        max_length=20,
+        choices=PARSER_CHOICES,
+        default="auto",
+    )
+
+    text_technisch_verfuegbar_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_technisch_verfuegbar_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_einsatz_telefonica_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_einsatz_telefonica_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_zur_lv_kontrolle_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_zur_lv_kontrolle_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_ki_beteiligung_true = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+    text_ki_beteiligung_false = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+    )
+
     class Meta:
         verbose_name = "Anlage2 Konfiguration"
 
@@ -623,7 +676,7 @@ class Anlage2Function(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:
@@ -673,7 +726,7 @@ class Anlage2SubQuestion(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:

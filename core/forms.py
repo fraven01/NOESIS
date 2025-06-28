@@ -439,6 +439,33 @@ class PhraseForm(forms.Form):
     )
 
 
+class PhraseListField(forms.Field):
+    """Feld für mehrere Zeilen, die als Liste gespeichert werden."""
+
+    widget = forms.Textarea
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs.setdefault("required", False)
+        if "widget" not in kwargs:
+            kwargs["widget"] = forms.Textarea()
+        super().__init__(*args, **kwargs)
+
+    def prepare_value(self, value):  # pragma: no cover - trivial
+        if isinstance(value, list):
+            return "\n".join(str(v) for v in value)
+        if value is None:
+            return ""
+        return str(value)
+
+    def to_python(self, value):
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        lines = [line.strip() for line in str(value).splitlines()]
+        return [l for l in lines if l]
+
+
 class Anlage2GlobalPhraseForm(forms.ModelForm):
     """Formular für eine globale Erkennungsphrase."""
 
@@ -462,16 +489,54 @@ Anlage2GlobalPhraseFormSet = modelformset_factory(
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
 
+    text_technisch_verfuegbar_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_technisch_verfuegbar_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_einsatz_telefonica_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_einsatz_telefonica_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_zur_lv_kontrolle_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_zur_lv_kontrolle_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_ki_beteiligung_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_ki_beteiligung_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+
     class Meta:
         model = Anlage2Config
-        fields = ["enforce_subquestion_override"]
+        fields = [
+            "enforce_subquestion_override",
+            "parser_mode",
+            "text_technisch_verfuegbar_true",
+            "text_technisch_verfuegbar_false",
+            "text_einsatz_telefonica_true",
+            "text_einsatz_telefonica_false",
+            "text_zur_lv_kontrolle_true",
+            "text_zur_lv_kontrolle_false",
+            "text_ki_beteiligung_true",
+            "text_ki_beteiligung_false",
+        ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+            "parser_mode": "Parser-Modus",
+            "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
+            "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
+            "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
+            "text_einsatz_telefonica_false": "Text‑Parser: Einsatz Telefónica – Nein",
+            "text_zur_lv_kontrolle_true": "Text‑Parser: Zur LV-Kontrolle – Ja",
+            "text_zur_lv_kontrolle_false": "Text‑Parser: Zur LV-Kontrolle – Nein",
+            "text_ki_beteiligung_true": "Text‑Parser: KI-Beteiligung – Ja",
+            "text_ki_beteiligung_false": "Text‑Parser: KI-Beteiligung – Nein",
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
+            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
+            "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_false": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_true": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_false": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_true": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_false": forms.Textarea(attrs={"rows": 2}),
         }
 
 

@@ -8,73 +8,147 @@
 </div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
-
-    <div>
-        <label>
-            {{ config_form.enforce_subquestion_override }}
-            {{ config_form.enforce_subquestion_override.label }}
-        </label>
-        <p class="text-sm text-gray-600">
-            {{ config_form.enforce_subquestion_override.help_text }}
-        </p>
-    </div>
-
-    <h2 class="text-xl font-semibold mt-6 mb-2">Aliasüberschriften</h2>
-    <table class="min-w-full mb-4">
-        <thead>
-            <tr class="border-b text-left">
-                <th class="py-2">Feld</th>
-                <th class="py-2">Text</th>
-                <th class="py-2 text-center">Entfernen</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for h in aliases %}
-            <tr class="border-b text-sm">
-                <td class="py-1">{{ h.get_field_name_display }}</td>
-                <td class="py-1">{{ h.text }}</td>
-                <td class="py-1 text-center"><input type="checkbox" name="delete{{ h.id }}"></td>
-            </tr>
-        {% endfor %}
-            <tr class="border-b text-sm">
-                <td class="py-1">
-                    <select name="new_field" class="border rounded p-2 w-full">
-                    {% for val, label in choices %}
-                        <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                    </select>
-                </td>
-                <td class="py-1"><input type="text" name="new_text" class="border rounded p-2 w-full"></td>
-                <td></td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h2 class="text-xl font-semibold mt-6 mb-2">Globale Phrasen</h2>
-    {% for key, label, formset in phrase_sets %}
-    <div class="mb-4">
-        <h3 class="font-semibold mb-2">{{ label }}</h3>
-        <div id="{{ key }}-container">
-            {{ formset.management_form }}
-            {% for form in formset %}
-            <div class="flex items-center mb-1">
-                {{ form.phrase_text }}
-                <label class="ml-2 text-sm">{{ form.DELETE }} löschen</label>
-            </div>
+    {{ config_form.non_field_errors }}
+    <input type="hidden" name="active_tab" id="active_tab" value="{{ active_tab }}">
+    <input type="hidden" name="phrase_key" id="phrase_key" value="">
+    <nav class="space-x-2 mb-4">
+        <button type="button" data-tab="table" class="tab-btn px-3 py-1 bg-gray-200 rounded">Tabellen-Parser</button>
+        <button type="button" data-tab="text" class="tab-btn px-3 py-1 bg-gray-200 rounded">Text-Parser</button>
+        <button type="button" data-tab="general" class="tab-btn px-3 py-1 bg-gray-200 rounded">Allgemein</button>
+    </nav>
+    <div id="tab-table" class="tab-content">
+        <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
+        <table class="min-w-full mb-4">
+            <thead>
+                <tr class="border-b text-left">
+                    <th class="py-2">Feld</th>
+                    <th class="py-2">Text</th>
+                    <th class="py-2 text-center">Entfernen</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for h in aliases %}
+                <tr class="border-b text-sm">
+                    <td class="py-1">{{ h.get_field_name_display }}</td>
+                    <td class="py-1">{{ h.text }}</td>
+                    <td class="py-1 text-center"><input type="checkbox" name="delete{{ h.id }}"></td>
+                </tr>
             {% endfor %}
-        </div>
-        <div id="{{ key }}-empty-form" style="display:none;">
-            <div class="flex items-center mb-1">
-                {{ formset.empty_form.phrase_text }}
-                <label class="ml-2 text-sm">{{ formset.empty_form.DELETE }} löschen</label>
+                <tr class="border-b text-sm">
+                    <td class="py-1">
+                        <select name="new_field" class="border rounded p-2 w-full">
+                        {% for val, label in choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td class="py-1"><input type="text" name="new_text" class="border rounded p-2 w-full"></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="submit" name="action" value="save_table" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    </div>
+    <div id="tab-text" class="tab-content">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block">{{ config_form.text_technisch_verfuegbar_true.label }}</label>
+                {{ config_form.text_technisch_verfuegbar_true }}
+                {{ config_form.text_technisch_verfuegbar_true.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_technisch_verfuegbar_false.label }}</label>
+                {{ config_form.text_technisch_verfuegbar_false }}
+                {{ config_form.text_technisch_verfuegbar_false.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_einsatz_telefonica_true.label }}</label>
+                {{ config_form.text_einsatz_telefonica_true }}
+                {{ config_form.text_einsatz_telefonica_true.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_einsatz_telefonica_false.label }}</label>
+                {{ config_form.text_einsatz_telefonica_false }}
+                {{ config_form.text_einsatz_telefonica_false.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_zur_lv_kontrolle_true.label }}</label>
+                {{ config_form.text_zur_lv_kontrolle_true }}
+                {{ config_form.text_zur_lv_kontrolle_true.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_zur_lv_kontrolle_false.label }}</label>
+                {{ config_form.text_zur_lv_kontrolle_false }}
+                {{ config_form.text_zur_lv_kontrolle_false.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_ki_beteiligung_true.label }}</label>
+                {{ config_form.text_ki_beteiligung_true }}
+                {{ config_form.text_ki_beteiligung_true.errors }}
+            </div>
+            <div>
+                <label class="block">{{ config_form.text_ki_beteiligung_false.label }}</label>
+                {{ config_form.text_ki_beteiligung_false }}
+                {{ config_form.text_ki_beteiligung_false.errors }}
             </div>
         </div>
-        <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ key }}">+ Weitere Phrase hinzufügen</button>
+        <h2 class="text-xl font-semibold mt-6 mb-2">Text-Parser: Erkennungsphrasen</h2>
+        {% for key, label, formset in phrase_sets %}
+        <div class="mb-4">
+            <h3 class="font-semibold mb-2">{{ label }}</h3>
+            <div id="{{ key }}-container">
+                {{ formset.management_form }}
+                {% for form in formset %}
+                <div class="flex items-center mb-1">
+                    {{ form.phrase_text }}
+                    <label class="ml-2 text-sm">{{ form.DELETE }} löschen</label>
+                </div>
+                {{ form.phrase_text.errors }}
+                {{ form.non_field_errors }}
+                {% endfor %}
+            </div>
+            <div id="{{ key }}-empty-form" style="display:none;">
+                <div class="flex items-center mb-1">
+                    {{ formset.empty_form.phrase_text }}
+                    <label class="ml-2 text-sm">{{ formset.empty_form.DELETE }} löschen</label>
+                </div>
+            </div>
+            <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ key }}">+ Weitere Phrase hinzufügen</button>
+            <button type="submit" name="action" value="save_phrase_set" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded" onclick="document.getElementById('phrase_key').value='{{ key }}'">Speichern</button>
+        </div>
+        {% endfor %}
+        <button type="submit" name="action" value="save_text" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
     </div>
-    {% endfor %}
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    <div id="tab-general" class="tab-content">
+        <div>
+            <label>
+                {{ config_form.enforce_subquestion_override }}
+                {{ config_form.enforce_subquestion_override.label }}
+            </label>
+            <p class="text-sm text-gray-600">
+                {{ config_form.enforce_subquestion_override.help_text }}
+            </p>
+            {{ config_form.enforce_subquestion_override.errors }}
+        </div>
+        <div>
+            <label class="block">{{ config_form.parser_mode.label }}</label>
+            {{ config_form.parser_mode }}
+            {{ config_form.parser_mode.errors }}
+        </div>
+        <button type="submit" name="action" value="save_general" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    </div>
 </form>
 <script>
+function showTab(tab){
+    document.querySelectorAll('.tab-content').forEach(d=>d.style.display='none');
+    const el=document.getElementById('tab-'+tab);
+    if(el){el.style.display='';}
+    document.getElementById('active_tab').value=tab;
+}
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>showTab(btn.dataset.tab));
+});
+showTab('{{ active_tab }}');
 function addForm(prefix){
     const total=document.getElementById('id_'+prefix+'-TOTAL_FORMS');
     const index=parseInt(total.value);
