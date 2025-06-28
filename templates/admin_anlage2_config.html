@@ -107,7 +107,8 @@
         <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="{{ key }}">+ Weitere Phrase hinzufügen</button>
     </div>
     {% endfor %}
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    <button type="submit" name="action" value="save_phrases" class="px-4 py-2 bg-blue-600 text-white rounded">Phrasen speichern</button>
+    <button type="submit" name="action" value="save_all" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
 </form>
 <script>
 function addForm(prefix){

@@ -1732,36 +1732,55 @@ def anlage2_config(request):
     )
 
     if request.method == "POST":
+        # Bestimmen, welcher Speichern-Button gedrückt wurde
+        action = request.POST.get("action") or "save_all"
         for key, _ in categories:
             qs = cfg.global_phrases.filter(phrase_type=key)
             phrase_sets[key] = Anlage2GlobalPhraseFormSet(
                 request.POST, prefix=key, queryset=qs
             )
-        if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
-            cfg_form.save()
-            for h in aliases:
-                if request.POST.get(f"delete{h.id}"):
-                    h.delete()
-            new_field = request.POST.get("new_field")
-            new_text = request.POST.get("new_text")
-            if new_field and new_text:
-                Anlage2ColumnHeading.objects.create(
-                    config=cfg, field_name=new_field, text=new_text
-                )
-            for key, _ in categories:
-                fs = phrase_sets[key]
-                for form in fs.forms:
-                    if form.cleaned_data.get("DELETE"):
-                        if form.instance.pk:
-                            form.instance.delete()
-                        continue
-                    if not form.has_changed() and form.instance.pk:
-                        continue
-                    inst = form.save(commit=False)
-                    inst.config = cfg
-                    inst.phrase_type = key
-                    inst.save()
-            return redirect("anlage2_config")
+        if action == "save_phrases":
+            if all(fs.is_valid() for fs in phrase_sets.values()):
+                for key, _ in categories:
+                    fs = phrase_sets[key]
+                    for form in fs.forms:
+                        if form.cleaned_data.get("DELETE"):
+                            if form.instance.pk:
+                                form.instance.delete()
+                            continue
+                        if not form.has_changed() and form.instance.pk:
+                            continue
+                        inst = form.save(commit=False)
+                        inst.config = cfg
+                        inst.phrase_type = key
+                        inst.save()
+                return redirect("anlage2_config")
+        else:
+            if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
+                cfg_form.save()
+                for h in aliases:
+                    if request.POST.get(f"delete{h.id}"):
+                        h.delete()
+                new_field = request.POST.get("new_field")
+                new_text = request.POST.get("new_text")
+                if new_field and new_text:
+                    Anlage2ColumnHeading.objects.create(
+                        config=cfg, field_name=new_field, text=new_text
+                    )
+                for key, _ in categories:
+                    fs = phrase_sets[key]
+                    for form in fs.forms:
+                        if form.cleaned_data.get("DELETE"):
+                            if form.instance.pk:
+                                form.instance.delete()
+                            continue
+                        if not form.has_changed() and form.instance.pk:
+                            continue
+                        inst = form.save(commit=False)
+                        inst.config = cfg
+                        inst.phrase_type = key
+                        inst.save()
+                return redirect("anlage2_config")
     else:
         for key, _ in categories:
             qs = cfg.global_phrases.filter(phrase_type=key)
