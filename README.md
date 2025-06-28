@@ -103,6 +103,9 @@ die Tabelle unkompliziert neu einlesen. Findet der Tabellenparser keine Daten,
 greift automatisch der Textparser als Fallback. Sämtliche Schritte landen in der
 Logdatei `parser-debug.log`.
 
+Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
+jede Zeile wird als eigene Phrase gespeichert.
+
 Eine LLM‑gestützte Prüfung ist nur nötig, wenn das Layout deutlich von der
 erwarteten Struktur abweicht oder ungewöhnliche Formulierungen verwendet werden.
 Liegt die Anlage etwa nur als Fließtext vor oder enthält sie unbekannte
