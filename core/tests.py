@@ -3313,6 +3313,25 @@ class Anlage2ConfigViewTests(TestCase):
             Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
         )
 
+    def test_invalid_json_shows_error(self):
+        url = reverse("anlage2_config")
+        data = {
+            "text_technisch_verfuegbar_true": "[",
+            "action": "save_text",
+            "active_tab": "text",
+        }
+        for key, _ in Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES:
+            data[f"{key}-TOTAL_FORMS"] = "1"
+            data[f"{key}-INITIAL_FORMS"] = "0"
+            data[f"{key}-MIN_NUM_FORMS"] = "0"
+            data[f"{key}-MAX_NUM_FORMS"] = "1000"
+            data[f"{key}-0-id"] = ""
+            data[f"{key}-0-phrase_text"] = ""
+            data[f"{key}-0-DELETE"] = ""
+        resp = self.client.post(url, data)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "gültiges JSON")
+
 
 
 

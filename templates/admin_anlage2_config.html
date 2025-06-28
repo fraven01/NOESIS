@@ -8,6 +8,7 @@
 </div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
+    {{ config_form.non_field_errors }}
     <input type="hidden" name="active_tab" id="active_tab" value="{{ active_tab }}">
     <nav class="space-x-2 mb-4">
         <button type="button" data-tab="table" class="tab-btn px-3 py-1 bg-gray-200 rounded">Tabellen-Parser</button>
@@ -52,34 +53,42 @@
             <div>
                 <label class="block">{{ config_form.text_technisch_verfuegbar_true.label }}</label>
                 {{ config_form.text_technisch_verfuegbar_true }}
+                {{ config_form.text_technisch_verfuegbar_true.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_technisch_verfuegbar_false.label }}</label>
                 {{ config_form.text_technisch_verfuegbar_false }}
+                {{ config_form.text_technisch_verfuegbar_false.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_einsatz_telefonica_true.label }}</label>
                 {{ config_form.text_einsatz_telefonica_true }}
+                {{ config_form.text_einsatz_telefonica_true.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_einsatz_telefonica_false.label }}</label>
                 {{ config_form.text_einsatz_telefonica_false }}
+                {{ config_form.text_einsatz_telefonica_false.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_zur_lv_kontrolle_true.label }}</label>
                 {{ config_form.text_zur_lv_kontrolle_true }}
+                {{ config_form.text_zur_lv_kontrolle_true.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_zur_lv_kontrolle_false.label }}</label>
                 {{ config_form.text_zur_lv_kontrolle_false }}
+                {{ config_form.text_zur_lv_kontrolle_false.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_ki_beteiligung_true.label }}</label>
                 {{ config_form.text_ki_beteiligung_true }}
+                {{ config_form.text_ki_beteiligung_true.errors }}
             </div>
             <div>
                 <label class="block">{{ config_form.text_ki_beteiligung_false.label }}</label>
                 {{ config_form.text_ki_beteiligung_false }}
+                {{ config_form.text_ki_beteiligung_false.errors }}
             </div>
         </div>
         <h2 class="text-xl font-semibold mt-6 mb-2">Text-Parser: Erkennungsphrasen</h2>
@@ -93,6 +102,8 @@
                     {{ form.phrase_text }}
                     <label class="ml-2 text-sm">{{ form.DELETE }} löschen</label>
                 </div>
+                {{ form.phrase_text.errors }}
+                {{ form.non_field_errors }}
                 {% endfor %}
             </div>
             <div id="{{ key }}-empty-form" style="display:none;">
@@ -115,10 +126,12 @@
             <p class="text-sm text-gray-600">
                 {{ config_form.enforce_subquestion_override.help_text }}
             </p>
+            {{ config_form.enforce_subquestion_override.errors }}
         </div>
         <div>
             <label class="block">{{ config_form.parser_mode.label }}</label>
             {{ config_form.parser_mode }}
+            {{ config_form.parser_mode.errors }}
         </div>
         <button type="submit" name="action" value="save_general" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
     </div>
