@@ -1115,6 +1115,42 @@ class LLMTasksTests(TestCase):
         self.assertEqual(json.loads(pf.analysis_json), expected)
         self.assertEqual(result, expected)
 
+    def test_run_anlage2_analysis_parser_mode_table_only(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "table_only"
+        cfg.save()
+        with patch("core.llm_tasks.parse_anlage2_table", return_value=[]) as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text"
+        ) as m_text:
+            run_anlage2_analysis(pf)
+        m_tab.assert_called_once()
+        m_text.assert_not_called()
+
+    def test_run_anlage2_analysis_parser_mode_text_only(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "text_only"
+        cfg.save()
+        with patch("core.llm_tasks.parse_anlage2_table") as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[]
+        ) as m_text:
+            run_anlage2_analysis(pf)
+        m_tab.assert_not_called()
+        m_text.assert_called_once()
+
     def test_check_anlage2_table_error_fallback(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -3236,6 +3272,45 @@ class Anlage2ConfigImportExportTests(TestCase):
             Anlage2ColumnHeading.objects.filter(
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
+        )
+
+
+class Anlage2ConfigViewTests(TestCase):
+    def setUp(self):
+        admin = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("cfguser", password="pass")
+        self.user.groups.add(admin)
+        self.client.login(username="cfguser", password="pass")
+        self.cfg = Anlage2Config.get_instance()
+
+    def test_update_parser_mode(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "parser_mode": "text_only",
+                "action": "save_general",
+                "active_tab": "general",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=general")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_mode, "text_only")
+
+    def test_save_table_tab(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "new_field": "technisch_vorhanden",
+                "new_text": "Verfügbar?",
+                "action": "save_table",
+                "active_tab": "table",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=table")
+        self.assertTrue(
+            Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
         )
 
 

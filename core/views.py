@@ -13,6 +13,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
+from django.urls import reverse
 import subprocess
 import whisper
 import torch
@@ -1724,49 +1725,31 @@ def anlage2_config(request):
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     categories = Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES
+    active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
     phrase_sets: dict[str, Anlage2GlobalPhraseFormSet] = {}
-    cfg_form = (
-        Anlage2ConfigForm(request.POST, instance=cfg)
-        if request.method == "POST"
-        else Anlage2ConfigForm(instance=cfg)
-    )
 
     if request.method == "POST":
-        # Bestimmen, welcher Speichern-Button gedrückt wurde
-        action = request.POST.get("action") or "save_all"
-        for key, _ in categories:
-            qs = cfg.global_phrases.filter(phrase_type=key)
-            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
-                request.POST, prefix=key, queryset=qs
-            )
-        if action == "save_phrases":
-            if all(fs.is_valid() for fs in phrase_sets.values()):
-                for key, _ in categories:
-                    fs = phrase_sets[key]
-                    for form in fs.forms:
-                        if form.cleaned_data.get("DELETE"):
-                            if form.instance.pk:
-                                form.instance.delete()
-                            continue
-                        if not form.has_changed() and form.instance.pk:
-                            continue
-                        inst = form.save(commit=False)
-                        inst.config = cfg
-                        inst.phrase_type = key
-                        inst.save()
-                return redirect("anlage2_config")
-        else:
+        action = request.POST.get("action") or "save_general"
+
+        if action == "save_table":
+            for h in aliases:
+                if request.POST.get(f"delete{h.id}"):
+                    h.delete()
+            new_field = request.POST.get("new_field")
+            new_text = request.POST.get("new_text")
+            if new_field and new_text:
+                Anlage2ColumnHeading.objects.create(
+                    config=cfg, field_name=new_field, text=new_text
+                )
+            return redirect(f"{reverse('anlage2_config')}?tab=table")
+
+        if action == "save_text":
+            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
+            for key, _ in categories:
+                qs = cfg.global_phrases.filter(phrase_type=key)
+                phrase_sets[key] = Anlage2GlobalPhraseFormSet(request.POST, prefix=key, queryset=qs)
             if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
                 cfg_form.save()
-                for h in aliases:
-                    if request.POST.get(f"delete{h.id}"):
-                        h.delete()
-                new_field = request.POST.get("new_field")
-                new_text = request.POST.get("new_text")
-                if new_field and new_text:
-                    Anlage2ColumnHeading.objects.create(
-                        config=cfg, field_name=new_field, text=new_text
-                    )
                 for key, _ in categories:
                     fs = phrase_sets[key]
                     for form in fs.forms:
@@ -1780,8 +1763,16 @@ def anlage2_config(request):
                         inst.config = cfg
                         inst.phrase_type = key
                         inst.save()
-                return redirect("anlage2_config")
-    else:
+                return redirect(f"{reverse('anlage2_config')}?tab=text")
+
+        if action == "save_general":
+            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
+            if cfg_form.is_valid():
+                cfg_form.save()
+                return redirect(f"{reverse('anlage2_config')}?tab=general")
+
+    cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
+    if not phrase_sets:
         for key, _ in categories:
             qs = cfg.global_phrases.filter(phrase_type=key)
             phrase_sets[key] = Anlage2GlobalPhraseFormSet(prefix=key, queryset=qs)
@@ -1792,6 +1783,7 @@ def anlage2_config(request):
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "phrase_sets": [(k, label, phrase_sets[k]) for k, label in categories],
+        "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)
 

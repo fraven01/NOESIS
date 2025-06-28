@@ -143,6 +143,12 @@ Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
 Beim Import wird dieselbe Struktur erwartet. Fehlen einzelne Bereiche, werden
 lediglich die vorhandenen Daten eingelesen.
 
+Die Konfigurationsseite ist in drei Tabs unterteilt: **Tabellen‑Parser**,
+**Text‑Parser** und **Allgemein**. Im Bereich *Allgemein* lässt sich der neue
+Feldwert `parser_mode` setzen. Er bestimmt, ob beim Einlesen der Anlage nur der
+Tabellenparser, nur der Textparser oder der bisherige automatische Fallback
+verwendet wird.
+
 ### KI-Begründung per Tooltip
 
 Bei der LLM-Prüfung einzelner Funktionen ruft der Hintergrundtask zusätzlich den

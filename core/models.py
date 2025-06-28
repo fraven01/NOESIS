@@ -496,6 +496,18 @@ class Anlage2Config(models.Model):
         ),
     )
 
+    PARSER_CHOICES = [
+        ("auto", "Automatisch"),
+        ("table_only", "Nur Tabellen"),
+        ("text_only", "Nur Text"),
+    ]
+
+    parser_mode = models.CharField(
+        max_length=20,
+        choices=PARSER_CHOICES,
+        default="auto",
+    )
+
     text_technisch_verfuegbar_true = models.JSONField(default=list, blank=True)
     text_technisch_verfuegbar_false = models.JSONField(default=list, blank=True)
     text_einsatz_telefonica_true = models.JSONField(default=list, blank=True)
