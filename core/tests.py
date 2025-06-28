@@ -680,6 +680,25 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+    def test_parse_anlage2_text_updates_values_without_function(self):
+        func = Anlage2Function.objects.create(name="Analyse")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
+        cfg.text_zur_lv_kontrolle_false = ["kein lv"]
+        cfg.save()
+        text = "Analyse verfuegbar\nkein lv"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                }
+            ],
+        )
+
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")
         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
