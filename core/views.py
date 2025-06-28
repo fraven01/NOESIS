@@ -1753,13 +1753,25 @@ def anlage2_config(request):
             admin_a2_logger.debug("Speichere Phrase-Set %s", key)
             cfg_form = Anlage2ConfigForm(instance=cfg)
             qs = cfg.global_phrases.filter(phrase_type=key)
-            phrase_sets[key] = Anlage2GlobalPhraseFormSet(request.POST, prefix=key, queryset=qs)
+
+            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
+                request.POST,
+                prefix=key,
+                queryset=qs,
+            )
+
             fs = phrase_sets[key]
             if fs.is_valid():
                 for form in fs.forms:
                     if form.cleaned_data.get("DELETE"):
                         if form.instance.pk:
-                            admin_a2_logger.debug("Lösche Phrase (%s): %s", key, form.instance.phrase_text)
+
+                            admin_a2_logger.debug(
+                                "Lösche Phrase (%s): %s",
+                                key,
+                                form.instance.phrase_text,
+                            )
+
                             form.instance.delete()
                         continue
                     if not form.has_changed() and form.instance.pk:
@@ -1768,9 +1780,21 @@ def anlage2_config(request):
                     inst.config = cfg
                     inst.phrase_type = key
                     inst.save()
-                    admin_a2_logger.debug("Gespeicherte Phrase (%s): %s (id=%s)", key, inst.phrase_text, inst.pk)
+
+                    admin_a2_logger.debug(
+                        "Gespeicherte Phrase (%s): %s (id=%s)",
+                        key,
+                        inst.phrase_text,
+                        inst.pk,
+                    )
                 messages.success(request, "Phrasen gespeichert")
             else:
+                admin_a2_logger.debug(
+                    "Ungültige Eingabe für %s: %s",
+                    key,
+                    fs.errors,
+                )
+
                 messages.error(request, "Ungültige Eingabe")
             return redirect(f"{reverse('anlage2_config')}?tab=text")
 
@@ -1779,16 +1803,31 @@ def anlage2_config(request):
             cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
             for key, _ in categories:
                 qs = cfg.global_phrases.filter(phrase_type=key)
-                phrase_sets[key] = Anlage2GlobalPhraseFormSet(request.POST, prefix=key, queryset=qs)
+                phrase_sets[key] = Anlage2GlobalPhraseFormSet(
+                    request.POST,
+                    prefix=key,
+                    queryset=qs,
+                )
             if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
-                admin_a2_logger.debug("Geänderte Felder: %r", {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data})
+
+                admin_a2_logger.debug(
+                    "Geänderte Felder: %r",
+                    {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data},
+                )
+
                 cfg_form.save()
                 for key, _ in categories:
                     fs = phrase_sets[key]
                     for form in fs.forms:
                         if form.cleaned_data.get("DELETE"):
                             if form.instance.pk:
-                                admin_a2_logger.debug("Lösche Phrase (%s): %s", key, form.instance.phrase_text)
+
+                                admin_a2_logger.debug(
+                                    "Lösche Phrase (%s): %s",
+                                    key,
+                                    form.instance.phrase_text,
+                                )
+
                                 form.instance.delete()
                             continue
                         if not form.has_changed() and form.instance.pk:
@@ -1797,8 +1836,20 @@ def anlage2_config(request):
                         inst.config = cfg
                         inst.phrase_type = key
                         inst.save()
-                        admin_a2_logger.debug("Gespeicherte Phrase (%s): %s (id=%s)", key, inst.phrase_text, inst.pk)
+
+                        admin_a2_logger.debug(
+                            "Gespeicherte Phrase (%s): %s (id=%s)",
+                            key,
+                            inst.phrase_text,
+                            inst.pk,
+                        )
+
                 return redirect(f"{reverse('anlage2_config')}?tab=text")
+            admin_a2_logger.debug(
+                "Ungültige Konfiguration: %s | %s",
+                cfg_form.errors,
+                {k: fs.errors for k, fs in phrase_sets.items()},
+            )
 
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
