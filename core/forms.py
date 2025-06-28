@@ -439,6 +439,33 @@ class PhraseForm(forms.Form):
     )
 
 
+class PhraseListField(forms.Field):
+    """Feld für mehrere Zeilen, die als Liste gespeichert werden."""
+
+    widget = forms.Textarea
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs.setdefault("required", False)
+        if "widget" not in kwargs:
+            kwargs["widget"] = forms.Textarea()
+        super().__init__(*args, **kwargs)
+
+    def prepare_value(self, value):  # pragma: no cover - trivial
+        if isinstance(value, list):
+            return "\n".join(str(v) for v in value)
+        if value is None:
+            return ""
+        return str(value)
+
+    def to_python(self, value):
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        lines = [line.strip() for line in str(value).splitlines()]
+        return [l for l in lines if l]
+
+
 class Anlage2GlobalPhraseForm(forms.ModelForm):
     """Formular für eine globale Erkennungsphrase."""
 
@@ -461,6 +488,15 @@ Anlage2GlobalPhraseFormSet = modelformset_factory(
 
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
+
+    text_technisch_verfuegbar_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_technisch_verfuegbar_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_einsatz_telefonica_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_einsatz_telefonica_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_zur_lv_kontrolle_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_zur_lv_kontrolle_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_ki_beteiligung_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    text_ki_beteiligung_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
 
     class Meta:
         model = Anlage2Config

@@ -644,7 +644,7 @@ class Anlage2Function(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:
@@ -694,7 +694,7 @@ class Anlage2SubQuestion(models.Model):
     detection_phrases = models.JSONField(
         blank=True,
         default=dict,
-        help_text="JSON-Objekt zur Speicherung von Erkennungsphrasen für den Text-Parser.",
+        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
     )
 
     class Meta:
