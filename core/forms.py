@@ -477,14 +477,14 @@ class Anlage2ConfigForm(forms.ModelForm):
         ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
-            "text_technisch_verfuegbar_true": "Text: technisch verfügbar Ja",
-            "text_technisch_verfuegbar_false": "Text: technisch verfügbar Nein",
-            "text_einsatz_telefonica_true": "Text: Einsatz Telefónica Ja",
-            "text_einsatz_telefonica_false": "Text: Einsatz Telefónica Nein",
-            "text_zur_lv_kontrolle_true": "Text: Zur LV-Kontrolle Ja",
-            "text_zur_lv_kontrolle_false": "Text: Zur LV-Kontrolle Nein",
-            "text_ki_beteiligung_true": "Text: KI-Beteiligung Ja",
-            "text_ki_beteiligung_false": "Text: KI-Beteiligung Nein",
+            "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
+            "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
+            "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
+            "text_einsatz_telefonica_false": "Text‑Parser: Einsatz Telefónica – Nein",
+            "text_zur_lv_kontrolle_true": "Text‑Parser: Zur LV-Kontrolle – Ja",
+            "text_zur_lv_kontrolle_false": "Text‑Parser: Zur LV-Kontrolle – Nein",
+            "text_ki_beteiligung_true": "Text‑Parser: KI-Beteiligung – Ja",
+            "text_ki_beteiligung_false": "Text‑Parser: KI-Beteiligung – Nein",
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
