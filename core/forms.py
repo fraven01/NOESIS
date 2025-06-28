@@ -358,9 +358,15 @@ class Anlage2ReviewForm(forms.Form):
 class Anlage2FunctionForm(forms.ModelForm):
     """Formular für eine Funktion aus Anlage 2."""
 
+    detection_phrases = forms.JSONField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
+        label="Detection Phrases (JSON)",
+    )
+
     class Meta:
         model = Anlage2Function
-        fields = ["name"]
+        fields = ["name", "detection_phrases"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
         }
@@ -369,9 +375,15 @@ class Anlage2FunctionForm(forms.ModelForm):
 class Anlage2SubQuestionForm(forms.ModelForm):
     """Formular für eine Unterfrage zu Anlage 2."""
 
+    detection_phrases = forms.JSONField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 5}),
+        label="Detection Phrases (JSON)",
+    )
+
     class Meta:
         model = Anlage2SubQuestion
-        fields = ["frage_text"]
+        fields = ["frage_text", "detection_phrases"]
         labels = {"frage_text": "Frage"}
         widgets = {
             "frage_text": Textarea(attrs={"class": "border rounded p-2", "rows": 3}),

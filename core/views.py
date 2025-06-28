@@ -1811,12 +1811,14 @@ def anlage2_function_form(request, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             funktion = form.save(commit=False)
+            detection_phrases = form.cleaned_data.get("detection_phrases") or {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
                 if row.get("phrase") and not row.get("DELETE")
             ]
-            funktion.detection_phrases = {"name_aliases": phrases}
+            detection_phrases["name_aliases"] = phrases
+            funktion.detection_phrases = detection_phrases
             funktion.save()
             return redirect("anlage2_function_edit", funktion.pk)
     else:
@@ -1928,12 +1930,14 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
         formset = PhraseFormSet(request.POST, prefix="name_aliases")
         if form.is_valid() and formset.is_valid():
             subquestion = form.save(commit=False)
+            detection_phrases = form.cleaned_data.get("detection_phrases") or {}
             phrases = [
                 row.get("phrase", "").strip()
                 for row in formset.cleaned_data
                 if row.get("phrase") and not row.get("DELETE")
             ]
-            subquestion.detection_phrases = {"name_aliases": phrases}
+            detection_phrases["name_aliases"] = phrases
+            subquestion.detection_phrases = detection_phrases
             subquestion.save()
             return redirect("anlage2_function_edit", funktion.pk)
     else:
