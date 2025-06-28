@@ -21,6 +21,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
+    Anlage2Config,
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
@@ -263,21 +264,24 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
-    try:
-        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
-    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
-        analysis_result = []
+    mode = Anlage2Config.get_instance().parser_mode
+    analysis_result = []
+
+    if mode in ["auto", "table_only"]:
+        try:
+            analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+        except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
+            parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
 
     if analysis_result:
         logger.info("Tabellen-Parser verwendet")
-    else:
+    elif mode != "table_only":
         parser_logger.debug(
             "Textinhalt vor Text-Parser:\n%s",
             project_file.text_content,
         )
         analysis_result = parse_anlage2_text(project_file.text_content)
-        logger.info("Text-Parser als Fallback verwendet")
+        logger.info("Text-Parser verwendet")
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
     project_file.save(update_fields=["analysis_json"])
@@ -294,8 +298,11 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
-    table_data = parse_anlage2_table(Path(anlage2.upload.path))
-    if not table_data:
+    mode = Anlage2Config.get_instance().parser_mode
+    table_data = []
+    if mode in ["auto", "table_only"]:
+        table_data = parse_anlage2_table(Path(anlage2.upload.path))
+    if not table_data and mode != "table_only":
         table_data = parse_anlage2_text(anlage2.text_content)
     table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []

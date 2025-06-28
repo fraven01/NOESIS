@@ -466,6 +466,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         model = Anlage2Config
         fields = [
             "enforce_subquestion_override",
+            "parser_mode",
             "text_technisch_verfuegbar_true",
             "text_technisch_verfuegbar_false",
             "text_einsatz_telefonica_true",
@@ -477,6 +478,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+            "parser_mode": "Parser-Modus",
             "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
             "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
             "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
@@ -490,6 +492,7 @@ class Anlage2ConfigForm(forms.ModelForm):
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
+            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
             "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
             "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
             "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
