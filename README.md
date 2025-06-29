@@ -106,10 +106,7 @@ Logdatei `parser-debug.log`.
 Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
 jede Zeile wird als eigene Phrase gespeichert.
 
-Eine LLM‑gestützte Prüfung ist nur nötig, wenn das Layout deutlich von der
-erwarteten Struktur abweicht oder ungewöhnliche Formulierungen verwendet werden.
-Liegt die Anlage etwa nur als Fließtext vor oder enthält sie unbekannte
-Bezeichnungen, hilft der LLM‑Check, die Funktionen richtig zuzuordnen.
+
 
 ### Kachel-Zugriff verwalten
 
@@ -127,6 +124,7 @@ Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
 ### Funktionskatalog verwalten
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
+Der Textparser nutzt die Einträge aus dem Funktionskatalog, um die Anlage 2 zu analysieren. Dabei werden die Funktionsnamen als Alias für die Erkennungsphrasen verwendet. Das bedeutet, dass der Parser automatisch nach den Funktionsnamen sucht und diese als Treffer zählt. Die zurodnung, ob etwas technisch verfügbar ist, erfolgt ausschließlich über die über die Felder `technisch_vorhanden` und `technisch_verfuegbar`. Diese Felder sind für den Textparser relevant und werden bei der Analyse berücksichtigt.
 Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
 Alias. Zusätzliche Varianten können über das Feld `name_aliases` hinterlegt
 werden. Doppelte Einträge werden automatisch ignoriert.
@@ -212,4 +210,5 @@ Beim Hochladen einer DOCX-Datei werden alle eingebetteten Bilder mit `python-doc
 
 ### Vision-Modell
 
+Das Vision-Modell kann im Admin-Bereich unter `/projects-admin/vision/` konfiguriert werden. Dort lassen sich die verfügbaren Modelle und deren Einstellungen verwalten. Die Konfiguration wird in der Datenbank gespeichert und kann jederzeit angepasst werden.
 Standardmäßig nutzt NOESIS das Modell `gpt-4o`, das sowohl Texte als auch Bilder verarbeiten kann. Für den Betrieb muss die Umgebungsvariable `OPENAI_API_KEY` gesetzt sein. Alternativ kann ein Gemini-Modell über `GOOGLE_API_KEY` verwendet werden. Die verfügbaren Namen finden sich in `GOOGLE_AVAILABLE_MODELS` in `noesis/settings.py`.
