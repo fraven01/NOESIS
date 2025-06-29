@@ -10,6 +10,7 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2Function,
     Anlage2SubQuestion,
+    Anlage2GlobalPhrase,
 )
 
 # Zuordnung der Standardspalten zu ihren Feldnamen
@@ -359,7 +360,8 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
     Zeile für Zeile wird nach Hauptfunktionen und zugehörigen Unterfragen
     gesucht. Die Erkennung erfolgt über die ``detection_phrases`` der
     jeweiligen Objekte. Phrasen zur Bestimmung der Feldwerte stammen aus den
-    ``text_*``‑Feldern der :class:`Anlage2Config`.
+    ``text_*``‑Feldern der :class:`Anlage2Config` sowie den zugehörigen
+    :class:`Anlage2GlobalPhrase`‑Einträgen.
 
     Wiederholt auftretende Hauptfunktionen werden zusammengeführt, sodass pro
     Funktion nur ein Ergebnis-Dictionary existiert. Unterfragen werden stets
@@ -475,7 +477,12 @@ def parse_anlage2_text(text_content: str) -> list[dict[str, object]]:
         "ki_beteiligung_false",
     ]
     for field in phrase_fields:
-        phrases = getattr(cfg, f"text_{field}", []) or []
+        phrases = list(getattr(cfg, f"text_{field}", []) or [])
+        phrases += list(
+            cfg.global_phrases.filter(phrase_type=field).values_list(
+                "phrase_text", flat=True
+            )
+        )
         for ph in phrases:
             parser_logger.debug("Globale Phrase '%s': %s", field, ph)
             norm = _normalize_snippet(ph)
