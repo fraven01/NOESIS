@@ -10,7 +10,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
-    Anlage2GlobalPhrase,
+    # Anlage2GlobalPhrase,
     SoftwareKnowledge,
     Area,
     LLMRole,
