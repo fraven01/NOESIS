@@ -9,7 +9,7 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    python -m venv venv
    source venv/bin/activate
    ```
-3. Installiere die Abhängigkeiten:
+3. Installiere die Abhängigkeiten (oder führe `./setup_env.sh` aus, um alles automatisch einzurichten):
    ```bash
    pip install -r requirements.txt
    # Für Entwicklungs- und Testwerkzeuge:
@@ -23,6 +23,7 @@ Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
 
 ```bash
 python manage.py makemigrations --check
+python manage.py migrate
 python manage.py test
 ```
 
