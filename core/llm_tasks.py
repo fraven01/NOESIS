@@ -28,13 +28,13 @@ from .models import (
 )
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
-    parse_anlage2_table,
     extract_text,
     _normalize_function_name,
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
 )
+from .parser_manager import parser_manager
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -268,9 +268,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
     try:
-        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+        analysis_result = parser_manager.parse_anlage2(project_file)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         analysis_result = []
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
@@ -289,9 +289,9 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     try:
-        table_data = parse_anlage2_table(Path(anlage2.upload.path))
+        table_data = parser_manager.parse_anlage2(anlage2)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         table_data = []
     table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
@@ -735,10 +735,10 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     anlage2_logger.debug("Anlage 2 Pfad: %s", anlage.upload.path)
     parser_error: str | None = None
     try:
-        table = parse_anlage2_table(Path(anlage.upload.path))
+        table = parser_manager.parse_anlage2(anlage)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
         parser_error = str(exc)
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         anlage.analysis_json = {"parser_error": parser_error}
         anlage.save(update_fields=["analysis_json"])
         table = []

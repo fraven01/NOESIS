@@ -10,7 +10,6 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
-    Anlage2GlobalPhrase,
     SoftwareKnowledge,
     Area,
     LLMRole,
@@ -18,6 +17,7 @@ from .models import (
     Tile,
 )
 from django.contrib.auth.models import Group
+from .parser_manager import parser_manager
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -51,6 +51,12 @@ def get_anlage2_fields() -> list[tuple[str, str]]:
         heading = cfg.headers.filter(field_name=field).first() if cfg else None
         out.append((field, heading.text if heading else label))
     return out
+
+
+def get_parser_choices() -> list[tuple[str, str]]:
+    """Liefert die verfügbaren Parser-Namen."""
+    names = parser_manager.available_names()
+    return [(n, n) for n in names]
 
 
 class RecordingForm(forms.ModelForm):
@@ -437,12 +443,16 @@ class Anlage2ConfigForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Config
-        fields = ["enforce_subquestion_override"]
+        fields = ["enforce_subquestion_override", "default_parser", "fallback_parser"]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+            "default_parser": "Bevorzugter Parser",
+            "fallback_parser": "Fallback-Parser",
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "default_parser": forms.Select(choices=get_parser_choices(), attrs={"class": "border rounded p-2"}),
+            "fallback_parser": forms.Select(choices=[("", "---")] + get_parser_choices(), attrs={"class": "border rounded p-2"}),
         }
 
 
