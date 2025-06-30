@@ -268,70 +268,17 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     cfg = Anlage2Config.get_instance()
     mode = cfg.parser_mode
-    order = getattr(cfg, "parser_order", "table_first")
 
-    table_result: list[dict[str, object]] = []
-    text_result: list[dict[str, object]] = []
-
-    def _run_table() -> None:
-        nonlocal table_result
-        try:
-            table_result = parse_anlage2_table(Path(project_file.upload.path))
-        except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-            parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
-            table_result = []
-
-    def _run_text() -> None:
-        nonlocal text_result
+    if mode == "table_only":
+        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+    elif mode == "text_only":
         parser_logger.debug(
             "Textinhalt vor Text-Parser:\n%s",
             project_file.text_content,
         )
-        text_result = parse_anlage2_text(project_file.text_content)
-
-    if mode == "table_only":
-        _run_table()
-        analysis_result = table_result
-    elif mode == "text_only":
-        _run_text()
-        analysis_result = text_result
+        analysis_result = parse_anlage2_text(project_file.text_content)
     else:
-        if order == "table_first":
-            _run_table()
-            _run_text()
-        else:
-            _run_text()
-            _run_table()
-
-        def _count_true(items: list[dict[str, object]]) -> int:
-            count = 0
-            for row in items:
-                val = row.get("technisch_verfuegbar")
-                if isinstance(val, dict):
-                    val = val.get("value")
-                if val is True:
-                    count += 1
-            return count
-
-        table_true = _count_true(table_result)
-        text_true = _count_true(text_result)
-
-        if table_true > text_true:
-            analysis_result = table_result
-            logger.info("Tabellen-Parser bevorzugt")
-        elif text_true > table_true:
-            analysis_result = text_result
-            logger.info("Text-Parser bevorzugt")
-        else:
-            if len(text_result) > len(table_result):
-                analysis_result = text_result
-            elif len(table_result) > len(text_result):
-                analysis_result = table_result
-            else:
-                analysis_result = table_result if order == "table_first" else text_result
-            logger.info(
-                "Tabellen-Parser verwendet" if analysis_result is table_result else "Text-Parser verwendet"
-            )
+        analysis_result = parser_manager.parse_anlage2(project_file)
 
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
