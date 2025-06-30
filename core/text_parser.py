@@ -1,3 +1,4 @@
+
 import re
 from typing import List, Dict, Any
 
@@ -38,4 +39,5 @@ def parse_format_b(text: str) -> List[Dict[str, Any]]:
             key, val = m.groups()
             entry[mapping[key.lower()]] = {"value": val.lower() == "ja", "note": None}
         results.append(entry)
+
     return results

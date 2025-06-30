@@ -9,7 +9,7 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    python -m venv venv
    source venv/bin/activate
    ```
-3. Installiere die Abhängigkeiten:
+3. Installiere die Abhängigkeiten (oder führe `./setup_env.sh` aus, um alles automatisch einzurichten):
    ```bash
    pip install -r requirements.txt
    # Für Entwicklungs- und Testwerkzeuge:
@@ -23,6 +23,7 @@ Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
 
 ```bash
 python manage.py makemigrations --check
+python manage.py migrate
 python manage.py test
 ```
 
@@ -106,6 +107,14 @@ Logdatei `parser-debug.log`.
 Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
 jede Zeile wird als eigene Phrase gespeichert.
 
+Um den Parser auch ohne Weboberfläche zu testen, steht das Skript
+`text_parser.py` bereit. Es erwartet eine Text- oder DOCX-Datei und gibt die
+erkannten Funktionen als JSON aus:
+
+```bash
+python text_parser.py anlage2.docx
+```
+
 
 
 ### Kachel-Zugriff verwalten
@@ -152,6 +161,10 @@ Die Konfigurationsseite ist in drei Tabs unterteilt: **Tabellen‑Parser**,
 Feldwert `parser_mode` setzen. Er bestimmt, ob beim Einlesen der Anlage nur der
 Tabellenparser, nur der Textparser oder der bisherige automatische Fallback
 verwendet wird.
+
+Zusätzlich legt die Option **Parser-Priorität** fest, welcher Parser bei
+aktiviertem Fallback zuerst ausgeführt wird. Standardmäßig besitzt der
+Tabellenparser Vorrang.
 
 ### KI-Begründung per Tooltip
 

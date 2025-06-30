@@ -503,6 +503,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         fields = [
             "enforce_subquestion_override",
             "parser_mode",
+            "parser_order",
             "text_technisch_verfuegbar_true",
             "text_technisch_verfuegbar_false",
             "text_einsatz_telefonica_true",
@@ -515,6 +516,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
             "parser_mode": "Parser-Modus",
+            "parser_order": "Parser-Reihenfolge",
             "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
             "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
             "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
@@ -529,6 +531,7 @@ class Anlage2ConfigForm(forms.ModelForm):
                 attrs={"class": "mr-2"}
             ),
             "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "parser_order": forms.Select(attrs={"class": "border rounded p-2"}),
             "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
             "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
             "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),

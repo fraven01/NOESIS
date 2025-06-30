@@ -1191,6 +1191,7 @@ class LLMTasksTests(TestCase):
         m_text.assert_called_once()
 
     def test_run_anlage2_analysis_auto_prefers_table(self):
+
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -1199,6 +1200,7 @@ class LLMTasksTests(TestCase):
             text_content="t",
         )
         cfg = Anlage2Config.get_instance()
+
         cfg.parser_mode = "auto"
         cfg.save()
         table_result = [{"funktion": "Login"}]
@@ -1232,6 +1234,7 @@ class LLMTasksTests(TestCase):
         m_tab.assert_called_once()
         m_text.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
+
 
     def test_check_anlage2_table_error_fallback(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3371,6 +3374,7 @@ class Anlage2ConfigViewTests(TestCase):
             url,
             {
                 "parser_mode": "text_only",
+                "parser_order": "text_first",
                 "action": "save_general",
                 "active_tab": "general",
             },
@@ -3378,6 +3382,22 @@ class Anlage2ConfigViewTests(TestCase):
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.parser_mode, "text_only")
+        self.assertEqual(self.cfg.parser_order, "text_first")
+
+    def test_update_parser_order(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "parser_mode": self.cfg.parser_mode,
+                "parser_order": "text_first",
+                "action": "save_general",
+                "active_tab": "general",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=general")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_order, "text_first")
 
     def test_save_table_tab(self):
         url = reverse("anlage2_config")
@@ -3399,6 +3419,8 @@ class Anlage2ConfigViewTests(TestCase):
         url = reverse("anlage2_config")
         data = {
             "text_technisch_verfuegbar_true": "ja\nokay\n",
+            "parser_mode": self.cfg.parser_mode,
+            "parser_order": self.cfg.parser_order,
             "action": "save_text",
             "active_tab": "text",
         }
