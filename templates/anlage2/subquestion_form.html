@@ -10,38 +10,7 @@
         {{ form.frage_text }}
         {{ form.frage_text.errors }}
     </div>
-    <div>
-        <h3 class="font-semibold mt-4 mb-2">Erkennungsphrasen</h3>
-        <div id="name_aliases-container">
-            {{ formset.management_form }}
-            {% for form in formset %}
-            <div class="flex items-center mb-1">
-                {{ form.phrase }}
-                <label class="ml-2 text-sm">{{ form.DELETE }} löschen</label>
-            </div>
-            {% endfor %}
-        </div>
-        <div id="name_aliases-empty-form" style="display:none;">
-            <div class="flex items-center mb-1">
-                {{ formset.empty_form.phrase }}
-                <label class="ml-2 text-sm">{{ formset.empty_form.DELETE }} löschen</label>
-            </div>
-        </div>
-        <button type="button" class="add-form bg-gray-300 px-2 py-1 rounded" data-prefix="name_aliases">+ Weitere Phrase hinzufügen</button>
-    </div>
     <script>
-    function addForm(prefix){
-        const total=document.getElementById('id_'+prefix+'-TOTAL_FORMS');
-        const index=parseInt(total.value);
-        const empty=document.querySelector('#'+prefix+'-empty-form').cloneNode(true);
-        empty.style.display='';
-        empty.innerHTML=empty.innerHTML.replace(/__prefix__/g,index);
-        document.getElementById(prefix+'-container').appendChild(empty);
-        total.value=index+1;
-    }
-    document.querySelectorAll('.add-form').forEach(btn=>{
-        btn.addEventListener('click',()=>addForm(btn.dataset.prefix));
-    });
     </script>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
 </form>

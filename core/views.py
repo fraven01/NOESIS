@@ -30,8 +30,6 @@ from .forms import (
     Anlage2ReviewForm,
     get_anlage2_fields,
     Anlage2FunctionForm,
-    PhraseForm,
-    Anlage2GlobalPhraseFormSet,
     Anlage2FunctionImportForm,
     PromptImportForm,
     Anlage1ImportForm,
@@ -49,7 +47,6 @@ from .forms import (
     LLMRoleImportForm,
     UserPermissionsForm,
     UserImportForm,
-    Anlage2ConfigImportForm,
 
 )
 from .models import (
@@ -65,7 +62,6 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2Config,
     Anlage2ColumnHeading,
-    Anlage2GlobalPhrase,
     Anlage2FunctionResult,
     SoftwareKnowledge,
     Gutachten,
@@ -114,7 +110,6 @@ logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("parser_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 
-PhraseFormSet = formset_factory(PhraseForm, extra=1, can_delete=True)
 
 _WHISPER_MODEL = None
 
@@ -1662,18 +1657,13 @@ def admin_import_users_permissions(request):
 @login_required
 @admin_required
 def admin_anlage2_config_export(request):
-    """Exportiert Spaltenüberschriften und globale Phrasen als JSON-Datei."""
+    """Exportiert Spaltenüberschriften als JSON-Datei."""
     cfg = Anlage2Config.get_instance()
-    global_phrases = Anlage2GlobalPhrase.objects.all().values(
-        "phrase_type",
-        "phrase_text",
-    )
     alias_headings = Anlage2ColumnHeading.objects.all().values(
         "field_name",
         "text",
     )
     data = {
-        "global_phrases": list(global_phrases),
         "alias_headings": list(alias_headings),
     }
     content = json.dumps(data, ensure_ascii=False, indent=2)
@@ -1685,7 +1675,7 @@ def admin_anlage2_config_export(request):
 @login_required
 @admin_required
 def admin_anlage2_config_import(request):
-    """Importiert Spaltenüberschriften und globale Phrasen aus JSON."""
+    """Importiert Spaltenüberschriften aus JSON."""
     form = Anlage2ConfigImportForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         raw = form.cleaned_data["json_file"].read().decode("utf-8")
@@ -1695,19 +1685,7 @@ def admin_anlage2_config_import(request):
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_anlage2_config_import")
         cfg = Anlage2Config.get_instance()
-        global_phrases_data = items.get("global_phrases", [])
         alias_headings_data = items.get("alias_headings", [])
-        for entry in global_phrases_data:
-            phrase_type = entry.get("phrase_type")
-            phrase_text = entry.get("phrase_text", "")
-            if not phrase_type or not phrase_text:
-                continue
-            Anlage2GlobalPhrase.objects.update_or_create(
-                config=cfg,
-                phrase_type=phrase_type,
-                phrase_text=phrase_text,
-                defaults={},
-            )
         for h in alias_headings_data:
             Anlage2ColumnHeading.objects.update_or_create(
                 config=cfg,
@@ -1725,9 +1703,7 @@ def anlage2_config(request):
     """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
-    categories = Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
-    phrase_sets: dict[str, Anlage2GlobalPhraseFormSet] = {}
 
     if request.method == "POST":
         action = request.POST.get("action") or "save_general"
@@ -1748,109 +1724,6 @@ def anlage2_config(request):
                 admin_a2_logger.debug("Neue Überschrift %s -> %s", new_field, new_text)
             return redirect(f"{reverse('anlage2_config')}?tab=table")
 
-        if action == "save_phrase_set":
-            key = request.POST.get("phrase_key")
-            admin_a2_logger.debug("Speichere Phrase-Set %s", key)
-            cfg_form = Anlage2ConfigForm(instance=cfg)
-            qs = cfg.global_phrases.filter(phrase_type=key)
-
-            phrase_sets[key] = Anlage2GlobalPhraseFormSet(
-                request.POST,
-                prefix=key,
-                queryset=qs,
-            )
-
-            fs = phrase_sets[key]
-            if fs.is_valid():
-                for form in fs.forms:
-                    if form.cleaned_data.get("DELETE"):
-                        if form.instance.pk:
-
-                            admin_a2_logger.debug(
-                                "Lösche Phrase (%s): %s",
-                                key,
-                                form.instance.phrase_text,
-                            )
-
-                            form.instance.delete()
-                        continue
-                    if not form.has_changed() and form.instance.pk:
-                        continue
-                    inst = form.save(commit=False)
-                    inst.config = cfg
-                    inst.phrase_type = key
-                    inst.save()
-
-                    admin_a2_logger.debug(
-                        "Gespeicherte Phrase (%s): %s (id=%s)",
-                        key,
-                        inst.phrase_text,
-                        inst.pk,
-                    )
-                messages.success(request, "Phrasen gespeichert")
-            else:
-                admin_a2_logger.debug(
-                    "Ungültige Eingabe für %s: %s",
-                    key,
-                    fs.errors,
-                )
-
-                messages.error(request, "Ungültige Eingabe")
-            return redirect(f"{reverse('anlage2_config')}?tab=text")
-
-        if action == "save_text":
-            admin_a2_logger.debug("Speichere alle Text-Parser Einstellungen")
-            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
-            for key, _ in categories:
-                qs = cfg.global_phrases.filter(phrase_type=key)
-                phrase_sets[key] = Anlage2GlobalPhraseFormSet(
-                    request.POST,
-                    prefix=key,
-                    queryset=qs,
-                )
-            if cfg_form.is_valid() and all(fs.is_valid() for fs in phrase_sets.values()):
-
-                admin_a2_logger.debug(
-                    "Geänderte Felder: %r",
-                    {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data},
-                )
-
-                cfg_form.save()
-                for key, _ in categories:
-                    fs = phrase_sets[key]
-                    for form in fs.forms:
-                        if form.cleaned_data.get("DELETE"):
-                            if form.instance.pk:
-
-                                admin_a2_logger.debug(
-                                    "Lösche Phrase (%s): %s",
-                                    key,
-                                    form.instance.phrase_text,
-                                )
-
-                                form.instance.delete()
-                            continue
-                        if not form.has_changed() and form.instance.pk:
-                            continue
-                        inst = form.save(commit=False)
-                        inst.config = cfg
-                        inst.phrase_type = key
-                        inst.save()
-
-                        admin_a2_logger.debug(
-                            "Gespeicherte Phrase (%s): %s (id=%s)",
-                            key,
-                            inst.phrase_text,
-                            inst.pk,
-                        )
-
-                return redirect(f"{reverse('anlage2_config')}?tab=text")
-            admin_a2_logger.debug(
-                "Ungültige Konfiguration: %s | %s",
-                cfg_form.errors,
-                {k: fs.errors for k, fs in phrase_sets.items()},
-            )
-
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
             cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
@@ -1860,17 +1733,11 @@ def anlage2_config(request):
                 return redirect(f"{reverse('anlage2_config')}?tab=general")
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
-    if not phrase_sets:
-        for key, _ in categories:
-            qs = cfg.global_phrases.filter(phrase_type=key)
-            phrase_sets[key] = Anlage2GlobalPhraseFormSet(prefix=key, queryset=qs)
-
     context = {
         "config": cfg,
         "config_form": cfg_form,
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
-        "phrase_sets": [(k, label, phrase_sets[k]) for k, label in categories],
         "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)
@@ -1892,36 +1759,15 @@ def anlage2_function_form(request, pk=None):
     funktion = get_object_or_404(Anlage2Function, pk=pk) if pk else None
     form = Anlage2FunctionForm(request.POST or None, instance=funktion)
 
-    formset: PhraseFormSet | None = None
-    data = funktion.detection_phrases if funktion else {}
-
-    if request.method == "POST":
-        formset = PhraseFormSet(request.POST, prefix="name_aliases")
-        if form.is_valid() and formset.is_valid():
-            funktion = form.save(commit=False)
-            detection_phrases = copy.deepcopy(funktion.detection_phrases) if funktion else {}
-            phrases = [
-                row.get("phrase", "").strip()
-                for row in formset.cleaned_data
-                if row.get("phrase") and not row.get("DELETE")
-            ]
-            detection_phrases["name_aliases"] = phrases
-            funktion.detection_phrases = detection_phrases
-            funktion.save()
-            return redirect("anlage2_function_edit", funktion.pk)
-    else:
-        raw = data.get("name_aliases", [])
-        if isinstance(raw, str):
-            raw = [raw]
-        initial = [{"phrase": p} for p in raw]
-        formset = PhraseFormSet(prefix="name_aliases", initial=initial)
+    if request.method == "POST" and form.is_valid():
+        funktion = form.save()
+        return redirect("anlage2_function_edit", funktion.pk)
 
     subquestions = list(funktion.anlage2subquestion_set.all()) if funktion else []
     context = {
         "form": form,
         "funktion": funktion,
         "subquestions": subquestions,
-        "formset": formset,
     }
     return render(request, "anlage2/function_form.html", context)
 
@@ -1955,8 +1801,6 @@ def anlage2_function_import(request):
         for entry in items:
             name = entry.get("name") or entry.get("funktion") or ""
             func, _ = Anlage2Function.objects.get_or_create(name=name)
-            if "detection_phrases" in entry:
-                func.detection_phrases = entry.get("detection_phrases", {})
             func.save()
             subs = entry.get("subquestions") or entry.get("unterfragen") or []
             for sub in subs:
@@ -1969,7 +1813,6 @@ def anlage2_function_import(request):
                 Anlage2SubQuestion.objects.create(
                     funktion=func,
                     frage_text=text,
-                    detection_phrases=vals.get("detection_phrases", {}),
                 )
         messages.success(request, "Funktionskatalog importiert")
         return redirect("anlage2_function_list")
@@ -1984,14 +1827,10 @@ def anlage2_function_export(request):
     for f in Anlage2Function.objects.all().order_by("name"):
         item = {
             "name": f.name,
-            "detection_phrases": f.detection_phrases,
             "subquestions": [],
         }
         for q in f.anlage2subquestion_set.all().order_by("id"):
-            item["subquestions"].append({
-                "frage_text": q.frage_text,
-                "detection_phrases": q.detection_phrases,
-            })
+            item["subquestions"].append({"frage_text": q.frage_text})
         functions.append(item)
     content = json.dumps(functions, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
@@ -2011,35 +1850,14 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
         subquestion = Anlage2SubQuestion(funktion=funktion)
     form = Anlage2SubQuestionForm(request.POST or None, instance=subquestion)
 
-    formset: PhraseFormSet | None = None
-    data = subquestion.detection_phrases if subquestion.pk else {}
-
-    if request.method == "POST":
-        formset = PhraseFormSet(request.POST, prefix="name_aliases")
-        if form.is_valid() and formset.is_valid():
-            subquestion = form.save(commit=False)
-            detection_phrases = copy.deepcopy(subquestion.detection_phrases) if subquestion.pk else {}
-            phrases = [
-                row.get("phrase", "").strip()
-                for row in formset.cleaned_data
-                if row.get("phrase") and not row.get("DELETE")
-            ]
-            detection_phrases["name_aliases"] = phrases
-            subquestion.detection_phrases = detection_phrases
-            subquestion.save()
-            return redirect("anlage2_function_edit", funktion.pk)
-    else:
-        raw = data.get("name_aliases", [])
-        if isinstance(raw, str):
-            raw = [raw]
-        initial = [{"phrase": p} for p in raw]
-        formset = PhraseFormSet(prefix="name_aliases", initial=initial)
+    if request.method == "POST" and form.is_valid():
+        subquestion = form.save()
+        return redirect("anlage2_function_edit", funktion.pk)
 
     context = {
         "form": form,
         "funktion": funktion,
         "subquestion": subquestion if pk else None,
-        "formset": formset,
     }
     return render(request, "anlage2/subquestion_form.html", context)
 
@@ -2547,8 +2365,6 @@ def projekt_file_edit_json(request, pk):
 
         for func in Anlage2Function.objects.order_by("name"):
             debug_logger.info("--- Starte Prüfung für Funktion: '%s' ---", func.name)
-            aliases = func.detection_phrases.get("name_aliases", [])
-            debug_logger.debug("Suche nach Namens-Aliasen: %s", aliases)
             if answers.get(func.name):
                 debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
             else:
@@ -2572,8 +2388,6 @@ def projekt_file_edit_json(request, pk):
                 debug_logger.info(
                     "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
                 )
-                aliases = sub.detection_phrases.get("name_aliases", [])
-                debug_logger.debug("Suche nach Namens-Aliasen: %s", aliases)
                 lookup_key = f"{func.name}: {sub.frage_text}"
                 if answers.get(lookup_key):
                     debug_logger.info("-> Ergebnis: Im Dokument gefunden.")

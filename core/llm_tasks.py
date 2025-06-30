@@ -29,7 +29,6 @@ from .models import (
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     parse_anlage2_table,
-    parse_anlage2_text,
     extract_text,
     _normalize_function_name,
     extract_images,
@@ -264,24 +263,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
-    mode = Anlage2Config.get_instance().parser_mode
-    analysis_result = []
-
-    if mode in ["auto", "table_only"]:
-        try:
-            analysis_result = parse_anlage2_table(Path(project_file.upload.path))
-        except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-            parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
-
-    if analysis_result:
-        logger.info("Tabellen-Parser verwendet")
-    elif mode != "table_only":
-        parser_logger.debug(
-            "Textinhalt vor Text-Parser:\n%s",
-            project_file.text_content,
-        )
-        analysis_result = parse_anlage2_text(project_file.text_content)
-        logger.info("Text-Parser verwendet")
+    try:
+        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
+        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        analysis_result = []
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
     project_file.save(update_fields=["analysis_json"])
@@ -298,12 +284,11 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
-    mode = Anlage2Config.get_instance().parser_mode
-    table_data = []
-    if mode in ["auto", "table_only"]:
+    try:
         table_data = parse_anlage2_table(Path(anlage2.upload.path))
-    if not table_data and mode != "table_only":
-        table_data = parse_anlage2_text(anlage2.text_content)
+    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
+        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        table_data = []
     table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
 
@@ -752,7 +737,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
         anlage.analysis_json = {"parser_error": parser_error}
         anlage.save(update_fields=["analysis_json"])
-        table = parse_anlage2_text(anlage.text_content)
+        table = []
     logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
     logger.debug("Collected project text: %r", text)
