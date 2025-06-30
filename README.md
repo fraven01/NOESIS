@@ -153,6 +153,30 @@ Erkennungsphrasen werden einfach zeilenweise eingegeben.
 JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
 
 
+### Format-B Textparser
+
+Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Jede Zeile enthält den Funktionsnamen und optionale Tokens wie `tv`, `tel`, `lv` oder `ki`. Ein Doppelpunkt trennt das Token vom Wert `ja` oder `nein`. Nummerierungen wie `1.` oder Bindestriche am Zeilenanfang werden ignoriert.
+
+Beispiel:
+
+```text
+Login; tv: ja; tel: nein; lv: nein; ki: ja
+```
+
+erzeugt
+
+```json
+[
+  {
+    "funktion": "Login",
+    "technisch_verfuegbar": {"value": true, "note": null},
+    "einsatz_telefonica": {"value": false, "note": null},
+    "zur_lv_kontrolle": {"value": false, "note": null},
+    "ki_beteiligung": {"value": true, "note": null}
+  }
+]
+```
+
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
@@ -175,6 +199,9 @@ Die Reihenfolge mehrerer Parser wird über das Feld `Parser-Reihenfolge`
 bestimmt. Dabei können sowohl der Tabellenparser als auch der neue Textparser
 aktiviert werden. Der Parser mit den meisten als technisch verfügbar erkannten
 Funktionen liefert das Endergebnis.
+
+Die Liste definiert gleichzeitig die Priorität. Schlagen frühere Parser fehl
+oder liefern weniger Treffer, springt automatisch der nächste Parser ein.
 
 Zusätzlich legt die Option **Parser-Priorität** fest, welcher Parser bei
 aktiviertem Fallback zuerst ausgeführt wird. Standardmäßig besitzt der
