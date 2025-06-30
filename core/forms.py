@@ -10,7 +10,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
-    Anlage2GlobalPhrase,
+    #    Anlage2GlobalPhrase,
     SoftwareKnowledge,
     Area,
     LLMRole,
@@ -112,7 +112,6 @@ class DocxValidationMixin:
 
 
 class BVProjectForm(DocxValidationMixin, forms.ModelForm):
-
     class Meta:
         model = BVProject
         fields = ["title", "beschreibung", "status"]
@@ -153,8 +152,6 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         if commit:
             self.save_m2m()
         return projekt
-
-
 
 
 class BVProjectUploadForm(DocxValidationMixin, forms.Form):
@@ -204,7 +201,9 @@ class BVProjectFileForm(forms.ModelForm):
 
         f = self.cleaned_data["upload"]
         ext = Path(f.name).suffix.lower()
-        nr = self.cleaned_data.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
+        nr = self.cleaned_data.get("anlage_nr") or getattr(
+            self.instance, "anlage_nr", None
+        )
 
         if nr == 3:
             if ext not in [".docx", ".pdf"]:
@@ -429,11 +428,8 @@ class Anlage1ImportForm(forms.Form):
     )
 
 
-
-
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
-
 
     class Meta:
         model = Anlage2Config
@@ -442,7 +438,9 @@ class Anlage2ConfigForm(forms.ModelForm):
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
         }
         widgets = {
-            "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "enforce_subquestion_override": forms.CheckboxInput(
+                attrs={"class": "mr-2"}
+            ),
         }
 
 
