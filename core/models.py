@@ -496,23 +496,9 @@ class Anlage2Config(models.Model):
         ),
     )
 
-    DEFAULT_PARSER_CHOICES = [
-        ("table", "Tabellen-Parser"),
-    ]
-
-    default_parser = models.CharField(
-        max_length=50,
-        choices=DEFAULT_PARSER_CHOICES,
-        default="table",
-        help_text="Bevorzugter Parser für Anlage 2.",
-    )
-    fallback_parser = models.CharField(
-        max_length=50,
-        choices=DEFAULT_PARSER_CHOICES,
-        blank=True,
-        help_text=(
-            "Optionaler Fallback-Parser, falls der erste kein Ergebnis liefert."
-        ),
+    parser_order = models.JSONField(
+        default=list,
+        help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
 
@@ -525,7 +511,7 @@ class Anlage2Config(models.Model):
     @classmethod
     def get_instance(cls) -> "Anlage2Config":
         """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
-        return cls.objects.first() or cls.objects.create()
+        return cls.objects.first() or cls.objects.create(parser_order=["table"])
 
 
 class Anlage2ColumnHeading(models.Model):

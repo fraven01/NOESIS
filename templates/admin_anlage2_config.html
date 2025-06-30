@@ -60,18 +60,18 @@
             {{ config_form.enforce_subquestion_override.errors }}
         </div>
         <div>
-            <label>
-                {{ config_form.default_parser.label }}
-                {{ config_form.default_parser }}
-            </label>
-            {{ config_form.default_parser.errors }}
-        </div>
-        <div>
-            <label>
-                {{ config_form.fallback_parser.label }}
-                {{ config_form.fallback_parser }}
-            </label>
-            {{ config_form.fallback_parser.errors }}
+            <label>{{ config_form.parser_order.label }}</label>
+            <ul id="parser-list" class="border rounded p-2 mb-2">
+                {% for val, label in parser_choices %}
+                <li class="flex items-center py-1" draggable="true" data-val="{{ val }}">
+                    <span class="mr-2 cursor-move">&#x2630;</span>
+                    <input type="checkbox" class="parser-cb mr-2" {% if val in config_form.initial.parser_order %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <div id="parser-order-inputs">{{ config_form.parser_order }}</div>
+            {{ config_form.parser_order.errors }}
         </div>
         <button type="submit" name="action" value="save_general" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
     </div>
@@ -99,5 +99,34 @@ function addForm(prefix){
 document.querySelectorAll('.add-form').forEach(btn=>{
     btn.addEventListener('click',()=>addForm(btn.dataset.prefix));
 });
+const list=document.getElementById('parser-list');
+const inputs=document.getElementById('parser-order-inputs');
+let dragged;
+function updateParserInputs(){
+    inputs.innerHTML='';
+    list.querySelectorAll('li').forEach(li=>{
+        const cb=li.querySelector('.parser-cb');
+        if(cb && cb.checked){
+            const inp=document.createElement('input');
+            inp.type='hidden';
+            inp.name='parser_order';
+            inp.value=li.dataset.val;
+            inputs.appendChild(inp);
+        }
+    });
+}
+list.addEventListener('dragstart',e=>{dragged=e.target.closest('li');});
+list.addEventListener('dragover',e=>{
+    e.preventDefault();
+    const target=e.target.closest('li');
+    if(target&&target!==dragged){
+        const rect=target.getBoundingClientRect();
+        const next=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
+        list.insertBefore(dragged,next?target.nextSibling:target);
+    }
+});
+list.addEventListener('drop',e=>{e.preventDefault();updateParserInputs();});
+list.addEventListener('change',updateParserInputs);
+updateParserInputs();
 </script>
 {% endblock %}

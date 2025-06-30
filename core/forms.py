@@ -438,25 +438,23 @@ class Anlage1ImportForm(forms.Form):
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
 
+    parser_order = forms.MultipleChoiceField(
+        choices=get_parser_choices(),
+        required=False,
+    )
+
     class Meta:
         model = Anlage2Config
-        fields = ["enforce_subquestion_override", "default_parser", "fallback_parser"]
+        fields = ["enforce_subquestion_override", "parser_order"]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
-            "default_parser": "Bevorzugter Parser",
-            "fallback_parser": "Fallback-Parser",
+            "parser_order": "Parser-Reihenfolge",
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
-            "default_parser": forms.Select(
-                choices=get_parser_choices(), attrs={"class": "border rounded p-2"}
-            ),
-            "fallback_parser": forms.Select(
-                choices=[("", "---")] + get_parser_choices(),
-                attrs={"class": "border rounded p-2"},
-            ),
+            "parser_order": forms.MultipleHiddenInput(),
         }
 
 
