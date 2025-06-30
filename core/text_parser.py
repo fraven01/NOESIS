@@ -40,7 +40,9 @@ class TextParser(AbstractParser):
                 if detail_match:
                     frage = detail_match.group(1).strip()
                     antwort = detail_match.group(2).strip()
-                    antwort_verw = "Ja" if re.search(r"\bja\b", antwort, re.I) else "Nein"
+                    antwort_verw = (
+                        "Ja" if re.search(r"\bja\b", antwort, re.I) else "Nein"
+                    )
                     details.append(
                         {
                             "frage": frage,
@@ -62,6 +64,7 @@ class TextParser(AbstractParser):
 
 
 def _map_technisch(sentence: str) -> str:
+    """Ermittelt, ob eine Funktion technisch verfügbar ist."""
     lower = sentence.lower()
     if "stehen technisch zur ver\u00fcgung" in lower:
         return "Ja"
@@ -75,17 +78,23 @@ def _map_technisch(sentence: str) -> str:
 
 
 def _map_verwendung(sentence: str, technisch: str) -> str:
+    """Bewertet die geplante Verwendung einer Funktion."""
     lower = sentence.lower()
     if technisch == "Nein":
         return "Nein"
     if "und sollen verwendet werden" in lower:
         return "Ja"
-    if "sollen nicht verwendet" in lower or "soll aber nicht verwendet" in lower:
+    if (
+        "sollen nicht verwendet" in lower
+        or "soll aber nicht verwendet" in lower
+    ):
         return "Nein"
     return "Unbekannt"
 
 
 def _map_lv(sentence: str) -> str:
+    """Gibt an, ob die Funktion der Leistungs- oder
+    Verhaltenskontrolle dient."""
     lower = sentence.lower()
     if "\u00fcberwachung von leistung oder verhalten" in lower:
         if "nicht verwendet" in lower:
@@ -99,8 +108,9 @@ def _map_lv(sentence: str) -> str:
 def parse_format_b(text: str) -> List[dict[str, object]]:
     """Parst ein einfaches Listenformat von Anlage 2.
 
-    Mehrere Zeilen k\u00f6nnen verarbeitet werden. Jede Zeile enth\u00e4lt einen
-    Funktionsnamen und optionale Tokens wie ``tv``, ``tel``, ``lv`` und ``ki``.
+    Mehrere Zeilen können verarbeitet werden.
+    Jede Zeile enthält einen Funktionsnamen und optionale Tokens
+    wie ``tv``, ``tel``, ``lv`` und ``ki``.
     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
     """
 
@@ -127,7 +137,10 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
             if not m:
                 continue
             key, val = m.groups()
-            entry[mapping[key.lower()]] = {"value": val.lower() == "ja", "note": None}
+            entry[mapping[key.lower()]] = {
+                "value": val.lower() == "ja",
+                "note": None,
+            }
         results.append(entry)
 
     return results
