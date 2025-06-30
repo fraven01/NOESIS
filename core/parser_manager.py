@@ -50,9 +50,7 @@ class ParserManager:
 
     def parse_anlage2(self, project_file: BVProjectFile) -> list[dict[str, object]]:
         cfg = Anlage2Config.get_instance()
-        parser_order = [cfg.default_parser]
-        if cfg.fallback_parser:
-            parser_order.append(cfg.fallback_parser)
+        parser_order = cfg.parser_order or ["table"]
         for name in parser_order:
             parser = self.get(name)
             if parser is None:

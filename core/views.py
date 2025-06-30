@@ -36,6 +36,7 @@ from .forms import (
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
+    get_parser_choices,
     EditJustificationForm,
     JustificationForm,
 
@@ -1739,6 +1740,7 @@ def anlage2_config(request):
         "config_form": cfg_form,
         "aliases": aliases,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
+        "parser_choices": get_parser_choices(),
         "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)

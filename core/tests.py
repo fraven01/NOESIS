@@ -42,7 +42,12 @@ from PIL import Image
 import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .forms import BVProjectForm, BVProjectUploadForm, BVProjectFileJSONForm
+from .forms import (
+    BVProjectForm,
+    BVProjectUploadForm,
+    BVProjectFileJSONForm,
+    Anlage2ConfigForm,
+)
 from .workflow import set_project_status
 from .models import ProjectStatus
 from .llm_tasks import (
@@ -558,6 +563,15 @@ class BVProjectFormTests(TestCase):
         self.assertFalse(invalid.is_valid())
 
 
+class Anlage2ConfigFormTests(TestCase):
+    def test_parser_order_field(self):
+        cfg = Anlage2Config.get_instance()
+        form = Anlage2ConfigForm({"parser_order": ["table"]}, instance=cfg)
+        self.assertTrue(form.is_valid())
+        inst = form.save()
+        self.assertEqual(inst.parser_order, ["table"])
+
+
 class BVProjectFileTests(TestCase):
     def test_create_project_with_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -969,8 +983,7 @@ class LLMTasksTests(TestCase):
         parser_manager.register(FailParser)
         parser_manager.register(DummyParser)
         cfg = Anlage2Config.get_instance()
-        cfg.default_parser = "fail"
-        cfg.fallback_parser = "dummy"
+        cfg.parser_order = ["fail", "dummy"]
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -993,11 +1006,53 @@ class LLMTasksTests(TestCase):
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("fail")
             parser_manager._parsers.pop("dummy")
-            cfg.default_parser = "table"
-            cfg.fallback_parser = ""
+            cfg.parser_order = ["table"]
             cfg.save()
 
         self.assertEqual(result, [{"funktion": "Dummy"}])
+
+    def test_parser_manager_order(self):
+        class P1(AbstractParser):
+            name = "one"
+
+            def parse(self, project_file):
+                return [{"val": 1}]
+
+        class P2(AbstractParser):
+            name = "two"
+
+            def parse(self, project_file):
+                return [{"val": 2}]
+
+        parser_manager.register(P1)
+        parser_manager.register(P2)
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_order = ["two", "one"]
+        cfg.save()
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=1, cols=1)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("d.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+        )
+        try:
+            result = run_anlage2_analysis(pf)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            parser_manager._parsers.pop("one")
+            parser_manager._parsers.pop("two")
+            cfg.parser_order = ["table"]
+            cfg.save()
+
+        self.assertEqual(result, [{"val": 2}])
 
 
     def test_analyse_anlage2(self):

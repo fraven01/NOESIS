@@ -145,7 +145,8 @@ lediglich die vorhandenen Daten eingelesen.
 Die Konfigurationsseite besitzt zwei Tabs: **Tabellen‑Parser** und
 **Allgemein**. Hier lassen sich die Spaltenüberschriften und weitere Optionen
 anpassen. Der frühere `parser_mode`-Schalter entfällt, da nur noch der
-Tabellenparser zum Einsatz kommt.
+Tabellenparser zum Einsatz kommt. Die Reihenfolge mehrerer Parser wird über das
+Feld `Parser-Reihenfolge` bestimmt.
 
 ### KI-Begründung per Tooltip
 
