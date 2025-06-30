@@ -107,6 +107,14 @@ Logdatei `parser-debug.log`.
 Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
 jede Zeile wird als eigene Phrase gespeichert.
 
+Um den Parser auch ohne Weboberfläche zu testen, steht das Skript
+`text_parser.py` bereit. Es erwartet eine Text- oder DOCX-Datei und gibt die
+erkannten Funktionen als JSON aus:
+
+```bash
+python text_parser.py anlage2.docx
+```
+
 
 
 ### Kachel-Zugriff verwalten
@@ -153,6 +161,10 @@ Die Konfigurationsseite ist in drei Tabs unterteilt: **Tabellen‑Parser**,
 Feldwert `parser_mode` setzen. Er bestimmt, ob beim Einlesen der Anlage nur der
 Tabellenparser, nur der Textparser oder der bisherige automatische Fallback
 verwendet wird.
+
+Zusätzlich legt die Option **Parser-Priorität** fest, welcher Parser bei
+aktiviertem Fallback zuerst ausgeführt wird. Standardmäßig besitzt der
+Tabellenparser Vorrang.
 
 ### KI-Begründung per Tooltip
 
