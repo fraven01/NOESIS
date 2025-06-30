@@ -1,35 +1,13 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Callable, Dict, List, Type
+from typing import Dict, List, Type
 
 from .models import BVProjectFile, Anlage2Config
-from .docx_utils import parse_anlage2_table
+from .parsers import AbstractParser, TableParser
 from .text_parser import TextParser
 
 logger = logging.getLogger(__name__)
-
-
-class AbstractParser(ABC):
-    """Abstrakte Basisklasse für Parser."""
-
-    name: str
-
-    @abstractmethod
-    def parse(self, project_file: BVProjectFile) -> list[dict[str, object]]:
-        """Parst eine Projektdatei."""
-        raise NotImplementedError
-
-
-class TableParser(AbstractParser):
-    """Parser für strukturierte Tabelle."""
-
-    name = "table"
-
-    def parse(self, project_file: BVProjectFile) -> list[dict[str, object]]:
-        return parse_anlage2_table(Path(project_file.upload.path))
 
 
 class ParserManager:
