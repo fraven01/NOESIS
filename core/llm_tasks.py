@@ -254,11 +254,10 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-    """Parst eine Anlage 2-Datei mit Fallback.
+    """Liest Anlage 2 ausschließlich über den Tabellenparser ein.
 
-    Zunächst wird versucht, die Tabelle zu lesen. Liefert dies keine Daten,
-    kommt der Text-Parser zum Einsatz. Das Ergebnis wird als JSON-String im
-    Modell gespeichert.
+    Der früher vorhandene Textparser wird nicht mehr verwendet. Das Ergebnis
+    wird als JSON-String im Modell gespeichert.
     """
 
     logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
