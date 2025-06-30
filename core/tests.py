@@ -35,6 +35,7 @@ from .docx_utils import (
     _normalize_header_text,
 )
 from .parser_manager import parser_manager, AbstractParser
+from .text_parser import TextParser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -1053,6 +1054,67 @@ class LLMTasksTests(TestCase):
             cfg.save()
 
         self.assertEqual(result, [{"val": 2}])
+
+    def test_text_parser_basic(self):
+        text = (
+            "Chat: Stehen technisch zur Verf\u00fcgung und sollen verwendet werden. "
+            "Sollen zur \u00dcberwachung von Leistung oder Verhalten NICHT verwendet werden.\n"
+            "Detail?: Ja\n\n"
+            "Logging: Stehen technisch NICHT zur Verf\u00fcgung."
+        )
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content=text,
+        )
+        parser = TextParser()
+        data = parser.parse(pf)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["funktion"], "Chat")
+        self.assertEqual(data[0]["technisch_verfuegbar"], "Ja")
+        self.assertEqual(data[0]["soll_verwendet_werden"], "Ja")
+        self.assertEqual(data[0]["ueberwachung_leistung_verhalten"], "Nein")
+        self.assertEqual(data[0]["details"][0]["antwort_verwendung"], "Ja")
+        self.assertEqual(data[1]["technisch_verfuegbar"], "Nein")
+        self.assertEqual(data[1]["soll_verwendet_werden"], "Nein")
+
+    def test_parser_manager_selects_best(self):
+        class P1(AbstractParser):
+            name = "p1"
+
+            def parse(self, project_file):
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
+
+        class P2(AbstractParser):
+            name = "p2"
+
+            def parse(self, project_file):
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
+
+        parser_manager.register(P1)
+        parser_manager.register(P2)
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_order = ["p1", "p2"]
+        cfg.save()
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"x"),
+        )
+
+        try:
+            result = parser_manager.parse_anlage2(pf)
+        finally:
+            parser_manager._parsers.pop("p1")
+            parser_manager._parsers.pop("p2")
+            cfg.parser_order = ["table"]
+            cfg.save()
+
+        self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
 
 
     def test_analyse_anlage2(self):

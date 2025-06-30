@@ -144,9 +144,11 @@ lediglich die vorhandenen Daten eingelesen.
 
 Die Konfigurationsseite besitzt zwei Tabs: **Tabellen‑Parser** und
 **Allgemein**. Hier lassen sich die Spaltenüberschriften und weitere Optionen
-anpassen. Der frühere `parser_mode`-Schalter entfällt, da nur noch der
-Tabellenparser zum Einsatz kommt. Die Reihenfolge mehrerer Parser wird über das
-Feld `Parser-Reihenfolge` bestimmt.
+anpassen. Der frühere `parser_mode`-Schalter entfällt. 
+Die Reihenfolge mehrerer Parser wird über das Feld `Parser-Reihenfolge`
+bestimmt. Dabei können sowohl der Tabellenparser als auch der neue Textparser
+aktiviert werden. Der Parser mit den meisten als technisch verfügbar erkannten
+Funktionen liefert das Endergebnis.
 
 ### KI-Begründung per Tooltip
 

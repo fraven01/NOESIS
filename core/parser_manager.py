@@ -7,6 +7,7 @@ from typing import Callable, Dict, List, Type
 
 from .models import BVProjectFile, Anlage2Config
 from .docx_utils import parse_anlage2_table
+from .text_parser import TextParser
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ class ParserManager:
     def parse_anlage2(self, project_file: BVProjectFile) -> list[dict[str, object]]:
         cfg = Anlage2Config.get_instance()
         parser_order = cfg.parser_order or ["table"]
+        best_result: list[dict[str, object]] = []
+        best_count = -1
         for name in parser_order:
             parser = self.get(name)
             if parser is None:
@@ -61,10 +64,29 @@ class ParserManager:
             except Exception as exc:  # pragma: no cover - Fehlkonfiguration
                 logger.error("Parser '%s' Fehler: %s", name, exc)
                 result = []
-            if result:
-                return result
-        return []
+            count = _count_technisch_true(result)
+            if count > best_count:
+                best_result = result
+                best_count = count
+        return best_result
+
+
+def _count_technisch_true(data: list[dict[str, object]]) -> int:
+    """Zählt Einträge mit technisch vorhandener Funktion."""
+    count = 0
+    for item in data:
+        val = item.get("technisch_verfuegbar")
+        if isinstance(val, dict):
+            if val.get("value") is True:
+                count += 1
+        elif isinstance(val, str):
+            if val.lower() == "ja":
+                count += 1
+        elif val is True:
+            count += 1
+    return count
 
 
 parser_manager = ParserManager()
 parser_manager.register(TableParser)
+parser_manager.register(TextParser)
