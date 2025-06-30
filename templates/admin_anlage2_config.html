@@ -73,6 +73,11 @@
             <div id="parser-order-inputs">{{ config_form.parser_order }}</div>
             {{ config_form.parser_order.errors }}
         </div>
+        <div>
+            <label class="block">{{ config_form.parser_order.label }}</label>
+            {{ config_form.parser_order }}
+            {{ config_form.parser_order.errors }}
+        </div>
         <button type="submit" name="action" value="save_general" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
     </div>
 </form>

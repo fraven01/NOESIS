@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import logging
@@ -92,4 +93,5 @@ def _map_lv(sentence: str) -> str:
         if "verwendet" in lower:
             return "Ja"
     return "Unbekannt"
+
 

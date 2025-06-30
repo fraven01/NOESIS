@@ -34,8 +34,12 @@ from .docx_utils import (
     parse_anlage2_table,
     _normalize_header_text,
 )
+
+from . import text_parser
+
 from .parser_manager import parser_manager, AbstractParser
 from .text_parser import TextParser
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -538,6 +542,228 @@ class DocxExtractTests(TestCase):
             Path(tmp.name).unlink(missing_ok=True)
 
         self.assertEqual(data, [])
+
+
+    def test_parse_anlage2_text(self):
+        func = Anlage2Function.objects.create(
+            name="Login",
+            detection_phrases={"name_aliases": ["login"]},
+        )
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+            detection_phrases={"name_aliases": ["warum"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Login tv ja ki nein\nWarum? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {
+                    "funktion": "Login: Warum?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
+
+    def test_parse_anlage2_text_default_aliases(self):
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Login tv ja ki nein\nWarum? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {
+                    "funktion": "Login: Warum?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
+
+    def test_parse_anlage2_text_name_always_alias(self):
+        func = Anlage2Function.objects.create(
+            name="Anmelden",
+            detection_phrases={"name_aliases": ["login"]},
+        )
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+            detection_phrases={"name_aliases": ["reason"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.save()
+        text = "Anmelden tv ja\nGrund? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {
+                    "funktion": "Anmelden: Grund?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
+
+    def test_parse_anlage2_text_normalizes_variants(self):
+        func = Anlage2Function.objects.create(name="User Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
+        text = "User-Login   tv ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "User Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_punctuation_variants(self):
+        func = Anlage2Function.objects.create(
+            name="Analyse-/Reportingfunktionen",
+            detection_phrases={"name_aliases": ["Analyse-/Reportingfunktionen"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
+        text = "Analyse- / Reportingfunktionen tv ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse-/Reportingfunktionen",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_merges_duplicate_functions(self):
+        func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Login tv ja\nLogin ki nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_updates_values_without_function(self):
+        func = Anlage2Function.objects.create(name="Analyse")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
+        cfg.text_zur_lv_kontrolle_false = ["kein lv"]
+        cfg.save()
+        text = "Analyse verfuegbar\nkein lv"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                }
+            ],
+        )
+
+class TextParserFormatBTests(TestCase):
+    def test_parse_format_b_basic(self):
+        text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_format_b_numbering(self):
+        text = "1. Logout - tv=nein - ki=ja"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Logout",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_format_b_multiple_lines(self):
+        text = "Login; tv: ja\nLogout; tv: nein"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(len(data), 2)
+        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
+        self.assertFalse(data[1]["technisch_verfuegbar"]["value"])
+
+    def test_extract_images(self):
+        img = Image.new("RGB", (1, 1), color="blue")
+        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+        img.save(img_tmp.name)
+        img_tmp.close()
+        doc = Document()
+        doc.add_picture(img_tmp.name)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        try:
+            data = extract_images(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            Path(img_tmp.name).unlink(missing_ok=True)
+        self.assertEqual(len(data), 1)
+        self.assertTrue(data[0].startswith(b"\x89PNG"))
 
 
 class BVProjectFormTests(TestCase):
@@ -1098,6 +1324,61 @@ class LLMTasksTests(TestCase):
         cfg = Anlage2Config.get_instance()
         cfg.parser_order = ["p1", "p2"]
         cfg.save()
+
+        with patch("core.llm_tasks.parse_anlage2_table") as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[]
+        ) as m_text:
+            run_anlage2_analysis(pf)
+        m_tab.assert_not_called()
+        m_text.assert_called_once()
+
+    def test_run_anlage2_analysis_auto_prefers_table(self):
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+
+        cfg.parser_mode = "auto"
+        cfg.save()
+        table_result = [{"funktion": "Login"}]
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", return_value=table_result
+        ) as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Alt"}]
+        ) as m_text:
+            result = run_anlage2_analysis(pf)
+        m_tab.assert_called_once()
+        m_text.assert_not_called()
+        self.assertEqual(result, table_result)
+
+    def test_run_anlage2_analysis_auto_fallback_empty_table(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "auto"
+        cfg.save()
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", return_value=[]
+        ) as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Login"}]
+        ) as m_text:
+            result = run_anlage2_analysis(pf)
+        m_tab.assert_called_once()
+        m_text.assert_called_once()
+        self.assertEqual(result, [{"funktion": "Login"}])
+
+
+    def test_check_anlage2_table_error_fallback(self):
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
@@ -3191,6 +3472,73 @@ class Anlage2ConfigViewTests(TestCase):
         self.user.groups.add(admin)
         self.client.login(username="cfguser", password="pass")
         self.cfg = Anlage2Config.get_instance()
+
+
+    def test_update_parser_mode(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "parser_mode": "text_only",
+                "parser_order": "text_first",
+                "action": "save_general",
+                "active_tab": "general",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=general")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_mode, "text_only")
+        self.assertEqual(self.cfg.parser_order, "text_first")
+
+    def test_update_parser_order(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "parser_mode": self.cfg.parser_mode,
+                "parser_order": "text_first",
+                "action": "save_general",
+                "active_tab": "general",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=general")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_order, "text_first")
+
+    def test_save_table_tab(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "new_field": "technisch_vorhanden",
+                "new_text": "Verfügbar?",
+                "action": "save_table",
+                "active_tab": "table",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=table")
+        self.assertTrue(
+            Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
+        )
+
+    def test_multiline_phrases_saved(self):
+        url = reverse("anlage2_config")
+        data = {
+            "text_technisch_verfuegbar_true": "ja\nokay\n",
+            "parser_mode": self.cfg.parser_mode,
+            "parser_order": self.cfg.parser_order,
+            "action": "save_text",
+            "active_tab": "text",
+        }
+        for key, _ in Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES:
+            data[f"{key}-TOTAL_FORMS"] = "0"
+            data[f"{key}-INITIAL_FORMS"] = "0"
+            data[f"{key}-MIN_NUM_FORMS"] = "0"
+            data[f"{key}-MAX_NUM_FORMS"] = "1000"
+        resp = self.client.post(url, data)
+        self.assertRedirects(resp, url + "?tab=text")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
 
 
 

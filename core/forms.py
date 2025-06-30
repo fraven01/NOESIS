@@ -445,16 +445,50 @@ class Anlage2ConfigForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Config
-        fields = ["enforce_subquestion_override", "parser_order"]
+
+        fields = [
+            "enforce_subquestion_override",
+            "parser_mode",
+            "parser_order",
+            "text_technisch_verfuegbar_true",
+            "text_technisch_verfuegbar_false",
+            "text_einsatz_telefonica_true",
+            "text_einsatz_telefonica_false",
+            "text_zur_lv_kontrolle_true",
+            "text_zur_lv_kontrolle_false",
+            "text_ki_beteiligung_true",
+            "text_ki_beteiligung_false",
+        ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
+            "parser_mode": "Parser-Modus",
             "parser_order": "Parser-Reihenfolge",
+            "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
+            "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
+            "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
+            "text_einsatz_telefonica_false": "Text‑Parser: Einsatz Telefónica – Nein",
+            "text_zur_lv_kontrolle_true": "Text‑Parser: Zur LV-Kontrolle – Ja",
+            "text_zur_lv_kontrolle_false": "Text‑Parser: Zur LV-Kontrolle – Nein",
+            "text_ki_beteiligung_true": "Text‑Parser: KI-Beteiligung – Ja",
+            "text_ki_beteiligung_false": "Text‑Parser: KI-Beteiligung – Nein",
+
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
-            "parser_order": forms.MultipleHiddenInput(),
+
+            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "parser_order": forms.Select(attrs={"class": "border rounded p-2"}),
+            "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
+            "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
+            "text_einsatz_telefonica_false": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_true": forms.Textarea(attrs={"rows": 2}),
+            "text_zur_lv_kontrolle_false": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_true": forms.Textarea(attrs={"rows": 2}),
+            "text_ki_beteiligung_false": forms.Textarea(attrs={"rows": 2}),
+
         }
 
 
