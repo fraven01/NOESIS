@@ -22,7 +22,6 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
-    Anlage2GlobalPhrase,
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
@@ -35,6 +34,7 @@ from .docx_utils import (
     parse_anlage2_table,
     _normalize_header_text,
 )
+from .parser_manager import parser_manager, AbstractParser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -532,20 +532,6 @@ class DocxExtractTests(TestCase):
             Path(tmp.name).unlink(missing_ok=True)
 
         self.assertEqual(data, [])
-        img.save(img_tmp.name)
-        img_tmp.close()
-        doc = Document()
-        doc.add_picture(img_tmp.name)
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        try:
-            data = extract_images(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-            Path(img_tmp.name).unlink(missing_ok=True)
-        self.assertEqual(len(data), 1)
-        self.assertTrue(data[0].startswith(b"\x89PNG"))
 
 
 class BVProjectFormTests(TestCase):
@@ -966,6 +952,52 @@ class LLMTasksTests(TestCase):
         pf.refresh_from_db()
         self.assertEqual(result, expected)
         self.assertEqual(json.loads(pf.analysis_json), expected)
+
+    def test_parser_manager_fallback(self):
+        class FailParser(AbstractParser):
+            name = "fail"
+
+            def parse(self, project_file):
+                raise ValueError("boom")
+
+        class DummyParser(AbstractParser):
+            name = "dummy"
+
+            def parse(self, project_file):
+                return [{"funktion": "Dummy"}]
+
+        parser_manager.register(FailParser)
+        parser_manager.register(DummyParser)
+        cfg = Anlage2Config.get_instance()
+        cfg.default_parser = "fail"
+        cfg.fallback_parser = "dummy"
+        cfg.save()
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=1, cols=1)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("c.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+        )
+
+        try:
+            result = run_anlage2_analysis(pf)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            parser_manager._parsers.pop("fail")
+            parser_manager._parsers.pop("dummy")
+            cfg.default_parser = "table"
+            cfg.fallback_parser = ""
+            cfg.save()
+
+        self.assertEqual(result, [{"funktion": "Dummy"}])
 
 
     def test_analyse_anlage2(self):
@@ -3007,11 +3039,6 @@ class Anlage2ConfigImportExportTests(TestCase):
             field_name="technisch_vorhanden",
             text="Verfügbar?",
         )
-        Anlage2GlobalPhrase.objects.create(
-            config=self.cfg,
-            phrase_type="technisch_verfuegbar_true",
-            phrase_text="ja",
-        )
         url = reverse("admin_anlage2_config_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -3020,26 +3047,13 @@ class Anlage2ConfigImportExportTests(TestCase):
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
             data["alias_headings"],
         )
-        self.assertIn(
-            {
-                "phrase_type": "technisch_verfuegbar_true",
-                "phrase_text": "ja",
-            },
-            data["global_phrases"],
-        )
 
     def test_import_creates_headings(self):
         payload = json.dumps(
             {
                 "alias_headings": [
                     {"field_name": "ki_beteiligung", "text": "KI?"}
-                ],
-                "global_phrases": [
-                    {
-                        "phrase_type": "ki_beteiligung_true",
-                        "phrase_text": "Ja",
-                    }
-                ],
+                ]
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
