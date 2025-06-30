@@ -95,3 +95,39 @@ def _map_lv(sentence: str) -> str:
     return "Unbekannt"
 
 
+
+def parse_format_b(text: str) -> List[dict[str, object]]:
+    """Parst ein einfaches Listenformat von Anlage 2.
+
+    Mehrere Zeilen k\u00f6nnen verarbeitet werden. Jede Zeile enth\u00e4lt einen
+    Funktionsnamen und optionale Tokens wie ``tv``, ``tel``, ``lv`` und ``ki``.
+    Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
+    """
+
+    mapping = {
+        "tv": "technisch_verfuegbar",
+        "tel": "einsatz_telefonica",
+        "lv": "zur_lv_kontrolle",
+        "ki": "ki_beteiligung",
+    }
+
+    results: List[dict[str, object]] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        line = re.sub(r"^[\d]+[.)]\s*", "", line)
+        parts = re.split(r"[;\-]", line)
+        if not parts:
+            continue
+        entry: dict[str, object] = {"funktion": parts[0].strip()}
+        for part in parts[1:]:
+            part = part.strip()
+            m = re.match(r"(tv|tel|lv|ki)\s*[:=]\s*(ja|nein)", part, re.I)
+            if not m:
+                continue
+            key, val = m.groups()
+            entry[mapping[key.lower()]] = {"value": val.lower() == "ja", "note": None}
+        results.append(entry)
+
+    return results
