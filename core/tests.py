@@ -3481,7 +3481,7 @@ class Anlage2ConfigViewTests(TestCase):
             url,
             {
                 "parser_mode": "text_only",
-                "parser_order": "text_first",
+                "parser_order": ["text"],
                 "action": "save_general",
                 "active_tab": "general",
             },
@@ -3489,7 +3489,7 @@ class Anlage2ConfigViewTests(TestCase):
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.parser_mode, "text_only")
-        self.assertEqual(self.cfg.parser_order, "text_first")
+        self.assertEqual(self.cfg.parser_order, ["text"])
 
     def test_update_parser_order(self):
         url = reverse("anlage2_config")
@@ -3497,14 +3497,14 @@ class Anlage2ConfigViewTests(TestCase):
             url,
             {
                 "parser_mode": self.cfg.parser_mode,
-                "parser_order": "text_first",
+                "parser_order": ["text"],
                 "action": "save_general",
                 "active_tab": "general",
             },
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, "text_first")
+        self.assertEqual(self.cfg.parser_order, ["text"])
 
     def test_save_table_tab(self):
         url = reverse("anlage2_config")

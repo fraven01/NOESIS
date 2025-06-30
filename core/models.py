@@ -509,15 +509,9 @@ class Anlage2Config(models.Model):
         default="auto",
     )
 
-    ORDER_CHOICES = [
-        ("table_first", "Zuerst Tabelle"),
-        ("text_first", "Zuerst Text"),
-    ]
-
-    parser_order = models.CharField(
-        max_length=20,
-        choices=ORDER_CHOICES,
-        default="table_first",
+    parser_order = models.JSONField(
+        default=list,
+        help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
     text_technisch_verfuegbar_true = models.JSONField(
