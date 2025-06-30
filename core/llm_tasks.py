@@ -28,18 +28,23 @@ from .models import (
 )
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
-    parse_anlage2_table,
     extract_text,
     _normalize_function_name,
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
 )
+from .parser_manager import parser_manager
 from docx import Document
 
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
+anlage1_logger = logging.getLogger("anlage1_debug")
+anlage2_logger = logging.getLogger("anlage2_debug")
 anlage3_logger = logging.getLogger("anlage3_debug")
+anlage4_logger = logging.getLogger("anlage4_debug")
+anlage5_logger = logging.getLogger("anlage5_debug")
+anlage6_logger = logging.getLogger("anlage6_debug")
 
 ANLAGE1_QUESTIONS = [
     "Frage 1: Extrahiere alle Unternehmen als Liste.",
@@ -124,12 +129,12 @@ def parse_anlage1_questions(
     text_content: str,
 ) -> dict[str, dict[str, str | None]] | None:
     """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
-    logger.debug(
+    anlage1_logger.debug(
         "parse_anlage1_questions: Aufruf mit text_content=%r",
         text_content[:200] if text_content else None,
     )
     if not text_content:
-        logger.debug("parse_anlage1_questions: Kein Text übergeben.")
+        anlage1_logger.debug("parse_anlage1_questions: Kein Text übergeben.")
         return None
 
     text_content = _clean_text(text_content)
@@ -146,7 +151,7 @@ def parse_anlage1_questions(
         if enabled:
             questions.append(q)
     if not questions:
-        logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
+        anlage1_logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
         return None
 
     matches: list[tuple[int, int, int, str]] = []
@@ -168,14 +173,14 @@ def parse_anlage1_questions(
                 best = (m.start(), m.end(), m.group(0))
         if best:
             matches.append((best[0], best[1], q.num, best[2]))
-            logger.debug(
+            anlage1_logger.debug(
                 "parse_anlage1_questions: Frage %s gefunden an Position %d",
                 q.num,
                 best[0],
             )
 
     if not matches:
-        logger.debug("parse_anlage1_questions: Keine Fragen im Text gefunden.")
+        anlage1_logger.debug("parse_anlage1_questions: Keine Fragen im Text gefunden.")
         return None
 
     matches.sort(key=lambda x: x[0])
@@ -188,13 +193,13 @@ def parse_anlage1_questions(
         found = re.search(r"Frage\s+(\d+(?:\.\d+)?)", matched_text)
         found_num = found.group(1) if found else None
         parsed[str(num)] = {"answer": ans, "found_num": found_num}
-        logger.debug(
+        anlage1_logger.debug(
             "parse_anlage1_questions: Antwort f\xfcr Frage %s: %r",
             num,
             parsed[str(num)]["answer"],
         )
 
-    logger.debug(
+    anlage1_logger.debug(
         "parse_anlage1_questions: Ergebnis: %r",
         parsed if parsed else None,
     )
@@ -231,7 +236,7 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
             if isinstance(data, list):
                 return [str(x) for x in data]
         except Exception:  # noqa: BLE001
-            logger.warning("_parse_anlage2: LLM Antwort kein JSON: %s", reply)
+            anlage2_logger.warning("_parse_anlage2: LLM Antwort kein JSON: %s", reply)
         return None
 
     bullet_re = re.compile(r"^(?:[-*]|\d+[.)]|[a-z]\))\s*(.+)$", re.I)
@@ -254,19 +259,18 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-    """Parst eine Anlage 2-Datei mit Fallback.
+    """Liest Anlage 2 ausschließlich über den Tabellenparser ein.
 
-    Zunächst wird versucht, die Tabelle zu lesen. Liefert dies keine Daten,
-    kommt der Text-Parser zum Einsatz. Das Ergebnis wird als JSON-String im
-    Modell gespeichert.
+    Der früher vorhandene Textparser wird nicht mehr verwendet. Das Ergebnis
+    wird als JSON-String im Modell gespeichert.
     """
 
-    logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
+    anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
     try:
-        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+        analysis_result = parser_manager.parse_anlage2(project_file)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         analysis_result = []
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
@@ -285,9 +289,9 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 2 fehlt") from exc
 
     try:
-        table_data = parse_anlage2_table(Path(anlage2.upload.path))
+        table_data = parser_manager.parse_anlage2(anlage2)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         table_data = []
     table_names = [row["funktion"] for row in table_data]
     anlage_funcs = _parse_anlage2(anlage2.text_content) or []
@@ -600,7 +604,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     llm_questions = [q for q in question_objs if _llm_enabled(q)]
 
     # Debug-Log für den zu parsenden Text
-    logger.debug(
+    anlage1_logger.debug(
         "check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r",
         anlage.text_content[:500] if anlage.text_content else None,
     )
@@ -611,7 +615,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     data: dict
 
     if parsed:
-        logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
+        anlage1_logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
         answers = {
             str(q.num): parsed.get(str(q.num), {}).get("answer") for q in question_objs
         }
@@ -636,12 +640,12 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
         )
 
-        logger.debug(
+        anlage1_logger.debug(
             "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r",
             prompt_text[:500],
         )
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
-        logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
+        anlage1_logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -678,7 +682,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         if _llm_enabled(q):
             prompt_text = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
             prompt_obj = Prompt(name="tmp", text=prompt_text)
-            logger.debug(
+            anlage1_logger.debug(
                 "check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r",
                 q.num,
                 prompt_text,
@@ -687,7 +691,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
                 reply = query_llm(
                     prompt_obj, {}, model_name=model_name, model_type="anlagen"
                 )
-                logger.debug(
+                anlage1_logger.debug(
                     "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
                 )
                 fb = json.loads(reply)
@@ -720,7 +724,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     Das Ergebnis wird als JSON im Analysefeld der Anlage gespeichert.
     """
     projekt = BVProject.objects.get(pk=projekt_id)
-    logger.debug("Starte check_anlage2 f\u00fcr Projekt %s", projekt_id)
+    anlage2_logger.debug("Starte check_anlage2 f\u00fcr Projekt %s", projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=2)
     except (
@@ -728,19 +732,19 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 2 fehlt") from exc
 
-    logger.debug("Anlage 2 Pfad: %s", anlage.upload.path)
+    anlage2_logger.debug("Anlage 2 Pfad: %s", anlage.upload.path)
     parser_error: str | None = None
     try:
-        table = parse_anlage2_table(Path(anlage.upload.path))
+        table = parser_manager.parse_anlage2(anlage)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
         parser_error = str(exc)
-        parser_logger.error("Fehler im Tabellen-Parser: %s", exc)
+        parser_logger.error("Fehler im Parser: %s", exc)
         anlage.analysis_json = {"parser_error": parser_error}
         anlage.save(update_fields=["analysis_json"])
         table = []
-    logger.debug("Anlage2 table data: %r", table)
+    anlage2_logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
-    logger.debug("Collected project text: %r", text)
+    anlage2_logger.debug("Collected project text: %r", text)
     prompt_base = get_prompt(
         "check_anlage2_function",
         (
@@ -754,13 +758,13 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"
     ).order_by("name"):
-        logger.debug("Pr\u00fcfe Funktion '%s'", func.name)
+        anlage2_logger.debug("Pr\u00fcfe Funktion '%s'", func.name)
         norm = _normalize_function_name(func.name)
         row = next(
             (r for r in table if _normalize_function_name(r["funktion"]) == norm),
             None,
         )
-        logger.debug("Tabellenzeile: %s", row)
+        anlage2_logger.debug("Tabellenzeile: %s", row)
         if row is None:
             parser_logger.debug("Parser fand Funktion '%s' nicht", func.name)
 
@@ -784,14 +788,14 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         else:
             # Sonst LLM befragen
             prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
-            logger.debug(
+            anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text
             )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
             reply = query_llm(
                 prompt_obj, {}, model_name=model_name, model_type="anlagen"
             )
-            logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
+            anlage2_logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
             try:
                 raw = json.loads(reply)
             except Exception:  # noqa: BLE001
@@ -811,7 +815,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 "source": source,
             },
         )
-        logger.debug("Ergebnis Funktion '%s': %s", func.name, vals)
+        anlage2_logger.debug("Ergebnis Funktion '%s': %s", func.name, vals)
         entry = {"funktion": func.name, **vals, "source": source}
         sub_list: list[dict] = []
         # Für jede Subfrage ebenfalls LLM befragen
@@ -829,14 +833,14 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             if sub_row is None:
                 parser_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
-            logger.debug(
+            anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
             )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
             reply = query_llm(
                 prompt_obj, {}, model_name=model_name, model_type="anlagen"
             )
-            logger.debug(
+            anlage2_logger.debug(
                 "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
             )
             try:
@@ -860,7 +864,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         data["parser_error"] = parser_error
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
-    logger.debug("check_anlage2 Ergebnis: %s", data)
+    anlage2_logger.debug("check_anlage2 Ergebnis: %s", data)
     return data
 
 

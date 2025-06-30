@@ -29,7 +29,11 @@ python manage.py test
 ## Logging
 
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
-Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis. Das Log hilft beim Nachvollziehen der Tabellen- und Textanalyse. Der Textparser protokolliert dabei jede Alias-Prüfung samt der verglichenen Zeichenfolgen.
+Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis. Das Log protokolliert alle Schritte beim Einlesen der Tabelle.
+Während der Entwicklung schreibt jede Anlage ihr eigenes Debug-Log. Die Dateien
+`anlage1-debug.log` bis `anlage6-debug.log` enthalten detaillierte Meldungen der
+jeweiligen Analysefunktionen. Durch den Eintrag `*.log` im `.gitignore` werden
+diese Protokolle nicht ins Repository aufgenommen.
 
 ## Datenbankmigrationen
 
@@ -99,12 +103,8 @@ Bedarfsfall eine weitergehende Prüfung per LLM ausgelöst werden.
 Daneben bietet die Detailansicht einen separaten **Parser**‑Button. Dieser
 ruft nur den Dokumentparser auf, ohne die Ergebnisse mit der
 Systembeschreibung abzugleichen. Nach Änderungen an Aliaslisten lässt sich so
-die Tabelle unkompliziert neu einlesen. Findet der Tabellenparser keine Daten,
-greift automatisch der Textparser als Fallback. Sämtliche Schritte landen in der
+die Tabelle unkompliziert neu einlesen. Sämtliche Schritte landen in der
 Logdatei `parser-debug.log`.
-
-Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
-jede Zeile wird als eigene Phrase gespeichert.
 
 Eine LLM‑gestützte Prüfung ist nur nötig, wenn das Layout deutlich von der
 erwarteten Struktur abweicht oder ungewöhnliche Formulierungen verwendet werden.
@@ -127,13 +127,6 @@ Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
 ### Funktionskatalog verwalten
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
-Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
-Alias. Zusätzliche Varianten können über das Feld `name_aliases` hinterlegt
-werden. Doppelte Einträge werden automatisch ignoriert.
-
-Erkennungsphrasen werden einfach zeilenweise eingegeben.
-JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
-
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
@@ -149,11 +142,10 @@ Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
 Beim Import wird dieselbe Struktur erwartet. Fehlen einzelne Bereiche, werden
 lediglich die vorhandenen Daten eingelesen.
 
-Die Konfigurationsseite ist in drei Tabs unterteilt: **Tabellen‑Parser**,
-**Text‑Parser** und **Allgemein**. Im Bereich *Allgemein* lässt sich der neue
-Feldwert `parser_mode` setzen. Er bestimmt, ob beim Einlesen der Anlage nur der
-Tabellenparser, nur der Textparser oder der bisherige automatische Fallback
-verwendet wird.
+Die Konfigurationsseite besitzt zwei Tabs: **Tabellen‑Parser** und
+**Allgemein**. Hier lassen sich die Spaltenüberschriften und weitere Optionen
+anpassen. Der frühere `parser_mode`-Schalter entfällt, da nur noch der
+Tabellenparser zum Einsatz kommt.
 
 ### KI-Begründung per Tooltip
 

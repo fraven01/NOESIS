@@ -496,6 +496,25 @@ class Anlage2Config(models.Model):
         ),
     )
 
+    DEFAULT_PARSER_CHOICES = [
+        ("table", "Tabellen-Parser"),
+    ]
+
+    default_parser = models.CharField(
+        max_length=50,
+        choices=DEFAULT_PARSER_CHOICES,
+        default="table",
+        help_text="Bevorzugter Parser für Anlage 2.",
+    )
+    fallback_parser = models.CharField(
+        max_length=50,
+        choices=DEFAULT_PARSER_CHOICES,
+        blank=True,
+        help_text=(
+            "Optionaler Fallback-Parser, falls der erste kein Ergebnis liefert."
+        ),
+    )
+
 
     class Meta:
         verbose_name = "Anlage2 Konfiguration"

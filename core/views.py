@@ -47,6 +47,7 @@ from .forms import (
     LLMRoleImportForm,
     UserPermissionsForm,
     UserImportForm,
+    Anlage2ConfigImportForm,
 
 )
 from .models import (
