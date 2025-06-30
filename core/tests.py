@@ -22,7 +22,6 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
-    Anlage2GlobalPhrase,
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
@@ -33,10 +32,14 @@ from .docx_utils import (
     get_pdf_page_count,
     extract_images,
     parse_anlage2_table,
-    parse_anlage2_text,
     _normalize_header_text,
 )
+
 from . import text_parser
+
+from .parser_manager import parser_manager, AbstractParser
+from .text_parser import TextParser
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -44,7 +47,12 @@ from PIL import Image
 import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .forms import BVProjectForm, BVProjectUploadForm, BVProjectFileJSONForm
+from .forms import (
+    BVProjectForm,
+    BVProjectUploadForm,
+    BVProjectFileJSONForm,
+    Anlage2ConfigForm,
+)
 from .workflow import set_project_status
 from .models import ProjectStatus
 from .llm_tasks import (
@@ -535,6 +543,7 @@ class DocxExtractTests(TestCase):
 
         self.assertEqual(data, [])
 
+
     def test_parse_anlage2_text(self):
         func = Anlage2Function.objects.create(
             name="Login",
@@ -779,6 +788,15 @@ class BVProjectFormTests(TestCase):
             {}, {"docx_file": SimpleUploadedFile("t.txt", b"d")}
         )
         self.assertFalse(invalid.is_valid())
+
+
+class Anlage2ConfigFormTests(TestCase):
+    def test_parser_order_field(self):
+        cfg = Anlage2Config.get_instance()
+        form = Anlage2ConfigForm({"parser_order": ["table"]}, instance=cfg)
+        self.assertTrue(form.is_valid())
+        inst = form.save()
+        self.assertEqual(inst.parser_order, ["table"])
 
 
 class BVProjectFileTests(TestCase):
@@ -1134,55 +1152,179 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data, expected)
         self.assertEqual(file_obj.analysis_json, expected)
 
-    def test_run_anlage2_analysis_valueerror_fallback(self):
+    def test_run_anlage2_analysis_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("b.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
+            upload=upload,
+            text_content="ignored",
         )
-        expected = [{"funktion": "Login"}]
-        with patch(
-            "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("bad")
-        ), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=expected
-        ) as mock_text:
-            result = run_anlage2_analysis(pf)
-        mock_text.assert_called_once()
+
+        result = run_anlage2_analysis(pf)
+        expected = [
+            {
+                "funktion": "Login",
+                "technisch_verfuegbar": {"value": True, "note": None},
+                "einsatz_telefonica": {"value": False, "note": None},
+                "zur_lv_kontrolle": {"value": False, "note": None},
+                "ki_beteiligung": {"value": True, "note": None},
+            }
+        ]
+
         pf.refresh_from_db()
-        self.assertEqual(json.loads(pf.analysis_json), expected)
         self.assertEqual(result, expected)
+        self.assertEqual(json.loads(pf.analysis_json), expected)
 
-    def test_run_anlage2_analysis_parser_mode_table_only(self):
+    def test_parser_manager_fallback(self):
+        class FailParser(AbstractParser):
+            name = "fail"
+
+            def parse(self, project_file):
+                raise ValueError("boom")
+
+        class DummyParser(AbstractParser):
+            name = "dummy"
+
+            def parse(self, project_file):
+                return [{"funktion": "Dummy"}]
+
+        parser_manager.register(FailParser)
+        parser_manager.register(DummyParser)
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_order = ["fail", "dummy"]
+        cfg.save()
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=1, cols=1)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("c.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+        )
+
+        try:
+            result = run_anlage2_analysis(pf)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            parser_manager._parsers.pop("fail")
+            parser_manager._parsers.pop("dummy")
+            cfg.parser_order = ["table"]
+            cfg.save()
+
+        self.assertEqual(result, [{"funktion": "Dummy"}])
+
+    def test_parser_manager_order(self):
+        class P1(AbstractParser):
+            name = "one"
+
+            def parse(self, project_file):
+                return [{"val": 1}]
+
+        class P2(AbstractParser):
+            name = "two"
+
+            def parse(self, project_file):
+                return [{"val": 2}]
+
+        parser_manager.register(P1)
+        parser_manager.register(P2)
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_order = ["two", "one"]
+        cfg.save()
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=1, cols=1)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("d.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+        )
+        try:
+            result = run_anlage2_analysis(pf)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            parser_manager._parsers.pop("one")
+            parser_manager._parsers.pop("two")
+            cfg.parser_order = ["table"]
+            cfg.save()
+
+        self.assertEqual(result, [{"val": 2}])
+
+    def test_text_parser_basic(self):
+        text = (
+            "Chat: Stehen technisch zur Verf\u00fcgung und sollen verwendet werden. "
+            "Sollen zur \u00dcberwachung von Leistung oder Verhalten NICHT verwendet werden.\n"
+            "Detail?: Ja\n\n"
+            "Logging: Stehen technisch NICHT zur Verf\u00fcgung."
+        )
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
+            text_content=text,
         )
-        cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "table_only"
-        cfg.save()
-        with patch("core.llm_tasks.parse_anlage2_table", return_value=[]) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text"
-        ) as m_text:
-            run_anlage2_analysis(pf)
-        m_tab.assert_called_once()
-        m_text.assert_not_called()
+        parser = TextParser()
+        data = parser.parse(pf)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["funktion"], "Chat")
+        self.assertEqual(data[0]["technisch_verfuegbar"], "Ja")
+        self.assertEqual(data[0]["soll_verwendet_werden"], "Ja")
+        self.assertEqual(data[0]["ueberwachung_leistung_verhalten"], "Nein")
+        self.assertEqual(data[0]["details"][0]["antwort_verwendung"], "Ja")
+        self.assertEqual(data[1]["technisch_verfuegbar"], "Nein")
+        self.assertEqual(data[1]["soll_verwendet_werden"], "Nein")
 
-    def test_run_anlage2_analysis_parser_mode_text_only(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
+    def test_parser_manager_selects_best(self):
+        class P1(AbstractParser):
+            name = "p1"
+
+            def parse(self, project_file):
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
+
+        class P2(AbstractParser):
+            name = "p2"
+
+            def parse(self, project_file):
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
+
+        parser_manager.register(P1)
+        parser_manager.register(P2)
         cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "text_only"
+        cfg.parser_order = ["p1", "p2"]
         cfg.save()
+
         with patch("core.llm_tasks.parse_anlage2_table") as m_tab, patch(
             "core.llm_tasks.parse_anlage2_text", return_value=[]
         ) as m_text:
@@ -1237,27 +1379,24 @@ class LLMTasksTests(TestCase):
 
 
     def test_check_anlage2_table_error_fallback(self):
+
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"d"),
-            text_content="dummy",
+            upload=SimpleUploadedFile("b.txt", b"x"),
         )
-        Anlage2Function.objects.create(name="Login")
-        llm_reply = json.dumps({"technisch_verfuegbar": True})
-        with patch(
-            "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("fail")
-        ), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[]
-        ) as mock_text, patch(
-            "core.llm_tasks.query_llm", return_value=llm_reply
-        ):
-            data = check_anlage2(projekt.pk)
-        mock_text.assert_called_once()
-        file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(data.get("parser_error"), "fail")
-        self.assertEqual(file_obj.analysis_json.get("parser_error"), "fail")
+
+        try:
+            result = parser_manager.parse_anlage2(pf)
+        finally:
+            parser_manager._parsers.pop("p1")
+            parser_manager._parsers.pop("p2")
+            cfg.parser_order = ["table"]
+            cfg.save()
+
+        self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
+
 
     def test_analyse_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
@@ -1297,22 +1436,6 @@ class LLMTasksTests(TestCase):
         self.assertEqual(data["missing"]["value"], [])
         self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
 
-    def test_analyse_anlage2_text_fallback(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
-        BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("b.txt", b"data"),
-            text_content="dummy",
-        )
-
-        expected = [{"funktion": "Login"}]
-        with patch("core.llm_tasks.parse_anlage2_table", return_value=[]), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=expected
-        ) as mock_text:
-            data = analyse_anlage2(projekt.pk)
-        mock_text.assert_called_once()
-        self.assertEqual(data["functions"]["value"], expected)
 
     def test_analyse_anlage3_auto_ok(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3314,11 +3437,6 @@ class Anlage2ConfigImportExportTests(TestCase):
             field_name="technisch_vorhanden",
             text="Verfügbar?",
         )
-        Anlage2GlobalPhrase.objects.create(
-            config=self.cfg,
-            phrase_type="technisch_verfuegbar_true",
-            phrase_text="ja",
-        )
         url = reverse("admin_anlage2_config_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -3327,26 +3445,13 @@ class Anlage2ConfigImportExportTests(TestCase):
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
             data["alias_headings"],
         )
-        self.assertIn(
-            {
-                "phrase_type": "technisch_verfuegbar_true",
-                "phrase_text": "ja",
-            },
-            data["global_phrases"],
-        )
 
     def test_import_creates_headings(self):
         payload = json.dumps(
             {
                 "alias_headings": [
                     {"field_name": "ki_beteiligung", "text": "KI?"}
-                ],
-                "global_phrases": [
-                    {
-                        "phrase_type": "ki_beteiligung_true",
-                        "phrase_text": "Ja",
-                    }
-                ],
+                ]
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
@@ -3367,6 +3472,7 @@ class Anlage2ConfigViewTests(TestCase):
         self.user.groups.add(admin)
         self.client.login(username="cfguser", password="pass")
         self.cfg = Anlage2Config.get_instance()
+
 
     def test_update_parser_mode(self):
         url = reverse("anlage2_config")
@@ -3433,6 +3539,7 @@ class Anlage2ConfigViewTests(TestCase):
         self.assertRedirects(resp, url + "?tab=text")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
+
 
 
 
