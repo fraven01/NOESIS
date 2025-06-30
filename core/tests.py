@@ -37,7 +37,8 @@ from .docx_utils import (
 
 from . import text_parser
 
-from .parser_manager import parser_manager, AbstractParser
+from .parser_manager import parser_manager
+from .parsers import AbstractParser
 from .text_parser import TextParser
 
 from pathlib import Path

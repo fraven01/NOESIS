@@ -6,7 +6,7 @@ import re
 from typing import List
 
 from .models import BVProjectFile
-from .parser_manager import AbstractParser
+from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
 
