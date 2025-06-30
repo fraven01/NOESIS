@@ -33,7 +33,6 @@ from .docx_utils import (
     get_pdf_page_count,
     extract_images,
     parse_anlage2_table,
-    parse_anlage2_text,
     _normalize_header_text,
 )
 from pathlib import Path
@@ -533,175 +532,6 @@ class DocxExtractTests(TestCase):
             Path(tmp.name).unlink(missing_ok=True)
 
         self.assertEqual(data, [])
-
-    def test_parse_anlage2_text(self):
-        func = Anlage2Function.objects.create(
-            name="Login",
-            detection_phrases={"name_aliases": ["login"]},
-        )
-        Anlage2SubQuestion.objects.create(
-            funktion=func,
-            frage_text="Warum?",
-            detection_phrases={"name_aliases": ["warum"]},
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.text_technisch_verfuegbar_false = ["tv nein"]
-        cfg.text_ki_beteiligung_false = ["ki nein"]
-        cfg.save()
-        text = "Login tv ja ki nein\nWarum? tv nein"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "ki_beteiligung": {"value": False, "note": None},
-                },
-                {
-                    "funktion": "Login: Warum?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
-            ],
-        )
-
-    def test_parse_anlage2_text_default_aliases(self):
-        func = Anlage2Function.objects.create(name="Login")
-        Anlage2SubQuestion.objects.create(
-            funktion=func,
-            frage_text="Warum?",
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.text_technisch_verfuegbar_false = ["tv nein"]
-        cfg.text_ki_beteiligung_false = ["ki nein"]
-        cfg.save()
-        text = "Login tv ja ki nein\nWarum? tv nein"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "ki_beteiligung": {"value": False, "note": None},
-                },
-                {
-                    "funktion": "Login: Warum?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
-            ],
-        )
-
-    def test_parse_anlage2_text_name_always_alias(self):
-        func = Anlage2Function.objects.create(
-            name="Anmelden",
-            detection_phrases={"name_aliases": ["login"]},
-        )
-        Anlage2SubQuestion.objects.create(
-            funktion=func,
-            frage_text="Grund?",
-            detection_phrases={"name_aliases": ["reason"]},
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.text_technisch_verfuegbar_false = ["tv nein"]
-        cfg.save()
-        text = "Anmelden tv ja\nGrund? tv nein"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Anmelden",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                },
-                {
-                    "funktion": "Anmelden: Grund?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
-            ],
-        )
-
-    def test_parse_anlage2_text_normalizes_variants(self):
-        func = Anlage2Function.objects.create(name="User Login")
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.save()
-        text = "User-Login   tv ja"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "User Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                }
-            ],
-        )
-
-    def test_parse_anlage2_text_punctuation_variants(self):
-        func = Anlage2Function.objects.create(
-            name="Analyse-/Reportingfunktionen",
-            detection_phrases={"name_aliases": ["Analyse-/Reportingfunktionen"]},
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.save()
-        text = "Analyse- / Reportingfunktionen tv ja"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Analyse-/Reportingfunktionen",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                }
-            ],
-        )
-
-    def test_parse_anlage2_text_merges_duplicate_functions(self):
-        func = Anlage2Function.objects.create(name="Login")
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["tv ja"]
-        cfg.text_ki_beteiligung_false = ["ki nein"]
-        cfg.save()
-        text = "Login tv ja\nLogin ki nein"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "ki_beteiligung": {"value": False, "note": None},
-                }
-            ],
-        )
-
-    def test_parse_anlage2_text_updates_values_without_function(self):
-        func = Anlage2Function.objects.create(name="Analyse")
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
-        cfg.text_zur_lv_kontrolle_false = ["kein lv"]
-        cfg.save()
-        text = "Analyse verfuegbar\nkein lv"
-        data = parse_anlage2_text(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Analyse",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "zur_lv_kontrolle": {"value": False, "note": None},
-                }
-            ],
-        )
-
-    def test_extract_images(self):
-        img = Image.new("RGB", (1, 1), color="blue")
-        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
         img.save(img_tmp.name)
         img_tmp.close()
         doc = Document()
@@ -1107,7 +937,6 @@ class LLMTasksTests(TestCase):
         with patch(
             "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("bad")
         ), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=expected
         ) as mock_text:
             result = run_anlage2_analysis(pf)
         mock_text.assert_called_once()
@@ -1115,37 +944,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(json.loads(pf.analysis_json), expected)
         self.assertEqual(result, expected)
 
-    def test_run_anlage2_analysis_parser_mode_table_only(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "table_only"
-        cfg.save()
-        with patch("core.llm_tasks.parse_anlage2_table", return_value=[]) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text"
-        ) as m_text:
-            run_anlage2_analysis(pf)
-        m_tab.assert_called_once()
-        m_text.assert_not_called()
-
-    def test_run_anlage2_analysis_parser_mode_text_only(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "text_only"
-        cfg.save()
         with patch("core.llm_tasks.parse_anlage2_table") as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[]
         ) as m_text:
             run_anlage2_analysis(pf)
         m_tab.assert_not_called()
@@ -1164,7 +963,6 @@ class LLMTasksTests(TestCase):
         with patch(
             "core.llm_tasks.parse_anlage2_table", side_effect=ValueError("fail")
         ), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[]
         ) as mock_text, patch(
             "core.llm_tasks.query_llm", return_value=llm_reply
         ):
@@ -1223,7 +1021,6 @@ class LLMTasksTests(TestCase):
 
         expected = [{"funktion": "Login"}]
         with patch("core.llm_tasks.parse_anlage2_table", return_value=[]), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=expected
         ) as mock_text:
             data = analyse_anlage2(projekt.pk)
         mock_text.assert_called_once()
@@ -3283,52 +3080,6 @@ class Anlage2ConfigViewTests(TestCase):
         self.client.login(username="cfguser", password="pass")
         self.cfg = Anlage2Config.get_instance()
 
-    def test_update_parser_mode(self):
-        url = reverse("anlage2_config")
-        resp = self.client.post(
-            url,
-            {
-                "parser_mode": "text_only",
-                "action": "save_general",
-                "active_tab": "general",
-            },
-        )
-        self.assertRedirects(resp, url + "?tab=general")
-        self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_mode, "text_only")
-
-    def test_save_table_tab(self):
-        url = reverse("anlage2_config")
-        resp = self.client.post(
-            url,
-            {
-                "new_field": "technisch_vorhanden",
-                "new_text": "Verfügbar?",
-                "action": "save_table",
-                "active_tab": "table",
-            },
-        )
-        self.assertRedirects(resp, url + "?tab=table")
-        self.assertTrue(
-            Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
-        )
-
-    def test_multiline_phrases_saved(self):
-        url = reverse("anlage2_config")
-        data = {
-            "text_technisch_verfuegbar_true": "ja\nokay\n",
-            "action": "save_text",
-            "active_tab": "text",
-        }
-        for key, _ in Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES:
-            data[f"{key}-TOTAL_FORMS"] = "0"
-            data[f"{key}-INITIAL_FORMS"] = "0"
-            data[f"{key}-MIN_NUM_FORMS"] = "0"
-            data[f"{key}-MAX_NUM_FORMS"] = "1000"
-        resp = self.client.post(url, data)
-        self.assertRedirects(resp, url + "?tab=text")
-        self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
 
 
 
