@@ -36,6 +36,7 @@ from .docx_utils import (
     parse_anlage2_text,
     _normalize_header_text,
 )
+from . import text_parser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
@@ -699,6 +700,44 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+class TextParserFormatBTests(TestCase):
+    def test_parse_format_b_basic(self):
+        text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_format_b_numbering(self):
+        text = "1. Logout - tv=nein - ki=ja"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Logout",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                    "ki_beteiligung": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_format_b_multiple_lines(self):
+        text = "Login; tv: ja\nLogout; tv: nein"
+        data = text_parser.parse_format_b(text)
+        self.assertEqual(len(data), 2)
+        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
+        self.assertFalse(data[1]["technisch_verfuegbar"]["value"])
+
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")
         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
@@ -1151,7 +1190,8 @@ class LLMTasksTests(TestCase):
         m_tab.assert_not_called()
         m_text.assert_called_once()
 
-    def test_run_anlage2_analysis_parser_order_text_first(self):
+    def test_run_anlage2_analysis_auto_prefers_table(self):
+
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -1160,25 +1200,41 @@ class LLMTasksTests(TestCase):
             text_content="t",
         )
         cfg = Anlage2Config.get_instance()
-        cfg.parser_order = "text_first"
+
+        cfg.parser_mode = "auto"
         cfg.save()
-        calls: list[str] = []
-
-        def tab(*_a, **_kw):
-            calls.append("table")
-            return []
-
-        def txt(*_a, **_kw):
-            calls.append("text")
-            return [{"funktion": "Login", "technisch_verfuegbar": {"value": True, "note": None}}]
-
-        with patch("core.llm_tasks.parse_anlage2_table", side_effect=tab) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text", side_effect=txt
+        table_result = [{"funktion": "Login"}]
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", return_value=table_result
+        ) as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Alt"}]
         ) as m_text:
             result = run_anlage2_analysis(pf)
-        self.assertEqual(calls[0], "text")
-        self.assertEqual(calls[1], "table")
-        self.assertEqual(result[0]["funktion"], "Login")
+        m_tab.assert_called_once()
+        m_text.assert_not_called()
+        self.assertEqual(result, table_result)
+
+    def test_run_anlage2_analysis_auto_fallback_empty_table(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "auto"
+        cfg.save()
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", return_value=[]
+        ) as m_tab, patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Login"}]
+        ) as m_text:
+            result = run_anlage2_analysis(pf)
+        m_tab.assert_called_once()
+        m_text.assert_called_once()
+        self.assertEqual(result, [{"funktion": "Login"}])
+
 
     def test_check_anlage2_table_error_fallback(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
