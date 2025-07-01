@@ -8,13 +8,18 @@
 {% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <aside class="admin-sidebar">
+<div class="max-w-screen-2xl mx-auto">
+    <div class="admin-container">
+    <aside class="admin-sidebar w-64">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="admin-nav space-y-4 text-sm">
             <div>
-                <h3 class="accordion-header font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2 cursor-pointer">Projekt-Konfiguration</h3>
-                <div class="accordion-content pl-2 space-y-1 {% if request.resolver_match.url_name in 'admin_projects admin_project_statuses' %}block{% else %}hidden{% endif %}">
+                {% with open_proj=request.resolver_match.url_name in 'admin_projects admin_project_statuses' %}
+                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                    <span>Projekt-Konfiguration</span>
+                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_proj %}rotate-180{% endif %}"></i>
+                </h3>
+                <div class="accordion-content pl-2 space-y-1 {% if open_proj %}block{% else %}hidden{% endif %}">
                     <a href="{% url 'admin_projects' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_projects' %}active-nav-link{% endif %}">
                         <i class="fas fa-list-alt fa-fw mr-2"></i>
                         Projekt-Liste
@@ -24,10 +29,15 @@
                         Projekt-Status
                     </a>
                 </div>
+                {% endwith %}
             </div>
             <div>
-                <h3 class="accordion-header font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2 cursor-pointer">Anlagen-Konfiguration</h3>
-                <div class="accordion-content pl-2 space-y-1 {% if request.resolver_match.url_name in 'admin_anlage1 anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
+                {% with open_anl=request.resolver_match.url_name in 'admin_anlage1 anlage2_function_list anlage2_config' %}
+                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                    <span>Anlagen-Konfiguration</span>
+                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_anl %}rotate-180{% endif %}"></i>
+                </h3>
+                <div class="accordion-content pl-2 space-y-1 {% if open_anl %}block{% else %}hidden{% endif %}">
                     <a href="{% url 'admin_anlage1' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_anlage1' %}active-nav-link{% endif %}">
                         <i class="fas fa-question-circle fa-fw mr-2"></i>
                         Anlage 1 Fragen
@@ -41,10 +51,15 @@
                         Anlage 2 Globale Phrasen
                     </a>
                 </div>
+                {% endwith %}
             </div>
             <div>
-                <h3 class="accordion-header font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2 cursor-pointer">KI-Konfiguration</h3>
-                <div class="accordion-content pl-2 space-y-1 {% if request.resolver_match.url_name in 'admin_llm_roles admin_prompts admin_models' %}block{% else %}hidden{% endif %}">
+                {% with open_ki=request.resolver_match.url_name in 'admin_llm_roles admin_prompts admin_models' %}
+                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                    <span>KI-Konfiguration</span>
+                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_ki %}rotate-180{% endif %}"></i>
+                </h3>
+                <div class="accordion-content pl-2 space-y-1 {% if open_ki %}block{% else %}hidden{% endif %}">
                     <a href="{% url 'admin_llm_roles' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_llm_roles' %}active-nav-link{% endif %}">
                         <i class="fas fa-user-gear fa-fw mr-2"></i>
                         LLM-Rollen
@@ -58,10 +73,15 @@
                         LLM-Modelle
                     </a>
                 </div>
+                {% endwith %}
             </div>
             <div>
-                <h3 class="accordion-header font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2 cursor-pointer">Systemverwaltung</h3>
-                <div class="accordion-content pl-2 space-y-1 {% if request.resolver_match.url_name in 'admin_user_list auth_group_changelist' %}block{% else %}hidden{% endif %}">
+                {% with open_sys=request.resolver_match.url_name in 'admin_user_list auth_group_changelist' %}
+                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                    <span>Systemverwaltung</span>
+                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_sys %}rotate-180{% endif %}"></i>
+                </h3>
+                <div class="accordion-content pl-2 space-y-1 {% if open_sys %}block{% else %}hidden{% endif %}">
                     <a href="{% url 'admin_user_list' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_user_list' %}active-nav-link{% endif %}">
                         <i class="fas fa-users fa-fw mr-2"></i>
                         Benutzer verwalten
@@ -71,11 +91,12 @@
                         Gruppen
                     </a>
                 </div>
+                {% endwith %}
             </div>
         </nav>
     </aside>
 
-    <section class="admin-content">
+    <section class="admin-content md:ml-64">
         {% block admin_content %}
             <div id="content-main">
                 {% block object-tools %}{% endblock %}
@@ -83,28 +104,22 @@
             </div>
         {% endblock %}
     </section>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.accordion-header').forEach(function(header) {
             header.addEventListener('click', function() {
                 const content = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
                 content.classList.toggle('hidden');
+                if (icon) {
+                    icon.classList.toggle('rotate-180');
+                }
             });
-
-    document.querySelectorAll('.accordion-header').forEach(function(header) {
-        header.addEventListener('click', function() {
-            const content = header.nextElementSibling;
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-            } else {
-                content.classList.add('hidden');
-            }
-
         });
     });
 </script>
