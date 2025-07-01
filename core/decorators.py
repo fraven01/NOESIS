@@ -21,7 +21,16 @@ def tile_required(slug: str):
             from .models import Tile
 
             user = request.user
-            if Tile.objects.filter(slug=slug, users=user).exists():
+            try:
+                tile = Tile.objects.get(slug=slug)
+            except Tile.DoesNotExist:
+                return HttpResponseForbidden("Nicht berechtigt")
+
+            if tile.permission:
+                perm = f"{tile.permission.content_type.app_label}.{tile.permission.codename}"
+                if user.has_perm(perm):
+                    return view_func(request, *args, **kwargs)
+            if tile.users.filter(pk=user.pk).exists():
                 return view_func(request, *args, **kwargs)
             return HttpResponseForbidden("Nicht berechtigt")
 
