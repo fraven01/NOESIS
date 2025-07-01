@@ -7,8 +7,7 @@
 .admin-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 16rem;
-    background-color: #f3f4f6;
+    background-color: #f9fafb;
     padding: 1rem;
     border-right: 1px solid #e5e7eb;
     overflow-y: auto;
@@ -17,7 +16,6 @@
 .admin-content {
     flex: 1;
     padding: 1rem;
-    margin-left: 16rem;
 }
 
 .admin-search input {
@@ -31,7 +29,7 @@
 .admin-nav a.nav-link {
     display: flex;
     align-items: center;
-    padding: 0.25rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 0.25rem;
     color: #1d4ed8;
 }
@@ -43,6 +41,21 @@
 .active-nav-link {
     background-color: #2563eb;
     color: #ffffff;
+    font-weight: 600;
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+.accordion-icon {
+    transition: transform 0.3s;
 }
 
 
