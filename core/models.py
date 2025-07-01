@@ -496,6 +496,7 @@ class Anlage2Config(models.Model):
         ),
     )
 
+
     PARSER_CHOICES = [
         ("auto", "Automatisch"),
         ("table_only", "Nur Tabellen"),
@@ -508,46 +509,17 @@ class Anlage2Config(models.Model):
         default="auto",
     )
 
+    parser_order = models.JSONField(
+        default=list,
+        help_text="Reihenfolge der zu verwendenden Parser.",
+    )
+
     text_technisch_verfuegbar_true = models.JSONField(
+
         default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
+        help_text="Reihenfolge der zu verwendenden Parser.",
     )
-    text_technisch_verfuegbar_false = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_einsatz_telefonica_true = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_einsatz_telefonica_false = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_zur_lv_kontrolle_true = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_zur_lv_kontrolle_false = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_ki_beteiligung_true = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
-    text_ki_beteiligung_false = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
+
 
     class Meta:
         verbose_name = "Anlage2 Konfiguration"
@@ -558,7 +530,7 @@ class Anlage2Config(models.Model):
     @classmethod
     def get_instance(cls) -> "Anlage2Config":
         """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
-        return cls.objects.first() or cls.objects.create()
+        return cls.objects.first() or cls.objects.create(parser_order=["table"])
 
 
 class Anlage2ColumnHeading(models.Model):
@@ -584,33 +556,6 @@ class Anlage2ColumnHeading(models.Model):
         return f"{self.field_name}: {self.text}"
 
 
-class Anlage2GlobalPhrase(models.Model):
-    """Globale Erkennungsphrase für Anlage 2."""
-
-    PHRASE_TYPE_CHOICES = [
-        ("technisch_verfuegbar_true", "Technisch vorhanden: Ja"),
-        ("technisch_verfuegbar_false", "Technisch vorhanden: Nein"),
-        ("einsatz_telefonica_true", "Einsatz bei Telefónica: Ja"),
-        ("einsatz_telefonica_false", "Einsatz bei Telefónica: Nein"),
-        ("zur_lv_kontrolle_true", "Zur LV-Kontrolle: Ja"),
-        ("zur_lv_kontrolle_false", "Zur LV-Kontrolle: Nein"),
-        ("ki_beteiligung_true", "KI-Beteiligung: Ja"),
-        ("ki_beteiligung_false", "KI-Beteiligung: Nein"),
-    ]
-
-    config = models.ForeignKey(
-        Anlage2Config, on_delete=models.CASCADE, related_name="global_phrases"
-    )
-    phrase_type = models.CharField(max_length=50, choices=PHRASE_TYPE_CHOICES)
-    phrase_text = models.CharField(
-        max_length=200, help_text="Die exakte Phrase, nach der im Text gesucht wird."
-    )
-
-    class Meta:
-        ordering = ["phrase_type", "phrase_text"]
-
-    def __str__(self) -> str:  # pragma: no cover - trivial
-        return f"{self.get_phrase_type_display()}: {self.phrase_text}"
 
 
 class Tile(models.Model):
@@ -673,11 +618,6 @@ class Anlage2Function(models.Model):
     """Funktion aus Anlage 2."""
 
     name = models.CharField(max_length=200, unique=True)
-    detection_phrases = models.JSONField(
-        blank=True,
-        default=dict,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
 
     class Meta:
         ordering = ["name"]
@@ -723,11 +663,6 @@ class Anlage2SubQuestion(models.Model):
 
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     frage_text = models.TextField()
-    detection_phrases = models.JSONField(
-        blank=True,
-        default=dict,
-        help_text="Liste der Erkennungsphrasen für den Text-Parser.",
-    )
 
     class Meta:
         ordering = ["id"]

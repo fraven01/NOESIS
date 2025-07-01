@@ -10,7 +10,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2Config,
-    Anlage2GlobalPhrase,
+    # Anlage2GlobalPhrase,
     SoftwareKnowledge,
     Area,
     LLMRole,
@@ -18,6 +18,7 @@ from .models import (
     Tile,
 )
 from django.contrib.auth.models import Group
+from .parser_manager import parser_manager
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
@@ -51,6 +52,12 @@ def get_anlage2_fields() -> list[tuple[str, str]]:
         heading = cfg.headers.filter(field_name=field).first() if cfg else None
         out.append((field, heading.text if heading else label))
     return out
+
+
+def get_parser_choices() -> list[tuple[str, str]]:
+    """Liefert die verfügbaren Parser-Namen."""
+    names = parser_manager.available_names()
+    return [(n, n) for n in names]
 
 
 class RecordingForm(forms.ModelForm):
@@ -112,7 +119,6 @@ class DocxValidationMixin:
 
 
 class BVProjectForm(DocxValidationMixin, forms.ModelForm):
-
     class Meta:
         model = BVProject
         fields = ["title", "beschreibung", "status"]
@@ -153,8 +159,6 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
         if commit:
             self.save_m2m()
         return projekt
-
-
 
 
 class BVProjectUploadForm(DocxValidationMixin, forms.Form):
@@ -204,7 +208,9 @@ class BVProjectFileForm(forms.ModelForm):
 
         f = self.cleaned_data["upload"]
         ext = Path(f.name).suffix.lower()
-        nr = self.cleaned_data.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
+        nr = self.cleaned_data.get("anlage_nr") or getattr(
+            self.instance, "anlage_nr", None
+        )
 
         if nr == 3:
             if ext not in [".docx", ".pdf"]:
@@ -429,114 +435,39 @@ class Anlage1ImportForm(forms.Form):
     )
 
 
-class PhraseForm(forms.Form):
-    """Einzelnes Feld für eine Erkennungsphrase."""
-
-    phrase = forms.CharField(
-        label="",
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-    )
-
-
-class PhraseListField(forms.Field):
-    """Feld für mehrere Zeilen, die als Liste gespeichert werden."""
-
-    widget = forms.Textarea
-
-    def __init__(self, *args, **kwargs) -> None:
-        kwargs.setdefault("required", False)
-        if "widget" not in kwargs:
-            kwargs["widget"] = forms.Textarea()
-        super().__init__(*args, **kwargs)
-
-    def prepare_value(self, value):  # pragma: no cover - trivial
-        if isinstance(value, list):
-            return "\n".join(str(v) for v in value)
-        if value is None:
-            return ""
-        return str(value)
-
-    def to_python(self, value):
-        if not value:
-            return []
-        if isinstance(value, list):
-            return value
-        lines = [line.strip() for line in str(value).splitlines()]
-        return [l for l in lines if l]
-
-
-class Anlage2GlobalPhraseForm(forms.ModelForm):
-    """Formular für eine globale Erkennungsphrase."""
-
-    class Meta:
-        model = Anlage2GlobalPhrase
-        fields = ["phrase_text"]
-        labels = {"phrase_text": ""}
-        widgets = {
-            "phrase_text": forms.TextInput(attrs={"class": "form-control"}),
-        }
-
-
-Anlage2GlobalPhraseFormSet = modelformset_factory(
-    Anlage2GlobalPhrase,
-    form=Anlage2GlobalPhraseForm,
-    extra=1,
-    can_delete=True,
-)
-
-
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
 
-    text_technisch_verfuegbar_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_technisch_verfuegbar_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_einsatz_telefonica_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_einsatz_telefonica_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_zur_lv_kontrolle_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_zur_lv_kontrolle_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_ki_beteiligung_true = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
-    text_ki_beteiligung_false = PhraseListField(widget=forms.Textarea(attrs={"rows": 2}))
+    parser_order = forms.MultipleChoiceField(
+        choices=get_parser_choices(),
+        required=False,
+    )
 
     class Meta:
         model = Anlage2Config
+
         fields = [
             "enforce_subquestion_override",
             "parser_mode",
+            "parser_order",
             "text_technisch_verfuegbar_true",
-            "text_technisch_verfuegbar_false",
-            "text_einsatz_telefonica_true",
-            "text_einsatz_telefonica_false",
-            "text_zur_lv_kontrolle_true",
-            "text_zur_lv_kontrolle_false",
-            "text_ki_beteiligung_true",
-            "text_ki_beteiligung_false",
         ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
             "parser_mode": "Parser-Modus",
+            "parser_order": "Parser-Reihenfolge",
             "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
-            "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
-            "text_einsatz_telefonica_true": "Text‑Parser: Einsatz Telefónica – Ja",
-            "text_einsatz_telefonica_false": "Text‑Parser: Einsatz Telefónica – Nein",
-            "text_zur_lv_kontrolle_true": "Text‑Parser: Zur LV-Kontrolle – Ja",
-            "text_zur_lv_kontrolle_false": "Text‑Parser: Zur LV-Kontrolle – Nein",
-            "text_ki_beteiligung_true": "Text‑Parser: KI-Beteiligung – Ja",
-            "text_ki_beteiligung_false": "Text‑Parser: KI-Beteiligung – Nein",
+
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(
                 attrs={"class": "mr-2"}
             ),
+
             "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "parser_order": forms.Select(attrs={"class": "border rounded p-2"}),
             "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
-            "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
-            "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
-            "text_einsatz_telefonica_false": forms.Textarea(attrs={"rows": 2}),
-            "text_zur_lv_kontrolle_true": forms.Textarea(attrs={"rows": 2}),
-            "text_zur_lv_kontrolle_false": forms.Textarea(attrs={"rows": 2}),
-            "text_ki_beteiligung_true": forms.Textarea(attrs={"rows": 2}),
-            "text_ki_beteiligung_false": forms.Textarea(attrs={"rows": 2}),
+
         }
 
 
