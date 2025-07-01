@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django import forms
 from django.utils.html import format_html
 from django.contrib.admin.widgets import FilteredSelectMultiple, AdminFileWidget
+from django.urls import URLPattern, URLResolver, get_resolver
 from .models import (
     Recording,
     Prompt,
@@ -14,6 +15,31 @@ from .models import (
     Anlage2Function,
     Anlage2FunctionResult,
 )
+
+
+def get_url_choices() -> list[tuple[str, str]]:
+    """Gibt alle benannten URL-Namen als Auswahl zurück."""
+    resolver = get_resolver()
+    choices: list[tuple[str, str]] = []
+
+    def collect(patterns):
+        for p in patterns:
+            if isinstance(p, URLPattern):
+                if p.name:
+                    label = p.name.replace("_", " ").title()
+                    choices.append((p.name, label))
+            elif isinstance(p, URLResolver):
+                collect(p.url_patterns)
+
+    collect(resolver.url_patterns)
+    # Duplikate entfernen
+    seen = set()
+    unique_choices = []
+    for name, label in choices:
+        if name not in seen:
+            seen.add(name)
+            unique_choices.append((name, label))
+    return sorted(unique_choices)
 
 
 class AdminImagePreviewWidget(AdminFileWidget):
@@ -67,6 +93,7 @@ class TileAdminForm(forms.ModelForm):
         required=False,
         widget=FilteredSelectMultiple("Benutzer", is_stacked=False),
     )
+    url_name = forms.ChoiceField(choices=[])  # wird im __init__ befüllt
 
     class Meta:
         model = Tile
@@ -75,6 +102,7 @@ class TileAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["url_name"].choices = get_url_choices()
         if self.instance.pk:
             self.fields["areas"].initial = self.instance.areas.all()
             self.fields["users"].initial = self.instance.users.all()
@@ -97,17 +125,10 @@ class PromptAdmin(admin.ModelAdmin):
     list_display = ("name",)
 
 
-@admin.register(Tile)
 class TileAdmin(admin.ModelAdmin):
     form = TileAdminForm
     list_display = ("name", "image_thumb", "areas_display")
     readonly_fields = ("image_thumb",)
-
-    def has_add_permission(self, request):  # pragma: no cover - admin
-        return False
-
-    def has_delete_permission(self, request, obj=None):  # pragma: no cover - admin
-        return False
 
     def areas_display(self, obj) -> str:
         """Zeigt die zugewiesenen Bereiche."""
@@ -131,16 +152,9 @@ class UserTileAccessAdmin(admin.ModelAdmin):
     list_display = ("user", "tile")
 
 
-@admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
     form = AreaAdminForm
     list_display = ("slug", "name", "image")
-
-    def has_add_permission(self, request):  # pragma: no cover - admin
-        return False
-
-    def has_delete_permission(self, request, obj=None):  # pragma: no cover - admin
-        return False
 
 
 class UserTileAccessInline(admin.TabularInline):
@@ -180,5 +194,10 @@ class BVProjectFileAdmin(admin.ModelAdmin):
         "verhandlungsfaehig",
     )
     list_editable = ("manual_reviewed", "verhandlungsfaehig")
+
+
+# Registrierung der Modelle
+admin.site.register(Tile, TileAdmin)
+admin.site.register(Area, AreaAdmin)
 
 
