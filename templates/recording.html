@@ -1,8 +1,8 @@
-{% extends 'user_base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% block title %}Aufnahme {{ bereich|capfirst }}{% endblock %}
 
-{% block user_content %}
+{% block content %}
 <h1 class="text-2xl font-semibold mb-4">Aufnahme {{ bereich|capfirst }}</h1>
 <div class="mb-6">
     {% if is_recording %}
