@@ -1,3 +1,8 @@
+:root {
+    --color-primary: #2563eb; /* blue-600 */
+    --color-primary-dark: #1e40af; /* blue-800 */
+}
+
 /* Custom styles for card hover effects */
 .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
@@ -64,7 +69,7 @@
 
 /* Sichtbare Links im gesamten Projekt */
 a {
-    color: #2563eb;
+    color: var(--color-primary);
 }
 
 a:hover {
@@ -79,14 +84,50 @@ input[type="email"],
 select,
 textarea {
     border: 1px solid #d1d5db;
-    border-radius: 0.25rem;
+    border-radius: 0.5rem;
     padding: 0.5rem 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: #2563eb;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: var(--color-primary);
+}
+
+button,
+a.button,
+input[type="submit"] {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+button:hover,
+a.button:hover,
+input[type="submit"]:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-primary-custom {
+    background-color: var(--color-primary);
+    color: #ffffff;
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.tile-bg {
+    background-image: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
+    color: #ffffff;
 }
