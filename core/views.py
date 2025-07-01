@@ -3,7 +3,7 @@ import tempfile
 import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.http import (
     HttpResponseBadRequest,
     Http404,
@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
 from django.urls import reverse
+from typing import Any
 import subprocess
 import whisper
 import torch
@@ -1744,6 +1745,51 @@ def anlage2_config(request):
         "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)
+
+
+@login_required
+@admin_required
+def admin_role_editor(request):
+    """Bearbeitet die Sichtbarkeit von Tiles pro Rolle."""
+
+    groups = list(Group.objects.all().order_by("name"))
+    group_id = request.POST.get("group_id") or request.GET.get("group")
+    selected_group = None
+    tiles_by_area: dict[Area, list[dict[str, Any]]] = {}
+
+    if group_id:
+        selected_group = get_object_or_404(Group, pk=group_id)
+
+    if request.method == "POST" and selected_group:
+        selected_tiles = Tile.objects.filter(pk__in=request.POST.getlist("tiles"))
+        tile_perms = Permission.objects.filter(tile__isnull=False)
+        selected_group.permissions.remove(*tile_perms)
+        perms = Permission.objects.filter(tile__in=selected_tiles)
+        selected_group.permissions.add(*perms)
+        messages.success(request, "Berechtigungen gespeichert")
+        return redirect(f"{reverse('admin_role_editor')}?group={selected_group.id}")
+
+    if selected_group:
+        group_perms = set(selected_group.permissions.values_list("id", flat=True))
+        for area in Area.objects.all():
+            tile_items = []
+            for tile in Tile.objects.filter(areas=area).select_related("permission"):
+                tile_items.append(
+                    {
+                        "tile": tile,
+                        "checked": tile.permission_id in group_perms,
+                    }
+                )
+            tiles_by_area[area] = tile_items
+
+    context = {
+        "groups": groups,
+        "selected_group": selected_group,
+        "tiles_by_area": tiles_by_area,
+    }
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return render(request, "partials/_role_tile_form.html", context)
+    return render(request, "admin_roles.html", context)
 
 
 @login_required
