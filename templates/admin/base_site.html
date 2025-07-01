@@ -88,6 +88,14 @@
 
 {% block extra_js %}
 <script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.accordion-header').forEach(function(header) {
+            header.addEventListener('click', function() {
+                const content = header.nextElementSibling;
+                content.classList.toggle('hidden');
+            });
+
     document.querySelectorAll('.accordion-header').forEach(function(header) {
         header.addEventListener('click', function() {
             const content = header.nextElementSibling;
@@ -96,6 +104,7 @@
             } else {
                 content.classList.add('hidden');
             }
+
         });
     });
 </script>
