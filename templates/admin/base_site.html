@@ -90,6 +90,10 @@
                         <i class="fas fa-user-shield fa-fw mr-2"></i>
                         Gruppen
                     </a>
+                    <a href="{% url 'admin_role_editor' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_role_editor' %}active-nav-link{% endif %}">
+                        <i class="fas fa-check-square fa-fw mr-2"></i>
+                        Rollen &amp; Rechte
+                    </a>
                 </div>
                 {% endwith %}
             </div>
