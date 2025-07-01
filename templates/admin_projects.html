@@ -4,6 +4,7 @@
 <h1 class="text-2xl font-semibold mb-4">Admin Projekte</h1>
 
 <form method="get" action="{% url 'admin_projects' %}">
+    <div class="overflow-x-auto">
     <table class="min-w-full">
         <thead>
             <tr class="border-b text-left">
@@ -36,6 +37,7 @@
             {% include 'partials/_admin_project_rows.html' %}
         </tbody>
     </table>
+    </div>
 </form>
 <form id="post-actions-form" method="post">
     {% csrf_token %}

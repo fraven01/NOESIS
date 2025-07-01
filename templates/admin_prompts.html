@@ -18,6 +18,7 @@
 
 {% for key, label, items in grouped %}
 <div id="tab-{{ key }}" class="tab-content {% if not forloop.first %}hidden{% endif %}">
+    <div class="overflow-x-auto">
     <table class="min-w-full mb-6">
         <thead>
             <tr class="border-b text-left">
@@ -68,6 +69,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endfor %}
 
