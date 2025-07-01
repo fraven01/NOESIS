@@ -1,7 +1,7 @@
-{% extends 'base.html' %}
+{% extends 'user_base.html' %}
 {% load recording_extras %}
 {% block title %}Gutachten anzeigen{% endblock %}
-{% block content %}
+{% block user_content %}
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }}</h1>
 <div class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
 <p class="mt-4">

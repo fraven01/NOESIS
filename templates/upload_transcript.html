@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'user_base.html' %}
 {% block title %}Transcript hochladen{% endblock %}
-{% block content %}
+{% block user_content %}
 <h1 class="text-2xl font-semibold mb-4">Transcript hochladen</h1>
 <form method="post" enctype="multipart/form-data" class="space-y-4">
     {% csrf_token %}
