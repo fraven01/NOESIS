@@ -13,16 +13,8 @@
     <a href="{% url tile.url_name %}" class="group block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
         {% if tile.image %}
         <img src="{{ tile.image.url }}" class="h-32 w-full object-cover" alt="{{ tile.name }}">
-        {% elif tile.slug == 'talkdiary' %}
-        <div class="h-32 bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
-            <i class="{{ tile.icon }} text-white text-4xl"></i>
-        </div>
-        {% elif tile.slug == 'projektverwaltung' %}
-        <div class="h-32 bg-gradient-to-r from-green-600 to-green-800 flex items-center justify-center">
-            <i class="{{ tile.icon }} text-white text-4xl"></i>
-        </div>
         {% else %}
-        <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center">
+        <div class="h-32 tile-bg flex items-center justify-center">
             <i class="{{ tile.icon }} text-white text-4xl"></i>
         </div>
         {% endif %}

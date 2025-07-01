@@ -8,7 +8,7 @@
         {% if work_area and work_area.image %}
         <img src="{{ work_area.image.url }}" class="h-48 w-full object-cover" alt="{{ work_area.name }}">
         {% else %}
-        <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0052A5, #00B2FF);">
+        <div class="h-48 tile-bg flex items-center justify-center">
             <i class="fas fa-briefcase text-white text-5xl"></i>
         </div>
         {% endif %}
@@ -21,7 +21,7 @@
         {% if personal_area and personal_area.image %}
         <img src="{{ personal_area.image.url }}" class="h-48 w-full object-cover" alt="{{ personal_area.name }}">
         {% else %}
-        <div class="h-48 bg-cover bg-center flex items-center justify-center" style="background-image: linear-gradient(to bottom right, #0070D1, #6EB5FF);">
+        <div class="h-48 tile-bg flex items-center justify-center">
             <i class="fas fa-user text-white text-5xl"></i>
         </div>
         {% endif %}
