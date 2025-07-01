@@ -1,0 +1,20 @@
+{% if selected_group %}
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+    {% for area, items in tiles_by_area.items %}
+        <h2 class="text-xl font-semibold mt-4">{{ area.name }}-Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {% for item in items %}
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="tiles" value="{{ item.tile.id }}" {% if item.checked %}checked{% endif %}>
+                    <span>{{ item.tile.name }}</span>
+                </label>
+            {% empty %}
+                <p>Keine Kacheln vorhanden.</p>
+            {% endfor %}
+        </div>
+    {% endfor %}
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endif %}
