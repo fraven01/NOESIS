@@ -1,6 +1,6 @@
-{% extends 'user_base.html' %}
+{% extends 'base.html' %}
 {% block title %}Projektverwaltung{% endblock %}
-{% block user_content %}
+{% block content %}
 <h1 class="text-2xl font-semibold mb-4">Projektverwaltung</h1>
 <a href="{% url 'projekt_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Neues Projekt</a>
 {% if is_admin %}

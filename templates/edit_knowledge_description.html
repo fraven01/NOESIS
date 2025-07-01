@@ -1,10 +1,10 @@
-{% extends 'user_base.html' %}
+{% extends 'base.html' %}
 {% block extra_head %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 {% endblock %}
 {% block title %}Beschreibung bearbeiten{% endblock %}
-{% block user_content %}
+{% block content %}
 <h1 class="text-2xl font-semibold mb-4">Beschreibung bearbeiten</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
