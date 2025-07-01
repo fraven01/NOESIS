@@ -1,4 +1,5 @@
 /* Styles für das moderne Admin-Layout */
+
 .admin-container {
     display: flex;
 }
@@ -43,6 +44,7 @@
     background-color: #2563eb;
     color: #ffffff;
 }
+
 
 /* Deutlich sichtbare Eingabefelder */
 .admin-content input[type="text"],
