@@ -1,11 +1,11 @@
-{% extends 'base.html' %}
+{% extends 'user_base.html' %}
 {% block extra_head %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 {% endblock %}
 {% load recording_extras %}
 {% block title %}Anlage 2 Review{% endblock %}
-{% block content %}
+{% block user_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
 <form method="post" class="space-y-4" data-anlage-id="{{ anlage.pk }}">
     {% csrf_token %}
