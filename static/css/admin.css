@@ -5,6 +5,21 @@
 .admin-search input { @apply w-full border rounded px-2 py-1 mb-4; }
 .admin-nav a { @apply block py-1 text-blue-700 hover:underline; }
 
+/* Deutlich sichtbare Eingabefelder */
+.admin-content input[type="text"],
+.admin-content input[type="password"],
+.admin-content input[type="number"],
+.admin-content input[type="email"],
+.admin-content select,
+.admin-content textarea {
+    @apply border-2 border-gray-300 rounded px-3 py-2 bg-white focus:border-blue-600 focus:ring focus:ring-blue-200;
+}
+
+/* Hervorgehobene Buttons */
+.admin-content button {
+    @apply bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
 
 
 
