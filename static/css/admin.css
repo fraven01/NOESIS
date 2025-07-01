@@ -1,9 +1,48 @@
 /* Styles für das moderne Admin-Layout */
-.admin-container { @apply flex; }
-.admin-sidebar { @apply fixed inset-y-0 left-0 w-64 bg-gray-100 p-4 border-r overflow-y-auto; }
-.admin-content { @apply flex-1 p-4 md:ml-64; }
-.admin-search input { @apply w-full border rounded px-2 py-1 mb-4; }
-.admin-nav a { @apply block py-1 text-blue-700 hover:underline; }
+.admin-container {
+    display: flex;
+}
+
+.admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 16rem;
+    background-color: #f3f4f6;
+    padding: 1rem;
+    border-right: 1px solid #e5e7eb;
+    overflow-y: auto;
+}
+
+.admin-content {
+    flex: 1;
+    padding: 1rem;
+    margin-left: 16rem;
+}
+
+.admin-search input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.admin-nav a.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    color: #1d4ed8;
+}
+
+.admin-nav a.nav-link:hover {
+    background-color: #dbeafe;
+}
+
+.active-nav-link {
+    background-color: #2563eb;
+    color: #ffffff;
+}
 
 /* Deutlich sichtbare Eingabefelder */
 .admin-content input[type="text"],
@@ -12,7 +51,21 @@
 .admin-content input[type="email"],
 .admin-content select,
 .admin-content textarea {
-    @apply border-2 border-gray-300 rounded px-3 py-2 bg-white focus:border-blue-600 focus:ring focus:ring-blue-200;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #ffffff;
+}
+
+.admin-content input[type="text"]:focus,
+.admin-content input[type="password"]:focus,
+.admin-content input[type="number"]:focus,
+.admin-content input[type="email"]:focus,
+.admin-content select:focus,
+.admin-content textarea:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
 }
 
 /* Hervorgehobene Buttons */
@@ -20,7 +73,19 @@
 .admin-content a.button,
 .admin-content input[type="submit"],
 .admin-content .submit-row input {
-    @apply bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.admin-content button:hover,
+.admin-content a.button:hover,
+.admin-content input[type="submit"]:hover,
+.admin-content .submit-row input:hover {
+    background-color: #1e40af;
 }
 
 
