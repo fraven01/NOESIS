@@ -711,6 +711,65 @@ class DocxExtractTests(TestCase):
             ],
         )
 
+    def test_parse_anlage2_text_fuzzy_match(self):
+        func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        data = parse_anlage2_text("Logn: ja")
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_multiple_rules_priority(self):
+        func = Anlage2Function.objects.create(name="Login")
+        AntwortErkennungsRegel.objects.create(
+            regel_name="a",
+            erkennungs_phrase="foo",
+            ziel_feld="technisch_verfuegbar",
+            wert=True,
+            prioritaet=2,
+        )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="b",
+            erkennungs_phrase="bar",
+            ziel_feld="einsatz_telefonica",
+            wert=False,
+            prioritaet=1,
+        )
+        data = parse_anlage2_text("Login: foo bar rest")
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": "rest"},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_unknown_question(self):
+        Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        data = parse_anlage2_text("Unbekannt: ja\nLogin: ja")
+        self.assertEqual(len(data), 1)
+        self.assertEqual(
+            data[0],
+            {
+                "funktion": "Login",
+                "technisch_verfuegbar": {"value": True, "note": None},
+            },
+        )
+
 class TextParserFormatBTests(TestCase):
     def test_parse_format_b_basic(self):
         text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
