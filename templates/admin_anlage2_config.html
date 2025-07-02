@@ -68,17 +68,12 @@
                 {% for val, label in parser_choices %}
                 <li class="flex items-center py-1" draggable="true" data-val="{{ val }}">
                     <span class="mr-2 cursor-move">&#x2630;</span>
-                    <input type="checkbox" class="parser-cb mr-2" {% if val in config_form.initial.parser_order %}checked{% endif %}>
+                    <input type="checkbox" name="active_parsers" value="{{ val }}" class="parser-cb mr-2" {% if val in config_form.initial.parser_order %}checked{% endif %}>
                     <span>{{ label }}</span>
                 </li>
                 {% endfor %}
             </ul>
-            <div id="parser-order-inputs">{{ config_form.parser_order }}</div>
-            {{ config_form.parser_order.errors }}
-        </div>
-        <div>
-            <label class="block">{{ config_form.parser_order.label }}</label>
-            {{ config_form.parser_order }}
+            <div id="parser-order-inputs"></div>
             {{ config_form.parser_order.errors }}
         </div>
         <button type="submit" name="action" value="save_general" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
