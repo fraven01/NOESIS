@@ -16,6 +16,7 @@ from .models import (
     LLMRole,
     Prompt,
     Tile,
+    FormatBParserRule,
     AntwortErkennungsRegel,
 )
 from django.contrib.auth.models import Group
