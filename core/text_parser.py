@@ -215,36 +215,54 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         line = raw.strip()
         if not line:
             continue
+        parser_logger.debug("Verarbeite Zeile: '%s'", line)
         before, after = (line.split(":", 1) + [""])[0:2]
+        parser_logger.debug("Vor dem Doppelpunkt: '%s', danach: '%s'", before, after)
         before_norm = _normalize(before)
+        parser_logger.debug("Normalisiere '%s' zu '%s'", before, before_norm)
         match = process.extractOne(before_norm, alias_strings)
         matched: Tuple[Anlage2Function, Anlage2SubQuestion | None] | None = None
         if match:
             func, sub = alias_lookup.get(match[0], (None, None))
-            q_name = func.name if func and sub is None else f"{func.name}: {sub.frage_text}" if func else match[0]
+            q_name = (
+                func.name
+                if func and sub is None
+                else f"{func.name}: {sub.frage_text}" if func else match[0]
+            )
             parser_logger.debug(
-                "Matching '%s' -> '%s' (%s%%)", before, q_name, match[1]
+                "Fuzzy-Match '%s' gegen '%s' (%s%%)", before_norm, q_name, match[1]
             )
             if match[1] >= threshold:
                 matched = (func, sub)
         else:
-            parser_logger.debug("Matching '%s' -> kein Treffer", before)
+            parser_logger.debug("Kein Fuzzy-Treffer für '%s'", before)
 
         def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
             lower = text_part.lower()
+            parser_logger.debug("Prüfe Tokens in '%s'", text_part)
             for field, value, phrases in token_map:
-                if any(p in lower for p in phrases):
-                    entry[field] = {"value": value, "note": None}
+                for phrase in phrases:
+                    if phrase in lower:
+                        parser_logger.debug(
+                            "Token '%s' gefunden, setze %s=%s",
+                            phrase,
+                            field,
+                            value,
+                        )
+                        entry[field] = {"value": value, "note": None}
+                        break
 
         def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
             remaining = text_part
             matched_fields: List[str] = []
+            parser_logger.debug("Prüfe Regeln in '%s'", text_part)
             for rule in rules:
                 if rule.erkennungs_phrase.lower() in remaining.lower():
                     entry[rule.ziel_feld] = {"value": rule.wert, "note": None}
                     parser_logger.debug(
-                        "Regel '%s' setzt %s=%s",
+                        "Regel '%s' (%s) setzt %s=%s",
                         rule.regel_name,
+                        rule.erkennungs_phrase,
                         rule.ziel_feld,
                         rule.wert,
                     )
@@ -267,12 +285,18 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                 name = func.name if sub is None else f"{func.name}: {sub.frage_text}"
                 entry = {"funktion": name}
                 results[key] = entry
+                parser_logger.debug("Neuer Eintrag für '%s'", name)
             _apply_tokens(entry, after or line)
             if after:
                 _apply_rules(entry, after)
             last_key = key
         elif last_key is not None:
             entry = results[last_key]
+            parser_logger.debug(
+                "Aktualisiere vorherige Funktion '%s' mit '%s'",
+                entry.get("funktion"),
+                line,
+            )
             _apply_tokens(entry, after or line)
             if after:
                 _apply_rules(entry, after)
