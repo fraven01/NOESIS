@@ -269,8 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const clickedButton = this;
 
             // UI sofort auf Ladezustand setzen
-            clickedButton.disabled = true;
-            clickedButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            showSpinner(clickedButton, '');
 
             // Daten aus dem geklickten Button extrahieren
             const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
@@ -316,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Fehler bei der KI-Prüfung:', error);
-                clickedButton.innerHTML = '⚠️';
+                clickedButton.textContent = '⚠️';
                 clickedButton.disabled = false;
             });
         });
@@ -329,8 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (confirm('Sind Sie sicher, dass Sie alle manuellen und KI-Bewertungen f\u00fcr diese Anlage unwiderruflich l\u00f6schen und auf den Zustand der Dokumenten-Analyse zur\u00fccksetzen wollen?')) {
 
                 const url = "{% url 'ajax_reset_all_reviews' anlage.pk %}";
-                resetButton.disabled = true;
-                resetButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Zur\u00fccksetzen...';
+                showSpinner(resetButton, 'Zur\u00fccksetzen...');
 
                 fetch(url, {
                     method: 'POST',
@@ -342,15 +340,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.reload();
                     } else {
                         alert('Ein Fehler ist aufgetreten.');
-                        resetButton.disabled = false;
-                        resetButton.textContent = 'Alle Bewertungen zur\u00fccksetzen';
+                        hideSpinner(resetButton);
                     }
                 })
                 .catch(error => {
                     alert('Ein Netzwerkfehler ist aufgetreten.');
                     console.error("Reset error:", error);
-                    resetButton.disabled = false;
-                    resetButton.textContent = 'Alle Bewertungen zur\u00fccksetzen';
+                    hideSpinner(resetButton);
                 });
             }
         });

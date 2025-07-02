@@ -43,18 +43,19 @@
 function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 const emailField=document.getElementById('email-text');
 document.getElementById('generate-email').addEventListener('click',function(){
-    const btn=this;btn.disabled=true;
+    const btn=this;
+    showSpinner(btn, 'Generiere...');
     fetch('{% url "anlage1_generate_email" anlage.pk %}',{
         method:'POST',
         headers:{'X-CSRFToken':getCookie('csrftoken')}
     }).then(r=>r.json()).then(data=>{
-        btn.disabled=false;
+        hideSpinner(btn);
         if(data.text){
             emailField.classList.remove('hidden');
             emailField.value=data.text;
             navigator.clipboard.writeText(data.text).then(()=>alert('E-Mail Text kopiert'));
         }else if(data.error){alert('Fehler: '+data.error);}
-    }).catch(()=>{btn.disabled=false;alert('Fehler bei der Generierung');});
+    }).catch(()=>{hideSpinner(btn);alert('Fehler bei der Generierung');});
 });
 </script>
 {% endblock %}
