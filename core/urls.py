@@ -124,6 +124,16 @@ urlpatterns = [
         name="admin_anlage2_config_import",
     ),
     path(
+        "projects-admin/anlage2/rules/add/",
+        views.anlage2_rule_add,
+        name="anlage2_rule_add",
+    ),
+    path(
+        "projects-admin/anlage2/rules/<int:pk>/delete/",
+        views.anlage2_rule_delete,
+        name="anlage2_rule_delete",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",

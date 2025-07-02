@@ -50,6 +50,7 @@ from .forms import (
     UserPermissionsForm,
     UserImportForm,
     Anlage2ConfigImportForm,
+    AntwortErkennungsRegelForm,
 
 )
 from .models import (
@@ -98,7 +99,7 @@ from .llm_tasks import (
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
-from django.forms import formset_factory
+from django.forms import formset_factory, modelformset_factory
 
 import logging
 import sys
@@ -1708,7 +1709,14 @@ def anlage2_config(request):
     """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
-    rules = list(AntwortErkennungsRegel.objects.all())
+    rules_qs = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
+    RuleFormSet = modelformset_factory(
+        AntwortErkennungsRegel,
+        form=AntwortErkennungsRegelForm,
+        can_delete=True,
+        can_order=True,
+        extra=0,
+    )
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
 
     if request.method == "POST":
@@ -1732,32 +1740,27 @@ def anlage2_config(request):
 
         if action == "save_rules":
             admin_a2_logger.debug("Speichere Antwortregeln")
-            for r in rules:
-                if request.POST.get(f"delete{r.id}"):
-                    admin_a2_logger.debug("L\xF6sche Regel %s", r.regel_name)
-                    r.delete()
-                    continue
-                r.regel_name = request.POST.get(f"regel_name{r.id}", r.regel_name)
-                r.erkennungs_phrase = request.POST.get(f"phrase{r.id}", r.erkennungs_phrase)
-                r.ziel_feld = request.POST.get(f"ziel_feld{r.id}", r.ziel_feld)
-                r.wert = bool(request.POST.get(f"wert{r.id}"))
-                try:
-                    r.prioritaet = int(request.POST.get(f"prio{r.id}", r.prioritaet))
-                except (TypeError, ValueError):
-                    pass
-                r.save()
-            new_name = request.POST.get("new_regel_name")
-            new_phrase = request.POST.get("new_phrase")
-            new_field = request.POST.get("new_ziel_feld")
-            if new_name and new_phrase and new_field:
-                AntwortErkennungsRegel.objects.create(
-                    regel_name=new_name,
-                    erkennungs_phrase=new_phrase,
-                    ziel_feld=new_field,
-                    wert=bool(request.POST.get("new_wert")),
-                    prioritaet=int(request.POST.get("new_prioritaet") or 0),
-                )
-                admin_a2_logger.debug("Neue Antwortregel %s", new_name)
+            formset = RuleFormSet(request.POST, queryset=rules_qs, prefix="rules")
+            if formset.is_valid():
+                ordered = formset.ordered_forms
+                for idx, form in enumerate(ordered):
+                    if form.cleaned_data.get("DELETE"):
+                        if form.instance.pk:
+                            form.instance.delete()
+                        continue
+                    obj = form.save(commit=False)
+                    obj.prioritaet = idx
+                    obj.save()
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                messages.success(request, "Antwortregeln gespeichert")
+            else:
+                messages.error(request, "Ungültige Eingaben")
+
+            if request.headers.get("HX-Request"):
+                formset = RuleFormSet(queryset=rules_qs, prefix="rules")
+                context = {"rule_formset": formset, "rule_choices": FormatBParserRule.FIELD_CHOICES}
+                return render(request, "partials/_response_rules_table.html", context)
             return redirect(f"{reverse('anlage2_config')}?tab=rules")
 
         if action == "save_general":
@@ -1769,17 +1772,47 @@ def anlage2_config(request):
                 return redirect(f"{reverse('anlage2_config')}?tab=general")
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
+    rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     context = {
         "config": cfg,
         "config_form": cfg_form,
         "aliases": aliases,
-        "response_rules": rules,
+        "rule_formset": rule_formset,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
         "active_tab": active_tab,
     }
     return render(request, "admin_anlage2_config.html", context)
+
+
+@login_required
+@admin_required
+def anlage2_rule_add(request):
+    """Liefert eine leere Formularzeile für eine Antwortregel."""
+    index = int(request.GET.get("index", 0))
+    RuleFormSet = modelformset_factory(
+        AntwortErkennungsRegel,
+        form=AntwortErkennungsRegelForm,
+        can_delete=True,
+        can_order=True,
+        extra=0,
+    )
+    formset = RuleFormSet(queryset=AntwortErkennungsRegel.objects.none(), prefix="rules")
+    form = formset.empty_form
+    form.prefix = f"rules-{index}"
+    context = {"form": form, "rule_choices": FormatBParserRule.FIELD_CHOICES}
+    return render(request, "partials/_response_rule_row.html", context)
+
+
+@login_required
+@admin_required
+@require_http_methods(["DELETE"])
+def anlage2_rule_delete(request, pk: int):
+    """Löscht eine Antwortregel."""
+    rule = get_object_or_404(AntwortErkennungsRegel, pk=pk)
+    rule.delete()
+    return HttpResponse(status=204)
 
 
 @login_required

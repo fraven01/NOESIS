@@ -615,3 +615,22 @@ class Anlage2ConfigImportForm(forms.Form):
         label="JSON-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+
+
+class AntwortErkennungsRegelForm(forms.ModelForm):
+    """Formular für eine Parser-Antwortregel."""
+
+    class Meta:
+        model = AntwortErkennungsRegel
+        fields = ["regel_name", "erkennungs_phrase", "ziel_feld", "wert"]
+        widgets = {
+            "regel_name": forms.TextInput(
+                attrs={"class": "border rounded p-2 w-full"}
+            ),
+            "erkennungs_phrase": forms.TextInput(
+                attrs={"class": "border rounded p-2 w-full"}
+            ),
+            "ziel_feld": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "wert": forms.CheckboxInput(attrs={"class": "mx-auto"}),
+        }
+

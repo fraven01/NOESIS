@@ -1,0 +1,20 @@
+{{ formset.management_form }}
+<table class="min-w-full mb-4">
+    <thead>
+        <tr class="border-b text-left">
+            <th></th>
+            <th class="py-2">Name</th>
+            <th class="py-2">Phrase</th>
+            <th class="py-2">Ziel-Feld</th>
+            <th class="py-2">Wert</th>
+            <th class="py-2 text-center">Entfernen</th>
+        </tr>
+    </thead>
+    <tbody id="rule-rows">
+        {% for form in formset %}
+            {% include 'partials/_response_rule_row.html' with form=form %}
+        {% empty %}
+        <tr><td colspan="6">Keine Regeln</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
