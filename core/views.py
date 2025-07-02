@@ -1765,11 +1765,13 @@ def anlage2_config(request):
 
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
-            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
-            if cfg_form.is_valid():
-                admin_a2_logger.debug("Geänderte Felder: %r", {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data})
-                cfg_form.save()
-                return redirect(f"{reverse('anlage2_config')}?tab=general")
+            cfg.enforce_subquestion_override = bool(
+                request.POST.get("enforce_subquestion_override")
+            )
+            cfg.parser_order = request.POST.getlist("parser_order")
+            cfg.save(update_fields=["enforce_subquestion_override", "parser_order"])
+            messages.success(request, "Einstellungen gespeichert")
+            return redirect(f"{reverse('anlage2_config')}?tab=general")
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
