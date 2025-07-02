@@ -5,7 +5,7 @@ import logging
 import re
 from typing import List
 
-from .models import BVProjectFile
+from .models import BVProjectFile, FormatBParserRule
 from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
@@ -114,12 +114,16 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
     """
 
-    mapping = {
-        "tv": "technisch_verfuegbar",
-        "tel": "einsatz_telefonica",
-        "lv": "zur_lv_kontrolle",
-        "ki": "ki_beteiligung",
-    }
+    rules = FormatBParserRule.objects.all()
+    if rules:
+        mapping = {r.key.lower(): r.target_field for r in rules}
+    else:
+        mapping = {
+            "tv": "technisch_verfuegbar",
+            "tel": "einsatz_telefonica",
+            "lv": "zur_lv_kontrolle",
+            "ki": "ki_beteiligung",
+        }
 
     results: List[dict[str, object]] = []
     for raw in text.splitlines():
@@ -131,9 +135,10 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
         if not parts:
             continue
         entry: dict[str, object] = {"funktion": parts[0].strip()}
+        key_re = "|".join(map(re.escape, mapping.keys()))
         for part in parts[1:]:
             part = part.strip()
-            m = re.match(r"(tv|tel|lv|ki)\s*[:=]\s*(ja|nein)", part, re.I)
+            m = re.match(rf"({key_re})\s*[:=]\s*(ja|nein)", part, re.I)
             if not m:
                 continue
             key, val = m.groups()
