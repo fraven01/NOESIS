@@ -15,6 +15,7 @@ from .models import (
     Anlage2Function,
     Anlage2FunctionResult,
     FormatBParserRule,
+    AntwortErkennungsRegel,
 )
 
 
@@ -201,6 +202,12 @@ class BVProjectFileAdmin(admin.ModelAdmin):
 class FormatBParserRuleAdmin(admin.ModelAdmin):
     list_display = ("key", "target_field", "ordering")
     list_editable = ("target_field", "ordering")
+
+
+@admin.register(AntwortErkennungsRegel)
+class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
+    list_display = ("regel_name", "ziel_feld", "wert", "prioritaet")
+    list_editable = ("ziel_feld", "wert", "prioritaet")
 
 
 # Registrierung der Modelle
