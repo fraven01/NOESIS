@@ -117,3 +117,23 @@
 .hidden-row {
     display: none;
 }
+
+/* Tab-Navigation in Anlage 2 */
+.tab-btn {
+    padding: 0.5rem 1rem;
+    color: #6b7280; /* gray-500 */
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+}
+
+.tab-btn:hover {
+    color: var(--color-primary);
+}
+
+.tab-active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}

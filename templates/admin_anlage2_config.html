@@ -11,10 +11,10 @@
     {{ config_form.non_field_errors }}
     <input type="hidden" name="active_tab" id="active_tab" value="{{ active_tab }}">
     <input type="hidden" name="phrase_key" id="phrase_key" value="">
-    <nav class="space-x-2 mb-4">
-        <button type="button" data-tab="table" class="tab-btn px-3 py-1 bg-gray-200 rounded">Tabellen-Parser</button>
-        <button type="button" data-tab="general" class="tab-btn px-3 py-1 bg-gray-200 rounded">Allgemein</button>
-        <button type="button" data-tab="rules" class="tab-btn px-3 py-1 bg-gray-200 rounded">Parser-Antwortregeln</button>
+    <nav class="border-b border-gray-200 space-x-2 mb-4">
+        <button type="button" data-tab="table" class="tab-btn">Tabellen-Parser</button>
+        <button type="button" data-tab="general" class="tab-btn">Allgemein</button>
+        <button type="button" data-tab="rules" class="tab-btn">Parser-Antwortregeln</button>
     </nav>
     <div id="tab-table" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
@@ -140,6 +140,13 @@ function showTab(tab){
     const el=document.getElementById('tab-'+tab);
     if(el){el.style.display='';}
     document.getElementById('active_tab').value=tab;
+    document.querySelectorAll('.tab-btn').forEach(btn=>{
+        if(btn.dataset.tab===tab){
+            btn.classList.add('tab-active');
+        }else{
+            btn.classList.remove('tab-active');
+        }
+    });
 }
 document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click',()=>showTab(btn.dataset.tab));
