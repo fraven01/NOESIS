@@ -159,38 +159,29 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                         break
 
         def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
-            parser_logger.debug("Prüfe Regeln in '%s'", text_part)
-            found: Dict[str, tuple[bool, int, str]] = {}
-            for rule in rules:
-                if rule.erkennungs_phrase.lower() in text_part.lower():
-                    current = found.get(rule.ziel_feld)
-                    if current is None or rule.prioritaet < current[1]:
-                        found[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
-                        parser_logger.debug(
-                            "Regel '%s' (%s) setzt %s=%s",
-                            rule.regel_name,
-                            rule.erkennungs_phrase,
-                            rule.ziel_feld,
-                            rule.wert,
-                        )
-
-            if not found:
-                return
-
-            # Set values using the best rule per field
-            for field, (val, _prio, _phrase) in found.items():
-                entry[field] = {"value": val, "note": None}
-
-            # Entferne alle gefundenen Phrasen für Notizbestimmung
             remaining = text_part
-            for _val, _prio, phrase in found.values():
-                remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
-            remaining = remaining.strip()
-
-            if remaining:
-                # Note beim Feld mit höchster Priorität ablegen
-                best_field = min(found.items(), key=lambda i: i[1][1])[0]
-                entry[best_field]["note"] = remaining
+            matched_fields: List[str] = []
+            parser_logger.debug("Prüfe Regeln in '%s'", text_part)
+            for rule in rules:
+                if rule.erkennungs_phrase.lower() in remaining.lower():
+                    entry[rule.ziel_feld] = {"value": rule.wert, "note": None}
+                    parser_logger.debug(
+                        "Regel '%s' (%s) setzt %s=%s",
+                        rule.regel_name,
+                        rule.erkennungs_phrase,
+                        rule.ziel_feld,
+                        rule.wert,
+                    )
+                    matched_fields.append(rule.ziel_feld)
+                    remaining = re.sub(
+                        re.escape(rule.erkennungs_phrase),
+                        "",
+                        remaining,
+                        flags=re.I,
+                    ).strip()
+            if remaining and matched_fields:
+                first = matched_fields[0]
+                entry[first]["note"] = remaining
 
         if matched:
             func, sub = matched
