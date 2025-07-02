@@ -19,6 +19,7 @@ from .models import (
 from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
+parser_logger = logging.getLogger("parser_debug")
 
 
 class TextParser(AbstractParser):
@@ -207,6 +208,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     rules = list(AntwortErkennungsRegel.objects.all())
 
     results: Dict[Tuple[int, int | None], Dict[str, object]] = {}
+    unmatched: List[Dict[str, object]] = []
     last_key: Tuple[int, int | None] | None = None
 
     for raw in text.splitlines():
@@ -217,9 +219,16 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         before_norm = _normalize(before)
         match = process.extractOne(before_norm, alias_strings)
         matched: Tuple[Anlage2Function, Anlage2SubQuestion | None] | None = None
-        if match and match[1] >= threshold:
-            matched = alias_lookup[match[0]]
-            logger.debug("Fuzzy-Match '%s' -> '%s' (%s%%)", before, match[0], match[1])
+        if match:
+            func, sub = alias_lookup.get(match[0], (None, None))
+            q_name = func.name if func and sub is None else f"{func.name}: {sub.frage_text}" if func else match[0]
+            parser_logger.debug(
+                "Matching '%s' -> '%s' (%s%%)", before, q_name, match[1]
+            )
+            if match[1] >= threshold:
+                matched = (func, sub)
+        else:
+            parser_logger.debug("Matching '%s' -> kein Treffer", before)
 
         def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
             lower = text_part.lower()
@@ -233,6 +242,12 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             for rule in rules:
                 if rule.erkennungs_phrase.lower() in remaining.lower():
                     entry[rule.ziel_feld] = {"value": rule.wert, "note": None}
+                    parser_logger.debug(
+                        "Regel '%s' setzt %s=%s",
+                        rule.regel_name,
+                        rule.ziel_feld,
+                        rule.wert,
+                    )
                     matched_fields.append(rule.ziel_feld)
                     remaining = re.sub(
                         re.escape(rule.erkennungs_phrase),
@@ -261,5 +276,13 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             _apply_tokens(entry, after or line)
             if after:
                 _apply_rules(entry, after)
+        else:
+            parser_logger.warning("Keine Funktion gefunden für Zeile: %s", line)
+            entry = {"funktion": before}
+            _apply_tokens(entry, after or line)
+            if after:
+                _apply_rules(entry, after)
+            entry.setdefault("technisch_verfuegbar", {"value": False, "note": None})
+            unmatched.append(entry)
 
-    return list(results.values())
+    return list(results.values()) + unmatched
