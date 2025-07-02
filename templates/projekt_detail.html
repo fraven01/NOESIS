@@ -8,7 +8,8 @@
 {% endif %}
 </h1>
 <div class="lg:flex lg:space-x-4">
-<div class="lg:w-2/3">
+<div class="lg:w-2/3 space-y-6">
+<div class="bg-white rounded-lg shadow p-4">
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
@@ -27,7 +28,11 @@
     |
     <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>
 </p>
-<h2 class="text-xl font-semibold mt-4">Anlagen</h2>
+</div>
+
+<div class="bg-white rounded-lg shadow p-4">
+<h2 class="text-xl font-semibold mb-4">Anlagen</h2>
+<div class="overflow-x-auto">
 <table class="mb-4 w-full text-left">
     <thead>
         <tr>
@@ -82,10 +87,14 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 <a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Anlage hochladen</a>
+</div>
 
 
-<h2 class="text-xl font-semibold mt-4">Initial-Prüfung der Software-Komponenten</h2>
+<div class="bg-white rounded-lg shadow p-4">
+<h2 class="text-xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h2>
+<div class="overflow-x-auto">
 <table id="knowledge-table" class="mb-4 w-full text-left">
     <thead>
         <tr>
@@ -144,9 +153,7 @@
                     <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
                     <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
                 {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">
-                        Gutachten erstellen
-                    </button>
+                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
                 {% endif %}
                 <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
             {% endif %}
@@ -155,8 +162,9 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 <button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
-
+</div>
 </div>
 <div class="lg:w-1/3 mt-4 lg:mt-0">
   <div class="bg-gray-100 p-4 rounded">
@@ -258,10 +266,7 @@ function attachHandlers(){
 
 function startChecks(){
  const btn=document.getElementById('start-checks');
- btn.disabled=true;
- const spinner=document.createElement('span');
- spinner.textContent=' ...';
- btn.after(spinner);
+ showSpinner(btn, 'Prüfung läuft...');
  fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
    method:'POST',
    headers:{'X-CSRFToken':getCookie('csrftoken')}
@@ -279,7 +284,7 @@ function startChecks(){
        });
      },3000);
    });
- }).catch(()=>{alert('Fehler beim Start');spinner.remove();btn.disabled=false;});
+ }).catch(()=>{alert('Fehler beim Start'); hideSpinner(btn);});
 }
 
 document.addEventListener('DOMContentLoaded',loadKnowledge);
@@ -299,7 +304,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
       this.classList.add('disabled');
       const status=document.getElementById('gutachten-status-'+knowledgeId);
-      if(status){status.textContent='...';}
+      showSpinner(this, 'Erstelle...');
 
       fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
@@ -312,14 +317,16 @@ document.addEventListener('DOMContentLoaded',function(){
               }else if(d.status==='FAIL'){
                 clearInterval(iv);
                 if(status){status.textContent='Fehler';}
+                hideSpinner(button);
                 button.classList.remove('disabled');
               }
             });
           },3000);
         }).catch(()=>{
           if(status){status.textContent='Fehler';}
+          hideSpinner(button);
           button.classList.remove('disabled');
-  });
+        });
   });
 });
 
@@ -332,12 +339,13 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
   const sendBtn=document.querySelector('.send-context-btn');
-  if(sendBtn){
-    sendBtn.addEventListener('click',function(){
+ if(sendBtn){
+   sendBtn.addEventListener('click',function(){
       const text=document.getElementById('contextText').value;
       const body=new FormData();
       body.append('knowledge_id',contextId);
       body.append('user_context',text);
+      showSpinner(sendBtn, 'Senden...');
       fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;

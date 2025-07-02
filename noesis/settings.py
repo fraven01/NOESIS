@@ -323,7 +323,7 @@ LOGGING = {
 # Django-Q Konfiguration
 Q_CLUSTER = {
     "name": "noesis_q",
-    "workers": 12,
+    "workers": 2,
     "recycle": 500,
     "timeout": 60,
     "compress": True,
