@@ -578,6 +578,23 @@ class FormatBParserRule(models.Model):
         return self.key
 
 
+class AntwortErkennungsRegel(models.Model):
+    """Regel zum Erkennen von Antworten in unstrukturiertem Text."""
+
+    regel_name = models.CharField(max_length=100)
+    erkennungs_phrase = models.CharField(max_length=200)
+    ziel_feld = models.CharField(
+        max_length=50,
+        choices=FormatBParserRule.FIELD_CHOICES,
+    )
+    wert = models.BooleanField()
+    prioritaet = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ["prioritaet"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.regel_name
 
 
 class Tile(models.Model):
@@ -655,6 +672,7 @@ class Anlage2Function(models.Model):
     """Funktion aus Anlage 2."""
 
     name = models.CharField(max_length=200, unique=True)
+    detection_phrases = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -700,6 +718,7 @@ class Anlage2SubQuestion(models.Model):
 
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     frage_text = models.TextField()
+    detection_phrases = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]
