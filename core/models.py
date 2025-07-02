@@ -685,18 +685,3 @@ class Anlage2SubQuestion(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.frage_text
-
-
-class FormatBParserRule(models.Model):
-    """Regel f\u00fcr den Format-B-Parser."""
-
-    key = models.CharField(max_length=10, unique=True)
-    target_field = models.CharField(max_length=50)
-    description = models.CharField(max_length=255)
-    is_boolean = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ["key"]
-
-    def __str__(self) -> str:  # pragma: no cover - trivial
-        return self.key
