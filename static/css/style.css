@@ -131,3 +131,18 @@ input[type="submit"]:hover {
     background-image: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
     color: #ffffff;
 }
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}

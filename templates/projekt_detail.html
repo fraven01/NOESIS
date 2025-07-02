@@ -153,13 +153,7 @@
                     <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
                     <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
                 {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn flex items-center" data-knowledge-id="{{ row.entry.id }}">
-                        <span>Gutachten erstellen</span>
-                        <svg class="hidden w-4 h-4 ml-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                        </svg>
-                    </button>
+                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
                 {% endif %}
                 <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
             {% endif %}
@@ -169,13 +163,7 @@
     </tbody>
 </table>
 </div>
-<button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded flex items-center">
-    <span>Prüfung starten</span>
-    <svg class="hidden w-4 h-4 ml-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-    </svg>
-</button>
+<button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
 </div>
 </div>
 <div class="lg:w-1/3 mt-4 lg:mt-0">
@@ -278,11 +266,7 @@ function attachHandlers(){
 
 function startChecks(){
  const btn=document.getElementById('start-checks');
- const spinner=btn.querySelector('svg');
- const text=btn.querySelector('span');
- btn.disabled=true;
- if(text) text.textContent='Prüfung läuft...';
- if(spinner) spinner.classList.remove('hidden');
+ showSpinner(btn, 'Prüfung läuft...');
  fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
    method:'POST',
    headers:{'X-CSRFToken':getCookie('csrftoken')}
@@ -300,7 +284,7 @@ function startChecks(){
        });
      },3000);
    });
- }).catch(()=>{alert('Fehler beim Start'); if(spinner) spinner.classList.add('hidden'); if(text) text.textContent='Prüfung starten'; btn.disabled=false;});
+ }).catch(()=>{alert('Fehler beim Start'); hideSpinner(btn);});
 }
 
 document.addEventListener('DOMContentLoaded',loadKnowledge);
@@ -320,10 +304,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
       this.classList.add('disabled');
       const status=document.getElementById('gutachten-status-'+knowledgeId);
-      const spinner=this.querySelector('svg');
-      const text=this.querySelector('span');
-      if(text) text.textContent='Erstelle...';
-      if(spinner) spinner.classList.remove('hidden');
+      showSpinner(this, 'Erstelle...');
 
       fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
@@ -336,22 +317,16 @@ document.addEventListener('DOMContentLoaded',function(){
               }else if(d.status==='FAIL'){
                 clearInterval(iv);
                 if(status){status.textContent='Fehler';}
-                const sp=button.querySelector('svg');
-                const tx=button.querySelector('span');
-                if(sp) sp.classList.add('hidden');
-                if(tx) tx.textContent='Gutachten erstellen';
+                hideSpinner(button);
                 button.classList.remove('disabled');
               }
             });
           },3000);
         }).catch(()=>{
           if(status){status.textContent='Fehler';}
-          const spinner=button.querySelector('svg');
-          const text=button.querySelector('span');
-          if(spinner) spinner.classList.add('hidden');
-          if(text) text.textContent='Gutachten erstellen';
+          hideSpinner(button);
           button.classList.remove('disabled');
-  });
+        });
   });
 });
 
@@ -364,12 +339,13 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
   const sendBtn=document.querySelector('.send-context-btn');
-  if(sendBtn){
-    sendBtn.addEventListener('click',function(){
+ if(sendBtn){
+   sendBtn.addEventListener('click',function(){
       const text=document.getElementById('contextText').value;
       const body=new FormData();
       body.append('knowledge_id',contextId);
       body.append('user_context',text);
+      showSpinner(sendBtn, 'Senden...');
       fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;

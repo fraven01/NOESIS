@@ -15,7 +15,7 @@
     <textarea class="border rounded w-full p-2" rows="6" readonly>{{ projekt.gutachten_function_note }}</textarea>
 </div>
 {% endif %}
-<form method="post" action="{% url 'gutachten_llm_check' gutachten.id %}" class="mt-4">
+<form id="llm-check-form" class="mt-4">
     {% csrf_token %}
     <label class="font-semibold">LLM-Modell:</label>
     {% for key, data in categories.items %}
@@ -24,6 +24,19 @@
             {{ data.label }}
         </label>
     {% endfor %}
-    <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Funktionscheck</button>
+    <button type="button" id="llm-check-btn" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Funktionscheck</button>
 </form>
+<script>
+function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
+document.getElementById('llm-check-btn').addEventListener('click',function(){
+    const btn=this;
+    const form=document.getElementById('llm-check-form');
+    showSpinner(btn,'Prüfe...');
+    fetch('{% url 'gutachten_llm_check' gutachten.id %}',{
+        method:'POST',
+        headers:{'X-CSRFToken':getCookie('csrftoken')},
+        body:new FormData(form)
+    }).then(r=>{if(!r.ok) throw new Error(); return r.text();}).then(()=>window.location.reload()).catch(()=>{alert('Fehler beim Prüfen'); hideSpinner(btn);});
+});
+</script>
 {% endblock %}
