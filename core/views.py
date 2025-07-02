@@ -1790,8 +1790,11 @@ def anlage2_config(request):
 
 @login_required
 @admin_required
+@require_http_methods(["GET"])
 def anlage2_rule_add(request):
     """Liefert eine leere Formularzeile für eine Antwortregel."""
+    if not request.headers.get("HX-Request"):
+        return redirect("anlage2_config")
     index = int(request.GET.get("index", 0))
     RuleFormSet = modelformset_factory(
         AntwortErkennungsRegel,
