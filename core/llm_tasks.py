@@ -26,6 +26,7 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
+from .text_parser import parse_anlage2_text
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     extract_text,
