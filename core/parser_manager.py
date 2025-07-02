@@ -5,7 +5,7 @@ from typing import Dict, List, Type
 
 from .models import BVProjectFile, Anlage2Config
 from .parsers import AbstractParser, TableParser
-from .text_parser import TextParser
+from .text_parser import FuzzyTextParser
 
 logger = logging.getLogger(__name__)
 
@@ -67,4 +67,4 @@ def _count_technisch_true(data: list[dict[str, object]]) -> int:
 
 parser_manager = ParserManager()
 parser_manager.register(TableParser)
-parser_manager.register(TextParser)
+parser_manager.register(FuzzyTextParser)
