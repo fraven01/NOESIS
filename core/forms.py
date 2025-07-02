@@ -16,6 +16,7 @@ from .models import (
     LLMRole,
     Prompt,
     Tile,
+    AntwortErkennungsRegel,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
