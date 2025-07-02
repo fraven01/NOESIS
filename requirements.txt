@@ -15,4 +15,5 @@ pypandoc
 pyMuPdf
 fpdf
 thefuzz[speedup]
+thefuzz
 
