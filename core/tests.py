@@ -25,6 +25,7 @@ from .models import (
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
+    FormatBParserRule,
 )
 from .docx_utils import (
     extract_text,
@@ -747,6 +748,12 @@ class TextParserFormatBTests(TestCase):
         self.assertEqual(len(data), 2)
         self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
         self.assertFalse(data[1]["technisch_verfuegbar"]["value"])
+
+    def test_parse_format_b_with_rules(self):
+        FormatBParserRule.objects.create(key="t", target_field="technisch_verfuegbar")
+        text = "Login; t: ja"
+        data = text_parser.parse_format_b(text)
+        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
 
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")

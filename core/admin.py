@@ -14,6 +14,7 @@ from .models import (
     BVProjectFile,
     Anlage2Function,
     Anlage2FunctionResult,
+    FormatBParserRule,
 )
 
 
@@ -194,6 +195,12 @@ class BVProjectFileAdmin(admin.ModelAdmin):
         "verhandlungsfaehig",
     )
     list_editable = ("manual_reviewed", "verhandlungsfaehig")
+
+
+@admin.register(FormatBParserRule)
+class FormatBParserRuleAdmin(admin.ModelAdmin):
+    list_display = ("key", "target_field", "ordering")
+    list_editable = ("target_field", "ordering")
 
 
 # Registrierung der Modelle
