@@ -13,3 +13,14 @@ function hideSpinner(buttonElement) {
     }
     buttonElement.disabled = false;
 }
+
+function getCookie(name) {
+    const match = document.cookie.match('(^|;)\\s*' + name + '=([^;]*)');
+    return match ? decodeURIComponent(match[2]) : null;
+}
+
+document.body.addEventListener('htmx:configRequest', (evt) => {
+    const token = getCookie('csrftoken');
+    if (token) evt.detail.headers['X-CSRFToken'] = token;
+});
+
