@@ -121,19 +121,22 @@
 /* Tab-Navigation in Anlage 2 */
 .tab-btn {
     padding: 0.5rem 1rem;
-    color: #6b7280; /* gray-500 */
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
+    color: #4b5563; /* gray-600 */
+    background-color: #e5e7eb; /* gray-200 */
+    border: 1px solid #d1d5db; /* gray-300 */
+    border-bottom: 0;
+    border-radius: 0.5rem 0.5rem 0 0;
     cursor: pointer;
 }
 
 .tab-btn:hover {
-    color: var(--color-primary);
+    background-color: #f3f4f6; /* gray-100 */
 }
 
 .tab-active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
+    background-color: #ffffff;
+    color: #2563eb; /* blue-600 */
     font-weight: 600;
+    border-color: #d1d5db;
+    border-bottom-color: transparent;
 }
