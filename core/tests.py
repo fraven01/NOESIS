@@ -22,7 +22,6 @@ from .models import (
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
-    FormatBParserRule,
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
@@ -712,27 +711,6 @@ class DocxExtractTests(TestCase):
         )
 
 class TextParserFormatBTests(TestCase):
-    def setUp(self):
-        FormatBParserRule.objects.create(
-            key="tv",
-            target_field="technisch_verfuegbar",
-            description="Technisch vorhanden",
-        )
-        FormatBParserRule.objects.create(
-            key="tel",
-            target_field="einsatz_telefonica",
-            description="Einsatz bei Telefónica",
-        )
-        FormatBParserRule.objects.create(
-            key="lv",
-            target_field="zur_lv_kontrolle",
-            description="Zur LV-Kontrolle",
-        )
-        FormatBParserRule.objects.create(
-            key="ki",
-            target_field="ki_beteiligung",
-            description="KI-Beteiligung",
-        )
     def test_parse_format_b_basic(self):
         text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
         data = text_parser.parse_format_b(text)
