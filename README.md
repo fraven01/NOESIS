@@ -148,6 +148,9 @@ Der Textparser nutzt die Einträge aus dem Funktionskatalog, um die Anlage 2 zu
 Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
 Alias. Zusätzliche Varianten können für den Tabellenparser 3über das Feld `name_aliases` hinterlegt
 werden. Doppelte Einträge werden automatisch ignoriert.
+Beim Einlesen gleicht der Parser jede Zeile bis zum Doppelpunkt mit allen bekannten Fragen ab. Dabei kommt Fuzzy-Matching zum Einsatz; nur bei ausreichender Ähnlichkeit (Standard 80 %) gilt die Frage als erkannt.
+Anschließend wird der Antwortteil ausgewertet. Hier greifen die **AntwortErkennungsRegeln**. Jede Regel enthält eine Phrase, ein Zielfeld und den zu setzenden Wert. Wird die Phrase gefunden, entfernt der Parser sie und trägt den Wert im entsprechenden Feld ein.
+Beispiel: Die Regel "nicht im Einsatz" mit Ziel `einsatz_telefonica` und Wert `False` führt dazu, dass der Satz "Die Funktion ist nicht im Einsatz." automatisch `einsatz_telefonica` auf "nein" setzt.
 
 Erkennungsphrasen werden einfach zeilenweise eingegeben.
 JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
