@@ -14,6 +14,7 @@
     <nav class="space-x-2 mb-4">
         <button type="button" data-tab="table" class="tab-btn px-3 py-1 bg-gray-200 rounded">Tabellen-Parser</button>
         <button type="button" data-tab="general" class="tab-btn px-3 py-1 bg-gray-200 rounded">Allgemein</button>
+        <button type="button" data-tab="rules" class="tab-btn px-3 py-1 bg-gray-200 rounded">Parser-Antwortregeln</button>
     </nav>
     <div id="tab-table" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
@@ -81,6 +82,56 @@
             {{ config_form.parser_order.errors }}
         </div>
         <button type="submit" name="action" value="save_general" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    </div>
+    <div id="tab-rules" class="tab-content">
+        <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln</h2>
+        <div class="overflow-x-auto">
+        <table class="min-w-full mb-4">
+            <thead>
+                <tr class="border-b text-left">
+                    <th class="py-2">Name</th>
+                    <th class="py-2">Phrase</th>
+                    <th class="py-2">Ziel-Feld</th>
+                    <th class="py-2">Wert</th>
+                    <th class="py-2">Priorität</th>
+                    <th class="py-2 text-center">Entfernen</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in response_rules %}
+                <tr class="border-b text-sm">
+                    <td class="py-1"><input type="text" name="regel_name{{ r.id }}" value="{{ r.regel_name }}" class="border rounded p-2 w-full"></td>
+                    <td class="py-1"><input type="text" name="phrase{{ r.id }}" value="{{ r.erkennungs_phrase }}" class="border rounded p-2 w-full"></td>
+                    <td class="py-1">
+                        <select name="ziel_feld{{ r.id }}" class="border rounded p-2 w-full">
+                        {% for val, label in rule_choices %}
+                            <option value="{{ val }}" {% if r.ziel_feld == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td class="py-1 text-center"><input type="checkbox" name="wert{{ r.id }}" {% if r.wert %}checked{% endif %}></td>
+                    <td class="py-1"><input type="number" name="prio{{ r.id }}" value="{{ r.prioritaet }}" class="border rounded p-2 w-full"></td>
+                    <td class="py-1 text-center"><input type="checkbox" name="delete{{ r.id }}"></td>
+                </tr>
+            {% endfor %}
+                <tr class="border-b text-sm">
+                    <td class="py-1"><input type="text" name="new_regel_name" class="border rounded p-2 w-full"></td>
+                    <td class="py-1"><input type="text" name="new_phrase" class="border rounded p-2 w-full"></td>
+                    <td class="py-1">
+                        <select name="new_ziel_feld" class="border rounded p-2 w-full">
+                        {% for val, label in rule_choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td class="py-1 text-center"><input type="checkbox" name="new_wert"></td>
+                    <td class="py-1"><input type="number" name="new_prioritaet" value="0" class="border rounded p-2 w-full"></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
     </div>
 </form>
 <script>

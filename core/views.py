@@ -72,6 +72,8 @@ from .models import (
     Area,
     ProjectStatus,
     LLMRole,
+    FormatBParserRule,
+    AntwortErkennungsRegel,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -1706,6 +1708,7 @@ def anlage2_config(request):
     """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
+    rules = list(AntwortErkennungsRegel.objects.all())
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
 
     if request.method == "POST":
@@ -1727,6 +1730,36 @@ def anlage2_config(request):
                 admin_a2_logger.debug("Neue Überschrift %s -> %s", new_field, new_text)
             return redirect(f"{reverse('anlage2_config')}?tab=table")
 
+        if action == "save_rules":
+            admin_a2_logger.debug("Speichere Antwortregeln")
+            for r in rules:
+                if request.POST.get(f"delete{r.id}"):
+                    admin_a2_logger.debug("L\xF6sche Regel %s", r.regel_name)
+                    r.delete()
+                    continue
+                r.regel_name = request.POST.get(f"regel_name{r.id}", r.regel_name)
+                r.erkennungs_phrase = request.POST.get(f"phrase{r.id}", r.erkennungs_phrase)
+                r.ziel_feld = request.POST.get(f"ziel_feld{r.id}", r.ziel_feld)
+                r.wert = bool(request.POST.get(f"wert{r.id}"))
+                try:
+                    r.prioritaet = int(request.POST.get(f"prio{r.id}", r.prioritaet))
+                except (TypeError, ValueError):
+                    pass
+                r.save()
+            new_name = request.POST.get("new_regel_name")
+            new_phrase = request.POST.get("new_phrase")
+            new_field = request.POST.get("new_ziel_feld")
+            if new_name and new_phrase and new_field:
+                AntwortErkennungsRegel.objects.create(
+                    regel_name=new_name,
+                    erkennungs_phrase=new_phrase,
+                    ziel_feld=new_field,
+                    wert=bool(request.POST.get("new_wert")),
+                    prioritaet=int(request.POST.get("new_prioritaet") or 0),
+                )
+                admin_a2_logger.debug("Neue Antwortregel %s", new_name)
+            return redirect(f"{reverse('anlage2_config')}?tab=rules")
+
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
             cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
@@ -1740,7 +1773,9 @@ def anlage2_config(request):
         "config": cfg,
         "config_form": cfg_form,
         "aliases": aliases,
+        "response_rules": rules,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
+        "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
         "active_tab": active_tab,
     }
