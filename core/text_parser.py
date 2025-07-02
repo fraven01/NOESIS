@@ -5,7 +5,7 @@ import logging
 import re
 from typing import List
 
-from .models import BVProjectFile
+from .models import BVProjectFile, FormatBParserRule
 from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
@@ -114,18 +114,15 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
     """
 
-    mapping = {
-        "tv": "technisch_verfuegbar",
-        "tel": "einsatz_telefonica",
-        "lv": "zur_lv_kontrolle",
-        "ki": "ki_beteiligung",
-    }
+    rules = {r.key.lower(): r for r in FormatBParserRule.objects.all()}
+    logger.debug("%s Regeln geladen", len(rules))
 
     results: List[dict[str, object]] = []
     for raw in text.splitlines():
         line = raw.strip()
         if not line:
             continue
+        logger.debug("Verarbeite Zeile: %s", line)
         line = re.sub(r"^[\d]+[.)]\s*", "", line)
         parts = re.split(r"[;\-]", line)
         if not parts:
@@ -133,14 +130,25 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
         entry: dict[str, object] = {"funktion": parts[0].strip()}
         for part in parts[1:]:
             part = part.strip()
-            m = re.match(r"(tv|tel|lv|ki)\s*[:=]\s*(ja|nein)", part, re.I)
+            m = re.match(r"([^:=]+)\s*[:=]\s*(.+)", part)
             if not m:
+                logger.warning("Ungültiges Segment '%s' in Zeile '%s'", part, line)
                 continue
             key, val = m.groups()
-            entry[mapping[key.lower()]] = {
-                "value": val.lower() == "ja",
-                "note": None,
-            }
+            key = key.strip().lower()
+            val = val.strip()
+            rule = rules.get(key)
+            if not rule:
+                logger.warning("Unbekannter Schlüssel '%s' in Zeile '%s'", key, line)
+                continue
+            logger.debug("Gefundenes Paar %s=%s", key, val)
+            if rule.is_boolean:
+                entry[rule.target_field] = {
+                    "value": val.lower() == "ja",
+                    "note": None,
+                }
+            else:
+                entry[rule.target_field] = val
         results.append(entry)
 
     return results
