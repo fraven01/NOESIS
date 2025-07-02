@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.db import models
 from pathlib import Path
@@ -576,21 +575,6 @@ class Tile(models.Model):
     icon = models.CharField(max_length=50, blank=True)
     description = models.CharField(max_length=200, blank=True)
     image = models.ImageField(upload_to="tile_images/", blank=True, null=True)
-    parent = models.ForeignKey(
-        "self",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="children",
-        verbose_name="Übergeordnete Kachel",
-    )
-    permission = models.OneToOneField(
-        Permission,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Benötigte Berechtigung",
-    )
     users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="UserTileAccess",
@@ -634,7 +618,6 @@ class Anlage2Function(models.Model):
     """Funktion aus Anlage 2."""
 
     name = models.CharField(max_length=200, unique=True)
-    detection_phrases = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -680,7 +663,6 @@ class Anlage2SubQuestion(models.Model):
 
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     frage_text = models.TextField()
-    detection_phrases = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]

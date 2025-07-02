@@ -34,7 +34,13 @@
             <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="transcribe-form">
                 {% csrf_token %}
                 <input type="hidden" name="track" value="1">
-                <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded">Transkribieren</button>
+                <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded flex items-center">
+                    <span>Transkribieren</span>
+                    <svg class="hidden w-4 h-4 ml-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </button>
             </form>
             {% if rec.transcript_file %}
             <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-green-600 text-white rounded">Transcript</a>
@@ -74,7 +80,7 @@
 {% if is_admin %}
 <div class="mt-8">
     <a href="{% url 'admin_talkdiary' %}" class="block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
-        <div class="h-32 tile-bg flex items-center justify-center">
+        <div class="h-32 bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
             <i class="fas fa-tools text-white text-4xl"></i>
         </div>
         <div class="p-4 bg-white">
@@ -96,8 +102,13 @@ document.querySelectorAll('.transcribe-form').forEach(f => {
         if (trackInput) trackInput.value = track;
 
         const btn = f.querySelector('button[type="submit"]');
+        const spinner = btn.querySelector('svg');
         if (btn) {
-            showSpinner(btn, 'Transkribiere...');
+            btn.disabled = true;
+            btn.querySelector('span').textContent = 'Transkribiere...';
+            if (spinner) {
+                spinner.classList.remove('hidden');
+            }
         }
     });
 });

@@ -146,7 +146,7 @@ Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2
 
 Der Textparser nutzt die Einträge aus dem Funktionskatalog, um die Anlage 2 zu analysieren. Dabei werden die Funktionsnamen als Alias für die Erkennungsphrasen verwendet. Das bedeutet, dass der Parser automatisch nach den Funktionsnamen sucht und diese als Treffer zählt. Die zurodnung, ob etwas technisch verfügbar ist, erfolgt ausschließlich über die über die Felder `technisch_vorhanden` und `technisch_verfuegbar`. Diese Felder sind für den Textparser relevant und werden bei der Analyse berücksichtigt.
 Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
-Alias. Zusätzliche Varianten können für den Tabellenparser 3über das Feld `name_aliases` hinterlegt
+Alias. Zusätzliche Varianten können über das Feld `name_aliases` hinterlegt
 werden. Doppelte Einträge werden automatisch ignoriert.
 
 Erkennungsphrasen werden einfach zeilenweise eingegeben.
@@ -155,12 +155,7 @@ JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phr
 
 ### Format-B Textparser
 
-Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Welche Tokens oder
-Keys ausgewertet werden, lässt sich über die Admin‑Ansicht **FormatBParserRule**
-anpassen. Standardmäßig sind die Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt.
-Jede Zeile enthält den Funktionsnamen und optional diese Tokens. Ein
-Doppelpunkt trennt den Schlüssel vom Wert `ja` oder `nein`. Nummerierungen wie
-`1.` oder Bindestriche am Zeilenanfang werden ignoriert.
+Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Jede Zeile enthält den Funktionsnamen und optionale Tokens wie `tv`, `tel`, `lv` oder `ki`. Ein Doppelpunkt trennt das Token vom Wert `ja` oder `nein`. Nummerierungen wie `1.` oder Bindestriche am Zeilenanfang werden ignoriert.
 
 Beispiel:
 

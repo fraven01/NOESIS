@@ -366,12 +366,9 @@ class Anlage2FunctionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2Function
-        fields = ["name", "detection_phrases"]
+        fields = ["name"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
-            "detection_phrases": Textarea(
-                attrs={"class": "border rounded p-2", "rows": 3}
-            ),
         }
 
 
@@ -380,13 +377,10 @@ class Anlage2SubQuestionForm(forms.ModelForm):
 
     class Meta:
         model = Anlage2SubQuestion
-        fields = ["frage_text", "detection_phrases"]
+        fields = ["frage_text"]
         labels = {"frage_text": "Frage"}
         widgets = {
             "frage_text": Textarea(attrs={"class": "border rounded p-2", "rows": 3}),
-            "detection_phrases": Textarea(
-                attrs={"class": "border rounded p-2", "rows": 3}
-            ),
         }
 
 

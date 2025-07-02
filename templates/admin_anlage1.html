@@ -8,7 +8,6 @@
 </div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
-    <div class="overflow-x-auto">
     <table class="min-w-full">
         <thead>
             <tr class="border-b text-left">
@@ -63,7 +62,6 @@
         </tr>
         </tbody>
     </table>
-    </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
 </form>
 {% endblock %}

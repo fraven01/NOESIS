@@ -92,11 +92,6 @@ urlpatterns = [
         views.admin_edit_user_permissions,
         name="admin_edit_user_permissions",
     ),
-    path(
-        "projects-admin/roles-editor/",
-        views.admin_role_editor,
-        name="admin_role_editor",
-    ),
     path("projects-admin/anlage1/", views.admin_anlage1, name="admin_anlage1"),
     path(
         "projects-admin/anlage1/export/",
