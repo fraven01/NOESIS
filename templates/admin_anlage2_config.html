@@ -162,6 +162,16 @@ function updateTotals(){
     updateOrder();
 }
 
+let ruleSortable;
+function initializeSortable(){
+    const tbody=document.getElementById('rule-rows');
+    if(tbody){
+        if(ruleSortable){ruleSortable.destroy();}
+        ruleSortable=Sortable.create(tbody,{handle:'.drag-handle',animation:150,onSort:updateOrder});
+        updateTotals();
+    }
+}
+
 function addRule(){
     const total=document.getElementById('id_rules-TOTAL_FORMS');
     const idx=parseInt(total.value);
@@ -169,11 +179,11 @@ function addRule(){
     total.value=idx+1;
 }
 
-document.addEventListener('htmx:load',function(){
+document.addEventListener('DOMContentLoaded',function(){
+    initializeSortable();
     const tbody=document.getElementById('rule-rows');
     if(tbody){
-        Sortable.create(tbody,{handle:'.drag-handle',animation:150,onSort:updateOrder});
-        updateTotals();
+        tbody.addEventListener('htmx:afterSwap',initializeSortable);
     }
 });
 </script>
