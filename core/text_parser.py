@@ -5,8 +5,16 @@ import logging
 import re
 from typing import Dict, List, Tuple
 
-from .models import BVProjectFile, FormatBParserRule
-from .models import Anlage2Config, Anlage2Function, Anlage2SubQuestion
+from thefuzz import process
+
+from .models import (
+    BVProjectFile,
+    FormatBParserRule,
+    Anlage2Config,
+    Anlage2Function,
+    Anlage2SubQuestion,
+    AntwortErkennungsRegel,
+)
 
 from .parsers import AbstractParser
 
@@ -153,8 +161,13 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     return results
 
 
-def parse_anlage2_text(text: str) -> List[dict[str, object]]:
-    """Parst eine Freitext-Liste von Funktionen aus Anlage 2."""
+def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]]:
+    """Parst eine Freitext-Liste von Funktionen aus Anlage 2.
+
+    Vor dem Doppelpunkt stehende Fragmente werden mittels Fuzzy-Matching mit den
+    in der Datenbank hinterlegten Fragen abgeglichen. Der ``threshold`` gibt an,
+    ab welcher Ähnlichkeit (0–100) ein Treffer akzeptiert wird.
+    """
 
     cfg = Anlage2Config.get_instance()
 
@@ -189,6 +202,10 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
             field = attr[5:-6]
             token_map.append((field, False, [p.lower() for p in phrases]))
 
+    alias_strings = [a for a, _, _ in phrase_map]
+    alias_lookup = {a: (f, s) for a, f, s in phrase_map}
+    rules = list(AntwortErkennungsRegel.objects.all())
+
     results: Dict[Tuple[int, int | None], Dict[str, object]] = {}
     last_key: Tuple[int, int | None] | None = None
 
@@ -196,18 +213,36 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
         line = raw.strip()
         if not line:
             continue
-        norm = _normalize(line)
+        before, after = (line.split(":", 1) + [""])[0:2]
+        before_norm = _normalize(before)
+        match = process.extractOne(before_norm, alias_strings)
         matched: Tuple[Anlage2Function, Anlage2SubQuestion | None] | None = None
-        for alias_norm, func, sub in phrase_map:
-            if norm.startswith(alias_norm):
-                matched = (func, sub)
-                break
+        if match and match[1] >= threshold:
+            matched = alias_lookup[match[0]]
+            logger.debug("Fuzzy-Match '%s' -> '%s' (%s%%)", before, match[0], match[1])
 
-        def _apply_tokens(entry: Dict[str, object]) -> None:
-            lower = line.lower()
+        def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
+            lower = text_part.lower()
             for field, value, phrases in token_map:
                 if any(p in lower for p in phrases):
                     entry[field] = {"value": value, "note": None}
+
+        def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
+            remaining = text_part
+            matched_fields: List[str] = []
+            for rule in rules:
+                if rule.erkennungs_phrase.lower() in remaining.lower():
+                    entry[rule.ziel_feld] = {"value": rule.wert, "note": None}
+                    matched_fields.append(rule.ziel_feld)
+                    remaining = re.sub(
+                        re.escape(rule.erkennungs_phrase),
+                        "",
+                        remaining,
+                        flags=re.I,
+                    ).strip()
+            if remaining and matched_fields:
+                first = matched_fields[0]
+                entry[first]["note"] = remaining
 
         if matched:
             func, sub = matched
@@ -217,10 +252,14 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
                 name = func.name if sub is None else f"{func.name}: {sub.frage_text}"
                 entry = {"funktion": name}
                 results[key] = entry
-            _apply_tokens(entry)
+            _apply_tokens(entry, after or line)
+            if after:
+                _apply_rules(entry, after)
             last_key = key
         elif last_key is not None:
             entry = results[last_key]
-            _apply_tokens(entry)
+            _apply_tokens(entry, after or line)
+            if after:
+                _apply_rules(entry, after)
 
     return list(results.values())
