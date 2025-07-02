@@ -14,6 +14,7 @@ from .models import (
     BVProjectFile,
     Anlage2Function,
     Anlage2FunctionResult,
+    FormatBParserRule,
 )
 
 
@@ -199,5 +200,10 @@ class BVProjectFileAdmin(admin.ModelAdmin):
 # Registrierung der Modelle
 admin.site.register(Tile, TileAdmin)
 admin.site.register(Area, AreaAdmin)
+
+
+@admin.register(FormatBParserRule)
+class FormatBParserRuleAdmin(admin.ModelAdmin):
+    pass
 
 
