@@ -40,6 +40,7 @@
     <textarea id="email-text" rows="8" class="border rounded w-full p-2 mt-4 hidden"></textarea>
 </form>
 <script>
+function getCookie(name){const m=document.cookie.match('(^|;)\\s*'+name+'=([^;]*)');return m?decodeURIComponent(m[2]):null;}
 const emailField=document.getElementById('email-text');
 document.getElementById('generate-email').addEventListener('click',function(){
     const btn=this;
