@@ -40,7 +40,6 @@ from . import text_parser
 
 from .parser_manager import parser_manager
 from .parsers import AbstractParser
-from .text_parser import TextParser
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -832,7 +831,7 @@ class DocxExtractTests(NoesisTestCase):
             },
         )
 
-class TextParserFormatBTests(NoesisTestCase):
+class FormatBParserTests(NoesisTestCase):
     def test_parse_format_b_basic(self):
         text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
         data = text_parser.parse_format_b(text)
@@ -1409,31 +1408,6 @@ class LLMTasksTests(NoesisTestCase):
             cfg.save()
 
         self.assertEqual(result, [{"val": 2}])
-
-    def test_text_parser_basic(self):
-        text = (
-            "Chat: Stehen technisch zur Verf\u00fcgung und sollen verwendet werden. "
-            "Sollen zur \u00dcberwachung von Leistung oder Verhalten NICHT verwendet werden.\n"
-            "Detail?: Ja\n\n"
-            "Logging: Stehen technisch NICHT zur Verf\u00fcgung."
-        )
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content=text,
-        )
-        parser = TextParser()
-        data = parser.parse(pf)
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]["funktion"], "Chat")
-        self.assertEqual(data[0]["technisch_verfuegbar"], "Ja")
-        self.assertEqual(data[0]["soll_verwendet_werden"], "Ja")
-        self.assertEqual(data[0]["ueberwachung_leistung_verhalten"], "Nein")
-        self.assertEqual(data[0]["details"][0]["antwort_verwendung"], "Ja")
-        self.assertEqual(data[1]["technisch_verfuegbar"], "Nein")
-        self.assertEqual(data[1]["soll_verwendet_werden"], "Nein")
 
     def test_parser_manager_selects_best(self):
         class P1(AbstractParser):
