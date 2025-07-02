@@ -1,0 +1,500 @@
+diff --git a/README.md b/README.md
+index 4d818e6f8db7b8522e234c52316d80ed87173190..4f64c6e369e3f02dc221b9c7c0c0d177e4e94b1e 100644
+--- a/README.md
++++ b/README.md
+@@ -135,51 +135,54 @@ zusätzliche Inline-Tabelle, über die sich die verfügbaren Tiles wie
+ "TalkDiary" oder "Projektverwaltung" auswählen lassen.
+ 
+ ### Modernisiertes Admin-Interface
+ 
+ Das Django-Admin wurde optisch überarbeitet. Eine Seitenleiste listet alle
+ Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
+ `static/css/admin.css` steuert das Layout.
+ 
+ ### Funktionskatalog verwalten
+ 
+ Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
+ 
+ Der Textparser nutzt die Einträge aus dem Funktionskatalog, um die Anlage 2 zu analysieren. Dabei werden die Funktionsnamen als Alias für die Erkennungsphrasen verwendet. Das bedeutet, dass der Parser automatisch nach den Funktionsnamen sucht und diese als Treffer zählt. Die zurodnung, ob etwas technisch verfügbar ist, erfolgt ausschließlich über die über die Felder `technisch_vorhanden` und `technisch_verfuegbar`. Diese Felder sind für den Textparser relevant und werden bei der Analyse berücksichtigt.
+ Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
+ Alias. Zusätzliche Varianten können für den Tabellenparser 3über das Feld `name_aliases` hinterlegt
+ werden. Doppelte Einträge werden automatisch ignoriert.
+ 
+ Erkennungsphrasen werden einfach zeilenweise eingegeben.
+ JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
+ 
+ 
+ ### Format-B Textparser
+ 
+ Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Welche Tokens oder
+ Keys ausgewertet werden, lässt sich über die Admin‑Ansicht **FormatBParserRule**
+-anpassen. Standardmäßig sind die Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt.
++anpassen. Das Modell ordnet jedem Token ein Zielfeld zu. Standardmäßig sind die
++Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt und weisen auf die Felder
++`technisch_verfuegbar`, `einsatz_telefonica`, `zur_lv_kontrolle` und
++`ki_beteiligung`.
+ Jede Zeile enthält den Funktionsnamen und optional diese Tokens. Ein
+ Doppelpunkt trennt den Schlüssel vom Wert `ja` oder `nein`. Nummerierungen wie
+ `1.` oder Bindestriche am Zeilenanfang werden ignoriert.
+ 
+ Beispiel:
+ 
+ ```text
+ Login; tv: ja; tel: nein; lv: nein; ki: ja
+ ```
+ 
+ erzeugt
+ 
+ ```json
+ [
+   {
+     "funktion": "Login",
+     "technisch_verfuegbar": {"value": true, "note": null},
+     "einsatz_telefonica": {"value": false, "note": null},
+     "zur_lv_kontrolle": {"value": false, "note": null},
+     "ki_beteiligung": {"value": true, "note": null}
+   }
+ ]
+ ```
+ 
+ ### Anlage‑2‑Konfiguration importieren/exportieren
+diff --git a/core/admin.py b/core/admin.py
+index b64365285e1c79bc855106c61783b274b03e6a86..6fe8969784e3b0a667fd6ab063376055b50a6aa0 100644
+--- a/core/admin.py
++++ b/core/admin.py
+@@ -1,41 +1,42 @@
+ from django.contrib import admin
+ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+ from django.contrib.auth.models import User
+ from django import forms
+ from django.utils.html import format_html
+ from django.contrib.admin.widgets import FilteredSelectMultiple, AdminFileWidget
+ from django.urls import URLPattern, URLResolver, get_resolver
+ from .models import (
+     Recording,
+     Prompt,
+     Tile,
+     UserTileAccess,
+     Area,
+     BVProjectFile,
+     Anlage2Function,
+     Anlage2FunctionResult,
++    FormatBParserRule,
+ )
+ 
+ 
+ def get_url_choices() -> list[tuple[str, str]]:
+     """Gibt alle benannten URL-Namen als Auswahl zurück."""
+     resolver = get_resolver()
+     choices: list[tuple[str, str]] = []
+ 
+     def collect(patterns):
+         for p in patterns:
+             if isinstance(p, URLPattern):
+                 if p.name:
+                     label = p.name.replace("_", " ").title()
+                     choices.append((p.name, label))
+             elif isinstance(p, URLResolver):
+                 collect(p.url_patterns)
+ 
+     collect(resolver.url_patterns)
+     # Duplikate entfernen
+     seen = set()
+     unique_choices = []
+     for name, label in choices:
+         if name not in seen:
+             seen.add(name)
+             unique_choices.append((name, label))
+@@ -174,30 +175,36 @@ admin.site.register(User, CustomUserAdmin)
+ class Anlage2FunctionAdmin(admin.ModelAdmin):
+     list_display = ("name",)
+ 
+ 
+ @admin.register(Anlage2FunctionResult)
+ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
+     list_display = (
+         "projekt",
+         "funktion",
+         "technisch_verfuegbar",
+         "ki_beteiligung",
+     )
+ 
+ 
+ @admin.register(BVProjectFile)
+ class BVProjectFileAdmin(admin.ModelAdmin):
+     list_display = (
+         "projekt",
+         "anlage_nr",
+         "manual_reviewed",
+         "verhandlungsfaehig",
+     )
+     list_editable = ("manual_reviewed", "verhandlungsfaehig")
+ 
+ 
++@admin.register(FormatBParserRule)
++class FormatBParserRuleAdmin(admin.ModelAdmin):
++    list_display = ("key", "target_field", "ordering")
++    list_editable = ("target_field", "ordering")
++
++
+ # Registrierung der Modelle
+ admin.site.register(Tile, TileAdmin)
+ admin.site.register(Area, AreaAdmin)
+ 
+ 
+diff --git a/core/migrations/0008_formatbparserrule.py b/core/migrations/0008_formatbparserrule.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..05807a5601b05d28a7b6162a607211749f872e28
+--- /dev/null
++++ b/core/migrations/0008_formatbparserrule.py
+@@ -0,0 +1,54 @@
++# Generated by Django 5.2.3 on 2025-07-02 07:46
++
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("core", "0005_auto_20250701_2038"),
++    ]
++
++    operations = [
++        migrations.CreateModel(
++            name="FormatBParserRule",
++            fields=[
++                (
++                    "id",
++                    models.BigAutoField(
++                        auto_created=True,
++                        primary_key=True,
++                        serialize=False,
++                        verbose_name="ID",
++                    ),
++                ),
++                ("key", models.CharField(max_length=20, unique=True)),
++                (
++                    "target_field",
++                    models.CharField(
++                        choices=[
++                            ("technisch_verfuegbar", "Technisch verfügbar"),
++                            ("einsatz_telefonica", "Einsatz Telefónica"),
++                            ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
++                            ("ki_beteiligung", "KI-Beteiligung"),
++                        ],
++                        max_length=50,
++                    ),
++                ),
++                ("ordering", models.PositiveIntegerField(default=0)),
++            ],
++            options={
++                "ordering": ["ordering", "key"],
++            },
++        ),
++        migrations.RunPython(
++            lambda apps, schema_editor: apps.get_model("core", "FormatBParserRule").objects.bulk_create(
++                [
++                    apps.get_model("core", "FormatBParserRule")(key="tv", target_field="technisch_verfuegbar", ordering=1),
++                    apps.get_model("core", "FormatBParserRule")(key="tel", target_field="einsatz_telefonica", ordering=2),
++                    apps.get_model("core", "FormatBParserRule")(key="lv", target_field="zur_lv_kontrolle", ordering=3),
++                    apps.get_model("core", "FormatBParserRule")(key="ki", target_field="ki_beteiligung", ordering=4),
++                ]
++            )
++        ),
++    ]
+diff --git a/core/models.py b/core/models.py
+index cf4449f50fb5f239953f175c26d8fef0c1bb1fd1..b450c44da62f7ffb834c6c0e8300b443c356f171 100644
+--- a/core/models.py
++++ b/core/models.py
+@@ -535,50 +535,71 @@ class Anlage2Config(models.Model):
+ 
+ 
+ class Anlage2ColumnHeading(models.Model):
+     """Mögliche Überschrift für ein Anlage-2-Feld."""
+ 
+     FIELD_CHOICES = [
+         ("technisch_vorhanden", "Technisch vorhanden"),
+         ("einsatz_bei_telefonica", "Einsatz bei Telefónica"),
+         ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
+         ("ki_beteiligung", "KI-Beteiligung"),
+     ]
+ 
+     config = models.ForeignKey(
+         Anlage2Config, on_delete=models.CASCADE, related_name="headers"
+     )
+     field_name = models.CharField(max_length=50, choices=FIELD_CHOICES)
+     text = models.CharField(max_length=200)
+ 
+     class Meta:
+         ordering = ["field_name", "id"]
+ 
+     def __str__(self) -> str:  # pragma: no cover - trivial
+         return f"{self.field_name}: {self.text}"
+ 
+ 
++class FormatBParserRule(models.Model):
++    """Regel für den vereinfachten Textparser (Format B)."""
++
++    FIELD_CHOICES = [
++        ("technisch_verfuegbar", "Technisch verfügbar"),
++        ("einsatz_telefonica", "Einsatz Telefónica"),
++        ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
++        ("ki_beteiligung", "KI-Beteiligung"),
++    ]
++
++    key = models.CharField(max_length=20, unique=True)
++    target_field = models.CharField(max_length=50, choices=FIELD_CHOICES)
++    ordering = models.PositiveIntegerField(default=0)
++
++    class Meta:
++        ordering = ["ordering", "key"]
++
++    def __str__(self) -> str:  # pragma: no cover - trivial
++        return self.key
++
++
+ 
+ 
+ class Tile(models.Model):
+     """Kachel für das Dashboard."""
+ 
+     PERSONAL = "personal"
+     WORK = "work"
+ 
+     slug = models.SlugField(unique=True)
+     name = models.CharField(max_length=100)
+     url_name = models.CharField(max_length=100)
+     areas = models.ManyToManyField(
+         Area,
+         related_name="tiles",
+         help_text="Die Bereiche, in denen diese Kachel angezeigt wird.",
+     )
+     icon = models.CharField(max_length=50, blank=True)
+     description = models.CharField(max_length=200, blank=True)
+     image = models.ImageField(upload_to="tile_images/", blank=True, null=True)
+     parent = models.ForeignKey(
+         "self",
+         on_delete=models.SET_NULL,
+         null=True,
+         blank=True,
+         related_name="children",
+diff --git a/core/tests.py b/core/tests.py
+index 16af8496265002b4bcecf7db51481aac51da40d6..2bd0c50147233097bf248ad85931cbe1f09c4864 100644
+--- a/core/tests.py
++++ b/core/tests.py
+@@ -3,50 +3,51 @@ from django.urls import reverse
+ from django.test import TestCase
+ from django.http import QueryDict
+ from django.db import IntegrityError
+ 
+ 
+ from django.apps import apps
+ from .models import (
+     BVProject,
+     BVProjectFile,
+     Recording,
+     Prompt,
+     LLMConfig,
+     Tile,
+     UserTileAccess,
+     Anlage1Question,
+     Anlage1Config,
+     Area,
+     Anlage2Function,
+     Anlage2Config,
+     Anlage2ColumnHeading,
+     Anlage2SubQuestion,
+     Anlage2FunctionResult,
+     SoftwareKnowledge,
+     BVSoftware,
+     Gutachten,
++    FormatBParserRule,
+ )
+ from .docx_utils import (
+     extract_text,
+     get_docx_page_count,
+     get_pdf_page_count,
+     extract_images,
+     parse_anlage2_table,
+     _normalize_header_text,
+ )
+ 
+ from . import text_parser
+ 
+ from .parser_manager import parser_manager
+ from .parsers import AbstractParser
+ from .text_parser import TextParser
+ 
+ from pathlib import Path
+ from tempfile import NamedTemporaryFile
+ from docx import Document
+ from PIL import Image
+ import fitz
+ 
+ from django.core.files.uploadedfile import SimpleUploadedFile
+ from .forms import (
+     BVProjectForm,
+@@ -726,50 +727,56 @@ class TextParserFormatBTests(TestCase):
+                 }
+             ],
+         )
+ 
+     def test_parse_format_b_numbering(self):
+         text = "1. Logout - tv=nein - ki=ja"
+         data = text_parser.parse_format_b(text)
+         self.assertEqual(
+             data,
+             [
+                 {
+                     "funktion": "Logout",
+                     "technisch_verfuegbar": {"value": False, "note": None},
+                     "ki_beteiligung": {"value": True, "note": None},
+                 }
+             ],
+         )
+ 
+     def test_parse_format_b_multiple_lines(self):
+         text = "Login; tv: ja\nLogout; tv: nein"
+         data = text_parser.parse_format_b(text)
+         self.assertEqual(len(data), 2)
+         self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
+         self.assertFalse(data[1]["technisch_verfuegbar"]["value"])
+ 
++    def test_parse_format_b_with_rules(self):
++        FormatBParserRule.objects.create(key="t", target_field="technisch_verfuegbar")
++        text = "Login; t: ja"
++        data = text_parser.parse_format_b(text)
++        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
++
+     def test_extract_images(self):
+         img = Image.new("RGB", (1, 1), color="blue")
+         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
+         img.save(img_tmp.name)
+         img_tmp.close()
+         doc = Document()
+         doc.add_picture(img_tmp.name)
+         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+         doc.save(tmp.name)
+         tmp.close()
+         try:
+             data = extract_images(Path(tmp.name))
+         finally:
+             Path(tmp.name).unlink(missing_ok=True)
+             Path(img_tmp.name).unlink(missing_ok=True)
+         self.assertEqual(len(data), 1)
+         self.assertTrue(data[0].startswith(b"\x89PNG"))
+ 
+ 
+ class BVProjectFormTests(TestCase):
+     def test_project_form_docx_validation(self):
+         data = QueryDict(mutable=True)
+         data.update(
+             {
+                 "title": "",
+diff --git a/core/text_parser.py b/core/text_parser.py
+index 6cb00950dc3394efd73acbf12b796e5476096c2f..6a5020d9fcdb0c2bef0187be70e41d68bf475ac0 100644
+--- a/core/text_parser.py
++++ b/core/text_parser.py
+@@ -1,33 +1,33 @@
+ 
+ from __future__ import annotations
+ 
+ import logging
+ import re
+ from typing import List
+ 
+-from .models import BVProjectFile
++from .models import BVProjectFile, FormatBParserRule
+ from .parsers import AbstractParser
+ 
+ logger = logging.getLogger(__name__)
+ 
+ 
+ class TextParser(AbstractParser):
+     """Parser für textbasierte Dokumente im Format B."""
+ 
+     name = "text"
+ 
+     def parse(self, project_file: BVProjectFile) -> List[dict[str, object]]:
+         """Parst den Textinhalt einer Projektdatei."""
+         text = project_file.text_content or ""
+         lines = [line.strip() for line in text.splitlines() if line.strip()]
+         results: List[dict[str, object]] = []
+         func_re = re.compile(r"^(.+?):\s*(.*)")
+         i = 0
+         while i < len(lines):
+             m = func_re.match(lines[i])
+             if not m:
+                 i += 1
+                 continue
+             name = m.group(1).strip()
+             sentence = m.group(2).strip()
+             technisch = _map_technisch(sentence)
+@@ -92,55 +92,60 @@ def _map_verwendung(sentence: str, technisch: str) -> str:
+     return "Unbekannt"
+ 
+ 
+ def _map_lv(sentence: str) -> str:
+     """Gibt an, ob die Funktion der Leistungs- oder
+     Verhaltenskontrolle dient."""
+     lower = sentence.lower()
+     if "\u00fcberwachung von leistung oder verhalten" in lower:
+         if "nicht verwendet" in lower:
+             return "Nein"
+         if "verwendet" in lower:
+             return "Ja"
+     return "Unbekannt"
+ 
+ 
+ 
+ def parse_format_b(text: str) -> List[dict[str, object]]:
+     """Parst ein einfaches Listenformat von Anlage 2.
+ 
+     Mehrere Zeilen können verarbeitet werden.
+     Jede Zeile enthält einen Funktionsnamen und optionale Tokens
+     wie ``tv``, ``tel``, ``lv`` und ``ki``.
+     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
+     """
+ 
+-    mapping = {
+-        "tv": "technisch_verfuegbar",
+-        "tel": "einsatz_telefonica",
+-        "lv": "zur_lv_kontrolle",
+-        "ki": "ki_beteiligung",
+-    }
++    rules = FormatBParserRule.objects.all()
++    if rules:
++        mapping = {r.key.lower(): r.target_field for r in rules}
++    else:
++        mapping = {
++            "tv": "technisch_verfuegbar",
++            "tel": "einsatz_telefonica",
++            "lv": "zur_lv_kontrolle",
++            "ki": "ki_beteiligung",
++        }
+ 
+     results: List[dict[str, object]] = []
+     for raw in text.splitlines():
+         line = raw.strip()
+         if not line:
+             continue
+         line = re.sub(r"^[\d]+[.)]\s*", "", line)
+         parts = re.split(r"[;\-]", line)
+         if not parts:
+             continue
+         entry: dict[str, object] = {"funktion": parts[0].strip()}
++        key_re = "|".join(map(re.escape, mapping.keys()))
+         for part in parts[1:]:
+             part = part.strip()
+-            m = re.match(r"(tv|tel|lv|ki)\s*[:=]\s*(ja|nein)", part, re.I)
++            m = re.match(rf"({key_re})\s*[:=]\s*(ja|nein)", part, re.I)
+             if not m:
+                 continue
+             key, val = m.groups()
+             entry[mapping[key.lower()]] = {
+                 "value": val.lower() == "ja",
+                 "note": None,
+             }
+         results.append(entry)
+ 
+     return results
