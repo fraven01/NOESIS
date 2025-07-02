@@ -155,7 +155,12 @@ JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phr
 
 ### Format-B Textparser
 
-Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Jede Zeile enthält den Funktionsnamen und optionale Tokens wie `tv`, `tel`, `lv` oder `ki`. Ein Doppelpunkt trennt das Token vom Wert `ja` oder `nein`. Nummerierungen wie `1.` oder Bindestriche am Zeilenanfang werden ignoriert.
+Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Welche Tokens oder
+Keys ausgewertet werden, lässt sich über die Admin‑Ansicht **FormatBParserRule**
+anpassen. Standardmäßig sind die Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt.
+Jede Zeile enthält den Funktionsnamen und optional diese Tokens. Ein
+Doppelpunkt trennt den Schlüssel vom Wert `ja` oder `nein`. Nummerierungen wie
+`1.` oder Bindestriche am Zeilenanfang werden ignoriert.
 
 Beispiel:
 
