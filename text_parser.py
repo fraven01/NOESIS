@@ -14,7 +14,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "noesis.settings")
 django.setup()
 
 from core.docx_utils import extract_text
-from core.llm_tasks import parse_anlage2_text
+from core.text_parser import parse_anlage2_text
 
 
 def main() -> int:
