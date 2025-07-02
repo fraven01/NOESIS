@@ -85,53 +85,13 @@
     </div>
     <div id="tab-rules" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln</h2>
-        <div class="overflow-x-auto">
-        <table class="min-w-full mb-4">
-            <thead>
-                <tr class="border-b text-left">
-                    <th class="py-2">Name</th>
-                    <th class="py-2">Phrase</th>
-                    <th class="py-2">Ziel-Feld</th>
-                    <th class="py-2">Wert</th>
-                    <th class="py-2">Priorität</th>
-                    <th class="py-2 text-center">Entfernen</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for r in response_rules %}
-                <tr class="border-b text-sm">
-                    <td class="py-1"><input type="text" name="regel_name{{ r.id }}" value="{{ r.regel_name }}" class="border rounded p-2 w-full"></td>
-                    <td class="py-1"><input type="text" name="phrase{{ r.id }}" value="{{ r.erkennungs_phrase }}" class="border rounded p-2 w-full"></td>
-                    <td class="py-1">
-                        <select name="ziel_feld{{ r.id }}" class="border rounded p-2 w-full">
-                        {% for val, label in rule_choices %}
-                            <option value="{{ val }}" {% if r.ziel_feld == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                        </select>
-                    </td>
-                    <td class="py-1 text-center"><input type="checkbox" name="wert{{ r.id }}" {% if r.wert %}checked{% endif %}></td>
-                    <td class="py-1"><input type="number" name="prio{{ r.id }}" value="{{ r.prioritaet }}" class="border rounded p-2 w-full"></td>
-                    <td class="py-1 text-center"><input type="checkbox" name="delete{{ r.id }}"></td>
-                </tr>
-            {% endfor %}
-                <tr class="border-b text-sm">
-                    <td class="py-1"><input type="text" name="new_regel_name" class="border rounded p-2 w-full"></td>
-                    <td class="py-1"><input type="text" name="new_phrase" class="border rounded p-2 w-full"></td>
-                    <td class="py-1">
-                        <select name="new_ziel_feld" class="border rounded p-2 w-full">
-                        {% for val, label in rule_choices %}
-                            <option value="{{ val }}">{{ label }}</option>
-                        {% endfor %}
-                        </select>
-                    </td>
-                    <td class="py-1 text-center"><input type="checkbox" name="new_wert"></td>
-                    <td class="py-1"><input type="number" name="new_prioritaet" value="0" class="border rounded p-2 w-full"></td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="rules-container" class="overflow-x-auto" hx-target="this" hx-swap="outerHTML">
+            {% include 'partials/_response_rules_table.html' with formset=rule_formset %}
         </div>
-        <button type="submit" name="action" value="save_rules" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        <div class="mt-2 space-x-2">
+            <button type="button" class="px-3 py-1 bg-gray-300 rounded" onclick="addRule()">Neue Regel hinzufügen</button>
+            <button type="submit" name="action" value="save_rules" hx-post="{% url 'anlage2_config' %}" hx-target="#rules-container" hx-swap="outerHTML" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        </div>
     </div>
 </form>
 <script>
@@ -193,5 +153,37 @@ list.addEventListener('dragover',e=>{
 list.addEventListener('drop',e=>{e.preventDefault();updateParserInputs();});
 list.addEventListener('change',updateParserInputs);
 updateParserInputs();
+
+function updateOrder(){
+    document.querySelectorAll('#rule-rows tr').forEach((tr,idx)=>{
+        const inp=tr.querySelector('input[name$="-ORDER"]');
+        if(inp){inp.value=idx;}
+    });
+}
+
+function updateTotals(){
+    const total=document.getElementById('id_rules-TOTAL_FORMS');
+    if(total){total.value=document.querySelectorAll('#rule-rows tr').length;}
+    updateOrder();
+}
+
+function addRule(){
+    const total=document.getElementById('id_rules-TOTAL_FORMS');
+    const idx=parseInt(total.value);
+    htmx.ajax('GET','{% url 'anlage2_rule_add' %}?index='+idx,{target:'#rule-rows',swap:'beforeend'});
+    total.value=idx+1;
+}
+
+document.addEventListener('htmx:load',function(){
+    const tbody=document.getElementById('rule-rows');
+    if(tbody){
+        Sortable.create(tbody,{handle:'.drag-handle',animation:150,onSort:updateOrder});
+        updateTotals();
+    }
+});
 </script>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 {% endblock %}
