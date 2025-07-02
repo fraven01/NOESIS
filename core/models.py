@@ -557,6 +557,27 @@ class Anlage2ColumnHeading(models.Model):
         return f"{self.field_name}: {self.text}"
 
 
+class FormatBParserRule(models.Model):
+    """Regel für den vereinfachten Textparser (Format B)."""
+
+    FIELD_CHOICES = [
+        ("technisch_verfuegbar", "Technisch verfügbar"),
+        ("einsatz_telefonica", "Einsatz Telefónica"),
+        ("zur_lv_kontrolle", "Zur LV-Kontrolle"),
+        ("ki_beteiligung", "KI-Beteiligung"),
+    ]
+
+    key = models.CharField(max_length=20, unique=True)
+    target_field = models.CharField(max_length=50, choices=FIELD_CHOICES)
+    ordering = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordering", "key"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.key
+
+
 
 
 class Tile(models.Model):

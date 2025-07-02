@@ -157,7 +157,10 @@ JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phr
 
 Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Welche Tokens oder
 Keys ausgewertet werden, lässt sich über die Admin‑Ansicht **FormatBParserRule**
-anpassen. Standardmäßig sind die Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt.
+anpassen. Das Modell ordnet jedem Token ein Zielfeld zu. Standardmäßig sind die
+Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt und weisen auf die Felder
+`technisch_verfuegbar`, `einsatz_telefonica`, `zur_lv_kontrolle` und
+`ki_beteiligung`.
 Jede Zeile enthält den Funktionsnamen und optional diese Tokens. Ein
 Doppelpunkt trennt den Schlüssel vom Wert `ja` oder `nein`. Nummerierungen wie
 `1.` oder Bindestriche am Zeilenanfang werden ignoriert.
