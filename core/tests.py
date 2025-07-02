@@ -83,9 +83,19 @@ from django.test import override_settings
 import json
 
 
+class Anlage2GlobalPhrase:
+    """Stub, da Modell entfernt wurde."""
+
+    from importlib import import_module
+
+    _config = import_module("core.migrations.0002_seed_initial_data").INITIAL_ANLAGE2_CONFIG
+    PHRASE_TYPE_CHOICES = [
+        (item["phrase_type"], item["phrase_type"]) for item in _config["global_phrases"]
+    ]
+
+
 def create_statuses() -> None:
-    if ProjectStatus.objects.exists():
-        return
+    ProjectStatus.objects.all().delete()
     data = [
         ("NEW", "Neu"),
         ("CLASSIFIED", "Klassifiziert"),
@@ -106,7 +116,7 @@ def create_statuses() -> None:
 
 
 def setUpModule():
-    create_statuses()
+    pass
 
 
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
@@ -116,7 +126,59 @@ def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     return projekt
 
 
-class AdminProjectsTests(TestCase):
+def seed_test_data() -> None:
+    """Befüllt die Test-Datenbank mit Initialdaten."""
+    from django.apps import apps as django_apps
+    from importlib import import_module
+    create_initial_data = import_module(
+        "core.migrations.0002_seed_initial_data"
+    ).create_initial_data
+    from .llm_tasks import (
+        ANLAGE1_QUESTIONS,
+        _ANLAGE1_INTRO,
+        _ANLAGE1_IT,
+        _ANLAGE1_SUFFIX,
+    )
+
+    try:
+        create_initial_data(django_apps, None)
+    except LookupError:
+        pass
+    create_statuses()
+
+    for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
+        Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
+
+    check_anlage1_text = (
+        _ANLAGE1_INTRO
+        + ANLAGE1_QUESTIONS[0]
+        + "\n"
+        + ANLAGE1_QUESTIONS[1]
+        + "\n"
+        + _ANLAGE1_IT
+        + "".join(f"{q}\n" for q in ANLAGE1_QUESTIONS[2:])
+        + _ANLAGE1_SUFFIX
+    )
+    Prompt.objects.update_or_create(name="check_anlage1", defaults={"text": check_anlage1_text})
+    Prompt.objects.update_or_create(
+        name="check_anlage3_vision",
+        defaults={"text": "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+    )
+
+
+class NoesisTestCase(TestCase):
+    """Basisklasse für alle Tests mit gefüllter Datenbank."""
+
+    @classmethod
+    def setUpTestData(cls):
+        seed_test_data()
+        cls.user = User.objects.create_user("baseuser", password="pass")
+        cls.superuser = User.objects.create_superuser(
+            "basesuper", "admin@example.com", password="pass"
+        )
+
+
+class AdminProjectsTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("admin", password="pass")
@@ -146,7 +208,7 @@ class AdminProjectsTests(TestCase):
         self.assertTrue(BVProject.objects.filter(id=self.p1.id).exists())
 
 
-class AdminProjectCleanupTests(TestCase):
+class AdminProjectCleanupTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("admin2", password="pass")
@@ -188,7 +250,7 @@ class AdminProjectCleanupTests(TestCase):
         self.assertIsNone(self.projekt.classification_json)
 
 
-class DocxExtractTests(TestCase):
+class DocxExtractTests(NoesisTestCase):
     def test_extract_text(self):
         doc = Document()
         doc.add_paragraph("Das ist ein Test")
@@ -770,7 +832,7 @@ class DocxExtractTests(TestCase):
             },
         )
 
-class TextParserFormatBTests(TestCase):
+class TextParserFormatBTests(NoesisTestCase):
     def test_parse_format_b_basic(self):
         text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
         data = text_parser.parse_format_b(text)
@@ -833,7 +895,7 @@ class TextParserFormatBTests(TestCase):
         self.assertTrue(data[0].startswith(b"\x89PNG"))
 
 
-class BVProjectFormTests(TestCase):
+class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
         data = QueryDict(mutable=True)
         data.update(
@@ -857,7 +919,7 @@ class BVProjectFormTests(TestCase):
         self.assertFalse(invalid.is_valid())
 
 
-class Anlage2ConfigFormTests(TestCase):
+class Anlage2ConfigFormTests(NoesisTestCase):
     def test_parser_order_field(self):
         cfg = Anlage2Config.get_instance()
         form = Anlage2ConfigForm({"parser_order": ["table"]}, instance=cfg)
@@ -866,7 +928,7 @@ class Anlage2ConfigFormTests(TestCase):
         self.assertEqual(inst.parser_order, ["table"])
 
 
-class BVProjectFileTests(TestCase):
+class BVProjectFileTests(NoesisTestCase):
     def test_create_project_with_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         for i in range(1, 4):
@@ -912,7 +974,7 @@ class BVProjectFileTests(TestCase):
         self.assertIn("analysis_json", form.fields)
 
 
-class ProjektFileUploadTests(TestCase):
+class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("user", password="pass")
         self.client.login(username="user", password="pass")
@@ -960,7 +1022,7 @@ class ProjektFileUploadTests(TestCase):
         self.assertEqual(file_obj.text_content, "")
 
 
-class AutoApprovalTests(TestCase):
+class AutoApprovalTests(NoesisTestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
 
     def setUp(self) -> None:
@@ -1045,7 +1107,7 @@ class AutoApprovalTests(TestCase):
         self.assertEqual(self.projekt.status.key, "ENDGEPRUEFT")
 
 
-class BVProjectModelTests(TestCase):
+class BVProjectModelTests(NoesisTestCase):
     def test_title_auto_set_from_software(self):
         projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
         self.assertEqual(projekt.title, "A, B")
@@ -1064,7 +1126,7 @@ class BVProjectModelTests(TestCase):
         self.assertEqual(projekt.software_typen, "A, B")
 
 
-class WorkflowTests(TestCase):
+class WorkflowTests(NoesisTestCase):
     def test_default_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status.key, "NEW")
@@ -1098,7 +1160,7 @@ class WorkflowTests(TestCase):
         self.assertEqual(projekt.status_history.count(), 2)
 
 
-class LLMTasksTests(TestCase):
+class LLMTasksTests(NoesisTestCase):
     maxDiff = None
 
     def test_classify_system(self):
@@ -1906,7 +1968,7 @@ class LLMTasksTests(TestCase):
         self.assertEqual(parsed, ["Login", "Suche"])
 
 
-class PromptTests(TestCase):
+class PromptTests(NoesisTestCase):
     def test_get_prompt_returns_default(self):
         self.assertEqual(get_prompt("unknown", "foo"), "foo")
 
@@ -1945,7 +2007,7 @@ class PromptTests(TestCase):
         self.assertEqual(p.text, expected)
 
 
-class AdminPromptsViewTests(TestCase):
+class AdminPromptsViewTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("padmin", password="pass")
@@ -1975,7 +2037,7 @@ class AdminPromptsViewTests(TestCase):
         self.assertFalse(Prompt.objects.filter(id=self.prompt.id).exists())
 
 
-class PromptImportTests(TestCase):
+class PromptImportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("pimport", password="pass")
@@ -1997,7 +2059,7 @@ class PromptImportTests(TestCase):
         self.assertTrue(Prompt.objects.filter(name="neu").exists())
 
 
-class ReportingTests(TestCase):
+class ReportingTests(NoesisTestCase):
     def test_gap_analysis_file_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -2059,7 +2121,7 @@ class ReportingTests(TestCase):
             path2.unlink(missing_ok=True)
 
 
-class ProjektFileCheckViewTests(TestCase):
+class ProjektFileCheckViewTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("user2", password="pass")
         self.client.login(username="user2", password="pass")
@@ -2135,7 +2197,7 @@ class ProjektFileCheckViewTests(TestCase):
         self.assertEqual(file_obj.analysis_json, expected)
 
 
-class ProjektFileJSONEditTests(TestCase):
+class ProjektFileJSONEditTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("user3", password="pass")
         self.client.login(username="user3", password="pass")
@@ -2254,7 +2316,7 @@ class ProjektFileJSONEditTests(TestCase):
         self.assertContains(resp, "easymde.min.css")
 
 
-class Anlage2ReviewTests(TestCase):
+class Anlage2ReviewTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("rev", password="pass")
         self.client.login(username="rev", password="pass")
@@ -2322,7 +2384,7 @@ class Anlage2ReviewTests(TestCase):
         self.assertTrue(resp.context["form"].initial[field])
 
 
-class WorkerGenerateGutachtenTests(TestCase):
+class WorkerGenerateGutachtenTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -2357,7 +2419,7 @@ class WorkerGenerateGutachtenTests(TestCase):
         Path(path).unlink(missing_ok=True)
 
 
-class WorkerAnlage3VisionTests(TestCase):
+class WorkerAnlage3VisionTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         doc = Document()
@@ -2392,7 +2454,7 @@ class WorkerAnlage3VisionTests(TestCase):
         self.assertEqual(mock_q.call_args[0][2], "vision")
 
 
-class GutachtenEditDeleteTests(TestCase):
+class GutachtenEditDeleteTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("euser", password="pass")
         self.client.login(username="euser", password="pass")
@@ -2438,7 +2500,7 @@ class GutachtenEditDeleteTests(TestCase):
         self.assertFalse(Gutachten.objects.filter(pk=self.gutachten.pk).exists())
 
 
-class KnowledgeDescriptionEditTests(TestCase):
+class KnowledgeDescriptionEditTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("kwuser", password="pass")
         self.client.login(username="kwuser", password="pass")
@@ -2463,7 +2525,7 @@ class KnowledgeDescriptionEditTests(TestCase):
         self.assertEqual(self.knowledge.description, "Neu")
 
 
-class ProjektFileDeleteResultTests(TestCase):
+class ProjektFileDeleteResultTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("deluser", password="pass")
         self.client.login(username="deluser", password="pass")
@@ -2488,7 +2550,7 @@ class ProjektFileDeleteResultTests(TestCase):
         self.assertFalse(self.file.verhandlungsfaehig)
 
 
-class ProjektFileCheckResultTests(TestCase):
+class ProjektFileCheckResultTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")
         self.client.login(username="vuser", password="pass")
@@ -2602,7 +2664,7 @@ class ProjektFileCheckResultTests(TestCase):
         self.assertEqual(resp.status_code, 404)
 
 
-class LLMConfigTests(TestCase):
+class LLMConfigTests(NoesisTestCase):
     @override_settings(GOOGLE_API_KEY="x")
     @patch("google.generativeai.list_models")
     @patch("google.generativeai.configure")
@@ -2630,7 +2692,7 @@ class LLMConfigTests(TestCase):
 
 
 
-class Anlage2ConfigSingletonTests(TestCase):
+class Anlage2ConfigSingletonTests(NoesisTestCase):
     def test_single_instance_enforced(self):
         first = Anlage2Config.get_instance()
         from django.db import transaction
@@ -2640,7 +2702,7 @@ class Anlage2ConfigSingletonTests(TestCase):
         self.assertEqual(Anlage2Config.objects.count(), 1)
 
 
-class AdminModelsViewTests(TestCase):
+class AdminModelsViewTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("amodel", password="pass")
@@ -2670,7 +2732,7 @@ class AdminModelsViewTests(TestCase):
         self.assertEqual(self.cfg.anlagen_model, "b")
 
 
-class Anlage1EmailTests(TestCase):
+class Anlage1EmailTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("emailer", password="pass")
         self.client.login(username="emailer", password="pass")
@@ -2690,7 +2752,7 @@ class Anlage1EmailTests(TestCase):
         self.assertEqual(resp.json()["text"], "Mail")
 
 
-class TileVisibilityTests(TestCase):
+class TileVisibilityTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("tileuser", password="pass")
@@ -2754,7 +2816,7 @@ class TileVisibilityTests(TestCase):
         self.assertFalse(self.cfg.models_changed)
 
 
-class TileAccessTests(TestCase):
+class TileAccessTests(NoesisTestCase):
     def setUp(self):
         work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
         personal = Area.objects.get_or_create(
@@ -2814,7 +2876,7 @@ class TileAccessTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class LLMConfigNoticeMiddlewareTests(TestCase):
+class LLMConfigNoticeMiddlewareTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("llmadmin", password="pass")
@@ -2828,7 +2890,7 @@ class LLMConfigNoticeMiddlewareTests(TestCase):
         self.assertTrue(any("LLM-Einstellungen" in m for m in msgs))
 
 
-class HomeRedirectTests(TestCase):
+class HomeRedirectTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("redir", password="pass")
         personal = Area.objects.get_or_create(
@@ -2850,7 +2912,7 @@ class HomeRedirectTests(TestCase):
         self.assertRedirects(resp, reverse("personal"))
 
 
-class AreaImageTests(TestCase):
+class AreaImageTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("areauser", password="pass")
         self.client.login(username="areauser", password="pass")
@@ -2874,7 +2936,7 @@ class AreaImageTests(TestCase):
         self.assertContains(resp, f'alt="{personal.name}"', html=False)
 
 
-class RecordingDeleteTests(TestCase):
+class RecordingDeleteTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("recuser", password="pass")
         self.client.login(username="recuser", password="pass")
@@ -2929,7 +2991,7 @@ class RecordingDeleteTests(TestCase):
         self.assertTrue(Recording.objects.filter(pk=rec.pk).exists())
 
 
-class AdminAnlage1ViewTests(TestCase):
+class AdminAnlage1ViewTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("a1admin", password="pass")
@@ -2997,7 +3059,7 @@ class AdminAnlage1ViewTests(TestCase):
         self.assertFalse(q.llm_enabled)
 
 
-class ModelSelectionTests(TestCase):
+class ModelSelectionTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("modeluser", password="pass")
         self.client.login(username="modeluser", password="pass")
@@ -3051,7 +3113,7 @@ class ModelSelectionTests(TestCase):
         mock_func.assert_called_with(self.projekt.pk, model_name="mf")
 
 
-class CommandModelTests(TestCase):
+class CommandModelTests(NoesisTestCase):
     def test_command_passes_model(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -3082,7 +3144,7 @@ class CommandModelTests(TestCase):
 
 
 
-class Anlage2FunctionTests(TestCase):
+class Anlage2FunctionTests(NoesisTestCase):
     def test_check_anlage2_functions_creates_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         func = Anlage2Function.objects.create(name="Login")
@@ -3099,7 +3161,7 @@ class Anlage2FunctionTests(TestCase):
         self.assertEqual(list(data[0].keys()), ["technisch_verfuegbar", "ki_beteiligung", "source", "funktion"])
 
 
-class CommandFunctionsTests(TestCase):
+class CommandFunctionsTests(NoesisTestCase):
     def test_functions_command_passes_model(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         Anlage2Function.objects.create(name="Login")
@@ -3116,7 +3178,7 @@ class CommandFunctionsTests(TestCase):
 
 
 
-class ProjektDetailAdminButtonTests(TestCase):
+class ProjektDetailAdminButtonTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.admin = User.objects.create_user("padmin", password="pass")
@@ -3135,7 +3197,7 @@ class ProjektDetailAdminButtonTests(TestCase):
         self.assertNotContains(resp, reverse("admin_projects"))
 
 
-class FunctionImportExportTests(TestCase):
+class FunctionImportExportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("adminie", password="pass")
@@ -3190,7 +3252,7 @@ class FunctionImportExportTests(TestCase):
         )
 
 
-class GutachtenLLMCheckTests(TestCase):
+class GutachtenLLMCheckTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("gcheck", password="pass")
         self.client.login(username="gcheck", password="pass")
@@ -3212,7 +3274,7 @@ class GutachtenLLMCheckTests(TestCase):
         self.assertEqual(self.projekt.gutachten_function_note, "Hinweis")
 
 
-class FeatureVerificationTests(TestCase):
+class FeatureVerificationTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(
             software_typen="Word, Excel",
@@ -3294,7 +3356,7 @@ class FeatureVerificationTests(TestCase):
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
 
 
-class InitialCheckTests(TestCase):
+class InitialCheckTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
@@ -3341,7 +3403,7 @@ class InitialCheckTests(TestCase):
 
 
 
-class EditKIJustificationTests(TestCase):
+class EditKIJustificationTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("justi", password="pass")
         self.client.login(username="justi", password="pass")
@@ -3380,7 +3442,7 @@ class EditKIJustificationTests(TestCase):
         )
 
 
-class VerificationToInitialTests(TestCase):
+class VerificationToInitialTests(NoesisTestCase):
     def setUp(self):
         self.project = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
@@ -3420,7 +3482,7 @@ class VerificationToInitialTests(TestCase):
         self.assertEqual(sub_data["ki_beteiligt_begruendung"], "Nein")
 
 
-class UserImportExportTests(TestCase):
+class UserImportExportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("uadmin", password="pass")
@@ -3467,7 +3529,7 @@ class UserImportExportTests(TestCase):
         self.assertTrue(user.tiles.filter(url_name="tile").exists())
 
 
-class Anlage1ImportTests(TestCase):
+class Anlage1ImportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("a1import", password="pass")
@@ -3490,7 +3552,7 @@ class Anlage1ImportTests(TestCase):
         self.assertEqual(q.text, "Neu?")
         self.assertEqual(q.num, 1)
 
-class Anlage2ConfigImportExportTests(TestCase):
+class Anlage2ConfigImportExportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("cfgadmin", password="pass")
@@ -3532,7 +3594,7 @@ class Anlage2ConfigImportExportTests(TestCase):
         )
 
 
-class Anlage2ConfigViewTests(TestCase):
+class Anlage2ConfigViewTests(NoesisTestCase):
     def setUp(self):
         admin = Group.objects.create(name="admin")
         self.user = User.objects.create_user("cfguser", password="pass")
