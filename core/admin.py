@@ -172,7 +172,7 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(Anlage2Function)
 class Anlage2FunctionAdmin(admin.ModelAdmin):
-    list_display = ("name",)
+    list_display = ("name", "detection_phrases")
 
 
 @admin.register(Anlage2FunctionResult)
