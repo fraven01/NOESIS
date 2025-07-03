@@ -1758,8 +1758,8 @@ def anlage2_config(request):
                     obj = form.save(commit=False)
                     obj.prioritaet = idx
                     obj.save()
-                for obj in formset.deleted_objects:
-                    obj.delete()
+                for form in formset.deleted_forms:
+                    form.instance.delete()
                 messages.success(request, "Antwortregeln gespeichert")
             else:
                 messages.error(request, "Ungültige Eingaben")
@@ -1783,8 +1783,8 @@ def anlage2_config(request):
                     obj = form.save(commit=False)
                     obj.prioritaet = idx
                     obj.save()
-                for obj in formset.deleted_objects:
-                    obj.delete()
+                for form in formset.deleted_forms:
+                    form.instance.delete()
                 messages.success(request, "Antwortregeln gespeichert")
                 return redirect(f"{reverse('anlage2_config')}?tab=rules2")
             messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
