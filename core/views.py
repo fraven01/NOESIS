@@ -1786,9 +1786,10 @@ def anlage2_config(request):
                 for obj in formset.deleted_objects:
                     obj.delete()
                 messages.success(request, "Antwortregeln gespeichert")
-            else:
-                messages.error(request, "Ungültige Eingaben")
-            return redirect(f"{reverse('anlage2_config')}?tab=rules2")
+                return redirect(f"{reverse('anlage2_config')}?tab=rules2")
+            messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
+            rule_formset_fb = formset
+            active_tab = "rules2"
 
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
@@ -1802,7 +1803,11 @@ def anlage2_config(request):
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
-    rule_formset_fb = RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
+    rule_formset_fb = (
+        rule_formset_fb
+        if "rule_formset_fb" in locals()
+        else RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
+    )
     context = {
         "config": cfg,
         "config_form": cfg_form,

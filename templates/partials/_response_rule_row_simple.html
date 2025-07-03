@@ -1,9 +1,22 @@
 <tr class="border-b text-sm">
     {{ form.id }}
     {{ form.ORDER }}
-    <td class="py-1">{{ form.regel_name }}</td>
-    <td class="py-1">{{ form.erkennungs_phrase }}</td>
-    <td class="py-1">{{ form.ziel_feld }}</td>
-    <td class="py-1 text-center">{{ form.wert }}</td>
+    {{ form.non_field_errors }}
+    <td class="py-1">
+        {{ form.regel_name }}
+        {{ form.regel_name.errors }}
+    </td>
+    <td class="py-1">
+        {{ form.erkennungs_phrase }}
+        {{ form.erkennungs_phrase.errors }}
+    </td>
+    <td class="py-1">
+        {{ form.ziel_feld }}
+        {{ form.ziel_feld.errors }}
+    </td>
+    <td class="py-1 text-center">
+        {{ form.wert }}
+        {{ form.wert.errors }}
+    </td>
     <td class="py-1 text-center">{{ form.DELETE }}</td>
 </tr>
