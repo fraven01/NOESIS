@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Dict, List, Tuple
 
-from thefuzz import process
+from thefuzz import fuzz
 
 from .models import (
     BVProjectFile,
@@ -71,9 +71,12 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
 def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]]:
     """Parst eine Freitext-Liste von Funktionen aus Anlage 2.
 
-    Vor dem Doppelpunkt stehende Fragmente werden mittels Fuzzy-Matching mit den
-    in der Datenbank hinterlegten Fragen abgeglichen. Der ``threshold`` gibt an,
-    ab welcher Ähnlichkeit (0–100) ein Treffer akzeptiert wird.
+    Jede Zeile wird in ein Fragment vor und nach dem Doppelpunkt zerlegt. Das
+    Fragment vor dem Doppelpunkt wird gegen alle bekannten Funktions- und
+    Unterfragen-Namen geprüft. Die Namen werden nach ihrer Länge sortiert, so
+    dass spezifische Varianten vor allgemeinen geprüft werden. Der
+    ``threshold`` gibt an, ab welcher Ähnlichkeit (0–100) ein Treffer
+    akzeptiert wird.
     """
 
     cfg = Anlage2Config.get_instance()
@@ -109,8 +112,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             field = attr[5:-6]
             token_map.append((field, False, [p.lower() for p in phrases]))
 
-    alias_strings = [a for a, _, _ in phrase_map]
-    alias_lookup = {a: (f, s) for a, f, s in phrase_map}
+    # Spezifische Namen zuerst prüfen, um Präzision zu erhöhen
+    phrase_map.sort(key=lambda t: len(t[0]), reverse=True)
     rules = list(AntwortErkennungsRegel.objects.all())
 
     results: Dict[Tuple[int, int | None], Dict[str, object]] = {}
@@ -126,21 +129,25 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         parser_logger.debug("Vor dem Doppelpunkt: '%s', danach: '%s'", before, after)
         before_norm = _normalize(before)
         parser_logger.debug("Normalisiere '%s' zu '%s'", before, before_norm)
-        match = process.extractOne(before_norm, alias_strings)
         matched: Tuple[Anlage2Function, Anlage2SubQuestion | None] | None = None
-        if match:
-            func, sub = alias_lookup.get(match[0], (None, None))
-            q_name = (
-                func.name
-                if func and sub is None
-                else f"{func.name}: {sub.frage_text}" if func else match[0]
-            )
+        for alias_norm, func, sub in phrase_map:
+            score = fuzz.partial_ratio(alias_norm, before_norm)
             parser_logger.debug(
-                "Fuzzy-Match '%s' gegen '%s' (%s%%)", before_norm, q_name, match[1]
+                "Vergleiche '%s' mit '%s': %s%%",
+                alias_norm,
+                before_norm,
+                score,
             )
-            if match[1] >= threshold:
+            if score >= threshold:
                 matched = (func, sub)
-        else:
+                q_name = (
+                    func.name
+                    if func and sub is None
+                    else f"{func.name}: {sub.frage_text}"
+                )
+                parser_logger.debug("Treffer: '%s'", q_name)
+                break
+        if not matched:
             parser_logger.debug("Kein Fuzzy-Treffer für '%s'", before)
 
         def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:

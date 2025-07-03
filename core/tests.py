@@ -734,6 +734,27 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
+    def test_parse_anlage2_text_prefers_specific_subquestion(self):
+        func = Anlage2Function.objects.create(name="Analyse-/Reportingfunktionen")
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Bitte wähle zutreffendes aus",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        text = "Analyse- / Reportingfunktionen - Bitte wähle zutreffendes aus: ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse-/Reportingfunktionen - Bitte wähle zutreffendes aus",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
     def test_parse_anlage2_text_merges_duplicate_functions(self):
         func = Anlage2Function.objects.create(name="Login")
         cfg = Anlage2Config.get_instance()
