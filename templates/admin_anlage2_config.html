@@ -80,12 +80,12 @@
     </div>
     <div id="tab-rules" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln</h2>
-        <div id="rules-container" class="overflow-x-auto" hx-target="this" hx-swap="outerHTML">
+        <div id="rules-container" class="overflow-x-auto" hx-target="this" hx-swap="innerHTML">
             {% include 'partials/_response_rules_table.html' with formset=rule_formset %}
         </div>
         <div class="mt-2 space-x-2">
             <button type="button" class="px-3 py-1 bg-gray-300 rounded" onclick="addRule()">Neue Regel hinzufügen</button>
-            <button type="submit" name="action" value="save_rules" hx-post="{% url 'anlage2_config' %}" hx-target="#rules-container" hx-swap="outerHTML" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+            <button type="submit" name="action" value="save_rules" hx-post="{% url 'anlage2_config' %}" hx-target="#rules-container" hx-swap="innerHTML" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
         </div>
     </div>
 </form>
