@@ -1717,6 +1717,13 @@ def anlage2_config(request):
         can_order=True,
         extra=0,
     )
+    RuleFormSetFB = modelformset_factory(
+        AntwortErkennungsRegel,
+        form=AntwortErkennungsRegelForm,
+        can_delete=True,
+        can_order=True,
+        extra=1,
+    )
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
 
     if request.method == "POST":
@@ -1763,6 +1770,26 @@ def anlage2_config(request):
                 return render(request, "partials/_response_rules_table.html", context)
             return redirect(f"{reverse('anlage2_config')}?tab=rules")
 
+        if action == "save_rules_fb":
+            admin_a2_logger.debug("Speichere Antwortregeln (Fallback)")
+            formset = RuleFormSetFB(request.POST, queryset=rules_qs, prefix="rules_fb")
+            if formset.is_valid():
+                ordered = formset.ordered_forms
+                for idx, form in enumerate(ordered):
+                    if form.cleaned_data.get("DELETE"):
+                        if form.instance.pk:
+                            form.instance.delete()
+                        continue
+                    obj = form.save(commit=False)
+                    obj.prioritaet = idx
+                    obj.save()
+                for obj in formset.deleted_objects:
+                    obj.delete()
+                messages.success(request, "Antwortregeln gespeichert")
+            else:
+                messages.error(request, "Ungültige Eingaben")
+            return redirect(f"{reverse('anlage2_config')}?tab=rules2")
+
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
             cfg.enforce_subquestion_override = bool(
@@ -1775,11 +1802,13 @@ def anlage2_config(request):
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
+    rule_formset_fb = RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
     context = {
         "config": cfg,
         "config_form": cfg_form,
         "aliases": aliases,
         "rule_formset": rule_formset,
+        "rule_formset_fb": rule_formset_fb,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),

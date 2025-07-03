@@ -15,6 +15,7 @@
         <button type="button" data-tab="table" class="tab-btn">Tabellen-Parser</button>
         <button type="button" data-tab="general" class="tab-btn">Allgemein</button>
         <button type="button" data-tab="rules" class="tab-btn">Parser-Antwortregeln</button>
+        <button type="button" data-tab="rules2" class="tab-btn">Regeln Fallback</button>
     </nav>
     <div id="tab-table" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
@@ -84,9 +85,17 @@
             {% include 'partials/_response_rules_table.html' with formset=rule_formset %}
         </div>
         <div class="mt-2 space-x-2">
-            <button type="button" class="px-3 py-1 bg-gray-300 rounded" onclick="addRule()">Neue Regel hinzufügen</button>
-            <button type="submit" name="action" value="save_rules" hx-post="{% url 'anlage2_config' %}" hx-target="#rules-container" hx-swap="innerHTML" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+            <!-- HTMX-Funktion vorübergehend deaktiviert -->
+            <button type="button" class="px-3 py-1 bg-gray-300 rounded" disabled>Neue Regel hinzufügen</button>
+            <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
         </div>
+    </div>
+    <div id="tab-rules2" class="tab-content">
+        <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln (Fallback)</h2>
+        <div class="overflow-x-auto">
+            {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb %}
+        </div>
+        <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
     </div>
 </form>
 <script>
@@ -149,46 +158,7 @@ list.addEventListener('drop',e=>{e.preventDefault();updateParserInputs();});
 list.addEventListener('change',updateParserInputs);
 updateParserInputs();
 
-function updateOrder(){
-    document.querySelectorAll('#rule-rows tr').forEach((tr,idx)=>{
-        const inp=tr.querySelector('input[name$="-ORDER"]');
-        if(inp){inp.value=idx;}
-    });
-}
-
-function updateTotals(){
-    const total=document.getElementById('id_rules-TOTAL_FORMS');
-    if(total){total.value=document.querySelectorAll('#rule-rows tr').length;}
-    updateOrder();
-}
-
-let ruleSortable;
-function initializeSortable(){
-    const tbody=document.getElementById('rule-rows');
-    if(tbody){
-        if(ruleSortable){ruleSortable.destroy();}
-        ruleSortable=Sortable.create(tbody,{handle:'.drag-handle',animation:150,onSort:updateOrder});
-        updateTotals();
-    }
-}
-
-function addRule(){
-    const total=document.getElementById('id_rules-TOTAL_FORMS');
-    const idx=parseInt(total.value);
-    htmx.ajax('GET','{% url 'anlage2_rule_add' %}?index='+idx,{target:'#rule-rows',swap:'beforeend'});
-    total.value=idx+1;
-}
-
-document.addEventListener('DOMContentLoaded',function(){
-    initializeSortable();
-    const tbody=document.getElementById('rule-rows');
-    if(tbody){
-        tbody.addEventListener('htmx:afterSwap',initializeSortable);
-    }
-});
+// Deaktivierter HTMX-Code für die Regelverwaltung
 </script>
 {% endblock %}
-{% block extra_js %}
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-{% endblock %}
+{% block extra_js %}{% endblock %}
