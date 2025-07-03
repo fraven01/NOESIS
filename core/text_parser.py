@@ -209,8 +209,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                 results[key] = entry
                 parser_logger.debug("Neuer Eintrag für '%s'", name)
             _apply_tokens(entry, after or line)
-            if after:
-                _apply_rules(entry, after)
+            _apply_rules(entry, after or line)
             last_key = key
         elif last_key is not None:
             entry = results[last_key]
@@ -220,14 +219,12 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                 line,
             )
             _apply_tokens(entry, after or line)
-            if after:
-                _apply_rules(entry, after)
+            _apply_rules(entry, after or line)
         else:
             parser_logger.warning("Keine Funktion gefunden für Zeile: %s", line)
             entry = {"funktion": before}
             _apply_tokens(entry, after or line)
-            if after:
-                _apply_rules(entry, after)
+            _apply_rules(entry, after or line)
             entry.setdefault("technisch_verfuegbar", {"value": False, "note": None})
             unmatched.append(entry)
 
