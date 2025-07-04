@@ -10,6 +10,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
+from django_q.tasks import async_task
 
 from .models import (
     BVProject,
@@ -262,12 +263,9 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-
     """Parst eine Anlage 2-Datei anhand der Konfiguration."""
 
-
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
-
 
     cfg = Anlage2Config.get_instance()
     mode = cfg.parser_mode
@@ -282,7 +280,6 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         analysis_result = parse_anlage2_text(project_file.text_content)
     else:
         analysis_result = parser_manager.parse_anlage2(project_file)
-
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
     project_file.save(update_fields=["analysis_json"])
@@ -659,7 +656,9 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             prompt_text[:500],
         )
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
-        anlage1_logger.debug("check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500])
+        anlage1_logger.debug(
+            "check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500]
+        )
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -809,7 +808,9 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             reply = query_llm(
                 prompt_obj, {}, model_name=model_name, model_type="anlagen"
             )
-            anlage2_logger.debug("LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply)
+            anlage2_logger.debug(
+                "LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply
+            )
             try:
                 raw = json.loads(reply)
             except Exception:  # noqa: BLE001
@@ -882,7 +883,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     return data
 
 
-
 def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     """Analysiert die vierte Anlage."""
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -921,6 +921,78 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
+
+
+def worker_anlage4_evaluate(
+    item_text: str, project_file_id: int, index: int, model_name: str | None = None
+) -> dict:
+    """Bewertet einen Zweck aus Anlage 4 im Hintergrund."""
+
+    pf = BVProjectFile.objects.get(pk=project_file_id)
+    cfg = pf.anlage4_config or Anlage4Config.objects.first()
+    template = (
+        cfg.prompt_template
+        if cfg and cfg.prompt_template
+        else (
+            "Bewerte die Plausibilit\xe4t der folgenden Zwecke. "
+            "Gib ein JSON mit den Schl\xfcsseln 'text', 'score' und "
+            "'begruendung' zur\xfcck:\n\n{text}"
+        )
+    )
+    prompt_text = template.format(text=item_text)
+    anlage4_logger.debug("Anlage4 Prompt #%s: %s", index, prompt_text)
+    prompt_obj = Prompt(name="tmp", text=prompt_text)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    anlage4_logger.debug("Anlage4 Raw Response #%s: %s", index, reply)
+    try:
+        data = json.loads(reply)
+    except Exception:  # noqa: BLE001
+        data = {"raw": reply}
+    anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
+
+    analysis = pf.analysis_json or {}
+    zwecke = analysis.get("zwecke") or []
+    if isinstance(zwecke, dict) and "value" in zwecke:
+        zwecke = zwecke["value"]
+    if index >= len(zwecke):
+        # Liste auff\xfcllen, falls sie k\xfcrzer ist
+        for _ in range(len(zwecke), index + 1):
+            zwecke.append({"text": ""})
+    item = zwecke[index]
+    if isinstance(item, str):
+        item = {"text": item}
+    item["llm_result"] = data
+    zwecke[index] = item
+    analysis["zwecke"] = zwecke
+    pf.analysis_json = analysis
+    pf.save(update_fields=["analysis_json"])
+    return data
+
+
+def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dict:
+    """Startet die asynchrone Analyse von Anlage 4."""
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=4)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
+        raise ValueError("Anlage 4 fehlt") from exc
+
+    zwecke = parse_anlage4(anlage)
+    items = [{"text": z} for z in zwecke]
+    anlage.analysis_json = {"zwecke": items}
+    anlage.save(update_fields=["analysis_json"])
+
+    for idx, item in enumerate(items):
+        async_task(
+            "core.llm_tasks.worker_anlage4_evaluate",
+            item["text"],
+            anlage.pk,
+            idx,
+            model_name,
+        )
+
+    return anlage.analysis_json
 
 
 def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
