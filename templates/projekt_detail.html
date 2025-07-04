@@ -55,6 +55,9 @@
                 {% if a.anlage_nr == 2 %}
                     <a href="{% url 'projekt_file_parse_anlage2' a.pk %}"
                        class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Parser</a>
+                {% elif a.anlage_nr == 4 %}
+                    <a href="{% url 'projekt_file_analyse_anlage4' a.pk %}"
+                       class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Analyse</a>
                 {% endif %}
             </td>
             <td class="px-2 py-1 text-center">

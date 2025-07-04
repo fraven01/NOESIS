@@ -86,7 +86,7 @@ from .llm_tasks import (
     analyse_anlage3,
     check_anlage2,
     check_anlage3_vision,
-    check_anlage4,
+    analyse_anlage4,
     check_anlage5,
     check_anlage6,
     check_anlage2_functions,
@@ -2210,7 +2210,7 @@ def projekt_file_check(request, pk, nr):
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
-        4: check_anlage4,
+        4: analyse_anlage4,
         5: check_anlage5,
         6: check_anlage6,
     }
@@ -2247,7 +2247,7 @@ def projekt_file_check_pk(request, pk):
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
-        4: check_anlage4,
+        4: analyse_anlage4,
         5: check_anlage5,
         6: check_anlage6,
     }
@@ -2281,7 +2281,7 @@ def projekt_file_check_view(request, pk):
         1: check_anlage1,
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
-        4: check_anlage4,
+        4: analyse_anlage4,
         5: check_anlage5,
         6: check_anlage6,
     }
@@ -2312,6 +2312,16 @@ def projekt_file_parse_anlage2(request, pk):
     if anlage.anlage_nr != 2:
         raise Http404
     run_anlage2_analysis(anlage)
+    return redirect("projekt_file_edit_json", pk=pk)
+
+
+@login_required
+def projekt_file_analyse_anlage4(request, pk):
+    """Analysiert Anlage 4 und leitet zum Review."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+    if anlage.anlage_nr != 4:
+        raise Http404
+    analyse_anlage4(anlage.projekt_id)
     return redirect("projekt_file_edit_json", pk=pk)
 
 
@@ -2549,10 +2559,10 @@ def projekt_file_edit_json(request, pk):
                     debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
                 else:
                     debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
-                rows.append(
-                    _build_row_data(
-                        sub.frage_text,
-                        lookup_key,
+            rows.append(
+                _build_row_data(
+                    sub.frage_text,
+                    lookup_key,
                         func.id,
                         f"sub{sub.id}_",
                         form,
@@ -2561,10 +2571,24 @@ def projekt_file_edit_json(request, pk):
                         beteilig_map,
                         analysis_lookup,
                         verification_lookup,
-                        manual_lookup,
-                        sub_id=sub.id,
-                    )
+                    manual_lookup,
+                    sub_id=sub.id,
                 )
+            )
+    elif anlage.anlage_nr == 4:
+        items = anlage.analysis_json.get("zwecke", []) if anlage.analysis_json else []
+        if request.method == "POST":
+            form = Anlage4ReviewForm(request.POST, items=items)
+            if form.is_valid():
+                anlage.manual_analysis_json = form.get_json()
+                anlage.save(update_fields=["manual_analysis_json"])
+                return redirect("projekt_detail", pk=anlage.projekt.pk)
+        else:
+            form = Anlage4ReviewForm(initial=anlage.manual_analysis_json, items=items)
+        template = "projekt_file_anlage4_review.html"
+        rows = [
+            (text, form[f"item{idx}_ok"], form[f"item{idx}_note"]) for idx, text in enumerate(items)
+        ]
     else:
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
@@ -2586,6 +2610,8 @@ def projekt_file_edit_json(request, pk):
                 "labels": [f[1] for f in fields_def],
             }
         )
+    elif anlage.anlage_nr == 4:
+        context["rows"] = rows
     return render(request, template, context)
 
 

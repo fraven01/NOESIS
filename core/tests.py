@@ -26,6 +26,7 @@ from .models import (
     BVSoftware,
     Gutachten,
     FormatBParserRule,
+    Anlage4Config,
 )
 from .docx_utils import (
     extract_text,
@@ -37,6 +38,7 @@ from .docx_utils import (
 )
 
 from . import text_parser
+from .anlage4_parser import parse_anlage4
 
 from .parser_manager import parser_manager
 from .parsers import AbstractParser
@@ -62,6 +64,7 @@ from .llm_tasks import (
     check_anlage2,
     analyse_anlage2,
     analyse_anlage3,
+    analyse_anlage4,
     check_anlage3_vision,
     check_anlage2_functions,
     worker_verify_feature,
@@ -3667,6 +3670,63 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         self.assertRedirects(resp, url + "?tab=text")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
+
+
+class Anlage4ParserTests(NoesisTestCase):
+    def test_parse_table_and_regex(self):
+        cfg = Anlage4Config.objects.create(
+            table_columns=["zweck"],
+            regex_patterns=[r"Zweck: (.+)"]
+        )
+        doc = Document()
+        table = doc.add_table(rows=2, cols=1)
+        table.cell(0, 0).text = "Zweck"
+        table.cell(1, 0).text = "A"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=upload,
+            text_content="Zweck: B",
+            anlage4_config=cfg,
+        )
+        items = parse_anlage4(pf)
+        self.assertEqual(items, ["A"])
+
+    def test_negative_pattern(self):
+        cfg = Anlage4Config.objects.create(negative_patterns=["keine zwecke"])
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.docx", b""),
+            text_content="Keine Zwecke vorhanden",
+            anlage4_config=cfg,
+        )
+        self.assertEqual(parse_anlage4(pf), [])
+
+
+class AnalyseAnlage4Tests(NoesisTestCase):
+    def test_task_stores_json(self):
+        cfg = Anlage4Config.objects.create(prompt_template="Antwort:")
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.docx", b""),
+            text_content="Zweck: A",
+            anlage4_config=cfg,
+        )
+        with patch("core.llm_tasks.query_llm", return_value='{"text":"t","score":10,"begruendung":"b"}'):
+            data = analyse_anlage4(projekt.pk)
+        pf.refresh_from_db()
+        self.assertEqual(data["plausibility_score"]["value"], 10)
+        self.assertEqual(pf.analysis_json["plausibility_text"]["value"], "t")
+
 
 
 
