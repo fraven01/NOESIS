@@ -1,7 +1,21 @@
 {% extends 'base.html' %}
+{% load recording_extras %}
 {% block title %}Anlage 4 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 4 Zwecke prüfen</h1>
+{% if plausibility_text or plausibility_score or plausibility_begruendung %}
+<div class="bg-gray-100 rounded p-4 mb-4">
+    {% if plausibility_text %}
+    <p><strong>KI-Klassifikation:</strong> {{ plausibility_text }}</p>
+    {% endif %}
+    {% if plausibility_score %}
+    <p><strong>Score:</strong> {{ plausibility_score }}</p>
+    {% endif %}
+    {% if plausibility_begruendung %}
+    <p><strong>Begründung:</strong> {{ plausibility_begruendung|markdownify }}</p>
+    {% endif %}
+</div>
+{% endif %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <table class="table-auto w-full border">

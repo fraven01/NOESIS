@@ -116,6 +116,7 @@ from .templatetags.recording_extras import markdownify
 logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("parser_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
+anlage4_logger = logging.getLogger("anlage4_debug")
 
 
 _WHISPER_MODEL = None
@@ -2100,6 +2101,56 @@ def anlage3_review(request, pk):
     anlagen = projekt.anlagen.filter(anlage_nr=3)
     context = {"projekt": projekt, "anlagen": anlagen}
     return render(request, "anlage3_review.html", context)
+
+
+@login_required
+def anlage4_review(request, pk):
+    """Zeigt die Zwecke aus Anlage 4 und ermöglicht die manuelle Bewertung."""
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 4:
+        raise Http404
+
+    anlage4_logger.info("Zugriff auf Anlage4 Review f\u00fcr Datei %s", pk)
+
+    items = []
+    ai_text = ai_score = ai_reason = None
+    if project_file.analysis_json:
+        items = project_file.analysis_json.get("zwecke")
+        if isinstance(items, dict):
+            items = items.get("value", [])
+        ai_text = project_file.analysis_json.get("plausibility_text")
+        ai_score = project_file.analysis_json.get("plausibility_score")
+        ai_reason = project_file.analysis_json.get("plausibility_begruendung")
+
+    def _val(val):
+        return val.get("value") if isinstance(val, dict) else val
+
+    ai_text = _val(ai_text)
+    ai_score = _val(ai_score)
+    ai_reason = _val(ai_reason)
+
+    if request.method == "POST":
+        form = Anlage4ReviewForm(request.POST, items=items)
+        if form.is_valid():
+            project_file.manual_analysis_json = form.get_json()
+            project_file.save(update_fields=["manual_analysis_json"])
+            anlage4_logger.info("Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items))
+            return redirect("projekt_detail", pk=project_file.projekt.pk)
+    else:
+        form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
+
+    rows = [
+        (text, form[f"item{idx}_ok"], form[f"item{idx}_note"]) for idx, text in enumerate(items)
+    ]
+
+    context = {
+        "anlage": project_file,
+        "rows": rows,
+        "plausibility_text": ai_text,
+        "plausibility_score": ai_score,
+        "plausibility_begruendung": ai_reason,
+    }
+    return render(request, "projekt_file_anlage4_review.html", context)
 
 
 @login_required
