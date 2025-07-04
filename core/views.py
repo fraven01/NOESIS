@@ -2577,7 +2577,13 @@ def projekt_file_edit_json(request, pk):
                 )
             )
     elif anlage.anlage_nr == 4:
-        items = anlage.analysis_json.get("zwecke", []) if anlage.analysis_json else []
+        items = []
+        if anlage.analysis_json:
+            items = anlage.analysis_json.get("zwecke")
+        if isinstance(items, dict):
+            items = items.get("value", [])
+        if not items:
+            items = []
         if request.method == "POST":
             form = Anlage4ReviewForm(request.POST, items=items)
             if form.is_valid():
