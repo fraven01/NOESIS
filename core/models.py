@@ -193,6 +193,9 @@ class BVProjectFile(models.Model):
         choices=[(i, str(i)) for i in range(1, 7)],
     )
     upload = models.FileField("Upload", upload_to="bv_files")
+    anlage4_config = models.ForeignKey(
+        "Anlage4Config", on_delete=models.SET_NULL, null=True, blank=True
+    )
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
@@ -595,6 +598,21 @@ class AntwortErkennungsRegel(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.regel_name
+
+
+class Anlage4Config(models.Model):
+    """Konfiguration f\u00fcr Anlage 4."""
+
+    table_columns = models.JSONField(default=list, blank=True)
+    regex_patterns = models.JSONField(default=list, blank=True)
+    negative_patterns = models.JSONField(default=list, blank=True)
+    prompt_template = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Anlage4 Konfiguration"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return "Anlage4Config"
 
 
 class Tile(models.Model):

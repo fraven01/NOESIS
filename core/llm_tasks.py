@@ -22,6 +22,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
     Anlage2Config,
+    Anlage4Config,
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
@@ -36,6 +37,7 @@ from .docx_utils import (
     get_pdf_page_count,
 )
 from .parser_manager import parser_manager
+from .anlage4_parser import parse_anlage4
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -880,9 +882,45 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     return data
 
 
-def check_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xfcft die vierte Anlage."""
-    return _check_anlage(projekt_id, 4, model_name)
+
+def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
+    """Analysiert die vierte Anlage."""
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=4)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
+        raise ValueError("Anlage 4 fehlt") from exc
+
+    zwecke = parse_anlage4(anlage)
+    cfg = anlage.anlage4_config or Anlage4Config.objects.first()
+    template = (
+        cfg.prompt_template
+        if cfg and cfg.prompt_template
+        else (
+            "Bewerte die Plausibilit\xe4t der folgenden Zwecke. "
+            "Gib ein JSON mit den Schl\xfcsseln 'text', 'score' und "
+            "'begruendung' zur\xfcck:\n\n{text}"
+        )
+    )
+    prompt_text = template.format(text="\n".join(zwecke))
+    prompt_obj = Prompt(name="tmp", text=prompt_text)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    try:
+        llm_data = json.loads(reply)
+    except Exception:  # noqa: BLE001
+        llm_data = {"raw": reply}
+
+    data = {
+        "task": "analyse_anlage4",
+        "zwecke": zwecke,
+        "plausibility_text": llm_data.get("text"),
+        "plausibility_score": llm_data.get("score"),
+        "plausibility_begruendung": llm_data.get("begruendung"),
+    }
+    data = _add_editable_flags(data)
+    anlage.analysis_json = data
+    anlage.save(update_fields=["analysis_json"])
+    return data
 
 
 def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:

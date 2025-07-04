@@ -363,6 +363,37 @@ class Anlage2ReviewForm(forms.Form):
         return out
 
 
+class Anlage4ReviewForm(forms.Form):
+    """Manuelle Pr\xfcfung der Zwecke aus Anlage 4."""
+
+    def __init__(self, *args, items=None, initial=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.items = items or []
+        init = initial or {}
+        for idx, _text in enumerate(self.items):
+            self.fields[f"item{idx}_ok"] = forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+            )
+            self.fields[f"item{idx}_note"] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+            )
+            self.initial[f"item{idx}_ok"] = init.get(str(idx), {}).get("ok", False)
+            self.initial[f"item{idx}_note"] = init.get(str(idx), {}).get("note", "")
+
+    def get_json(self) -> dict:
+        out: dict[str, dict] = {}
+        if not self.is_valid():
+            return out
+        for idx in range(len(self.items)):
+            out[str(idx)] = {
+                "ok": self.cleaned_data.get(f"item{idx}_ok", False),
+                "note": self.cleaned_data.get(f"item{idx}_note", ""),
+            }
+        return out
+
+
 class Anlage2FunctionForm(forms.ModelForm):
     """Formular für eine Funktion aus Anlage 2."""
 

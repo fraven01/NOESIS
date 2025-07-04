@@ -16,6 +16,7 @@ from .models import (
     Anlage2FunctionResult,
     FormatBParserRule,
     AntwortErkennungsRegel,
+    Anlage4Config,
 )
 
 
@@ -208,6 +209,20 @@ class FormatBParserRuleAdmin(admin.ModelAdmin):
 class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_display = ("regel_name", "ziel_feld", "wert", "prioritaet")
     list_editable = ("ziel_feld", "wert", "prioritaet")
+
+
+class Anlage4ConfigForm(forms.ModelForm):
+    class Meta:
+        model = Anlage4Config
+        fields = "__all__"
+        widgets = {
+            "prompt_template": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+@admin.register(Anlage4Config)
+class Anlage4ConfigAdmin(admin.ModelAdmin):
+    form = Anlage4ConfigForm
 
 
 # Registrierung der Modelle

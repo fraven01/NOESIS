@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Anlage 4 Review{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 4 Zwecke prüfen</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <table class="table-auto w-full border">
+        <thead>
+            <tr>
+                <th class="border px-2">Zweck</th>
+                <th class="border px-2">OK</th>
+                <th class="border px-2">Kommentar</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for text, ok_field, note_field in rows %}
+            <tr>
+                <td class="border px-2">{{ text }}</td>
+                <td class="border px-2">{{ ok_field }}</td>
+                <td class="border px-2">{{ note_field }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+{% endblock %}
