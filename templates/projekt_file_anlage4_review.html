@@ -3,35 +3,34 @@
 {% block title %}Anlage 4 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 4 Zwecke prüfen</h1>
-{% if plausibility_text or plausibility_score or plausibility_begruendung %}
-<div class="bg-gray-100 rounded p-4 mb-4">
-    {% if plausibility_text %}
-    <p><strong>KI-Klassifikation:</strong> {{ plausibility_text }}</p>
-    {% endif %}
-    {% if plausibility_score %}
-    <p><strong>Score:</strong> {{ plausibility_score }}</p>
-    {% endif %}
-    {% if plausibility_begruendung %}
-    <p><strong>Begründung:</strong> {{ plausibility_begruendung|markdownify }}</p>
-    {% endif %}
-</div>
-{% endif %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <table class="table-auto w-full border">
         <thead>
             <tr>
-                <th class="border px-2">Zweck</th>
-                <th class="border px-2">OK</th>
+                <th class="border px-2">Name</th>
+                <th class="border px-2">Gesellschaften</th>
+                <th class="border px-2">Fachbereiche</th>
+                <th class="border px-2">Plausibilität</th>
+                <th class="border px-2">Score</th>
+                <th class="border px-2">Begründung</th>
+                <th class="border px-2">Geprüft</th>
+                <th class="border px-2">Verhandlungsfähig</th>
                 <th class="border px-2">Kommentar</th>
             </tr>
         </thead>
         <tbody>
-        {% for text, ok_field, note_field in rows %}
+        {% for row in rows %}
             <tr>
-                <td class="border px-2">{{ text }}</td>
-                <td class="border px-2">{{ ok_field }}</td>
-                <td class="border px-2">{{ note_field }}</td>
+                <td class="border px-2">{{ row.name }}</td>
+                <td class="border px-2">{{ row.gesellschaften }}</td>
+                <td class="border px-2">{{ row.fachbereiche }}</td>
+                <td class="border px-2">{{ row.plaus }}</td>
+                <td class="border px-2">{{ row.score }}</td>
+                <td class="border px-2">{{ row.begruendung }}</td>
+                <td class="border px-2">{{ row.ok_field }}</td>
+                <td class="border px-2">{{ row.nego_field }}</td>
+                <td class="border px-2">{{ row.note_field }}</td>
             </tr>
         {% endfor %}
         </tbody>

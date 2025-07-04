@@ -17,6 +17,7 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
+    Anlage4ParserConfig,
 )
 
 
@@ -223,6 +224,21 @@ class Anlage4ConfigForm(forms.ModelForm):
 @admin.register(Anlage4Config)
 class Anlage4ConfigAdmin(admin.ModelAdmin):
     form = Anlage4ConfigForm
+
+
+class Anlage4ParserConfigForm(forms.ModelForm):
+    class Meta:
+        model = Anlage4ParserConfig
+        fields = "__all__"
+        widgets = {
+            "prompt_extraction": forms.Textarea(attrs={"rows": 4}),
+            "prompt_plausibility": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+@admin.register(Anlage4ParserConfig)
+class Anlage4ParserConfigAdmin(admin.ModelAdmin):
+    form = Anlage4ParserConfigForm
 
 
 # Registrierung der Modelle
