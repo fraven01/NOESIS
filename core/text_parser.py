@@ -31,6 +31,7 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
     """
 
+    parser_logger.info("parse_format_b gestartet")
     rules = FormatBParserRule.objects.all()
     if rules:
         mapping = {r.key.lower(): r.target_field for r in rules}
@@ -65,6 +66,8 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
             }
         results.append(entry)
 
+    parser_logger.info("parse_format_b beendet: %s Einträge", len(results))
+
     return results
 
 
@@ -79,6 +82,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     akzeptiert wird.
     """
 
+    parser_logger.info("parse_anlage2_text gestartet")
     cfg = Anlage2Config.get_instance()
 
     def _normalize(s: str) -> str:
@@ -228,7 +232,11 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             entry.setdefault("technisch_verfuegbar", {"value": False, "note": None})
             unmatched.append(entry)
 
-    return list(results.values()) + unmatched
+    all_results = list(results.values()) + unmatched
+    parser_logger.info(
+        "parse_anlage2_text beendet: %s Einträge", len(all_results)
+    )
+    return all_results
 
 
 class FuzzyTextParser(AbstractParser):

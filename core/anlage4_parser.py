@@ -12,6 +12,7 @@ logger = logging.getLogger("anlage4_debug")
 
 def parse_anlage4(project_file: BVProjectFile) -> List[str]:
     """Parst Anlage 4 anhand der Konfiguration."""
+    logger.info("parse_anlage4 gestartet für Datei %s", project_file.pk)
     cfg = project_file.anlage4_config or Anlage4Config.objects.first()
     columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
     neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
@@ -54,5 +55,9 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
     if structure is None:
         structure = "free text found" if text.strip() else "empty document"
     logger.debug("%s - %s items", structure, len(items))
-
+    logger.info(
+        "parse_anlage4 beendet für Datei %s mit %s Zwecken",
+        project_file.pk,
+        len(items),
+    )
     return items

@@ -394,6 +394,7 @@ def worker_generate_gutachten(
     Gesamtgutachten f\u00fcr das Projekt.
     """
 
+    logger.info("worker_generate_gutachten gestartet für Projekt %s", project_id)
     try:
         projekt = BVProject.objects.get(pk=project_id)
     except BVProject.DoesNotExist:
@@ -430,6 +431,7 @@ def worker_generate_gutachten(
         gutachten.text = text
         gutachten.save(update_fields=["text"])
 
+    logger.info("worker_generate_gutachten beendet für Projekt %s", project_id)
     return str(path)
 
 
@@ -928,6 +930,12 @@ def worker_anlage4_evaluate(
 ) -> dict:
     """Bewertet einen Zweck aus Anlage 4 im Hintergrund."""
 
+    anlage4_logger.info(
+        "worker_anlage4_evaluate gestartet für Datei %s Index %s",
+        project_file_id,
+        index,
+    )
+
     pf = BVProjectFile.objects.get(pk=project_file_id)
     cfg = pf.anlage4_config or Anlage4Config.objects.first()
     template = (
@@ -966,6 +974,11 @@ def worker_anlage4_evaluate(
     analysis["zwecke"] = zwecke
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
+    anlage4_logger.info(
+        "worker_anlage4_evaluate beendet für Datei %s Index %s",
+        project_file_id,
+        index,
+    )
     return data
 
 
@@ -1053,6 +1066,13 @@ def worker_verify_feature(
     model_name: str | None = None,
 ) -> dict[str, bool | str | None]:
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
+
+    logger.info(
+        "worker_verify_feature gestartet für Projekt %s Objekt %s %s",
+        project_id,
+        object_type,
+        object_id,
+    )
 
     projekt = BVProject.objects.get(pk=project_id)
 
@@ -1207,6 +1227,12 @@ def worker_verify_feature(
 
     pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
     if not pf:
+        logger.info(
+            "worker_verify_feature beendet für Projekt %s Objekt %s %s",
+            project_id,
+            object_type,
+            object_id,
+        )
         return verification_result
 
     verif = pf.verification_json or {}
@@ -1229,6 +1255,12 @@ def worker_verify_feature(
             raw_json__subquestion_id=object_id,
         ).delete()
 
+    logger.info(
+        "worker_verify_feature beendet für Projekt %s Objekt %s %s",
+        project_id,
+        object_type,
+        object_id,
+    )
     return verification_result
 
 
@@ -1241,6 +1273,10 @@ def worker_run_initial_check(
     erkannt wurde.
     """
 
+    logger.info(
+        "worker_run_initial_check gestartet für Knowledge %s",
+        knowledge_id,
+    )
     sk = SoftwareKnowledge.objects.get(pk=knowledge_id)
     software_name = sk.software_name
 
@@ -1286,13 +1322,26 @@ def worker_run_initial_check(
 
     sk.last_checked = timezone.now()
     sk.save(update_fields=["is_known_by_llm", "description", "last_checked"])
+    logger.info(
+        "worker_run_initial_check beendet für Knowledge %s",
+        knowledge_id,
+    )
     return result
 
 
 def worker_run_anlage3_vision(project_id: int, model_name: str | None = None) -> dict:
     """Führt die Vision-Prüfung für Anlage 3 im Hintergrund aus."""
 
-    return check_anlage3_vision(project_id, model_name=model_name)
+    logger.info(
+        "worker_run_anlage3_vision gestartet für Projekt %s",
+        project_id,
+    )
+    result = check_anlage3_vision(project_id, model_name=model_name)
+    logger.info(
+        "worker_run_anlage3_vision beendet für Projekt %s",
+        project_id,
+    )
+    return result
 
 
 def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:

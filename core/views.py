@@ -2097,9 +2097,11 @@ def projekt_detail(request, pk):
 @login_required
 def anlage3_review(request, pk):
     """Zeigt alle Dateien der Anlage 3 mit Review-Option."""
+    logger.info("anlage3_review gestartet für Projekt %s", pk)
     projekt = get_object_or_404(BVProject, pk=pk)
     anlagen = projekt.anlagen.filter(anlage_nr=3)
     context = {"projekt": projekt, "anlagen": anlagen}
+    logger.info("anlage3_review beendet für Projekt %s", pk)
     return render(request, "anlage3_review.html", context)
 
 
@@ -2150,6 +2152,7 @@ def anlage4_review(request, pk):
         "plausibility_score": ai_score,
         "plausibility_begruendung": ai_reason,
     }
+    anlage4_logger.info("Anlage4 Review abgeschlossen für Datei %s", pk)
     return render(request, "projekt_file_anlage4_review.html", context)
 
 
@@ -2380,6 +2383,7 @@ def projekt_file_analyse_anlage4(request, pk):
 @login_required
 def projekt_file_edit_json(request, pk):
     """Ermöglicht das Bearbeiten der JSON-Daten einer Anlage."""
+    logger.info("projekt_file_edit_json gestartet für Anlage %s", pk)
     try:
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
@@ -2389,8 +2393,13 @@ def projekt_file_edit_json(request, pk):
         if request.method == "POST":
             form = Anlage1ReviewForm(request.POST)
             if form.is_valid():
-                anlage.question_review = form.get_json()
+                data = form.get_json()
+                anlage.question_review = data
                 anlage.save(update_fields=["question_review"])
+                logger.info(
+                    "Anlage1 Review gespeichert: %s Einträge",
+                    len(data),
+                )
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             init = anlage.question_review
@@ -2447,8 +2456,13 @@ def projekt_file_edit_json(request, pk):
                             if form.cleaned_data.get(field_name):
                                 functions_to_override.add(func.id)
 
-                anlage.manual_analysis_json = form.get_json()
+                data = form.get_json()
+                anlage.manual_analysis_json = data
                 anlage.save(update_fields=["manual_analysis_json"])
+                logger.info(
+                    "Anlage2 Review gespeichert: %s Funktionen",
+                    len(data.get("functions", {})),
+                )
 
                 if cfg_rule.enforce_subquestion_override:
                     for fid in functions_to_override:
@@ -2670,6 +2684,7 @@ def projekt_file_edit_json(request, pk):
         )
     elif anlage.anlage_nr == 4:
         context["rows"] = rows
+    logger.info("projekt_file_edit_json beendet für Anlage %s", pk)
     return render(request, template, context)
 
 
