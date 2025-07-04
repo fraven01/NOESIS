@@ -196,6 +196,9 @@ class BVProjectFile(models.Model):
     anlage4_config = models.ForeignKey(
         "Anlage4Config", on_delete=models.SET_NULL, null=True, blank=True
     )
+    anlage4_parser_config = models.ForeignKey(
+        "Anlage4ParserConfig", on_delete=models.SET_NULL, null=True, blank=True
+    )
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
@@ -613,6 +616,21 @@ class Anlage4Config(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return "Anlage4Config"
+
+
+class Anlage4ParserConfig(models.Model):
+    """Konfiguration für den Anlage-4-Parser."""
+
+    table_columns = models.JSONField(default=list, blank=True)
+    text_rules = models.JSONField(default=list, blank=True)
+    prompt_extraction = models.TextField(blank=True)
+    prompt_plausibility = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Anlage4 Parser Konfiguration"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return "Anlage4ParserConfig"
 
 
 class Tile(models.Model):

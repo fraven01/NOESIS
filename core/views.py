@@ -2115,21 +2115,8 @@ def anlage4_review(request, pk):
     anlage4_logger.info("Zugriff auf Anlage4 Review f\u00fcr Datei %s", pk)
 
     items = []
-    ai_text = ai_score = ai_reason = None
     if project_file.analysis_json:
-        items = project_file.analysis_json.get("zwecke")
-        if isinstance(items, dict):
-            items = items.get("value", [])
-        ai_text = project_file.analysis_json.get("plausibility_text")
-        ai_score = project_file.analysis_json.get("plausibility_score")
-        ai_reason = project_file.analysis_json.get("plausibility_begruendung")
-
-    def _val(val):
-        return val.get("value") if isinstance(val, dict) else val
-
-    ai_text = _val(ai_text)
-    ai_score = _val(ai_score)
-    ai_reason = _val(ai_reason)
+        items = project_file.analysis_json.get("items") or []
 
     if request.method == "POST":
         form = Anlage4ReviewForm(request.POST, items=items)
@@ -2141,16 +2128,27 @@ def anlage4_review(request, pk):
     else:
         form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
 
-    rows = [
-        (text, form[f"item{idx}_ok"], form[f"item{idx}_note"]) for idx, text in enumerate(items)
-    ]
+    rows = []
+    for idx, item in enumerate(items):
+        fields = item.get("structured", {})
+        plaus = item.get("plausibility", {})
+        rows.append(
+            {
+                "name": fields.get("name_der_auswertung"),
+                "gesellschaften": fields.get("gesellschaften"),
+                "fachbereiche": fields.get("fachbereiche"),
+                "plaus": plaus.get("plausibilitaet"),
+                "score": plaus.get("score"),
+                "begruendung": plaus.get("begruendung"),
+                "ok_field": form[f"item{idx}_ok"],
+                "nego_field": form[f"item{idx}_nego"],
+                "note_field": form[f"item{idx}_note"],
+            }
+        )
 
     context = {
         "anlage": project_file,
         "rows": rows,
-        "plausibility_text": ai_text,
-        "plausibility_score": ai_score,
-        "plausibility_begruendung": ai_reason,
     }
     anlage4_logger.info("Anlage4 Review abgeschlossen für Datei %s", pk)
     return render(request, "projekt_file_anlage4_review.html", context)

@@ -374,12 +374,19 @@ class Anlage4ReviewForm(forms.Form):
             self.fields[f"item{idx}_ok"] = forms.BooleanField(
                 required=False,
                 widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+                label="Geprüft",
+            )
+            self.fields[f"item{idx}_nego"] = forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+                label="Verhandlungsfähig",
             )
             self.fields[f"item{idx}_note"] = forms.CharField(
                 required=False,
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.initial[f"item{idx}_ok"] = init.get(str(idx), {}).get("ok", False)
+            self.initial[f"item{idx}_nego"] = init.get(str(idx), {}).get("nego", False)
             self.initial[f"item{idx}_note"] = init.get(str(idx), {}).get("note", "")
 
     def get_json(self) -> dict:
@@ -389,6 +396,7 @@ class Anlage4ReviewForm(forms.Form):
         for idx in range(len(self.items)):
             out[str(idx)] = {
                 "ok": self.cleaned_data.get(f"item{idx}_ok", False),
+                "nego": self.cleaned_data.get(f"item{idx}_nego", False),
                 "note": self.cleaned_data.get(f"item{idx}_note", ""),
             }
         return out

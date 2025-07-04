@@ -5,7 +5,8 @@ from typing import List
 
 from docx import Document
 
-from .models import BVProjectFile, Anlage4Config
+from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
+from thefuzz import fuzz
 
 logger = logging.getLogger("anlage4_debug")
 
@@ -81,3 +82,51 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
         len(items),
     )
     return items
+
+
+def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
+    """Parst Anlage 4 mit Dual-Strategie."""
+
+    logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
+    cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
+    rules = cfg.text_rules if cfg else []
+
+    path = Path(project_file.upload.path)
+    if path.exists() and path.suffix.lower() == ".docx" and columns:
+        try:
+            doc = Document(str(path))
+            for table in doc.tables:
+                headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+                match_cols = [i for i, h in enumerate(headers) if h in columns]
+                if not match_cols:
+                    continue
+                idx = match_cols[0]
+                items = []
+                for row in table.rows[1:]:
+                    val = row.cells[idx].text.strip()
+                    if val:
+                        items.append(val)
+                if items:
+                    logger.debug("Tabelle erkannt - %s Items", len(items))
+                    return items
+        except Exception:  # pragma: no cover - ungültige Datei
+            logger.error("Anlage4Parser Dual Fehler", exc_info=True)
+
+    text = project_file.text_content or ""
+    blocks: list[str] = []
+    current: list[str] = []
+    name_keys = [r["keyword"] for r in rules if r.get("field") == "name_der_auswertung"]
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if any(fuzz.partial_ratio(k.lower(), stripped.lower()) >= 80 for k in name_keys):
+            if current:
+                blocks.append(" \n".join(current))
+                current = []
+        current.append(stripped)
+    if current:
+        blocks.append(" \n".join(current))
+    logger.debug("Textparser gefunden %s Blöcke", len(blocks))
+    return blocks

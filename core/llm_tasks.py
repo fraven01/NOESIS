@@ -24,6 +24,7 @@ from .models import (
     Anlage2FunctionResult,
     Anlage2Config,
     Anlage4Config,
+    Anlage4ParserConfig,
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
@@ -38,7 +39,7 @@ from .docx_utils import (
     get_pdf_page_count,
 )
 from .parser_manager import parser_manager
-from .anlage4_parser import parse_anlage4
+from .anlage4_parser import parse_anlage4, parse_anlage4_dual
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -984,6 +985,67 @@ def worker_anlage4_evaluate(
     return data
 
 
+def worker_a4_extract(block: str, pf_id: int, index: int, model_name: str | None = None) -> dict:
+    """Extrahiert strukturierte Daten aus einem Textblock."""
+
+    pf = BVProjectFile.objects.get(pk=pf_id)
+    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    template = (cfg.prompt_extraction or "Extrahiere Felder als JSON aus:\n{text}")
+    prompt_text = template.format(text=block)
+    prompt_obj = Prompt(name="tmp", text=prompt_text)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    try:
+        data = json.loads(reply)
+    except Exception:  # noqa: BLE001
+        data = {"raw": reply}
+
+    analysis = pf.analysis_json or {"items": []}
+    items = analysis.get("items") or []
+    while len(items) <= index:
+        items.append({"text": block})
+    items[index]["structured"] = data
+    analysis["items"] = items
+    pf.analysis_json = analysis
+    pf.save(update_fields=["analysis_json"])
+
+    async_task(
+        "core.llm_tasks.worker_a4_plausibility",
+        data,
+        pf_id,
+        index,
+        model_name,
+    )
+    return data
+
+
+def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name: str | None = None) -> dict:
+    """Bewertet einen strukturierten Eintrag."""
+
+    pf = BVProjectFile.objects.get(pk=pf_id)
+    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    template = (
+        cfg.prompt_plausibility
+        or "Bewerte folgende Auswertung. Gib JSON mit plausibilitaet, score und begruendung zurueck:\n{json}"
+    )
+    prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+    prompt_obj = Prompt(name="tmp", text=prompt_text)
+    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    try:
+        data = json.loads(reply)
+    except Exception:  # noqa: BLE001
+        data = {"raw": reply}
+
+    analysis = pf.analysis_json or {"items": []}
+    items = analysis.get("items") or []
+    while len(items) <= index:
+        items.append({})
+    items[index]["plausibility"] = data
+    analysis["items"] = items
+    pf.analysis_json = analysis
+    pf.save(update_fields=["analysis_json"])
+    return data
+
+
 def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dict:
     """Startet die asynchrone Analyse von Anlage 4."""
 
@@ -1002,6 +1064,31 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         async_task(
             "core.llm_tasks.worker_anlage4_evaluate",
             item["text"],
+            anlage.pk,
+            idx,
+            model_name,
+        )
+
+    return anlage.analysis_json
+
+
+def analyse_anlage4_dual_async(projekt_id: int, model_name: str | None = None) -> dict:
+    """Startet den zweistufigen Analyse-Workflow für Anlage 4."""
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=4)
+    except BVProjectFile.DoesNotExist as exc:
+        raise ValueError("Anlage 4 fehlt") from exc
+
+    blocks = parse_anlage4_dual(anlage)
+    anlage.analysis_json = {"items": [{"text": b} for b in blocks]}
+    anlage.save(update_fields=["analysis_json"])
+
+    for idx, block in enumerate(blocks):
+        async_task(
+            "core.llm_tasks.worker_a4_extract",
+            block,
             anlage.pk,
             idx,
             model_name,
