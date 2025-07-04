@@ -29,6 +29,7 @@ from .forms import (
     BVProjectFileJSONForm,
     Anlage1ReviewForm,
     Anlage2ReviewForm,
+    Anlage4ReviewForm,
     get_anlage2_fields,
     Anlage2FunctionForm,
     Anlage2FunctionImportForm,
