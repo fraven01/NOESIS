@@ -65,12 +65,14 @@ from .llm_tasks import (
     analyse_anlage2,
     analyse_anlage3,
     analyse_anlage4,
+    analyse_anlage4_async,
     check_anlage3_vision,
     check_anlage2_functions,
     worker_verify_feature,
     worker_generate_gutachten,
     worker_run_initial_check,
     worker_run_anlage3_vision,
+    worker_anlage4_evaluate,
     get_prompt,
     generate_gutachten,
     run_anlage2_analysis,
@@ -3698,6 +3700,28 @@ class Anlage4ParserTests(NoesisTestCase):
         items = parse_anlage4(pf)
         self.assertEqual(items, ["A"])
 
+    def test_logs_table_detection(self):
+        cfg = Anlage4Config.objects.create(table_columns=["zweck"])
+        doc = Document()
+        table = doc.add_table(rows=2, cols=1)
+        table.cell(0, 0).text = "Zweck"
+        table.cell(1, 0).text = "A"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=upload,
+            anlage4_config=cfg,
+        )
+        with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
+            parse_anlage4(pf)
+        self.assertIn("table detected - 1 items", cm.output[0])
+
     def test_negative_pattern(self):
         cfg = Anlage4Config.objects.create(negative_patterns=["keine zwecke"])
         pf = BVProjectFile.objects.create(
@@ -3708,6 +3732,19 @@ class Anlage4ParserTests(NoesisTestCase):
             anlage4_config=cfg,
         )
         self.assertEqual(parse_anlage4(pf), [])
+
+    def test_logs_free_text_detection(self):
+        cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content="Zweck: A",
+            anlage4_config=cfg,
+        )
+        with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
+            parse_anlage4(pf)
+        self.assertIn("free text found - 1 items", cm.output[0])
 
 
 class AnalyseAnlage4Tests(NoesisTestCase):
@@ -3726,6 +3763,62 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertEqual(data["plausibility_score"]["value"], 10)
         self.assertEqual(pf.analysis_json["plausibility_text"]["value"], "t")
+
+
+class AnalyseAnlage4AsyncTests(NoesisTestCase):
+    def test_async_analysis_stores_results(self):
+        cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Zweck: A\nZweck: B",
+            anlage4_config=cfg,
+        )
+
+        def immediate(name, *args):
+            self.assertEqual(name, "core.llm_tasks.worker_anlage4_evaluate")
+            worker_anlage4_evaluate(*args)
+
+        with patch("core.llm_tasks.async_task", side_effect=immediate), patch(
+            "core.llm_tasks.query_llm",
+            return_value='{"text":"ok","score":5,"begruendung":"passt"}',
+        ):
+            analyse_anlage4_async(projekt.pk)
+
+        pf.refresh_from_db()
+        results = pf.analysis_json["zwecke"]
+        for item in results:
+            self.assertEqual(item["llm_result"]["text"], "ok")
+            self.assertEqual(item["llm_result"]["score"], 5)
+            self.assertEqual(item["llm_result"]["begruendung"], "passt")
+
+
+class Anlage4ReviewViewTests(NoesisTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("rev4", password="pass")
+        self.client.login(username="rev4", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            analysis_json={"zwecke": ["A", "B"]},
+        )
+
+    def test_post_saves_manual_review(self):
+        url = reverse("anlage4_review", args=[self.file.pk])
+        resp = self.client.post(
+            url,
+            {"item0_ok": "on", "item0_note": "gut", "item1_note": "schlecht"},
+        )
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.file.refresh_from_db()
+        self.assertEqual(
+            self.file.manual_analysis_json,
+            {"0": {"ok": True, "note": "gut"}, "1": {"ok": False, "note": "schlecht"}},
+        )
 
 
 
