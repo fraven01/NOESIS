@@ -931,10 +931,11 @@ def worker_anlage4_evaluate(
     """Bewertet einen Zweck aus Anlage 4 im Hintergrund."""
 
     anlage4_logger.info(
-        "worker_anlage4_evaluate gestartet für Datei %s Index %s",
+        "worker_anlage4_evaluate gestartet f\u00fcr Datei %s Index %s",
         project_file_id,
         index,
     )
+    anlage4_logger.debug("Pr\u00fcfe Zweck #%s: %s", index, item_text)
 
     pf = BVProjectFile.objects.get(pk=project_file_id)
     cfg = pf.anlage4_config or Anlage4Config.objects.first()
@@ -957,6 +958,7 @@ def worker_anlage4_evaluate(
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
     anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
+    anlage4_logger.debug("Ergebnis f\u00fcr Zweck #%s: %s", index, data)
 
     analysis = pf.analysis_json or {}
     zwecke = analysis.get("zwecke") or []

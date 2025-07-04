@@ -18,10 +18,21 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
     neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
     patterns = [re.compile(p, re.I) for p in (cfg.regex_patterns if cfg else [])]
 
+    logger.debug(
+        "Konfiguration: columns=%s, regex_patterns=%s, negative_patterns=%s",
+        columns,
+        [p.pattern for p in patterns],
+        [p.pattern for p in neg_patterns],
+    )
+
     text = project_file.text_content or ""
     for pat in neg_patterns:
-        if pat.search(text):
-            logger.error("Negative pattern erkannt: %s", pat.pattern)
+        logger.debug("Pr\u00fcfe negatives Muster '%s'", pat.pattern)
+        match = pat.search(text)
+        if match:
+            logger.error(
+                "Negative pattern erkannt: %s -> %r", pat.pattern, match.group(0)
+            )
             return []
 
     items: List[str] = []
@@ -33,11 +44,17 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
             doc = Document(str(path))
             for table in doc.tables:
                 headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
+                logger.debug(
+                    "Vergleiche Tabellen-Header %s mit Konfig %s", headers, columns
+                )
                 match_cols = [i for i, h in enumerate(headers) if h in columns]
                 if not match_cols:
                     continue
                 structure = "table detected"
                 idx = match_cols[0]
+                logger.debug(
+                    "Nutze Spalte %s (%s)", idx, headers[idx]
+                )
                 for row in table.rows[1:]:
                     val = row.cells[idx].text.strip()
                     if val:
@@ -50,7 +67,10 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
             structure = structure or ("free text found" if text.strip() else "empty document")
     
     for pat in patterns:
-        items.extend(pat.findall(text))
+        logger.debug("Suche Muster '%s'", pat.pattern)
+        matches = pat.findall(text)
+        logger.debug("Gefundene Treffer für '%s': %s", pat.pattern, matches)
+        items.extend(matches)
 
     if structure is None:
         structure = "free text found" if text.strip() else "empty document"
