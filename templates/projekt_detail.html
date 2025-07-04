@@ -62,8 +62,13 @@
             </td>
             <td class="px-2 py-1 text-center">
             {% if a.analysis_json %}
-                <a href="{% url 'projekt_file_edit_json' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                {% if a.anlage_nr == 4 %}
+                    <a href="{% url 'anlage4_review' a.pk %}"
+                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                {% else %}
+                    <a href="{% url 'projekt_file_edit_json' a.pk %}"
+                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                {% endif %}
             {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
