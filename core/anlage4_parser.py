@@ -7,7 +7,7 @@ from docx import Document
 
 from .models import BVProjectFile, Anlage4Config
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("anlage4_debug")
 
 
 def parse_anlage4(project_file: BVProjectFile) -> List[str]:
@@ -20,9 +20,11 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
     text = project_file.text_content or ""
     for pat in neg_patterns:
         if pat.search(text):
+            logger.error("Negative pattern erkannt: %s", pat.pattern)
             return []
 
     items: List[str] = []
+    structure: str | None = None
 
     path = Path(project_file.upload.path)
     if path.exists() and path.suffix.lower() == ".docx":
@@ -33,17 +35,24 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
                 match_cols = [i for i, h in enumerate(headers) if h in columns]
                 if not match_cols:
                     continue
+                structure = "table detected"
                 idx = match_cols[0]
                 for row in table.rows[1:]:
                     val = row.cells[idx].text.strip()
                     if val:
                         items.append(val)
                 if items:
+                    logger.debug("%s - %s items", structure, len(items))
                     return items
         except Exception as exc:  # pragma: no cover - ungültige Datei
-            logger.error("Anlage4Parser Fehler: %s", exc)
-
+            logger.error("Anlage4Parser Fehler", exc_info=True)
+            structure = structure or ("free text found" if text.strip() else "empty document")
+    
     for pat in patterns:
         items.extend(pat.findall(text))
+
+    if structure is None:
+        structure = "free text found" if text.strip() else "empty document"
+    logger.debug("%s - %s items", structure, len(items))
 
     return items
