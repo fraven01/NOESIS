@@ -11,10 +11,13 @@ from thefuzz import fuzz
 logger = logging.getLogger("anlage4_debug")
 
 
-def parse_anlage4(project_file: BVProjectFile) -> List[str]:
+def parse_anlage4(
+    project_file: BVProjectFile, cfg: Anlage4Config | None = None
+) -> List[str]:
     """Parst Anlage 4 anhand der Konfiguration."""
     logger.info("parse_anlage4 gestartet für Datei %s", project_file.pk)
-    cfg = project_file.anlage4_config or Anlage4Config.objects.first()
+    if cfg is None:
+        cfg = project_file.anlage4_config or Anlage4Config.objects.first()
     columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
     neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
     patterns = [re.compile(p, re.I) for p in (cfg.regex_patterns if cfg else [])]
