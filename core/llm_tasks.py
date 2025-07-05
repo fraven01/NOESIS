@@ -580,6 +580,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     data = _add_editable_flags(data)
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("Gesamtergebnis gespeichert: %s", data)
     return data
 
 
@@ -895,6 +896,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         raise ValueError("Anlage 4 fehlt") from exc
 
     zwecke = parse_anlage4(anlage)
+    anlage4_logger.debug("Gefundene Zwecke: %s", zwecke)
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     template = (
         cfg.prompt_template
@@ -906,12 +908,15 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         )
     )
     prompt_text = template.format(text="\n".join(zwecke))
+    anlage4_logger.debug("Anlage4 Gesamtprompt: %s", prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    anlage4_logger.debug("Anlage4 Gesamtantwort: %s", reply)
     try:
         llm_data = json.loads(reply)
     except Exception:  # noqa: BLE001
         llm_data = {"raw": reply}
+    anlage4_logger.debug("Anlage4 Parsed Gesamt JSON: %s", llm_data)
 
     data = {
         "task": "analyse_anlage4",
@@ -977,6 +982,7 @@ def worker_anlage4_evaluate(
     analysis["zwecke"] = zwecke
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("Speichere Analyse JSON: %s", analysis)
     anlage4_logger.info(
         "worker_anlage4_evaluate beendet für Datei %s Index %s",
         project_file_id,
@@ -992,12 +998,15 @@ def worker_a4_extract(block: str, pf_id: int, index: int, model_name: str | None
     cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
     template = (cfg.prompt_extraction or "Extrahiere Felder als JSON aus:\n{text}")
     prompt_text = template.format(text=block)
+    anlage4_logger.debug("A4 Extract Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    anlage4_logger.debug("A4 Extract Raw Response #%s: %s", index, reply)
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
+    anlage4_logger.debug("A4 Extract Parsed JSON #%s: %s", index, data)
 
     analysis = pf.analysis_json or {"items": []}
     items = analysis.get("items") or []
@@ -1007,6 +1016,7 @@ def worker_a4_extract(block: str, pf_id: int, index: int, model_name: str | None
     analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("A4 Extract gespeichertes JSON #%s: %s", index, analysis)
 
     async_task(
         "core.llm_tasks.worker_a4_plausibility",
@@ -1028,12 +1038,15 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
         or "Bewerte folgende Auswertung. Gib JSON mit plausibilitaet, score und begruendung zurueck:\n{json}"
     )
     prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+    anlage4_logger.debug("A4 Plausi Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    anlage4_logger.debug("A4 Plausi Raw Response #%s: %s", index, reply)
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
+    anlage4_logger.debug("A4 Plausi Parsed JSON #%s: %s", index, data)
 
     analysis = pf.analysis_json or {"items": []}
     items = analysis.get("items") or []
@@ -1043,6 +1056,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("A4 Plausi gespeichertes JSON #%s: %s", index, analysis)
     return data
 
 
@@ -1056,9 +1070,11 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         raise ValueError("Anlage 4 fehlt") from exc
 
     zwecke = parse_anlage4(anlage)
+    anlage4_logger.debug("Async gefundene Zwecke: %s", zwecke)
     items = [{"text": z} for z in zwecke]
     anlage.analysis_json = {"zwecke": items}
     anlage.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 
     for idx, item in enumerate(items):
         async_task(
@@ -1068,6 +1084,7 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
             idx,
             model_name,
         )
+        anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
 
     return anlage.analysis_json
 
@@ -1082,8 +1099,10 @@ def analyse_anlage4_dual_async(projekt_id: int, model_name: str | None = None) -
         raise ValueError("Anlage 4 fehlt") from exc
 
     blocks = parse_anlage4_dual(anlage)
+    anlage4_logger.debug("Dual Parser Bl\u00f6cke: %s", blocks)
     anlage.analysis_json = {"items": [{"text": b} for b in blocks]}
     anlage.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("Dual initiales JSON gespeichert: %s", anlage.analysis_json)
 
     for idx, block in enumerate(blocks):
         async_task(
@@ -1093,6 +1112,7 @@ def analyse_anlage4_dual_async(projekt_id: int, model_name: str | None = None) -
             idx,
             model_name,
         )
+        anlage4_logger.debug("A4 Extract Task #%s geplant", idx)
 
     return anlage.analysis_json
 

@@ -27,6 +27,8 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
     )
 
     text = project_file.text_content or ""
+    logger.debug("Rohtext der Anlage4 (%s Zeichen): %s", len(text), text)
+
     for pat in neg_patterns:
         logger.debug("Pr\u00fcfe negatives Muster '%s'", pat.pattern)
         match = pat.search(text)
@@ -59,6 +61,7 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
                 for row in table.rows[1:]:
                     val = row.cells[idx].text.strip()
                     if val:
+                        logger.debug("Gefundener Tabellenwert: %s", val)
                         items.append(val)
                 if items:
                     logger.debug("%s - %s items", structure, len(items))
@@ -71,11 +74,15 @@ def parse_anlage4(project_file: BVProjectFile) -> List[str]:
         logger.debug("Suche Muster '%s'", pat.pattern)
         matches = pat.findall(text)
         logger.debug("Gefundene Treffer für '%s': %s", pat.pattern, matches)
-        items.extend(matches)
+        for m in matches:
+            logger.debug("Treffer hinzugefügt: %s", m)
+            items.append(m)
 
     if structure is None:
         structure = "free text found" if text.strip() else "empty document"
     logger.debug("%s - %s items", structure, len(items))
+    for idx, item in enumerate(items):
+        logger.debug("Item %s: %s", idx, item)
     logger.info(
         "parse_anlage4 beendet für Datei %s mit %s Zwecken",
         project_file.pk,
@@ -114,6 +121,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
             logger.error("Anlage4Parser Dual Fehler", exc_info=True)
 
     text = project_file.text_content or ""
+    logger.debug("Rohtext f\u00fcr Dual-Parser (%s Zeichen): %s", len(text), text)
     blocks: list[str] = []
     current: list[str] = []
     name_keys = [r["keyword"] for r in rules if r.get("field") == "name_der_auswertung"]
@@ -123,10 +131,13 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
             continue
         if any(fuzz.partial_ratio(k.lower(), stripped.lower()) >= 80 for k in name_keys):
             if current:
+                logger.debug("Neuer Block gefunden, aktueller Block hat %s Zeilen", len(current))
                 blocks.append(" \n".join(current))
                 current = []
         current.append(stripped)
+        logger.debug("Zeile hinzugefügt: %s", stripped)
     if current:
+        logger.debug("Finaler Block hat %s Zeilen", len(current))
         blocks.append(" \n".join(current))
     logger.debug("Textparser gefunden %s Blöcke", len(blocks))
     return blocks
