@@ -16,7 +16,6 @@ from .models import (
     Anlage2FunctionResult,
     FormatBParserRule,
     AntwortErkennungsRegel,
-    Anlage4Config,
     Anlage4ParserConfig,
 )
 
@@ -212,18 +211,6 @@ class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_editable = ("ziel_feld", "wert", "prioritaet")
 
 
-class Anlage4ConfigForm(forms.ModelForm):
-    class Meta:
-        model = Anlage4Config
-        fields = "__all__"
-        widgets = {
-            "prompt_template": forms.Textarea(attrs={"rows": 4}),
-        }
-
-
-@admin.register(Anlage4Config)
-class Anlage4ConfigAdmin(admin.ModelAdmin):
-    form = Anlage4ConfigForm
 
 
 class Anlage4ParserConfigForm(forms.ModelForm):
