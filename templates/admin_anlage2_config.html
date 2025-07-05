@@ -16,6 +16,7 @@
         <button type="button" data-tab="general" class="tab-btn">Allgemein</button>
         <button type="button" data-tab="rules" class="tab-btn">Parser-Antwortregeln</button>
         <button type="button" data-tab="rules2" class="tab-btn">Regeln Fallback</button>
+        <button type="button" data-tab="a4" class="tab-btn">Anlage 4 Parser</button>
     </nav>
     <div id="tab-table" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
@@ -96,6 +97,22 @@
             {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb %}
         </div>
         <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+    </div>
+    <div id="tab-a4" class="tab-content">
+        <h2 class="text-xl font-semibold mb-2">Anlage 4 Parser</h2>
+        <div class="space-y-4">
+            <div>
+                <label>{{ a4_parser_form.table_columns.label }}</label>
+                {{ a4_parser_form.table_columns }}
+                {{ a4_parser_form.table_columns.errors }}
+            </div>
+            <div>
+                <label>{{ a4_parser_form.text_rules.label }}</label>
+                {{ a4_parser_form.text_rules }}
+                {{ a4_parser_form.text_rules.errors }}
+            </div>
+            <button type="submit" name="action" value="save_a4" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        </div>
     </div>
 </form>
 <script>

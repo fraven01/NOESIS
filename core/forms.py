@@ -19,6 +19,7 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
+    Anlage4ParserConfig,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -667,6 +668,30 @@ class Anlage4ConfigForm(forms.ModelForm):
         fields = "__all__"
         widgets = {
             "prompt_template": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+class Anlage4ParserPromptForm(forms.ModelForm):
+    """Formular zum Bearbeiten der Anlage-4-Prompts."""
+
+    class Meta:
+        model = Anlage4ParserConfig
+        fields = ["prompt_extraction", "prompt_plausibility"]
+        widgets = {
+            "prompt_extraction": forms.Textarea(attrs={"rows": 4}),
+            "prompt_plausibility": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+class Anlage4ParserConfigForm(forms.ModelForm):
+    """Formular für die Anlage-4-Parser-Konfiguration."""
+
+    class Meta:
+        model = Anlage4ParserConfig
+        fields = ["table_columns", "text_rules"]
+        widgets = {
+            "table_columns": forms.Textarea(attrs={"rows": 4}),
+            "text_rules": forms.Textarea(attrs={"rows": 4}),
         }
 
 
