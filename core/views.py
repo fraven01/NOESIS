@@ -1737,6 +1737,9 @@ def anlage2_config(request):
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     rules_qs = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
+    a4_parser_cfg = (
+        Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
+    )
     RuleFormSet = modelformset_factory(
         AntwortErkennungsRegel,
         form=AntwortErkennungsRegelForm,
@@ -1829,12 +1832,29 @@ def anlage2_config(request):
             return redirect(f"{reverse('anlage2_config')}?tab=general")
 
 
+
+        if action == "save_a4":
+            admin_a2_logger.debug("Speichere Anlage4 Parser Konfiguration")
+            form = Anlage4ParserConfigForm(request.POST, instance=a4_parser_cfg)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Anlage 4 gespeichert")
+                return redirect(f"{reverse('anlage2_config')}?tab=a4")
+            a4_parser_form = form
+            active_tab = "a4"
+
+
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     rule_formset_fb = (
         rule_formset_fb
         if "rule_formset_fb" in locals()
         else RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
+    )
+    a4_parser_form = (
+        a4_parser_form
+        if "a4_parser_form" in locals()
+        else Anlage4ParserConfigForm(instance=a4_parser_cfg)
     )
     context = {
         "config": cfg,
@@ -1846,6 +1866,7 @@ def anlage2_config(request):
         "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
         "active_tab": active_tab,
+        "a4_parser_form": a4_parser_form,
     }
     return render(request, "admin_anlage2_config.html", context)
 
