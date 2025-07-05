@@ -1831,6 +1831,8 @@ def anlage2_config(request):
             messages.success(request, "Einstellungen gespeichert")
             return redirect(f"{reverse('anlage2_config')}?tab=general")
 
+
+
         if action == "save_a4":
             admin_a2_logger.debug("Speichere Anlage4 Parser Konfiguration")
             form = Anlage4ParserConfigForm(request.POST, instance=a4_parser_cfg)
@@ -1840,6 +1842,7 @@ def anlage2_config(request):
                 return redirect(f"{reverse('anlage2_config')}?tab=a4")
             a4_parser_form = form
             active_tab = "a4"
+
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
@@ -1898,6 +1901,19 @@ def anlage2_rule_delete(request, pk: int):
     rule = get_object_or_404(AntwortErkennungsRegel, pk=pk)
     rule.delete()
     return HttpResponse(status=204)
+
+
+@login_required
+@admin_required
+def anlage4_config(request):
+    """Konfiguriert den Anlage-4-Parser."""
+    cfg = Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
+    form = Anlage4ParserConfigForm(request.POST or None, instance=cfg)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Anlage 4 gespeichert")
+        return redirect("anlage4_config")
+    return render(request, "admin_anlage4_config.html", {"form": form})
 
 
 @login_required

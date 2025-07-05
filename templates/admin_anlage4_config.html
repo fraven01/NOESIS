@@ -1,0 +1,21 @@
+{% extends 'admin_base.html' %}
+{% block title %}Anlage 4 Konfiguration{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 4 Konfiguration</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        <label>{{ form.table_columns.label }}</label>
+        {{ form.table_columns }}
+        {{ form.table_columns.errors }}
+    </div>
+    <div>
+        <label>{{ form.text_rules.label }}</label>
+        {{ form.text_rules }}
+        {{ form.text_rules.errors }}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+</form>
+{% endblock %}
+{% block extra_js %}{% endblock %}
