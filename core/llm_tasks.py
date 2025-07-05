@@ -895,9 +895,9 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
         raise ValueError("Anlage 4 fehlt") from exc
 
-    zwecke = parse_anlage4(anlage)
-    anlage4_logger.debug("Gefundene Zwecke: %s", zwecke)
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
+    zwecke = parse_anlage4(anlage, cfg)
+    anlage4_logger.debug("Gefundene Zwecke: %s", zwecke)
     template = (
         cfg.prompt_template
         if cfg and cfg.prompt_template
@@ -1069,7 +1069,8 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
         raise ValueError("Anlage 4 fehlt") from exc
 
-    zwecke = parse_anlage4(anlage)
+    cfg = anlage.anlage4_config or Anlage4Config.objects.first()
+    zwecke = parse_anlage4(anlage, cfg)
     anlage4_logger.debug("Async gefundene Zwecke: %s", zwecke)
     items = [{"text": z} for z in zwecke]
     anlage.analysis_json = {"zwecke": items}

@@ -3764,6 +3764,22 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         self.assertEqual(data["plausibility_score"]["value"], 10)
         self.assertEqual(pf.analysis_json["plausibility_text"]["value"], "t")
 
+    def test_passes_config_to_parser(self):
+        cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Zweck: A",
+            anlage4_config=cfg,
+        )
+        with patch(
+            "core.llm_tasks.parse_anlage4", return_value=[]
+        ) as m_parse, patch("core.llm_tasks.query_llm", return_value="{}"):
+            analyse_anlage4(projekt.pk)
+        m_parse.assert_called_once_with(pf, cfg)
+
 
 class AnalyseAnlage4AsyncTests(NoesisTestCase):
     def test_async_analysis_stores_results(self):
