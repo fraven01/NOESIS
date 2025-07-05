@@ -67,6 +67,19 @@
         {% empty %}
             <tr><td colspan="4" class="py-2">Keine Prompts</td></tr>
         {% endfor %}
+        {% if key == 'anlage4' %}
+            <tr class="border-b align-top text-sm">
+                <td class="py-1 font-semibold">Prompt Template</td>
+                <td colspan="4" class="py-1">
+                    <form method="post" class="space-y-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="save_a4_config">
+                        <textarea name="prompt_template" rows="4" class="border rounded p-2 w-full text-gray-900">{{ a4_config.prompt_template }}</textarea>
+                        <button class="px-2 py-1 bg-blue-600 text-white rounded">Speichern</button>
+                    </form>
+                </td>
+            </tr>
+        {% endif %}
         </tbody>
     </table>
     </div>

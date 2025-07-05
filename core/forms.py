@@ -18,6 +18,7 @@ from .models import (
     Tile,
     FormatBParserRule,
     AntwortErkennungsRegel,
+    Anlage4Config,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -656,6 +657,17 @@ class Anlage2ConfigImportForm(forms.Form):
         label="JSON-Datei",
         widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
     )
+
+
+class Anlage4ConfigForm(forms.ModelForm):
+    """Formular für die Anlage-4-Konfiguration."""
+
+    class Meta:
+        model = Anlage4Config
+        fields = "__all__"
+        widgets = {
+            "prompt_template": forms.Textarea(attrs={"rows": 4}),
+        }
 
 
 class AntwortErkennungsRegelForm(forms.ModelForm):
