@@ -114,6 +114,11 @@ urlpatterns = [
         name="anlage2_config",
     ),
     path(
+        "projects-admin/anlage4/config/",
+        views.anlage4_config,
+        name="anlage4_config",
+    ),
+    path(
         "projects-admin/anlage2-config/export/",
         views.admin_anlage2_config_export,
         name="admin_anlage2_config_export",

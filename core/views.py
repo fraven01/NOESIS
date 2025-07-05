@@ -52,6 +52,7 @@ from .forms import (
     UserImportForm,
     Anlage2ConfigImportForm,
     AntwortErkennungsRegelForm,
+    Anlage4ParserConfigForm,
 
 )
 from .models import (
@@ -77,6 +78,7 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
+    Anlage4ParserConfig,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -1187,6 +1189,9 @@ def admin_prompts(request):
     prompts = list(Prompt.objects.all().order_by("name"))
     roles = list(LLMRole.objects.all().order_by("name"))
     a4_cfg = Anlage4Config.objects.first() or Anlage4Config.objects.create()
+    a4_parser = (
+        Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
+    )
     groups = {
         "general": [],
         "anlage1": [],
@@ -1220,6 +1225,15 @@ def admin_prompts(request):
             a4_cfg.prompt_template = request.POST.get("prompt_template", "")
             a4_cfg.save(update_fields=["prompt_template"])
             return redirect("admin_prompts")
+        if action == "save_a4_parser_prompts":
+            field = request.POST.get("field")
+            text = request.POST.get("prompt_text", "")
+            if field == "prompt_extraction":
+                a4_parser.prompt_extraction = text
+            elif field == "prompt_plausibility":
+                a4_parser.prompt_plausibility = text
+            a4_parser.save(update_fields=[field])
+            return redirect("admin_prompts")
         if pk:
             try:
                 prompt = Prompt.objects.get(pk=pk)
@@ -1247,7 +1261,12 @@ def admin_prompts(request):
 
     grouped = [(key, label, groups[key]) for key, label in labels]
 
-    context = {"grouped": grouped, "roles": roles, "a4_config": a4_cfg}
+    context = {
+        "grouped": grouped,
+        "roles": roles,
+        "a4_config": a4_cfg,
+        "a4_parser": a4_parser,
+    }
     return render(request, "admin_prompts.html", context)
 
 
@@ -1809,6 +1828,7 @@ def anlage2_config(request):
             messages.success(request, "Einstellungen gespeichert")
             return redirect(f"{reverse('anlage2_config')}?tab=general")
 
+
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     rule_formset_fb = (
@@ -1860,6 +1880,19 @@ def anlage2_rule_delete(request, pk: int):
     rule = get_object_or_404(AntwortErkennungsRegel, pk=pk)
     rule.delete()
     return HttpResponse(status=204)
+
+
+@login_required
+@admin_required
+def anlage4_config(request):
+    """Konfiguriert den Anlage-4-Parser."""
+    cfg = Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
+    form = Anlage4ParserConfigForm(request.POST or None, instance=cfg)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Anlage 4 gespeichert")
+        return redirect("anlage4_config")
+    return render(request, "admin_anlage4_config.html", {"form": form})
 
 
 @login_required
