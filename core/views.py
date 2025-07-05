@@ -38,6 +38,7 @@ from .forms import (
     Anlage2SubQuestionForm,
     get_anlage1_numbers,
     Anlage2ConfigForm,
+    Anlage4ParserConfigForm,
     get_parser_choices,
     EditJustificationForm,
     JustificationForm,
@@ -76,6 +77,7 @@ from .models import (
     LLMRole,
     FormatBParserRule,
     AntwortErkennungsRegel,
+    Anlage4ParserConfig,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -1710,6 +1712,9 @@ def admin_anlage2_config_import(request):
 def anlage2_config(request):
     """Konfiguriert Überschriften und globale Phrasen für Anlage 2."""
     cfg = Anlage2Config.get_instance()
+    cfg4 = Anlage4ParserConfig.objects.first()
+    if not cfg4:
+        cfg4 = Anlage4ParserConfig.objects.create()
     aliases = list(cfg.headers.all())
     rules_qs = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
     RuleFormSet = modelformset_factory(
@@ -1727,6 +1732,7 @@ def anlage2_config(request):
         extra=1,
     )
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
+    anlage4_form = Anlage4ParserConfigForm(instance=cfg4)
 
     if request.method == "POST":
         action = request.POST.get("action") or "save_general"
@@ -1793,6 +1799,14 @@ def anlage2_config(request):
             rule_formset_fb = formset
             active_tab = "rules2"
 
+        elif action == "save_anlage4":
+            anlage4_form = Anlage4ParserConfigForm(request.POST, instance=cfg4)
+            if anlage4_form.is_valid():
+                anlage4_form.save()
+                messages.success(request, "Einstellungen gespeichert")
+                return redirect(f"{reverse('anlage2_config')}?tab=anlage4")
+            active_tab = "anlage4"
+
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
             cfg.enforce_subquestion_override = bool(
@@ -1804,6 +1818,7 @@ def anlage2_config(request):
             return redirect(f"{reverse('anlage2_config')}?tab=general")
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
+    anlage4_form = anlage4_form if 'anlage4_form' in locals() else Anlage4ParserConfigForm(instance=cfg4)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     rule_formset_fb = (
         rule_formset_fb
@@ -1816,6 +1831,7 @@ def anlage2_config(request):
         "aliases": aliases,
         "rule_formset": rule_formset,
         "rule_formset_fb": rule_formset_fb,
+        "anlage4_form": anlage4_form,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),

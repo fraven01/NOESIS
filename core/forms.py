@@ -18,6 +18,7 @@ from .models import (
     Tile,
     FormatBParserRule,
     AntwortErkennungsRegel,
+    Anlage4ParserConfig,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -509,6 +510,18 @@ class Anlage2ConfigForm(forms.ModelForm):
             "parser_order": forms.Select(attrs={"class": "border rounded p-2"}),
             "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
 
+        }
+
+
+class Anlage4ParserConfigForm(forms.ModelForm):
+    """Formular für die Anlage‑4‑Parser-Konfiguration."""
+
+    class Meta:
+        model = Anlage4ParserConfig
+        fields = "__all__"
+        widgets = {
+            "prompt_extraction": forms.Textarea(attrs={"rows": 4}),
+            "prompt_plausibility": forms.Textarea(attrs={"rows": 4}),
         }
 
 
