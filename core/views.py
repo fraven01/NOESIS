@@ -2654,15 +2654,16 @@ def projekt_file_edit_json(request, pk):
         fields_def = get_anlage2_fields()
 
         for func in Anlage2Function.objects.order_by("name"):
+            lookup_key = func.name
             debug_logger.info("--- Starte Prüfung für Funktion: '%s' ---", func.name)
-            if answers.get(func.name):
+            if answers.get(lookup_key):
                 debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
             else:
                 debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
             rows.append(
                 _build_row_data(
                     func.name,
-                    func.name,
+                    lookup_key,
                     func.id,
                     f"func{func.id}_",
                     form,
