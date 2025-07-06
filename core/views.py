@@ -1226,13 +1226,9 @@ def admin_prompts(request):
             a4_cfg.save(update_fields=["prompt_template"])
             return redirect("admin_prompts")
         if action == "save_a4_parser_prompts":
-            field = request.POST.get("field")
             text = request.POST.get("prompt_text", "")
-            if field == "prompt_extraction":
-                a4_parser.prompt_extraction = text
-            elif field == "prompt_plausibility":
-                a4_parser.prompt_plausibility = text
-            a4_parser.save(update_fields=[field])
+            a4_parser.prompt_plausibility = text
+            a4_parser.save(update_fields=["prompt_plausibility"])
             return redirect("admin_prompts")
         if pk:
             try:
