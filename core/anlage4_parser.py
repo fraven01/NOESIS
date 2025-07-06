@@ -49,24 +49,21 @@ def parse_anlage4(
         try:
             doc = Document(str(path))
             for table in doc.tables:
-                headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
-                logger.debug(
-                    "Vergleiche Tabellen-Header %s mit Konfig %s", headers, columns
-                )
-                match_cols = [i for i, h in enumerate(headers) if h in columns]
-                if not match_cols:
-                    continue
-                structure = "table detected"
-                idx = match_cols[0]
-                logger.debug(
-                    "Nutze Spalte %s (%s)", idx, headers[idx]
-                )
-                for row in table.rows[1:]:
-                    val = row.cells[idx].text.strip()
-                    if val:
-                        logger.debug("Gefundener Tabellenwert: %s", val)
-                        items.append(val)
-                if items:
+                logger.debug("Prüfe Tabelle mit %s Zeilen", len(table.rows))
+                found = False
+                for row in table.rows:
+                    if len(row.cells) < 2:
+                        continue
+                    key = row.cells[0].text.strip().lower()
+                    if key in columns:
+                        value = row.cells[1].text.strip()
+                        if value:
+                            if not found:
+                                structure = "table detected"
+                                found = True
+                            logger.debug("Gefundenes Paar %s: %s", key, value)
+                            items.append(value)
+                if found and items:
                     logger.debug("%s - %s items", structure, len(items))
                     return items
         except Exception as exc:  # pragma: no cover - ungültige Datei
@@ -107,16 +104,17 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
         try:
             doc = Document(str(path))
             for table in doc.tables:
-                headers = [cell.text.strip().lower() for cell in table.rows[0].cells]
-                match_cols = [i for i, h in enumerate(headers) if h in columns]
-                if not match_cols:
-                    continue
-                idx = match_cols[0]
+                logger.debug("Dual Parser prüft Tabelle mit %s Zeilen", len(table.rows))
                 items = []
-                for row in table.rows[1:]:
-                    val = row.cells[idx].text.strip()
-                    if val:
-                        items.append(val)
+                for row in table.rows:
+                    if len(row.cells) < 2:
+                        continue
+                    key = row.cells[0].text.strip().lower()
+                    if key in columns:
+                        value = row.cells[1].text.strip()
+                        if value:
+                            logger.debug("Dual Parser gefundenes Paar %s: %s", key, value)
+                            items.append(value)
                 if items:
                     logger.debug("Tabelle erkannt - %s Items", len(items))
                     return items

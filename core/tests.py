@@ -3687,9 +3687,9 @@ class Anlage4ParserTests(NoesisTestCase):
             regex_patterns=[r"Zweck: (.+)"]
         )
         doc = Document()
-        table = doc.add_table(rows=2, cols=1)
+        table = doc.add_table(rows=1, cols=2)
         table.cell(0, 0).text = "Zweck"
-        table.cell(1, 0).text = "A"
+        table.cell(0, 1).text = "A"
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
         doc.save(tmp.name)
         tmp.close()
@@ -3709,9 +3709,9 @@ class Anlage4ParserTests(NoesisTestCase):
     def test_logs_table_detection(self):
         cfg = Anlage4Config.objects.create(table_columns=["zweck"])
         doc = Document()
-        table = doc.add_table(rows=2, cols=1)
+        table = doc.add_table(rows=1, cols=2)
         table.cell(0, 0).text = "Zweck"
-        table.cell(1, 0).text = "A"
+        table.cell(0, 1).text = "A"
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
         doc.save(tmp.name)
         tmp.close()
