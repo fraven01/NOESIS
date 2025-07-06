@@ -192,7 +192,7 @@ erzeugt
 
 Der optionale Parser für die vierte Anlage arbeitet ohne LLM-Extraktion. Er
 durchsucht den Freitext anhand konfigurierbarer Phrasen. Diese Phrasen werden
-als Liste im Feld `text_rules` gespeichert. Jede Regel enthält die Schlüssel
+als Liste im Feld `text_rules` gespeichert und sind im Projektadminbereich konfigurierbar. Jede Regel enthält die Schlüssel
 `field` und `keyword`, die bestimmen, wo ein Abschnitt beginnt.
 
 Beispiel:
@@ -206,6 +206,7 @@ Beispiel:
 
 Der Parser füllt die genannten Felder automatisch aus und überspringt den
 früheren LLM-Schritt zur Extraktion.
+
 
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
