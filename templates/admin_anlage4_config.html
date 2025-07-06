@@ -12,6 +12,11 @@
     </div>
     <div>
         <label>{{ form.text_rules.label }}</label>
+        <p class="text-sm text-gray-600">
+            Jede Regel besteht aus <code>field</code> und <code>keyword</code>.
+            Beispiel: <code>[{"field": "name_der_auswertung", "keyword": "Zweck"}]</code>.
+            Der LLM-Extraktionsschritt entfällt.
+        </p>
         {{ form.text_rules }}
         {{ form.text_rules.errors }}
     </div>
