@@ -125,7 +125,14 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
     logger.debug("Rohtext f\u00fcr Dual-Parser (%s Zeichen): %s", len(text), text)
     blocks: list[str] = []
     current: list[str] = []
-    name_keys = [r["keyword"] for r in rules if r.get("field") == "name_der_auswertung"]
+    name_keys = [
+        r["keyword"]
+        for r in rules
+        if isinstance(r, dict) and r.get("field") == "name_der_auswertung"
+    ]
+    for r in rules:
+        if not isinstance(r, dict):
+            logger.warning("Ungültige Regel: %r", r)
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped:

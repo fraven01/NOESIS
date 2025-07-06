@@ -1,4 +1,7 @@
 from .test_general import *
+from ..anlage4_parser import parse_anlage4_dual
+from ..models import Anlage4ParserConfig
+from ..docx_utils import _normalize_header_text
 
 class DocxExtractTests(NoesisTestCase):
     def test_extract_text(self):
@@ -737,6 +740,18 @@ class Anlage4ParserTests(NoesisTestCase):
         with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
             parse_anlage4(pf)
         self.assertIn("free text found - 1 items", cm.output[0])
+
+    def test_dual_parser_handles_invalid_rules(self):
+        pcfg = Anlage4ParserConfig.objects.create(text_rules=["Zweck"])
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content="",
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(items, [])
 
 
 class AnalyseAnlage4Tests(NoesisTestCase):

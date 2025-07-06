@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import Textarea, modelformset_factory
+import json
 from pathlib import Path
 from .models import (
     Recording,
@@ -693,6 +694,23 @@ class Anlage4ParserConfigForm(forms.ModelForm):
             "table_columns": forms.Textarea(attrs={"rows": 4}),
             "text_rules": forms.Textarea(attrs={"rows": 4}),
         }
+
+    def clean_text_rules(self):
+        """Validiert die Text-Regeln."""
+        value = self.cleaned_data.get("text_rules")
+        if isinstance(value, str):
+            try:
+                value = json.loads(value or "[]")
+            except json.JSONDecodeError as exc:
+                raise forms.ValidationError("Ungültiges JSON") from exc
+        if not isinstance(value, list):
+            raise forms.ValidationError("Erwartet eine Liste")
+        for item in value:
+            if not isinstance(item, dict) or "field" not in item or "keyword" not in item:
+                raise forms.ValidationError(
+                    "Jede Regel muss ein Objekt mit 'field' und 'keyword' sein"
+                )
+        return value
 
 
 class AntwortErkennungsRegelForm(forms.ModelForm):
