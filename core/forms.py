@@ -689,28 +689,50 @@ class Anlage4ParserConfigForm(forms.ModelForm):
 
     class Meta:
         model = Anlage4ParserConfig
-        fields = ["table_columns", "text_rules"]
+        fields = [
+            "table_columns",
+            "name_aliases",
+            "gesellschaft_aliases",
+            "fachbereich_aliases",
+            "negative_patterns",
+        ]
         widgets = {
             "table_columns": forms.Textarea(attrs={"rows": 4}),
-            "text_rules": forms.Textarea(attrs={"rows": 4}),
+            "name_aliases": forms.Textarea(attrs={"rows": 4}),
+            "gesellschaft_aliases": forms.Textarea(attrs={"rows": 4}),
+            "fachbereich_aliases": forms.Textarea(attrs={"rows": 4}),
+            "negative_patterns": forms.Textarea(attrs={"rows": 4}),
         }
 
-    def clean_text_rules(self):
-        """Validiert die Text-Regeln."""
-        value = self.cleaned_data.get("text_rules")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in [
+            "name_aliases",
+            "gesellschaft_aliases",
+            "fachbereich_aliases",
+            "negative_patterns",
+        ]:
+            val = self.initial.get(field)
+            if isinstance(val, list):
+                self.initial[field] = "\n".join(val)
+
+    def _clean_lines(self, field: str) -> list[str]:
+        value = self.cleaned_data.get(field) or ""
         if isinstance(value, str):
-            try:
-                value = json.loads(value or "[]")
-            except json.JSONDecodeError as exc:
-                raise forms.ValidationError("Ungültiges JSON") from exc
-        if not isinstance(value, list):
-            raise forms.ValidationError("Erwartet eine Liste")
-        for item in value:
-            if not isinstance(item, dict) or "field" not in item or "keyword" not in item:
-                raise forms.ValidationError(
-                    "Jede Regel muss ein Objekt mit 'field' und 'keyword' sein"
-                )
-        return value
+            return [line.strip() for line in value.splitlines() if line.strip()]
+        return []
+
+    def clean_name_aliases(self) -> list[str]:
+        return self._clean_lines("name_aliases")
+
+    def clean_gesellschaft_aliases(self) -> list[str]:
+        return self._clean_lines("gesellschaft_aliases")
+
+    def clean_fachbereich_aliases(self) -> list[str]:
+        return self._clean_lines("fachbereich_aliases")
+
+    def clean_negative_patterns(self) -> list[str]:
+        return self._clean_lines("negative_patterns")
 
 
 class AntwortErkennungsRegelForm(forms.ModelForm):

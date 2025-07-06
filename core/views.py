@@ -1908,12 +1908,26 @@ def anlage2_rule_delete(request, pk: int):
 def anlage4_config(request):
     """Konfiguriert den Anlage-4-Parser."""
     cfg = Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
-    form = Anlage4ParserConfigForm(request.POST or None, instance=cfg)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Anlage 4 gespeichert")
-        return redirect("anlage4_config")
-    return render(request, "admin_anlage4_config.html", {"form": form})
+    if request.method == "POST":
+        data = request.POST.copy()
+        neg_list = data.getlist("negative_patterns")
+        if neg_list:
+            data["negative_patterns"] = "\n".join(neg_list)
+        form = Anlage4ParserConfigForm(data, instance=cfg)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Anlage 4 gespeichert")
+            return redirect("anlage4_config")
+    else:
+        form = Anlage4ParserConfigForm(instance=cfg)
+    negative_list = form.initial.get("negative_patterns", [])
+    if isinstance(negative_list, str):
+        negative_list = [line for line in negative_list.splitlines() if line]
+    return render(
+        request,
+        "admin_anlage4_config.html",
+        {"form": form, "negative_list": negative_list},
+    )
 
 
 @login_required

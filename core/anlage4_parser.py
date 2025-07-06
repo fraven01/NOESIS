@@ -98,7 +98,10 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
     cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
     columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
-    rules = cfg.text_rules if cfg else []
+    names = cfg.name_aliases if cfg else []
+    aliases_ges = cfg.gesellschaft_aliases if cfg else []
+    aliases_fach = cfg.fachbereich_aliases if cfg else []
+    neg_patterns = cfg.negative_patterns if cfg else []
 
     path = Path(project_file.upload.path)
     if path.exists() and path.suffix.lower() == ".docx" and columns:
@@ -125,17 +128,17 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     text = project_file.text_content or ""
     logger.debug("Rohtext für Dual-Parser (%s Zeichen): %s", len(text), text)
 
-    anchors = {
-        r["field"]: r["keyword"]
-        for r in rules
-        if isinstance(r, dict) and r.get("field") and r.get("keyword")
-    }
-    name_rule = anchors.get("name_der_auswertung")
-    if not name_rule:
-        logger.warning("Keine gültige Regel für 'name_der_auswertung'")
+    for pat in neg_patterns:
+        if re.search(pat, text, re.I):
+            logger.info("Negatives Muster erkannt: %s", pat)
+            return []
+
+    if not names:
+        logger.warning("Keine Namens-Aliase definiert")
         return []
 
-    pattern_name = re.compile(name_rule, re.I)
+    name_pat = "|".join(re.escape(n) for n in names)
+    pattern_name = re.compile(rf"^(?:{name_pat})[:\s]*", re.I | re.M)
     matches = list(pattern_name.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
     if not matches:
@@ -147,8 +150,14 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
         segs.append(text[start:end])
 
-    reg_ges = re.compile(anchors["gesellschaften"], re.I) if "gesellschaften" in anchors else None
-    reg_fach = re.compile(anchors["fachbereiche"], re.I) if "fachbereiche" in anchors else None
+    reg_ges = None
+    if aliases_ges:
+        ges_pat = "|".join(re.escape(a) for a in aliases_ges)
+        reg_ges = re.compile(rf"^(?:{ges_pat})[:\s]*", re.I | re.M)
+    reg_fach = None
+    if aliases_fach:
+        fach_pat = "|".join(re.escape(a) for a in aliases_fach)
+        reg_fach = re.compile(rf"^(?:{fach_pat})[:\s]*", re.I | re.M)
 
     results: list[dict] = []
     for seg in segs:
