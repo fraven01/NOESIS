@@ -687,6 +687,10 @@ class Anlage4ParserPromptForm(forms.ModelForm):
 class Anlage4ParserConfigForm(forms.ModelForm):
     """Formular für die Anlage-4-Parser-Konfiguration."""
 
+    name_aliases = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+    gesellschaft_aliases = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+    fachbereich_aliases = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+
     class Meta:
         model = Anlage4ParserConfig
         fields = [
@@ -694,10 +698,26 @@ class Anlage4ParserConfigForm(forms.ModelForm):
             "delimiter_phrase",
             "gesellschaften_phrase",
             "fachbereiche_phrase",
+            "name_aliases",
+            "gesellschaft_aliases",
+            "fachbereich_aliases",
         ]
         widgets = {
             "table_columns": forms.Textarea(attrs={"rows": 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in ["name_aliases", "gesellschaft_aliases", "fachbereich_aliases"]:
+            self.initial[field] = "\n".join(getattr(self.instance, field, []))
+
+    def save(self, negative_patterns: list[str] | None = None, commit: bool = True):
+        for field in ["name_aliases", "gesellschaft_aliases", "fachbereich_aliases"]:
+            value = self.cleaned_data.get(field, "")
+            setattr(self.instance, field, [v.strip() for v in value.splitlines() if v.strip()])
+        if negative_patterns is not None:
+            self.instance.negative_patterns = [v.strip() for v in negative_patterns if v.strip()]
+        return super().save(commit=commit)
 
 
 

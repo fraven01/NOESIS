@@ -25,7 +25,50 @@
         {{ form.fachbereiche_phrase }}
         {{ form.fachbereiche_phrase.errors }}
     </div>
+    <div>
+        <label>{{ form.name_aliases.label }}</label>
+        {{ form.name_aliases }}
+        {{ form.name_aliases.errors }}
+    </div>
+    <div>
+        <label>{{ form.gesellschaft_aliases.label }}</label>
+        {{ form.gesellschaft_aliases }}
+        {{ form.gesellschaft_aliases.errors }}
+    </div>
+    <div>
+        <label>{{ form.fachbereich_aliases.label }}</label>
+        {{ form.fachbereich_aliases }}
+        {{ form.fachbereich_aliases.errors }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Negative Patterns (jeweils ein Regex pro Feld):</label>
+        <div id="negative-inputs-container">
+            {% for pat in form.instance.negative_patterns %}
+                <input type="text" name="negative_patterns" value="{{ pat }}" class="form-control mb-2">
+            {% endfor %}
+            <input type="text" name="negative_patterns" class="form-control mb-2">
+        </div>
+        <button type="button" id="add-negative-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+    </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
 </form>
 {% endblock %}
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-negative-btn');
+    const container = document.getElementById('negative-inputs-container');
+    if (addBtn && container) {
+        addBtn.addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'negative_patterns';
+            input.className = 'form-control mb-2';
+            input.placeholder = 'Weiteres Muster...';
+            container.appendChild(input);
+            input.focus();
+        });
+    }
+});
+</script>
+{% endblock %}

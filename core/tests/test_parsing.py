@@ -779,6 +779,49 @@ class Anlage4ParserTests(NoesisTestCase):
             ],
         )
 
+    def test_dual_parser_uses_alias_lists(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            name_aliases=["Name", "Auswertung"],
+            gesellschaft_aliases=["Gesellschaft"],
+            fachbereich_aliases=["Bereich"],
+        )
+        text = (
+            "Name A\nGesellschaft X\nBereich Y\n"
+            "Auswertung B\nGesellschaft Z\nBereich W"
+        )
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content=text,
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(
+            items,
+            [
+                {"name_der_auswertung": "A", "gesellschaften": "X", "fachbereiche": "Y"},
+                {"name_der_auswertung": "B", "gesellschaften": "Z", "fachbereiche": "W"},
+            ],
+        )
+
+    def test_dual_parser_negative_pattern(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            name_aliases=["Name"],
+            gesellschaft_aliases=["Gesellschaft"],
+            fachbereich_aliases=["Bereich"],
+            negative_patterns=["Keine Auswertung"],
+        )
+        text = "Keine Auswertung vorhanden\nName A\nGesellschaft X\nBereich Y"
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content=text,
+            anlage4_parser_config=pcfg,
+        )
+        self.assertEqual(parse_anlage4_dual(pf), [])
+
 
 class AnalyseAnlage4Tests(NoesisTestCase):
     def test_task_stores_json(self):

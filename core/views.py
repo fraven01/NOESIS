@@ -1910,7 +1910,8 @@ def anlage4_config(request):
     cfg = Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
     form = Anlage4ParserConfigForm(request.POST or None, instance=cfg)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        neg_list = request.POST.getlist("negative_patterns")
+        form.save(negative_patterns=neg_list)
         messages.success(request, "Anlage 4 gespeichert")
         return redirect("anlage4_config")
     return render(request, "admin_anlage4_config.html", {"form": form})
