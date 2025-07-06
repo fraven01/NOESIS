@@ -919,9 +919,13 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     )
 
     items: list[dict] = []
-    for idx, text in enumerate(zwecke):
-        structured = {"name": text, "kontext": projekt.title}
-        prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+    for idx, entry in enumerate(zwecke):
+        if isinstance(entry, dict):
+            structured = entry
+        else:
+            structured = {"name_der_auswertung": entry}
+        structured_with_context = {"name": structured.get("name_der_auswertung"), "kontext": projekt.title}
+        prompt_text = template.format(json=json.dumps(structured_with_context, ensure_ascii=False))
         anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
         prompt_obj = Prompt(name="tmp", text=prompt_text)
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
@@ -931,7 +935,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         except Exception:  # noqa: BLE001
             result = {"raw": reply}
         anlage4_logger.debug("A4 Sync Parsed JSON #%s: %s", idx, result)
-        items.append({"text": text, "plausibility": result})
+        items.append({"structured": structured, "plausibility": result})
 
     data = {"task": "analyse_anlage4", "items": items}
     anlage.analysis_json = data
@@ -1079,7 +1083,8 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
 
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     parser_cfg = anlage.anlage4_parser_config or Anlage4ParserConfig.objects.first()
-    if parser_cfg and (parser_cfg.text_rules or parser_cfg.table_columns):
+    use_dual = parser_cfg and (parser_cfg.text_rules or parser_cfg.table_columns)
+    if use_dual:
         anlage4_logger.debug(
             "analyse_anlage4_async: benutze Dual-Parser mit config %s",
             parser_cfg.pk,
@@ -1089,19 +1094,31 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         anlage4_logger.debug("analyse_anlage4_async: benutze Standard-Parser")
         zwecke = parse_anlage4(anlage, cfg)
     anlage4_logger.debug("Async gefundene Zwecke: %s", zwecke)
-    items = [{"text": z} for z in zwecke]
+    if use_dual:
+        items = [{"structured": z} for z in zwecke]
+    else:
+        items = [{"text": z} for z in zwecke]
     anlage.analysis_json = {"items": items}
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 
     for idx, item in enumerate(items):
-        async_task(
-            "core.llm_tasks.worker_anlage4_evaluate",
-            item["text"],
-            anlage.pk,
-            idx,
-            model_name,
-        )
+        if use_dual:
+            async_task(
+                "core.llm_tasks.worker_a4_plausibility",
+                item["structured"],
+                anlage.pk,
+                idx,
+                model_name,
+            )
+        else:
+            async_task(
+                "core.llm_tasks.worker_anlage4_evaluate",
+                item["text"],
+                anlage.pk,
+                idx,
+                model_name,
+            )
         anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
 
     return anlage.analysis_json
@@ -1118,19 +1135,19 @@ def analyse_anlage4_dual_async(projekt_id: int, model_name: str | None = None) -
 
     blocks = parse_anlage4_dual(anlage)
     anlage4_logger.debug("Dual Parser Bl\u00f6cke: %s", blocks)
-    anlage.analysis_json = {"items": [{"text": b} for b in blocks]}
+    anlage.analysis_json = {"items": [{"structured": b} for b in blocks]}
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Dual initiales JSON gespeichert: %s", anlage.analysis_json)
 
     for idx, block in enumerate(blocks):
         async_task(
-            "core.llm_tasks.worker_a4_extract",
+            "core.llm_tasks.worker_a4_plausibility",
             block,
             anlage.pk,
             idx,
             model_name,
         )
-        anlage4_logger.debug("A4 Extract Task #%s geplant", idx)
+        anlage4_logger.debug("A4 Plausi Task #%s geplant", idx)
 
     return anlage.analysis_json
 

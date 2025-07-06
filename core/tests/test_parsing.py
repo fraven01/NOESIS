@@ -753,6 +753,34 @@ class Anlage4ParserTests(NoesisTestCase):
         items = parse_anlage4_dual(pf)
         self.assertEqual(items, [])
 
+    def test_dual_parser_extracts_fields(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            text_rules=[
+                {"field": "name_der_auswertung", "keyword": "Name"},
+                {"field": "gesellschaften", "keyword": "Gesellschaft"},
+                {"field": "fachbereiche", "keyword": "Bereich"},
+            ]
+        )
+        text = (
+            "Name A\nGesellschaft X\nBereich Y\n"
+            "Name B\nGesellschaft Z\nBereich W"
+        )
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content=text,
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(
+            items,
+            [
+                {"name_der_auswertung": "A", "gesellschaften": "X", "fachbereiche": "Y"},
+                {"name_der_auswertung": "B", "gesellschaften": "Z", "fachbereiche": "W"},
+            ],
+        )
+
 
 class AnalyseAnlage4Tests(NoesisTestCase):
     def test_task_stores_json(self):
@@ -850,7 +878,10 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
             anlage4_parser_config=pcfg,
         )
 
-        with patch("core.llm_tasks.parse_anlage4_dual", return_value=["A"] ) as m_dual, patch(
+        with patch(
+            "core.llm_tasks.parse_anlage4_dual",
+            return_value=[{"name_der_auswertung": "A"}],
+        ) as m_dual, patch(
             "core.llm_tasks.parse_anlage4"
         ) as m_std, patch("core.llm_tasks.async_task") as m_task, patch(
             "core.llm_tasks.query_llm", return_value="{}"

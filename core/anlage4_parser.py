@@ -6,7 +6,7 @@ from typing import List
 from docx import Document
 
 from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
-from thefuzz import fuzz
+
 
 logger = logging.getLogger("anlage4_debug")
 
@@ -91,7 +91,8 @@ def parse_anlage4(
     return items
 
 
-def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
+
+def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     """Parst Anlage 4 mit Dual-Strategie."""
 
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
@@ -105,7 +106,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
             doc = Document(str(path))
             for table in doc.tables:
                 logger.debug("Dual Parser prüft Tabelle mit %s Zeilen", len(table.rows))
-                items = []
+                items: list[dict] = []
                 for row in table.rows:
                     if len(row.cells) < 2:
                         continue
@@ -114,7 +115,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
                         value = row.cells[1].text.strip()
                         if value:
                             logger.debug("Dual Parser gefundenes Paar %s: %s", key, value)
-                            items.append(value)
+                            items.append({"name_der_auswertung": value})
                 if items:
                     logger.debug("Tabelle erkannt - %s Items", len(items))
                     return items
@@ -122,30 +123,59 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[str]:
             logger.error("Anlage4Parser Dual Fehler", exc_info=True)
 
     text = project_file.text_content or ""
-    logger.debug("Rohtext f\u00fcr Dual-Parser (%s Zeichen): %s", len(text), text)
-    blocks: list[str] = []
-    current: list[str] = []
-    name_keys = [
-        r["keyword"]
+    logger.debug("Rohtext für Dual-Parser (%s Zeichen): %s", len(text), text)
+
+    anchors = {
+        r["field"]: r["keyword"]
         for r in rules
-        if isinstance(r, dict) and r.get("field") == "name_der_auswertung"
-    ]
-    for r in rules:
-        if not isinstance(r, dict):
-            logger.warning("Ungültige Regel: %r", r)
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if any(fuzz.partial_ratio(k.lower(), stripped.lower()) >= 80 for k in name_keys):
-            if current:
-                logger.debug("Neuer Block gefunden, aktueller Block hat %s Zeilen", len(current))
-                blocks.append(" \n".join(current))
-                current = []
-        current.append(stripped)
-        logger.debug("Zeile hinzugefügt: %s", stripped)
-    if current:
-        logger.debug("Finaler Block hat %s Zeilen", len(current))
-        blocks.append(" \n".join(current))
-    logger.debug("Textparser gefunden %s Blöcke", len(blocks))
-    return blocks
+        if isinstance(r, dict) and r.get("field") and r.get("keyword")
+    }
+    name_rule = anchors.get("name_der_auswertung")
+    if not name_rule:
+        logger.warning("Keine gültige Regel für 'name_der_auswertung'")
+        return []
+
+    pattern_name = re.compile(name_rule, re.I)
+    matches = list(pattern_name.finditer(text))
+    logger.debug("Gefundene Blöcke: %s", len(matches))
+    if not matches:
+        return []
+
+    segs: list[str] = []
+    for idx, match in enumerate(matches):
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        segs.append(text[start:end])
+
+    reg_ges = re.compile(anchors["gesellschaften"], re.I) if "gesellschaften" in anchors else None
+    reg_fach = re.compile(anchors["fachbereiche"], re.I) if "fachbereiche" in anchors else None
+
+    results: list[dict] = []
+    for seg in segs:
+        entry = {"name_der_auswertung": "", "gesellschaften": "", "fachbereiche": ""}
+        anchors_found: list[tuple[str, int, int]] = []
+        if reg_ges:
+            m = reg_ges.search(seg)
+            if m:
+                anchors_found.append(("gesellschaften", m.start(), m.end()))
+        if reg_fach:
+            m = reg_fach.search(seg)
+            if m:
+                anchors_found.append(("fachbereiche", m.start(), m.end()))
+        anchors_found.sort(key=lambda x: x[1])
+
+        end_pos = len(seg)
+        entry["name_der_auswertung"] = seg[: anchors_found[0][1] if anchors_found else end_pos].strip()
+        for idx, (field, start, anchor_end) in enumerate(anchors_found):
+            next_start = anchors_found[idx + 1][1] if idx + 1 < len(anchors_found) else end_pos
+            entry[field] = seg[anchor_end:next_start].strip()
+
+        results.append(entry)
+        logger.debug("Parsed Block: %s", entry)
+
+    logger.info(
+        "parse_anlage4_dual beendet für Datei %s mit %s Einträgen",
+        project_file.pk,
+        len(results),
+    )
+    return results
