@@ -2683,10 +2683,10 @@ def projekt_file_edit_json(request, pk):
                     debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
                 else:
                     debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
-            rows.append(
-                _build_row_data(
-                    sub.frage_text,
-                    lookup_key,
+                rows.append(
+                    _build_row_data(
+                        sub.frage_text,
+                        lookup_key,
                         func.id,
                         f"sub{sub.id}_",
                         form,
@@ -2695,10 +2695,10 @@ def projekt_file_edit_json(request, pk):
                         beteilig_map,
                         analysis_lookup,
                         verification_lookup,
-                    manual_lookup,
-                    sub_id=sub.id,
+                        manual_lookup,
+                        sub_id=sub.id,
+                    )
                 )
-            )
     elif anlage.anlage_nr == 4:
         items = []
         if anlage.analysis_json:
