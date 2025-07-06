@@ -26,6 +26,7 @@ from .models import (
     BVSoftware,
     Gutachten,
     FormatBParserRule,
+    AntwortErkennungsRegel,
     Anlage4Config,
 )
 from .docx_utils import (
@@ -38,6 +39,7 @@ from .docx_utils import (
 )
 
 from . import text_parser
+from .text_parser import parse_anlage2_text
 from .anlage4_parser import parse_anlage4
 
 from .parser_manager import parser_manager
