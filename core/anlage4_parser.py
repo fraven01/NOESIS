@@ -101,6 +101,10 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     delimiter_phrase = cfg.delimiter_phrase if cfg else ""
     ges_phrase = cfg.gesellschaften_phrase if cfg else ""
     fach_phrase = cfg.fachbereiche_phrase if cfg else ""
+    name_aliases = cfg.name_aliases if cfg else []
+    ges_aliases = cfg.gesellschaft_aliases if cfg else []
+    fach_aliases = cfg.fachbereich_aliases if cfg else []
+    neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
 
     path = Path(project_file.upload.path)
     if path.exists() and path.suffix.lower() == ".docx" and columns:
@@ -127,11 +131,20 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     text = project_file.text_content or ""
     logger.debug("Rohtext für Dual-Parser (%s Zeichen): %s", len(text), text)
 
-    if not delimiter_phrase:
+    for pat in neg_patterns:
+        logger.debug("Pr\u00fcfe negatives Muster '%s'", pat.pattern)
+        if pat.search(text):
+            logger.error("Negative pattern erkannt: %s", pat.pattern)
+            return []
+
+    block_aliases = [delimiter_phrase] if delimiter_phrase else []
+    block_aliases.extend(name_aliases)
+    if not any(block_aliases):
         logger.warning("Keine delimiter_phrase definiert")
         return []
 
-    pattern_block = re.compile(delimiter_phrase, re.I)
+    escaped = block_aliases
+    pattern_block = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     matches = list(pattern_block.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
     if not matches:
@@ -143,8 +156,16 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
         segs.append(text[start:end])
 
-    reg_ges = re.compile(ges_phrase, re.I) if ges_phrase else None
-    reg_fach = re.compile(fach_phrase, re.I) if fach_phrase else None
+    if ges_phrase or ges_aliases:
+        patterns = ([ges_phrase] if ges_phrase else []) + ges_aliases
+        reg_ges = re.compile(r"^(?:" + "|".join(patterns) + ")", re.I | re.M)
+    else:
+        reg_ges = None
+    if fach_phrase or fach_aliases:
+        patterns = ([fach_phrase] if fach_phrase else []) + fach_aliases
+        reg_fach = re.compile(r"^(?:" + "|".join(patterns) + ")", re.I | re.M)
+    else:
+        reg_fach = None
 
     results: list[dict] = []
     for seg in segs:

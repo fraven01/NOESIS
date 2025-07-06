@@ -642,6 +642,10 @@ class Anlage4ParserConfig(models.Model):
         default="Fachbereiche, in denen die Auswertung eingesetzt wird:",
         help_text="Die exakte Phrase, die dem Wert für 'Fachbereiche' vorangeht.",
     )
+    name_aliases = models.JSONField(default=list, blank=True)
+    gesellschaft_aliases = models.JSONField(default=list, blank=True)
+    fachbereich_aliases = models.JSONField(default=list, blank=True)
+    negative_patterns = models.JSONField(default=list, blank=True)
     prompt_extraction = models.TextField(blank=True)
     prompt_plausibility = models.TextField(blank=True)
 
