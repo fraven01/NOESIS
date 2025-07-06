@@ -1088,34 +1088,6 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
     return anlage.analysis_json
 
 
-def analyse_anlage4_dual_async(projekt_id: int, model_name: str | None = None) -> dict:
-    """Startet den zweistufigen Analyse-Workflow für Anlage 4."""
-
-    projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage = projekt.anlagen.get(anlage_nr=4)
-    except BVProjectFile.DoesNotExist as exc:
-        raise ValueError("Anlage 4 fehlt") from exc
-
-    blocks = parse_anlage4_dual(anlage)
-    anlage4_logger.debug("Dual Parser Bl\u00f6cke: %s", blocks)
-    anlage.analysis_json = {"items": [{"structured": b} for b in blocks]}
-    anlage.save(update_fields=["analysis_json"])
-    anlage4_logger.debug("Dual initiales JSON gespeichert: %s", anlage.analysis_json)
-
-    for idx, block in enumerate(blocks):
-        async_task(
-            "core.llm_tasks.worker_a4_plausibility",
-            block,
-            anlage.pk,
-            idx,
-            model_name,
-        )
-        anlage4_logger.debug("A4 Plausi Task #%s geplant", idx)
-
-    return anlage.analysis_json
-
-
 def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xfcft die f\xfcnfte Anlage."""
     return _check_anlage(projekt_id, 5, model_name)
