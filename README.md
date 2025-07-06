@@ -34,7 +34,11 @@ Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis.
 Während der Entwicklung schreibt jede Anlage ihr eigenes Debug-Log. Die Dateien
 `anlage1-debug.log` bis `anlage6-debug.log` enthalten detaillierte Meldungen der
 jeweiligen Analysefunktionen. Durch den Eintrag `*.log` im `.gitignore` werden
-diese Protokolle nicht ins Repository aufgenommen.
+diese Protokolle nicht ins Repository aufgenommen. Das Log für Anlage&nbsp;4
+heißt `anlage4-debug.log` und befindet sich wie die anderen Logs im
+Projektwurzelverzeichnis (`BASE_DIR`). Existiert die Datei nicht, kann sie
+einfach als leere Datei angelegt werden, sofern Schreibrechte im
+Projektordner bestehen.
 
 ## Datenbankmigrationen
 
