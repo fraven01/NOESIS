@@ -6,7 +6,9 @@ class Client:
     def __init__(self):
         pass
 
-def ChatCompletion_create(*args, **kwargs):
+def ChatCompletion_create(*args: object, **kwargs: object) -> dict:
+    """Liefert eine minimale ChatCompletion-Antwort."""
+
     return {"choices": [{"message": {"content": ""}}]}
 
 class ChatCompletion:

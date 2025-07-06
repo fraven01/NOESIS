@@ -6,5 +6,7 @@ class DummyModel:
     def transcribe(self, *args, **kwargs):
         return {"text": ""}
 
-def load_model(name, device=None):
+def load_model(name: str, device: str | None = None) -> DummyModel:
+    """Gibt ein Dummy-Whisper-Modell zur\u00fcck."""
+
     return DummyModel()
