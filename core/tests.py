@@ -2377,6 +2377,15 @@ class Anlage2ReviewTests(NoesisTestCase):
         field = f"func{self.func.id}_technisch_vorhanden"
         self.assertTrue(resp.context["form"].initial[field])
 
+    def test_rows_include_lookup_key(self):
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        rows = resp.context["rows"]
+        self.assertEqual(rows[0]["verif_key"], self.func.name)
+        self.assertEqual(
+            rows[1]["verif_key"], f"{self.func.name}: {self.sub.frage_text}"
+        )
+
 
 class WorkerGenerateGutachtenTests(NoesisTestCase):
     def setUp(self):
