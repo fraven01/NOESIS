@@ -16,6 +16,7 @@ from .models import (
     Anlage2FunctionResult,
     FormatBParserRule,
     AntwortErkennungsRegel,
+    Anlage4ParserConfig,
 )
 
 
@@ -208,6 +209,24 @@ class FormatBParserRuleAdmin(admin.ModelAdmin):
 class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_display = ("regel_name", "ziel_feld", "wert", "prioritaet")
     list_editable = ("ziel_feld", "wert", "prioritaet")
+
+
+@admin.register(Anlage4ParserConfig)
+class Anlage4ParserConfigAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (
+            "Text-Parsing Regeln",
+            {
+                "fields": (
+                    "delimiter_phrase",
+                    "gesellschaften_phrase",
+                    "fachbereiche_phrase",
+                )
+            },
+        ),
+        ("Tabellen-Spalten", {"fields": ("table_columns",)}),
+        ("Prompts", {"fields": ("prompt_extraction", "prompt_plausibility")}),
+    )
 
 
 

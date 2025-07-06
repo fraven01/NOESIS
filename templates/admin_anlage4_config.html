@@ -11,14 +11,19 @@
         {{ form.table_columns.errors }}
     </div>
     <div>
-        <label>{{ form.text_rules.label }}</label>
-        <p class="text-sm text-gray-600">
-            Jede Regel besteht aus <code>field</code> und <code>keyword</code>.
-            Beispiel: <code>[{"field": "name_der_auswertung", "keyword": "Zweck"}]</code>.
-            Der LLM-Extraktionsschritt entfällt.
-        </p>
-        {{ form.text_rules }}
-        {{ form.text_rules.errors }}
+        <label>{{ form.delimiter_phrase.label }}</label>
+        {{ form.delimiter_phrase }}
+        {{ form.delimiter_phrase.errors }}
+    </div>
+    <div>
+        <label>{{ form.gesellschaften_phrase.label }}</label>
+        {{ form.gesellschaften_phrase }}
+        {{ form.gesellschaften_phrase.errors }}
+    </div>
+    <div>
+        <label>{{ form.fachbereiche_phrase.label }}</label>
+        {{ form.fachbereiche_phrase }}
+        {{ form.fachbereiche_phrase.errors }}
     </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
 </form>

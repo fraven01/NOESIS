@@ -98,7 +98,9 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
     cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
     columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
-    rules = cfg.text_rules if cfg else []
+    delimiter_phrase = cfg.delimiter_phrase if cfg else ""
+    ges_phrase = cfg.gesellschaften_phrase if cfg else ""
+    fach_phrase = cfg.fachbereiche_phrase if cfg else ""
 
     path = Path(project_file.upload.path)
     if path.exists() and path.suffix.lower() == ".docx" and columns:
@@ -125,18 +127,12 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     text = project_file.text_content or ""
     logger.debug("Rohtext für Dual-Parser (%s Zeichen): %s", len(text), text)
 
-    anchors = {
-        r["field"]: r["keyword"]
-        for r in rules
-        if isinstance(r, dict) and r.get("field") and r.get("keyword")
-    }
-    name_rule = anchors.get("name_der_auswertung")
-    if not name_rule:
-        logger.warning("Keine gültige Regel für 'name_der_auswertung'")
+    if not delimiter_phrase:
+        logger.warning("Keine delimiter_phrase definiert")
         return []
 
-    pattern_name = re.compile(name_rule, re.I)
-    matches = list(pattern_name.finditer(text))
+    pattern_block = re.compile(delimiter_phrase, re.I)
+    matches = list(pattern_block.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
     if not matches:
         return []
@@ -147,8 +143,8 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
         segs.append(text[start:end])
 
-    reg_ges = re.compile(anchors["gesellschaften"], re.I) if "gesellschaften" in anchors else None
-    reg_fach = re.compile(anchors["fachbereiche"], re.I) if "fachbereiche" in anchors else None
+    reg_ges = re.compile(ges_phrase, re.I) if ges_phrase else None
+    reg_fach = re.compile(fach_phrase, re.I) if fach_phrase else None
 
     results: list[dict] = []
     for seg in segs:

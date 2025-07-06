@@ -191,18 +191,12 @@ erzeugt
 ### Anlage 4 Parser konfigurieren
 
 Der optionale Parser für die vierte Anlage arbeitet ohne LLM-Extraktion. Er
-durchsucht den Freitext anhand konfigurierbarer Phrasen. Diese Phrasen werden
-als Liste im Feld `text_rules` gespeichert und sind im Projektadminbereich konfigurierbar. Jede Regel enthält die Schlüssel
-`field` und `keyword`, die bestimmen, wo ein Abschnitt beginnt.
+durchsucht den Freitext anhand konfigurierbarer Phrasen, die im Admin-Bereich
+bearbeitet werden können. Folgende Felder bestimmen das Parsing:
 
-Beispiel:
-
-```json
-[
-  {"field": "name_der_auswertung", "keyword": "Zweck"},
-  {"field": "gesellschaften", "keyword": "Gesellschaft"}
-]
-```
+- `delimiter_phrase`: Regulärer Ausdruck, der den Beginn einer neuen Auswertung markiert.
+- `gesellschaften_phrase`: Phrase, die den Wert für „Gesellschaften“ einleitet.
+- `fachbereiche_phrase`: Phrase, die den Wert für „Fachbereiche“ einleitet.
 
 Der Parser füllt die genannten Felder automatisch aus und überspringt den
 früheren LLM-Schritt zur Extraktion.
