@@ -880,7 +880,11 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
 
         with patch(
             "core.llm_tasks.parse_anlage4_dual",
-            return_value=[{"name_der_auswertung": "A"}],
+            return_value=[{
+                "name_der_auswertung": "A",
+                "gesellschaften": "G",
+                "fachbereiche": "F",
+            }],
         ) as m_dual, patch(
             "core.llm_tasks.parse_anlage4"
         ) as m_std, patch("core.llm_tasks.async_task") as m_task, patch(
@@ -889,6 +893,36 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
             analyse_anlage4_async(projekt.pk)
         m_dual.assert_called_once_with(pf)
         m_std.assert_not_called()
+
+    def test_async_dual_parser_plausibility_worker(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            text_rules=[{"field": "name_der_auswertung", "keyword": "Name"}]
+        )
+        projekt = BVProject.objects.create(title="P", software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Name Alpha",
+            anlage4_parser_config=pcfg,
+        )
+
+        def immediate(name, *args):
+            self.assertEqual(name, "core.llm_tasks.worker_a4_plausibility")
+            worker_a4_plausibility(*args)
+
+        with patch(
+            "core.llm_tasks.async_task",
+            side_effect=immediate,
+        ), patch(
+            "core.llm_tasks.query_llm",
+            return_value='{"plausibilitaet":"ok"}',
+        ):
+            analyse_anlage4_async(projekt.pk)
+
+        pf.refresh_from_db()
+        result = pf.analysis_json["items"][0]["plausibility"]
+        self.assertEqual(result["plausibilitaet"], "ok")
 
 
 class Anlage4ReviewViewTests(NoesisTestCase):
