@@ -2432,7 +2432,7 @@ def projekt_file_analyse_anlage4(request, pk):
     if anlage.anlage_nr != 4:
         raise Http404
     analyse_anlage4(anlage.projekt_id)
-    return redirect("projekt_file_edit_json", pk=pk)
+    return redirect("anlage4_review", pk=pk)
 
 
 @login_required
