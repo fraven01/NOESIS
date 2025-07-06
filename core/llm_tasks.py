@@ -906,34 +906,34 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         anlage4_logger.debug("analyse_anlage4: benutze Standard-Parser")
         zwecke = parse_anlage4(anlage, cfg)
     anlage4_logger.debug("Gefundene Zwecke: %s", zwecke)
+
     template = (
-        cfg.prompt_template
-        if cfg and cfg.prompt_template
-        else (
-            "Bewerte die Plausibilit\xe4t der folgenden Zwecke. "
-            "Gib ein JSON mit den Schl\xfcsseln 'text', 'score' und "
-            "'begruendung' zur\xfcck:\n\n{text}"
+        parser_cfg.prompt_plausibility
+        or (
+            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
+            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
+            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
+            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
+            "zur\u00fcck:\n{json}"
         )
     )
-    prompt_text = template.format(text="\n".join(zwecke))
-    anlage4_logger.debug("Anlage4 Gesamtprompt: %s", prompt_text)
-    prompt_obj = Prompt(name="tmp", text=prompt_text)
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
-    anlage4_logger.debug("Anlage4 Gesamtantwort: %s", reply)
-    try:
-        llm_data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        llm_data = {"raw": reply}
-    anlage4_logger.debug("Anlage4 Parsed Gesamt JSON: %s", llm_data)
 
-    data = {
-        "task": "analyse_anlage4",
-        "zwecke": zwecke,
-        "plausibility_text": llm_data.get("text"),
-        "plausibility_score": llm_data.get("score"),
-        "plausibility_begruendung": llm_data.get("begruendung"),
-    }
-    data = _add_editable_flags(data)
+    items: list[dict] = []
+    for idx, text in enumerate(zwecke):
+        structured = {"name": text, "kontext": projekt.title}
+        prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+        anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
+        prompt_obj = Prompt(name="tmp", text=prompt_text)
+        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+        anlage4_logger.debug("A4 Sync Raw Response #%s: %s", idx, reply)
+        try:
+            result = json.loads(reply)
+        except Exception:  # noqa: BLE001
+            result = {"raw": reply}
+        anlage4_logger.debug("A4 Sync Parsed JSON #%s: %s", idx, result)
+        items.append({"text": text, "risk": result})
+
+    data = {"task": "analyse_anlage4", "items": items}
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
     return data
@@ -942,7 +942,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
 def worker_anlage4_evaluate(
     item_text: str, project_file_id: int, index: int, model_name: str | None = None
 ) -> dict:
-    """Bewertet einen Zweck aus Anlage 4 im Hintergrund."""
+    """Bewertet eine Auswertung aus Anlage 4 im Hintergrund."""
 
     anlage4_logger.info(
         "worker_anlage4_evaluate gestartet f\u00fcr Datei %s Index %s",
@@ -952,17 +952,19 @@ def worker_anlage4_evaluate(
     anlage4_logger.debug("Pr\u00fcfe Zweck #%s: %s", index, item_text)
 
     pf = BVProjectFile.objects.get(pk=project_file_id)
-    cfg = pf.anlage4_config or Anlage4Config.objects.first()
+    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
     template = (
-        cfg.prompt_template
-        if cfg and cfg.prompt_template
-        else (
-            "Bewerte die Plausibilit\xe4t der folgenden Zwecke. "
-            "Gib ein JSON mit den Schl\xfcsseln 'text', 'score' und "
-            "'begruendung' zur\xfcck:\n\n{text}"
+        cfg.prompt_plausibility
+        or (
+            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
+            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
+            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
+            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
+            "zur\u00fcck:\n{json}"
         )
     )
-    prompt_text = template.format(text=item_text)
+    structured = {"name": item_text, "kontext": pf.projekt.title}
+    prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
     anlage4_logger.debug("Anlage4 Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
@@ -974,20 +976,12 @@ def worker_anlage4_evaluate(
     anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
     anlage4_logger.debug("Ergebnis f\u00fcr Zweck #%s: %s", index, data)
 
-    analysis = pf.analysis_json or {}
-    zwecke = analysis.get("zwecke") or []
-    if isinstance(zwecke, dict) and "value" in zwecke:
-        zwecke = zwecke["value"]
-    if index >= len(zwecke):
-        # Liste auff\xfcllen, falls sie k\xfcrzer ist
-        for _ in range(len(zwecke), index + 1):
-            zwecke.append({"text": ""})
-    item = zwecke[index]
-    if isinstance(item, str):
-        item = {"text": item}
-    item["llm_result"] = data
-    zwecke[index] = item
-    analysis["zwecke"] = zwecke
+    analysis = pf.analysis_json or {"items": []}
+    items = analysis.get("items") or []
+    while len(items) <= index:
+        items.append({"text": item_text})
+    items[index]["risk"] = data
+    analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Speichere Analyse JSON: %s", analysis)
@@ -1043,7 +1037,13 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
     template = (
         cfg.prompt_plausibility
-        or "Bewerte folgende Auswertung. Gib JSON mit plausibilitaet, score und begruendung zurueck:\n{json}"
+        or (
+            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
+            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
+            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
+            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
+            "zur\u00fcck:\n{json}"
+        )
     )
     prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
     anlage4_logger.debug("A4 Plausi Prompt #%s: %s", index, prompt_text)
@@ -1060,7 +1060,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     items = analysis.get("items") or []
     while len(items) <= index:
         items.append({})
-    items[index]["plausibility"] = data
+    items[index]["risk"] = data
     analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
@@ -1090,7 +1090,7 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         zwecke = parse_anlage4(anlage, cfg)
     anlage4_logger.debug("Async gefundene Zwecke: %s", zwecke)
     items = [{"text": z} for z in zwecke]
-    anlage.analysis_json = {"zwecke": items}
+    anlage.analysis_json = {"items": items}
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 

@@ -750,11 +750,14 @@ class AnalyseAnlage4Tests(NoesisTestCase):
             text_content="Zweck: A",
             anlage4_config=cfg,
         )
-        with patch("core.llm_tasks.query_llm", return_value='{"text":"t","score":10,"begruendung":"b"}'):
+        with patch(
+            "core.llm_tasks.query_llm",
+            return_value='{"risiko":"gering","begruendung":"ok"}',
+        ):
             data = analyse_anlage4(projekt.pk)
         pf.refresh_from_db()
-        self.assertEqual(data["plausibility_score"]["value"], 10)
-        self.assertEqual(pf.analysis_json["plausibility_text"]["value"], "t")
+        self.assertEqual(data["items"][0]["risk"]["risiko"], "gering")
+        self.assertEqual(pf.analysis_json["items"][0]["risk"]["begruendung"], "ok")
 
     def test_passes_config_to_parser(self):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
@@ -808,16 +811,15 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
 
         with patch("core.llm_tasks.async_task", side_effect=immediate), patch(
             "core.llm_tasks.query_llm",
-            return_value='{"text":"ok","score":5,"begruendung":"passt"}',
+            return_value='{"risiko":"gering","begruendung":"ok"}',
         ):
             analyse_anlage4_async(projekt.pk)
 
         pf.refresh_from_db()
-        results = pf.analysis_json["zwecke"]
+        results = pf.analysis_json["items"]
         for item in results:
-            self.assertEqual(item["llm_result"]["text"], "ok")
-            self.assertEqual(item["llm_result"]["score"], 5)
-            self.assertEqual(item["llm_result"]["begruendung"], "passt")
+            self.assertEqual(item["risk"]["risiko"], "gering")
+            self.assertEqual(item["risk"]["begruendung"], "ok")
 
     def test_async_dual_parser_used_when_parser_config(self):
         pcfg = Anlage4ParserConfig.objects.create(text_rules=[{"field": "name_der_auswertung", "keyword": "Zweck"}])
@@ -849,7 +851,7 @@ class Anlage4ReviewViewTests(NoesisTestCase):
             projekt=self.projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
-            analysis_json={"zwecke": ["A", "B"]},
+            analysis_json={"items": [{"text": "A"}, {"text": "B"}]},
         )
 
     def test_post_saves_manual_review(self):
