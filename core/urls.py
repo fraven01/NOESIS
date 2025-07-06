@@ -268,6 +268,11 @@ urlpatterns = [
         name="projekt_file_analyse_anlage4",
     ),
     path(
+        "work/anlage5/dummy/",
+        views.anlage5_dummy,
+        name="anlage5_dummy",
+    ),
+    path(
         "work/anlage4/<int:pk>/review/",
         views.anlage4_review,
         name="anlage4_review",

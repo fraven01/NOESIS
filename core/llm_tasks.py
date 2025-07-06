@@ -1088,11 +1088,6 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
     return anlage.analysis_json
 
 
-def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xfcft die f\xfcnfte Anlage."""
-    return _check_anlage(projekt_id, 5, model_name)
-
-
 def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
     """Pr\xfcft die sechste Anlage."""
     return _check_anlage(projekt_id, 6, model_name)

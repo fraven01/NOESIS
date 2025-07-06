@@ -91,7 +91,6 @@ from .llm_tasks import (
     check_anlage2,
     check_anlage3_vision,
     analyse_anlage4,
-    check_anlage5,
     check_anlage6,
     check_anlage2_functions,
     run_anlage2_analysis,
@@ -1198,7 +1197,6 @@ def admin_prompts(request):
         "anlage2": [],
         "anlage3": [],
         "anlage4": [],
-        "anlage5": [],
         "anlage6": [],
     }
     for p in prompts:
@@ -1211,8 +1209,6 @@ def admin_prompts(request):
             groups["anlage3"].append(p)
         elif "anlage4" in name:
             groups["anlage4"].append(p)
-        elif "anlage5" in name:
-            groups["anlage5"].append(p)
         elif "anlage6" in name:
             groups["anlage6"].append(p)
         else:
@@ -1251,7 +1247,6 @@ def admin_prompts(request):
         ("anlage2", "Anlage 2 Prompts"),
         ("anlage3", "Anlage 3 Prompts"),
         ("anlage4", "Anlage 4 Prompts"),
-        ("anlage5", "Anlage 5 Prompts"),
         ("anlage6", "Anlage 6 Prompts"),
     ]
 
@@ -2321,7 +2316,6 @@ def projekt_file_check(request, pk, nr):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        5: check_anlage5,
         6: check_anlage6,
     }
     func = funcs.get(nr_int)
@@ -2358,7 +2352,6 @@ def projekt_file_check_pk(request, pk):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        5: check_anlage5,
         6: check_anlage6,
     }
     func = funcs.get(anlage.anlage_nr)
@@ -2392,7 +2385,6 @@ def projekt_file_check_view(request, pk):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        5: check_anlage5,
         6: check_anlage6,
     }
     func = funcs.get(anlage.anlage_nr)
@@ -3475,3 +3467,9 @@ def download_knowledge_as_word(request, knowledge_id):
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+
+
+@login_required
+def anlage5_dummy(request):
+    """Zeigt einen Platzhalter f\xFCr Anlage 5."""
+    return render(request, "anlage5_dummy.html")
