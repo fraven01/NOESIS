@@ -646,7 +646,6 @@ class Anlage4ParserConfig(models.Model):
     gesellschaft_aliases = models.JSONField(default=list, blank=True)
     fachbereich_aliases = models.JSONField(default=list, blank=True)
     negative_patterns = models.JSONField(default=list, blank=True)
-    prompt_extraction = models.TextField(blank=True)
     prompt_plausibility = models.TextField(blank=True)
 
     class Meta:

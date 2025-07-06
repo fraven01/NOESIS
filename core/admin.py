@@ -225,7 +225,7 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
             },
         ),
         ("Tabellen-Spalten", {"fields": ("table_columns",)}),
-        ("Prompts", {"fields": ("prompt_extraction", "prompt_plausibility")}),
+        ("Prompts", {"fields": ("prompt_plausibility",)}),
     )
 
 

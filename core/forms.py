@@ -677,9 +677,8 @@ class Anlage4ParserPromptForm(forms.ModelForm):
 
     class Meta:
         model = Anlage4ParserConfig
-        fields = ["prompt_extraction", "prompt_plausibility"]
+        fields = ["prompt_plausibility"]
         widgets = {
-            "prompt_extraction": forms.Textarea(attrs={"rows": 4}),
             "prompt_plausibility": forms.Textarea(attrs={"rows": 4}),
         }
 
