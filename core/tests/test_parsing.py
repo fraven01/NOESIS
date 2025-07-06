@@ -742,7 +742,7 @@ class Anlage4ParserTests(NoesisTestCase):
         self.assertIn("free text found - 1 items", cm.output[0])
 
     def test_dual_parser_handles_invalid_rules(self):
-        pcfg = Anlage4ParserConfig.objects.create(text_rules=["Zweck"])
+        pcfg = Anlage4ParserConfig.objects.create(name_aliases=[])
         pf = BVProjectFile.objects.create(
             projekt=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
@@ -755,11 +755,9 @@ class Anlage4ParserTests(NoesisTestCase):
 
     def test_dual_parser_extracts_fields(self):
         pcfg = Anlage4ParserConfig.objects.create(
-            text_rules=[
-                {"field": "name_der_auswertung", "keyword": "Name"},
-                {"field": "gesellschaften", "keyword": "Gesellschaft"},
-                {"field": "fachbereiche", "keyword": "Bereich"},
-            ]
+            name_aliases=["Name"],
+            gesellschaft_aliases=["Gesellschaft"],
+            fachbereich_aliases=["Bereich"],
         )
         text = (
             "Name A\nGesellschaft X\nBereich Y\n"
@@ -868,7 +866,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
             self.assertEqual(item["plausibility"]["begruendung"], "ok")
 
     def test_async_dual_parser_used_when_parser_config(self):
-        pcfg = Anlage4ParserConfig.objects.create(text_rules=[{"field": "name_der_auswertung", "keyword": "Zweck"}])
+        pcfg = Anlage4ParserConfig.objects.create(name_aliases=["Zweck"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -895,9 +893,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
         m_std.assert_not_called()
 
     def test_async_dual_parser_plausibility_worker(self):
-        pcfg = Anlage4ParserConfig.objects.create(
-            text_rules=[{"field": "name_der_auswertung", "keyword": "Name"}]
-        )
+        pcfg = Anlage4ParserConfig.objects.create(name_aliases=["Name"])
         projekt = BVProject.objects.create(title="P", software_typen="A")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
