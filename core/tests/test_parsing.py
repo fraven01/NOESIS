@@ -772,6 +772,23 @@ class AnalyseAnlage4Tests(NoesisTestCase):
             analyse_anlage4(projekt.pk)
         m_parse.assert_called_once_with(pf, cfg)
 
+    def test_dual_parser_used_when_parser_config(self):
+        pcfg = Anlage4ParserConfig.objects.create(table_columns=["zweck"])
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Zweck: A",
+            anlage4_parser_config=pcfg,
+        )
+        with patch("core.llm_tasks.parse_anlage4_dual", return_value=[] ) as m_dual, patch(
+            "core.llm_tasks.parse_anlage4"
+        ) as m_std, patch("core.llm_tasks.query_llm", return_value="{}"):
+            analyse_anlage4(projekt.pk)
+        m_dual.assert_called_once_with(pf)
+        m_std.assert_not_called()
+
 
 class AnalyseAnlage4AsyncTests(NoesisTestCase):
     def test_async_analysis_stores_results(self):
@@ -801,6 +818,26 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
             self.assertEqual(item["llm_result"]["text"], "ok")
             self.assertEqual(item["llm_result"]["score"], 5)
             self.assertEqual(item["llm_result"]["begruendung"], "passt")
+
+    def test_async_dual_parser_used_when_parser_config(self):
+        pcfg = Anlage4ParserConfig.objects.create(text_rules=[{"field": "name_der_auswertung", "keyword": "Zweck"}])
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Zweck: A",
+            anlage4_parser_config=pcfg,
+        )
+
+        with patch("core.llm_tasks.parse_anlage4_dual", return_value=["A"] ) as m_dual, patch(
+            "core.llm_tasks.parse_anlage4"
+        ) as m_std, patch("core.llm_tasks.async_task") as m_task, patch(
+            "core.llm_tasks.query_llm", return_value="{}"
+        ):
+            analyse_anlage4_async(projekt.pk)
+        m_dual.assert_called_once_with(pf)
+        m_std.assert_not_called()
 
 
 class Anlage4ReviewViewTests(NoesisTestCase):
