@@ -20,6 +20,18 @@ from .parsers import AbstractParser
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
 
+# Globale Phrasenarten, die beim Parsen von Freitext erkannt werden.
+PHRASE_TYPE_CHOICES: list[tuple[str, str]] = [
+    ("einsatz_telefonica_false", "einsatz_telefonica_false"),
+    ("einsatz_telefonica_true", "einsatz_telefonica_true"),
+    ("ki_beteiligung_false", "ki_beteiligung_false"),
+    ("ki_beteiligung_true", "ki_beteiligung_true"),
+    ("technisch_verfuegbar_false", "technisch_verfuegbar_false"),
+    ("technisch_verfuegbar_true", "technisch_verfuegbar_true"),
+    ("zur_lv_kontrolle_false", "zur_lv_kontrolle_false"),
+    ("zur_lv_kontrolle_true", "zur_lv_kontrolle_true"),
+]
+
 
 
 def parse_format_b(text: str) -> List[dict[str, object]]:

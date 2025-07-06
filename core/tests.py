@@ -38,7 +38,7 @@ from .docx_utils import (
 )
 
 from . import text_parser
-from core.text_parser import parse_anlage2_text
+from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
 from .anlage4_parser import parse_anlage4
 
 from .parser_manager import parser_manager
@@ -87,16 +87,6 @@ from django.core.management import call_command
 from django.test import override_settings
 import json
 
-
-class Anlage2GlobalPhrase:
-    """Stub, da Modell entfernt wurde."""
-
-    from importlib import import_module
-
-    _config = import_module("core.migrations.0002_seed_initial_data").INITIAL_ANLAGE2_CONFIG
-    PHRASE_TYPE_CHOICES = [
-        (item["phrase_type"], item["phrase_type"]) for item in _config["global_phrases"]
-    ]
 
 
 def create_statuses() -> None:
@@ -3664,7 +3654,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             "action": "save_text",
             "active_tab": "text",
         }
-        for key, _ in Anlage2GlobalPhrase.PHRASE_TYPE_CHOICES:
+        for key, _ in PHRASE_TYPE_CHOICES:
             data[f"{key}-TOTAL_FORMS"] = "0"
             data[f"{key}-INITIAL_FORMS"] = "0"
             data[f"{key}-MIN_NUM_FORMS"] = "0"
