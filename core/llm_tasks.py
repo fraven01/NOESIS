@@ -924,8 +924,8 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
             structured = entry
         else:
             structured = {"name_der_auswertung": entry}
-        structured_with_context = {"name": structured.get("name_der_auswertung"), "kontext": projekt.title}
-        prompt_text = template.format(json=json.dumps(structured_with_context, ensure_ascii=False))
+        plausi_data = {**structured, "kontext": projekt.title}
+        prompt_text = template.format(json=json.dumps(plausi_data, ensure_ascii=False))
         anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
         prompt_obj = Prompt(name="tmp", text=prompt_text)
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
@@ -996,42 +996,6 @@ def worker_anlage4_evaluate(
     )
     return data
 
-
-def worker_a4_extract(block: str, pf_id: int, index: int, model_name: str | None = None) -> dict:
-    """Extrahiert strukturierte Daten aus einem Textblock."""
-
-    pf = BVProjectFile.objects.get(pk=pf_id)
-    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
-    template = (cfg.prompt_extraction or "Extrahiere Felder als JSON aus:\n{text}")
-    prompt_text = template.format(text=block)
-    anlage4_logger.debug("A4 Extract Prompt #%s: %s", index, prompt_text)
-    prompt_obj = Prompt(name="tmp", text=prompt_text)
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
-    anlage4_logger.debug("A4 Extract Raw Response #%s: %s", index, reply)
-    try:
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        data = {"raw": reply}
-    anlage4_logger.debug("A4 Extract Parsed JSON #%s: %s", index, data)
-
-    analysis = pf.analysis_json or {"items": []}
-    items = analysis.get("items") or []
-    while len(items) <= index:
-        items.append({"text": block})
-    items[index]["structured"] = data
-    analysis["items"] = items
-    pf.analysis_json = analysis
-    pf.save(update_fields=["analysis_json"])
-    anlage4_logger.debug("A4 Extract gespeichertes JSON #%s: %s", index, analysis)
-
-    async_task(
-        "core.llm_tasks.worker_a4_plausibility",
-        data,
-        pf_id,
-        index,
-        model_name,
-    )
-    return data
 
 
 def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name: str | None = None) -> dict:
@@ -1106,7 +1070,7 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         if use_dual:
             async_task(
                 "core.llm_tasks.worker_a4_plausibility",
-                item["structured"],
+                {**item["structured"], "kontext": projekt.title},
                 anlage.pk,
                 idx,
                 model_name,
