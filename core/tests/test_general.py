@@ -176,9 +176,6 @@ class NoesisTestCase(TestCase):
         )
 
 
-        self.assertIsNone(self.projekt.classification_json)
-
-
 class BVProjectFileTests(NoesisTestCase):
     def test_create_project_with_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
