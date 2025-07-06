@@ -18,6 +18,8 @@ from core.text_parser import parse_anlage2_text
 
 
 def main() -> int:
+    """Verarbeitet eine Datei und gibt die Parserergebnisse als JSON aus."""
+
     if len(sys.argv) != 2:
         print("Usage: python text_parser.py <file>", file=sys.stderr)
         return 1
