@@ -913,8 +913,8 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
             "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
             "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
             "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
-            "zur\u00fcck:\n{json}"
+            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
+            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
 
@@ -931,7 +931,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         except Exception:  # noqa: BLE001
             result = {"raw": reply}
         anlage4_logger.debug("A4 Sync Parsed JSON #%s: %s", idx, result)
-        items.append({"text": text, "risk": result})
+        items.append({"text": text, "plausibility": result})
 
     data = {"task": "analyse_anlage4", "items": items}
     anlage.analysis_json = data
@@ -959,8 +959,8 @@ def worker_anlage4_evaluate(
             "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
             "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
             "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
-            "zur\u00fcck:\n{json}"
+            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
+            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
     structured = {"name": item_text, "kontext": pf.projekt.title}
@@ -980,7 +980,7 @@ def worker_anlage4_evaluate(
     items = analysis.get("items") or []
     while len(items) <= index:
         items.append({"text": item_text})
-    items[index]["risk"] = data
+    items[index]["plausibility"] = data
     analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])
@@ -1041,8 +1041,8 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
             "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
             "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
             "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'risiko' und 'begruendung' "
-            "zur\u00fcck:\n{json}"
+            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
+            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
     prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
@@ -1060,7 +1060,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     items = analysis.get("items") or []
     while len(items) <= index:
         items.append({})
-    items[index]["risk"] = data
+    items[index]["plausibility"] = data
     analysis["items"] = items
     pf.analysis_json = analysis
     pf.save(update_fields=["analysis_json"])

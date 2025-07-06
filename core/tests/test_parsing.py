@@ -752,12 +752,15 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         )
         with patch(
             "core.llm_tasks.query_llm",
-            return_value='{"risiko":"gering","begruendung":"ok"}',
+            return_value='{"plausibilitaet":"hoch","score":0.8,"begruendung":"ok"}',
         ):
             data = analyse_anlage4(projekt.pk)
         pf.refresh_from_db()
-        self.assertEqual(data["items"][0]["risk"]["risiko"], "gering")
-        self.assertEqual(pf.analysis_json["items"][0]["risk"]["begruendung"], "ok")
+        self.assertEqual(data["items"][0]["plausibility"]["plausibilitaet"], "hoch")
+        self.assertEqual(
+            pf.analysis_json["items"][0]["plausibility"]["begruendung"],
+            "ok",
+        )
 
     def test_passes_config_to_parser(self):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
@@ -811,15 +814,15 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
 
         with patch("core.llm_tasks.async_task", side_effect=immediate), patch(
             "core.llm_tasks.query_llm",
-            return_value='{"risiko":"gering","begruendung":"ok"}',
+            return_value='{"plausibilitaet":"hoch","score":0.8,"begruendung":"ok"}',
         ):
             analyse_anlage4_async(projekt.pk)
 
         pf.refresh_from_db()
         results = pf.analysis_json["items"]
         for item in results:
-            self.assertEqual(item["risk"]["risiko"], "gering")
-            self.assertEqual(item["risk"]["begruendung"], "ok")
+            self.assertEqual(item["plausibility"]["plausibilitaet"], "hoch")
+            self.assertEqual(item["plausibility"]["begruendung"], "ok")
 
     def test_async_dual_parser_used_when_parser_config(self):
         pcfg = Anlage4ParserConfig.objects.create(text_rules=[{"field": "name_der_auswertung", "keyword": "Zweck"}])
