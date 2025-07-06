@@ -627,7 +627,21 @@ class Anlage4ParserConfig(models.Model):
     """Konfiguration für den Anlage-4-Parser."""
 
     table_columns = models.JSONField(default=list, blank=True)
-    text_rules = models.JSONField(default=list, blank=True)
+    delimiter_phrase = models.CharField(
+        max_length=255,
+        default=r"Name der (\d+|\w+)\. Auswertung",
+        help_text="Regulärer Ausdruck, der den Beginn einer neuen Auswertung markiert.",
+    )
+    gesellschaften_phrase = models.CharField(
+        max_length=255,
+        default="Gesellschaften, in denen die Auswertung verwendet wird:",
+        help_text="Die exakte Phrase, die dem Wert für 'Gesellschaften' vorangeht.",
+    )
+    fachbereiche_phrase = models.CharField(
+        max_length=255,
+        default="Fachbereiche, in denen die Auswertung eingesetzt wird:",
+        help_text="Die exakte Phrase, die dem Wert für 'Fachbereiche' vorangeht.",
+    )
     prompt_extraction = models.TextField(blank=True)
     prompt_plausibility = models.TextField(blank=True)
 

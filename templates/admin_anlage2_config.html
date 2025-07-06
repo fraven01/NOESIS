@@ -107,14 +107,19 @@
                 {{ a4_parser_form.table_columns.errors }}
             </div>
             <div>
-                <label>{{ a4_parser_form.text_rules.label }}</label>
-                <p class="text-sm text-gray-600">
-                    Jede Regel benötigt <code>field</code> und <code>keyword</code>.
-                    Beispiel: <code>[{"field": "name_der_auswertung", "keyword": "Zweck"}]</code>.
-                    Der LLM-Extraktionsschritt entfällt.
-                </p>
-                {{ a4_parser_form.text_rules }}
-                {{ a4_parser_form.text_rules.errors }}
+                <label>{{ a4_parser_form.delimiter_phrase.label }}</label>
+                {{ a4_parser_form.delimiter_phrase }}
+                {{ a4_parser_form.delimiter_phrase.errors }}
+            </div>
+            <div>
+                <label>{{ a4_parser_form.gesellschaften_phrase.label }}</label>
+                {{ a4_parser_form.gesellschaften_phrase }}
+                {{ a4_parser_form.gesellschaften_phrase.errors }}
+            </div>
+            <div>
+                <label>{{ a4_parser_form.fachbereiche_phrase.label }}</label>
+                {{ a4_parser_form.fachbereiche_phrase }}
+                {{ a4_parser_form.fachbereiche_phrase.errors }}
             </div>
             <button type="submit" name="action" value="save_a4" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
         </div>
