@@ -2708,11 +2708,18 @@ def projekt_file_edit_json(request, pk):
         if not items:
             items = []
         if request.method == "POST":
-            form = Anlage4ReviewForm(request.POST, items=items)
-            if form.is_valid():
-                anlage.manual_analysis_json = form.get_json()
-                anlage.save(update_fields=["manual_analysis_json"])
-                return redirect("projekt_detail", pk=anlage.projekt.pk)
+            if "analysis_json" in request.POST or "manual_analysis_json" in request.POST:
+                json_form = BVProjectFileJSONForm(request.POST, instance=anlage)
+                if json_form.is_valid():
+                    json_form.save()
+                    return redirect("projekt_detail", pk=anlage.projekt.pk)
+                form = json_form
+            else:
+                form = Anlage4ReviewForm(request.POST, items=items)
+                if form.is_valid():
+                    anlage.manual_analysis_json = form.get_json()
+                    anlage.save(update_fields=["manual_analysis_json"])
+                    return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             form = Anlage4ReviewForm(initial=anlage.manual_analysis_json, items=items)
         template = "projekt_file_anlage4_review.html"
