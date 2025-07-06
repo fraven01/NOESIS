@@ -3090,7 +3090,10 @@ class ModelSelectionTests(NoesisTestCase):
             mock_func.return_value = {"task": "check_anlage1"}
             resp = self.client.post(url, {"model_category": "anlagen"})
         self.assertEqual(resp.status_code, 200)
-        mock_func.assert_called_with(self.projekt.pk, model_name="a")
+        mock_func.assert_called_with(
+            self.projekt.pk,
+            model_name=LLMConfig.get_instance().anlagen_model,
+        )
 
     def test_forms_show_categories(self):
         edit_url = reverse("projekt_edit", args=[self.projekt.pk])

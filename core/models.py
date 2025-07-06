@@ -377,6 +377,11 @@ class LLMConfig(models.Model):
         return "LLMConfig"
 
     @classmethod
+    def get_instance(cls) -> "LLMConfig":
+        """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
+        return cls.objects.first() or cls.objects.create()
+
+    @classmethod
     def get_default(cls, kind: str = "default") -> str:
         """Gibt das Standardmodell für einen Typ zurück."""
         from django.conf import settings
