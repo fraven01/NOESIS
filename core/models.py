@@ -627,7 +627,10 @@ class Anlage4ParserConfig(models.Model):
     """Konfiguration für den Anlage-4-Parser."""
 
     table_columns = models.JSONField(default=list, blank=True)
-    text_rules = models.JSONField(default=list, blank=True)
+    name_aliases = models.JSONField(default=list, blank=True)
+    gesellschaft_aliases = models.JSONField(default=list, blank=True)
+    fachbereich_aliases = models.JSONField(default=list, blank=True)
+    negative_patterns = models.JSONField(default=list, blank=True)
     prompt_extraction = models.TextField(blank=True)
     prompt_plausibility = models.TextField(blank=True)
 

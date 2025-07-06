@@ -897,7 +897,12 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
 
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     parser_cfg = anlage.anlage4_parser_config or Anlage4ParserConfig.objects.first()
-    if parser_cfg and (parser_cfg.text_rules or parser_cfg.table_columns):
+    if parser_cfg and (
+        parser_cfg.table_columns
+        or parser_cfg.name_aliases
+        or parser_cfg.gesellschaft_aliases
+        or parser_cfg.fachbereich_aliases
+    ):
         anlage4_logger.debug(
             "analyse_anlage4: benutze Dual-Parser mit config %s", parser_cfg.pk
         )
@@ -1047,7 +1052,12 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
 
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     parser_cfg = anlage.anlage4_parser_config or Anlage4ParserConfig.objects.first()
-    use_dual = parser_cfg and (parser_cfg.text_rules or parser_cfg.table_columns)
+    use_dual = parser_cfg and (
+        parser_cfg.table_columns
+        or parser_cfg.name_aliases
+        or parser_cfg.gesellschaft_aliases
+        or parser_cfg.fachbereich_aliases
+    )
     if use_dual:
         anlage4_logger.debug(
             "analyse_anlage4_async: benutze Dual-Parser mit config %s",

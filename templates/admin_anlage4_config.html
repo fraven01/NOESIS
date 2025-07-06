@@ -11,16 +11,48 @@
         {{ form.table_columns.errors }}
     </div>
     <div>
-        <label>{{ form.text_rules.label }}</label>
-        <p class="text-sm text-gray-600">
-            Jede Regel besteht aus <code>field</code> und <code>keyword</code>.
-            Beispiel: <code>[{"field": "name_der_auswertung", "keyword": "Zweck"}]</code>.
-            Der LLM-Extraktionsschritt entfällt.
-        </p>
-        {{ form.text_rules }}
-        {{ form.text_rules.errors }}
+        <label>{{ form.name_aliases.label }}</label>
+        {{ form.name_aliases }}
+        {{ form.name_aliases.errors }}
+    </div>
+    <div>
+        <label>{{ form.gesellschaft_aliases.label }}</label>
+        {{ form.gesellschaft_aliases }}
+        {{ form.gesellschaft_aliases.errors }}
+    </div>
+    <div>
+        <label>{{ form.fachbereich_aliases.label }}</label>
+        {{ form.fachbereich_aliases }}
+        {{ form.fachbereich_aliases.errors }}
+    </div>
+    <div>
+        <label>Negative Patterns</label>
+        <div id="neg-container">
+            {% for pat in negative_list %}
+            <input type="text" name="negative_patterns" value="{{ pat }}" class="form-control mb-2">
+            {% endfor %}
+            <input type="text" name="negative_patterns" class="form-control mb-2">
+        </div>
+        <button type="button" id="add-neg-btn" class="btn btn-sm btn-secondary mt-1">+</button>
     </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
 </form>
 {% endblock %}
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const addBtn = document.getElementById('add-neg-btn');
+    const container = document.getElementById('neg-container');
+    if(addBtn && container){
+        addBtn.addEventListener('click', function(){
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.name = 'negative_patterns';
+            inp.className = 'form-control mb-2';
+            container.appendChild(inp);
+            inp.focus();
+        });
+    }
+});
+</script>
+{% endblock %}
