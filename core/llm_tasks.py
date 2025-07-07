@@ -946,6 +946,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     data = {"task": "analyse_anlage4", "items": items}
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
+    anlage4_logger.debug("A4 Sync Gesamtdaten: %s", data)
     return data
 
 
