@@ -109,11 +109,23 @@ def parse_anlage4(
 
 
 
-def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
-    """Parst Anlage 4 mit Dual-Strategie."""
+def parse_anlage4_dual(
+    project_file: BVProjectFile,
+    cfg: Anlage4ParserConfig | None = None,
+) -> List[dict]:
+    """Parst Anlage 4 mit Dual-Strategie.
+
+    Wenn keine Konfiguration vorhanden ist, wird ein leerer
+    Ergebnis-Liste zurückgegeben und eine Warnung protokolliert.
+    """
 
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
-    cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    if cfg is None:
+        cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    if cfg is None:
+        logger.warning("Keine Anlage4ParserConfig vorhanden")
+        return []
+
     columns = [_normalize(c) for c in (cfg.table_columns if cfg else [])]
     delimiter_phrase = cfg.delimiter_phrase if cfg else ""
     ges_phrase = cfg.gesellschaften_phrase if cfg else ""
