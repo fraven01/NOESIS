@@ -805,6 +805,22 @@ class Anlage4ParserTests(NoesisTestCase):
             ],
         )
 
+    def test_dual_parser_strips_colon(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            delimiter_phrase="Zweck",
+            gesellschaften_phrase="",
+            fachbereiche_phrase="",
+        )
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content="Zweck: Logdaten",
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(items[0]["name_der_auswertung"], "Logdaten")
+
     def test_dual_parser_default_config_example(self):
         pcfg = Anlage4ParserConfig.objects.create()
         text = (
