@@ -40,6 +40,11 @@ def _log_phrase_presence(desc: str, phrase: str, block: str) -> None:
     logger.debug("--- END DEBUGGING BLOCK ---")
 
 
+def _keyify(text: str) -> str:
+    """Wandelt Spaltenbezeichnungen in Dictionary-Schlüssel um."""
+    return _normalize(text).replace(" ", "_")
+
+
 def parse_anlage4(
     project_file: BVProjectFile, cfg: Anlage4Config | None = None
 ) -> List[str]:
@@ -152,17 +157,33 @@ def parse_anlage4_dual(
         try:
             doc = Document(str(path))
             for table in doc.tables:
-                logger.debug("Dual Parser prüft Tabelle mit %s Zeilen", len(table.rows))
+                logger.debug(
+                    "Dual Parser prüft Tabelle mit %s Zeilen und %s Spalten",
+                    len(table.rows),
+                    len(table.columns),
+                )
+                if not table.rows or len(table.columns) < 2:
+                    continue
+
+                first_col = [_normalize(row.cells[0].text.strip()) for row in table.rows]
+                if not set(columns).issubset(first_col):
+                    continue
+
+                field_map = {
+                    _normalize(name): _keyify(name) for name in cfg.table_columns
+                }
                 items: list[dict] = []
-                for row in table.rows:
-                    if len(row.cells) < 2:
-                        continue
-                    key = _normalize(row.cells[0].text.strip())
-                    if key in columns:
-                        value = row.cells[1].text.strip()
-                        if value:
-                            logger.debug("Dual Parser gefundenes Paar %s: %s", key, value)
-                            items.append({"name_der_auswertung": value})
+                for col_idx in range(1, len(table.columns)):
+                    entry: dict[str, str] = {}
+                    for row in table.rows:
+                        key_norm = _normalize(row.cells[0].text.strip())
+                        if key_norm in field_map:
+                            value = row.cells[col_idx].text.strip()
+                            if value:
+                                entry[field_map[key_norm]] = value
+                    if entry:
+                        items.append(entry)
+
                 if items:
                     logger.debug("Tabelle erkannt - %s Items", len(items))
                     return items
