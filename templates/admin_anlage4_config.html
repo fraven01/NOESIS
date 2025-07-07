@@ -2,73 +2,146 @@
 {% block title %}Anlage 4 Konfiguration{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 4 Konfiguration</h1>
-<form method="post" class="space-y-4">
+<form method="post" class="space-y-6">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    <div>
-        <label>{{ form.table_columns.label }}</label>
-        {{ form.table_columns }}
-        {{ form.table_columns.errors }}
-    </div>
-    <div>
-        <label>{{ form.delimiter_phrase.label }}</label>
-        {{ form.delimiter_phrase }}
-        {{ form.delimiter_phrase.errors }}
-    </div>
-    <div>
-        <label>{{ form.gesellschaften_phrase.label }}</label>
-        {{ form.gesellschaften_phrase }}
-        {{ form.gesellschaften_phrase.errors }}
-    </div>
-    <div>
-        <label>{{ form.fachbereiche_phrase.label }}</label>
-        {{ form.fachbereiche_phrase }}
-        {{ form.fachbereiche_phrase.errors }}
-    </div>
-    <div>
-        <label>{{ form.name_aliases.label }}</label>
-        {{ form.name_aliases }}
-        {{ form.name_aliases.errors }}
-    </div>
-    <div>
-        <label>{{ form.gesellschaft_aliases.label }}</label>
-        {{ form.gesellschaft_aliases }}
-        {{ form.gesellschaft_aliases.errors }}
-    </div>
-    <div>
-        <label>{{ form.fachbereich_aliases.label }}</label>
-        {{ form.fachbereich_aliases }}
-        {{ form.fachbereich_aliases.errors }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Negative Patterns (jeweils ein Regex pro Feld):</label>
-        <div id="negative-inputs-container">
-            {% for pat in form.instance.negative_patterns %}
-                <input type="text" name="negative_patterns" value="{{ pat }}" class="form-control mb-2">
-            {% endfor %}
-            <input type="text" name="negative_patterns" class="form-control mb-2">
+    <section class="border rounded p-4 space-y-4">
+        <h2 class="text-lg font-semibold">1. Text-Parser Konfiguration</h2>
+        <div>
+            <label>{{ form.delimiter_phrase.label }}</label>
+            {{ form.delimiter_phrase }}
+            {{ form.delimiter_phrase.errors }}
         </div>
-        <button type="button" id="add-negative-btn" class="btn btn-sm btn-secondary mt-1">+</button>
-    </div>
+        <div>
+            <label>{{ form.gesellschaften_phrase.label }}</label>
+            {{ form.gesellschaften_phrase }}
+            {{ form.gesellschaften_phrase.errors }}
+        </div>
+        <div>
+            <label>{{ form.gesellschaft_aliases.label }}</label>
+            <div id="ges-aliases-container">
+                {% for val in form.instance.gesellschaft_aliases %}
+                <div class="flex mb-2">
+                    <input type="text" name="gesellschaft_aliases" value="{{ val }}" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+                {% endfor %}
+                <div class="flex mb-2">
+                    <input type="text" name="gesellschaft_aliases" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+            </div>
+            <button type="button" id="add-ges-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+        </div>
+        <div>
+            <label>{{ form.fachbereiche_phrase.label }}</label>
+            {{ form.fachbereiche_phrase }}
+            {{ form.fachbereiche_phrase.errors }}
+        </div>
+        <div>
+            <label>{{ form.fachbereich_aliases.label }}</label>
+            <div id="fb-aliases-container">
+                {% for val in form.instance.fachbereich_aliases %}
+                <div class="flex mb-2">
+                    <input type="text" name="fachbereich_aliases" value="{{ val }}" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+                {% endfor %}
+                <div class="flex mb-2">
+                    <input type="text" name="fachbereich_aliases" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+            </div>
+            <button type="button" id="add-fb-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+        </div>
+        <div>
+            <label>{{ form.name_aliases.label }}</label>
+            <div id="name-aliases-container">
+                {% for val in form.instance.name_aliases %}
+                <div class="flex mb-2">
+                    <input type="text" name="name_aliases" value="{{ val }}" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+                {% endfor %}
+                <div class="flex mb-2">
+                    <input type="text" name="name_aliases" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+            </div>
+            <button type="button" id="add-name-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Negative Patterns (jeweils ein Regex pro Feld):</label>
+            <div id="negative-inputs-container">
+                {% for pat in form.instance.negative_patterns %}
+                <div class="flex mb-2">
+                    <input type="text" name="negative_patterns" value="{{ pat }}" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+                {% endfor %}
+                <div class="flex mb-2">
+                    <input type="text" name="negative_patterns" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+            </div>
+            <button type="button" id="add-negative-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+        </div>
+    </section>
+    <section class="border rounded p-4 space-y-4">
+        <h2 class="text-lg font-semibold">2. Tabellen-Parser Konfiguration</h2>
+        <div>
+            <label>{{ form.table_columns.label }}</label>
+            <div id="column-inputs-container">
+                {% for col in form.instance.table_columns %}
+                <div class="flex mb-2">
+                    <input type="text" name="table_columns" value="{{ col }}" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+                {% endfor %}
+                <div class="flex mb-2">
+                    <input type="text" name="table_columns" class="form-control flex-grow">
+                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                </div>
+            </div>
+            <button type="button" id="add-column-btn" class="btn btn-sm btn-secondary mt-1">+ Spalte hinzufügen</button>
+        </div>
+    </section>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
 </form>
 {% endblock %}
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addBtn = document.getElementById('add-negative-btn');
-    const container = document.getElementById('negative-inputs-container');
-    if (addBtn && container) {
-        addBtn.addEventListener('click', function() {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = 'negative_patterns';
-            input.className = 'form-control mb-2';
-            input.placeholder = 'Weiteres Muster...';
-            container.appendChild(input);
-            input.focus();
-        });
-    }
-});
+    document.addEventListener('DOMContentLoaded', () => {
+        function setup(btnId, containerId, name) {
+            const btn = document.getElementById(btnId);
+            const container = document.getElementById(containerId);
+            if (!btn || !container) return;
+            container.querySelectorAll('.remove-btn').forEach(b => {
+                b.addEventListener('click', () => b.parentElement.remove());
+            });
+            btn.addEventListener('click', () => {
+                const wrap = document.createElement('div');
+                wrap.className = 'flex mb-2';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = name;
+                input.className = 'form-control flex-grow';
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.textContent = 'x';
+                del.className = 'btn btn-sm btn-secondary ml-2 remove-btn';
+                del.addEventListener('click', () => wrap.remove());
+                wrap.appendChild(input);
+                wrap.appendChild(del);
+                container.appendChild(wrap);
+                input.focus();
+            });
+        }
+        setup('add-name-alias', 'name-aliases-container', 'name_aliases');
+        setup('add-ges-alias', 'ges-aliases-container', 'gesellschaft_aliases');
+        setup('add-fb-alias', 'fb-aliases-container', 'fachbereich_aliases');
+        setup('add-column-btn', 'column-inputs-container', 'table_columns');
+        setup('add-negative-btn', 'negative-inputs-container', 'negative_patterns');
+    });
 </script>
 {% endblock %}

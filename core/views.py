@@ -1903,7 +1903,17 @@ def anlage4_config(request):
     form = Anlage4ParserConfigForm(request.POST or None, instance=cfg)
     if request.method == "POST" and form.is_valid():
         neg_list = request.POST.getlist("negative_patterns")
-        form.save(negative_patterns=neg_list)
+        alias_lists = {
+            "name_aliases": request.POST.getlist("name_aliases"),
+            "gesellschaft_aliases": request.POST.getlist("gesellschaft_aliases"),
+            "fachbereich_aliases": request.POST.getlist("fachbereich_aliases"),
+        }
+        columns = request.POST.getlist("table_columns")
+        form.save(
+            negative_patterns=neg_list,
+            alias_lists=alias_lists,
+            table_columns=columns,
+        )
         messages.success(request, "Anlage 4 gespeichert")
         return redirect("anlage4_config")
     return render(request, "admin_anlage4_config.html", {"form": form})
