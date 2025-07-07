@@ -28,6 +28,18 @@ def _phrase_pattern(phrase: str) -> str:
     return r"\W*".join(re.escape(w) for w in words) + r"\W*"
 
 
+def _log_phrase_presence(desc: str, phrase: str, block: str) -> None:
+    """Gibt Debug-Informationen über das Auftreten einer Phrase aus."""
+    logger.debug("--- START DEBUGGING BLOCK ---")
+    logger.debug("KONFIGURATION [%s]: '%s'", desc, phrase)
+    logger.debug("DOKUMENTEN-BLOCK (ersten 150 Zeichen): '%s...'", block[:150])
+    if phrase in block:
+        logger.debug("SUCCESS: '%s' wurde im Block gefunden.", desc)
+    else:
+        logger.debug("FAILURE: '%s' NICHT im Block gefunden.", desc)
+    logger.debug("--- END DEBUGGING BLOCK ---")
+
+
 def parse_anlage4(
     project_file: BVProjectFile, cfg: Anlage4Config | None = None
 ) -> List[str]:
@@ -203,48 +215,14 @@ def parse_anlage4_dual(
         entry = {"name_der_auswertung": "", "gesellschaften": "", "fachbereiche": ""}
         anchors_found: list[tuple[str, int, int]] = []
 
-        # --- START DEBUGGING BLOCK ---
-        logger.debug("--- START DEBUGGING BLOCK ---")
-        logger.debug(
-            "KONFIGURATION [gesellschaften_phrase]: '%s'",
-            cfg.gesellschaften_phrase,
-        )
-        logger.debug(
-            "DOKUMENTEN-BLOCK (ersten 150 Zeichen): '%s...'",
-            seg[:150],
-        )
-        if cfg.gesellschaften_phrase in seg:
-            logger.debug("SUCCESS: 'gesellschaften_phrase' wurde im Block gefunden.")
-        else:
-            logger.debug(
-                "FAILURE: 'gesellschaften_phrase' NICHT im Block gefunden."
-            )
-        logger.debug("--- END DEBUGGING BLOCK ---")
-        # --- END DEBUGGING BLOCK ---
+        _log_phrase_presence("gesellschaften_phrase", cfg.gesellschaften_phrase, seg)
 
         if reg_ges:
             m = reg_ges.search(seg)
             if m:
                 anchors_found.append(("gesellschaften", m.start(), m.end()))
 
-        # --- START DEBUGGING BLOCK ---
-        logger.debug("--- START DEBUGGING BLOCK ---")
-        logger.debug(
-            "KONFIGURATION [fachbereiche_phrase]: '%s'",
-            cfg.fachbereiche_phrase,
-        )
-        logger.debug(
-            "DOKUMENTEN-BLOCK (ersten 150 Zeichen): '%s...'",
-            seg[:150],
-        )
-        if cfg.fachbereiche_phrase in seg:
-            logger.debug("SUCCESS: 'fachbereiche_phrase' wurde im Block gefunden.")
-        else:
-            logger.debug(
-                "FAILURE: 'fachbereiche_phrase' NICHT im Block gefunden."
-            )
-        logger.debug("--- END DEBUGGING BLOCK ---")
-        # --- END DEBUGGING BLOCK ---
+        _log_phrase_presence("fachbereiche_phrase", cfg.fachbereiche_phrase, seg)
 
         if reg_fach:
             m = reg_fach.search(seg)
