@@ -91,6 +91,7 @@ from .llm_tasks import (
     check_anlage2,
     check_anlage3_vision,
     analyse_anlage4,
+    analyse_anlage4_async,
     check_anlage6,
     check_anlage2_functions,
     run_anlage2_analysis,
@@ -2423,7 +2424,7 @@ def projekt_file_analyse_anlage4(request, pk):
     anlage = get_object_or_404(BVProjectFile, pk=pk)
     if anlage.anlage_nr != 4:
         raise Http404
-    analyse_anlage4(anlage.projekt_id)
+    analyse_anlage4_async(anlage.projekt_id)
     return redirect("anlage4_review", pk=pk)
 
 

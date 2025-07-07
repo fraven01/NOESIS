@@ -205,6 +205,10 @@ bearbeitet werden können. Folgende Felder bestimmen das Parsing:
 Der Parser füllt die genannten Felder automatisch aus und überspringt den
 früheren LLM-Schritt zur Extraktion.
 
+Die anschließende Plausibilitätsprüfung läuft asynchron. Die
+geparsten Werte stehen sofort bereit und die LLM-Ergebnisse werden
+nach und nach in `analysis_json` ergänzt.
+
 
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
