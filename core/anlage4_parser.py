@@ -189,11 +189,32 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
     results: list[dict] = []
     for seg in segs:
         entry = {"name_der_auswertung": "", "gesellschaften": "", "fachbereiche": ""}
+        block_text = seg
+
+        # NEUES DEBUG LOGGING
+        logger.debug("--- START DEBUGGING BLOCK ---")
+        logger.debug("KONFIGURATION [gesellschaften_phrase]: '%s'", cfg.gesellschaften_phrase)
+        logger.debug("DOKUMENTEN-BLOCK (ersten 150 Zeichen): '%s...'", block_text[:150])
+        if cfg.gesellschaften_phrase in block_text:
+            logger.debug("SUCCESS: 'gesellschaften_phrase' wurde im Block gefunden.")
+        else:
+            logger.debug("FAILURE: 'gesellschaften_phrase' NICHT im Block gefunden.")
+        logger.debug("--- END DEBUGGING BLOCK ---")
+
         anchors_found: list[tuple[str, int, int]] = []
         if reg_ges:
             m = reg_ges.search(seg)
             if m:
                 anchors_found.append(("gesellschaften", m.start(), m.end()))
+        # NEUES DEBUG LOGGING
+        logger.debug("--- START DEBUGGING BLOCK ---")
+        logger.debug("KONFIGURATION [fachbereiche_phrase]: '%s'", cfg.fachbereiche_phrase)
+        logger.debug("DOKUMENTEN-BLOCK (ersten 150 Zeichen): '%s...'", block_text[:150])
+        if cfg.fachbereiche_phrase in block_text:
+            logger.debug("SUCCESS: 'fachbereiche_phrase' wurde im Block gefunden.")
+        else:
+            logger.debug("FAILURE: 'fachbereiche_phrase' NICHT im Block gefunden.")
+        logger.debug("--- END DEBUGGING BLOCK ---")
         if reg_fach:
             m = reg_fach.search(seg)
             if m:
