@@ -43,7 +43,24 @@ def query_llm(
             if default_role:
                 final_role_prompt = default_role.role_prompt
 
-    task_prompt = prompt_object.text.format(**context_data)
+    # Formatierung nur, wenn Kontext vorhanden ist.
+    # Ohne Kontext bleibt der Prompt unverändert.
+    if context_data:
+        try:
+            task_prompt = prompt_object.text.format(**context_data)
+        except KeyError as exc:  # Platzhalter nicht vorhanden
+            logger.error(
+                "[%s] [%s] Fehlender Platzhalter %s in Prompt %s",
+                _timestamp(),
+                correlation_id,
+                exc.args[0],
+                prompt_object.name,
+            )
+            raise KeyError(
+                f"Missing placeholder '{exc.args[0]}' in prompt '{prompt_object.name}'"
+            ) from exc
+    else:
+        task_prompt = prompt_object.text
 
     prompt = (
         f"{final_role_prompt}\n\n---\n\n{task_prompt}" if final_role_prompt else task_prompt
