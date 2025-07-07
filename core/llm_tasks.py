@@ -934,6 +934,8 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         prompt_obj = Prompt(name="tmp", text=prompt_text)
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
         anlage4_logger.debug("A4 Sync Raw Response #%s: %s", idx, reply)
+        if "```json" in reply:
+            reply = reply.split("```json", 1)[1].split("```")[0]
         try:
             result = json.loads(reply)
         except Exception:  # noqa: BLE001
