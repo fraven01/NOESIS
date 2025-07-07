@@ -849,6 +849,46 @@ class Anlage4ParserTests(NoesisTestCase):
             ],
         )
 
+    def test_dual_parser_table_columns(self):
+        pcfg = Anlage4ParserConfig.objects.create(
+            table_columns=[
+                "Name der Auswertung",
+                "Gesellschaften, in denen die Auswertung verwendet wird",
+                "Fachbereiche, in denen die Auswertung eingesetzt wird",
+            ]
+        )
+        doc = Document()
+        table = doc.add_table(rows=3, cols=3)
+        table.cell(0, 0).text = "Name der Auswertung"
+        table.cell(0, 1).text = "Alpha"
+        table.cell(0, 2).text = "Beta"
+        table.cell(1, 0).text = "Gesellschaften, in denen die Auswertung verwendet wird"
+        table.cell(1, 1).text = "G1"
+        table.cell(1, 2).text = "G2"
+        table.cell(2, 0).text = "Fachbereiche, in denen die Auswertung eingesetzt wird"
+        table.cell(2, 1).text = "F1"
+        table.cell(2, 2).text = "F2"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=upload,
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(
+            items,
+            [
+                {"name_der_auswertung": "Alpha", "gesellschaften": "G1", "fachbereiche": "F1"},
+                {"name_der_auswertung": "Beta", "gesellschaften": "G2", "fachbereiche": "F2"},
+            ],
+        )
+
     def test_dual_parser_negative_pattern(self):
         pcfg = Anlage4ParserConfig.objects.create(
             name_aliases=["Name"],
