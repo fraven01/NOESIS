@@ -993,7 +993,8 @@ def worker_anlage4_evaluate(
     analysis = pf.analysis_json or {"items": []}
     items = analysis.get("items") or []
     while len(items) <= index:
-        items.append({"text": item_text})
+        items.append({"text": item_text, "structured": {"name_der_auswertung": item_text}})
+    items[index]["structured"] = {"name_der_auswertung": item_text}
     items[index]["plausibility"] = data
     analysis["items"] = items
     pf.analysis_json = analysis
@@ -1075,7 +1076,10 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
     if use_dual:
         items = [{"structured": z} for z in auswertungen]
     else:
-        items = [{"text": z} for z in auswertungen]
+        items = [
+            {"text": z, "structured": {"name_der_auswertung": z}}
+            for z in auswertungen
+        ]
     anlage.analysis_json = {"items": items}
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
