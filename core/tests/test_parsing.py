@@ -935,6 +935,21 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         m_dual.assert_called_once_with(pf)
         m_std.assert_not_called()
 
+    def test_template_allows_json_data_placeholder(self):
+        cfg = Anlage4Config.objects.create(prompt_template="Vorlage {json_data}")
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Zweck: A",
+            anlage4_config=cfg,
+        )
+        with patch("core.llm_tasks.query_llm", return_value="{}"):  # kein Fehler
+            analyse_anlage4(projekt.pk)
+        pf.refresh_from_db()
+        self.assertIsNotNone(pf.analysis_json)
+
 
 class AnalyseAnlage4AsyncTests(NoesisTestCase):
     def test_async_analysis_stores_results(self):
