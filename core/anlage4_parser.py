@@ -232,7 +232,9 @@ def parse_anlage4_dual(
         anchors_found.sort(key=lambda x: x[1])
 
         end_pos = len(seg)
-        entry["name_der_auswertung"] = seg[: anchors_found[0][1] if anchors_found else end_pos].strip()
+        name = seg[: anchors_found[0][1] if anchors_found else end_pos].strip()
+        name = re.sub(r'^[:\s]+', '', name)
+        entry["name_der_auswertung"] = name
         for idx, (field, start, anchor_end) in enumerate(anchors_found):
             next_start = anchors_found[idx + 1][1] if idx + 1 < len(anchors_found) else end_pos
             entry[field] = seg[anchor_end:next_start].strip()
