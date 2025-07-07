@@ -805,6 +805,34 @@ class Anlage4ParserTests(NoesisTestCase):
             ],
         )
 
+    def test_dual_parser_default_config_example(self):
+        pcfg = Anlage4ParserConfig.objects.create()
+        text = (
+            "Name der 1. Auswertung\n"
+            "Alpha\n"
+            "   Gesellschaften, in denen die Auswertung verwendet wird: Foo\n"
+            "   Fachbereiche, in denen die Auswertung eingesetzt wird: Bar\n"
+            "Name der 2. Auswertung\n"
+            "Beta\n"
+            "   Gesellschaften, in denen die Auswertung verwendet wird: Baz\n"
+            "   Fachbereiche, in denen die Auswertung eingesetzt wird: Qux"
+        )
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content=text,
+            anlage4_parser_config=pcfg,
+        )
+        items = parse_anlage4_dual(pf)
+        self.assertEqual(
+            items,
+            [
+                {"name_der_auswertung": "Alpha", "gesellschaften": "Foo", "fachbereiche": "Bar"},
+                {"name_der_auswertung": "Beta", "gesellschaften": "Baz", "fachbereiche": "Qux"},
+            ],
+        )
+
     def test_dual_parser_negative_pattern(self):
         pcfg = Anlage4ParserConfig.objects.create(
             name_aliases=["Name"],

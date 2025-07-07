@@ -178,14 +178,15 @@ def parse_anlage4_dual(
             logger.error("Negative pattern erkannt: %s", pat.pattern)
             return []
 
-    block_aliases = [delimiter_phrase] if delimiter_phrase else []
-    block_aliases.extend(name_aliases)
-    if not any(block_aliases):
+    block_aliases: list[str] = []
+    if delimiter_phrase:
+        block_aliases.append(r"\s*" + delimiter_phrase)
+    block_aliases.extend(_phrase_pattern(a) for a in name_aliases)
+    if not block_aliases:
         logger.warning("Keine delimiter_phrase definiert")
         return []
 
-    escaped = [_phrase_pattern(p) for p in block_aliases]
-    pattern_block = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
+    pattern_block = re.compile(r"^(?:" + "|".join(block_aliases) + ")", re.I | re.M)
     matches = list(pattern_block.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
     if not matches:
@@ -199,13 +200,13 @@ def parse_anlage4_dual(
 
     if ges_phrase or ges_aliases:
         patterns = ([ges_phrase] if ges_phrase else []) + ges_aliases
-        escaped = [_phrase_pattern(p) for p in patterns]
+        escaped = [r"\s*" + _phrase_pattern(p) for p in patterns]
         reg_ges = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     else:
         reg_ges = None
     if fach_phrase or fach_aliases:
         patterns = ([fach_phrase] if fach_phrase else []) + fach_aliases
-        escaped = [_phrase_pattern(p) for p in patterns]
+        escaped = [r"\s*" + _phrase_pattern(p) for p in patterns]
         reg_fach = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     else:
         reg_fach = None
