@@ -156,6 +156,19 @@ def parse_anlage4_dual(
     if path.exists() and path.suffix.lower() == ".docx" and columns:
         try:
             doc = Document(str(path))
+            # Mappe erkannte Tabellenspalten auf interne Schl\xFCssel
+            default_keys = [
+                "name_der_auswertung",
+                "gesellschaften",
+                "fachbereiche",
+            ]
+            field_map = {}
+            for idx, name in enumerate(cfg.table_columns):
+                norm = _normalize(name)
+                key = default_keys[idx] if idx < len(default_keys) else _keyify(name)
+                field_map[norm] = key
+
+            all_items: list[dict] = []
             for table in doc.tables:
                 logger.debug(
                     "Dual Parser prüft Tabelle mit %s Zeilen und %s Spalten",
@@ -169,10 +182,6 @@ def parse_anlage4_dual(
                 if not set(columns).issubset(first_col):
                     continue
 
-                field_map = {
-                    _normalize(name): _keyify(name) for name in cfg.table_columns
-                }
-                items: list[dict] = []
                 for col_idx in range(1, len(table.columns)):
                     entry: dict[str, str] = {}
                     for row in table.rows:
@@ -182,11 +191,11 @@ def parse_anlage4_dual(
                             if value:
                                 entry[field_map[key_norm]] = value
                     if entry:
-                        items.append(entry)
+                        all_items.append(entry)
 
-                if items:
-                    logger.debug("Tabelle erkannt - %s Items", len(items))
-                    return items
+            if all_items:
+                logger.debug("Tabelle erkannt - %s Items", len(all_items))
+                return all_items
         except Exception:  # pragma: no cover - ungültige Datei
             logger.error("Anlage4Parser Dual Fehler", exc_info=True)
 
