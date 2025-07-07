@@ -1,4 +1,5 @@
 import re
+import string
 import logging
 from pathlib import Path
 from typing import List
@@ -11,6 +12,22 @@ from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
 logger = logging.getLogger("anlage4_debug")
 
 
+def _normalize(text: str) -> str:
+    """Normiert Text für robuste Vergleiche."""
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _phrase_pattern(phrase: str) -> str:
+    """Erzeugt ein Regex-Fragment aus einer Phrase."""
+    words = _normalize(phrase).split()
+    if not words:
+        return ""
+    return r"\W*".join(re.escape(w) for w in words) + r"\W*"
+
+
 def parse_anlage4(
     project_file: BVProjectFile, cfg: Anlage4Config | None = None
 ) -> List[str]:
@@ -18,7 +35,7 @@ def parse_anlage4(
     logger.info("parse_anlage4 gestartet für Datei %s", project_file.pk)
     if cfg is None:
         cfg = project_file.anlage4_config or Anlage4Config.objects.first()
-    columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
+    columns = [_normalize(c) for c in (cfg.table_columns if cfg else [])]
     neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
     patterns = [re.compile(p, re.I) for p in (cfg.regex_patterns if cfg else [])]
 
@@ -54,7 +71,7 @@ def parse_anlage4(
                 for row in table.rows:
                     if len(row.cells) < 2:
                         continue
-                    key = row.cells[0].text.strip().lower()
+                    key = _normalize(row.cells[0].text.strip())
                     if key in columns:
                         value = row.cells[1].text.strip()
                         if value:
@@ -97,7 +114,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
 
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
     cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
-    columns = [c.lower() for c in (cfg.table_columns if cfg else [])]
+    columns = [_normalize(c) for c in (cfg.table_columns if cfg else [])]
     delimiter_phrase = cfg.delimiter_phrase if cfg else ""
     ges_phrase = cfg.gesellschaften_phrase if cfg else ""
     fach_phrase = cfg.fachbereiche_phrase if cfg else ""
@@ -116,7 +133,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
                 for row in table.rows:
                     if len(row.cells) < 2:
                         continue
-                    key = row.cells[0].text.strip().lower()
+                    key = _normalize(row.cells[0].text.strip())
                     if key in columns:
                         value = row.cells[1].text.strip()
                         if value:
@@ -143,7 +160,7 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
         logger.warning("Keine delimiter_phrase definiert")
         return []
 
-    escaped = block_aliases
+    escaped = [_phrase_pattern(p) for p in block_aliases]
     pattern_block = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     matches = list(pattern_block.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
@@ -158,12 +175,14 @@ def parse_anlage4_dual(project_file: BVProjectFile) -> List[dict]:
 
     if ges_phrase or ges_aliases:
         patterns = ([ges_phrase] if ges_phrase else []) + ges_aliases
-        reg_ges = re.compile(r"^(?:" + "|".join(patterns) + ")", re.I | re.M)
+        escaped = [_phrase_pattern(p) for p in patterns]
+        reg_ges = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     else:
         reg_ges = None
     if fach_phrase or fach_aliases:
         patterns = ([fach_phrase] if fach_phrase else []) + fach_aliases
-        reg_fach = re.compile(r"^(?:" + "|".join(patterns) + ")", re.I | re.M)
+        escaped = [_phrase_pattern(p) for p in patterns]
+        reg_fach = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
     else:
         reg_fach = None
 
