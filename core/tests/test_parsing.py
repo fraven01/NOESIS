@@ -975,7 +975,10 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
 
         pf.refresh_from_db()
         results = pf.analysis_json["items"]
-        for item in results:
+        expected = ["A", "B"]
+        for idx, item in enumerate(results):
+            self.assertEqual(item["text"], expected[idx])
+            self.assertEqual(item["structured"]["name_der_auswertung"], expected[idx])
             self.assertEqual(item["plausibility"]["plausibilitaet"], "hoch")
             self.assertEqual(item["plausibility"]["begruendung"], "ok")
 
@@ -1056,3 +1059,25 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             resp = self.client.post(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
         mock_func.assert_called_with(self.projekt.pk)
+
+
+class WorkerAnlage4EvaluateTests(NoesisTestCase):
+    def test_worker_adds_structured(self):
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="",
+        )
+
+        with patch(
+            "core.llm_tasks.query_llm",
+            return_value='{"plausibilitaet":"hoch","score":0.9,"begruendung":"ok"}',
+        ):
+            worker_anlage4_evaluate("A", pf.pk, 0)
+
+        pf.refresh_from_db()
+        item = pf.analysis_json["items"][0]
+        self.assertEqual(item["structured"]["name_der_auswertung"], "A")
+        self.assertEqual(item["plausibility"]["plausibilitaet"], "hoch")
