@@ -908,13 +908,13 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     anlage4_logger.debug("Gefundene Auswertungen: %s", auswertungen)
 
     template = (
-        parser_cfg.prompt_plausibility
+        cfg.prompt_template
         or (
-            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
-            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
-            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
-            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
+            "Du bist ein Experte f\u00fcr deutsches Betriebsverfassungsrecht und Datenschutz "
+            "mit einem besonderen Fokus auf die Verhinderung von Leistungs- und Verhaltenskontrolle bei Mitarbeitern.\n\n"
+            "Analysiere die folgende administrative Auswertung. Deine Aufgabe ist es, die Plausibilit\xe4t zu bewerten, dass diese Auswertung rein administrativen Zwecken dient und nicht zur \xdcberwachung von Mitarbeitern missbraucht werden kann.\n\n"
+            "Ber\u00fccksichtige bei deiner Analyse die Kombination aus dem Namen der Auswertung, den anwendenden Gesellschaften und den zust\u00e4ndigen Fachbereichen.\n\n"
+            "Gib deine finale Bewertung ausschlie\xdflich als valides JSON-Objekt mit den Sch\xfcsseln 'plausibilitaet', 'score' (0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
 
@@ -956,15 +956,15 @@ def worker_anlage4_evaluate(
     anlage4_logger.debug("Pr\u00fcfe Auswertung #%s: %s", index, item_text)
 
     pf = BVProjectFile.objects.get(pk=project_file_id)
-    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    cfg = pf.anlage4_config or Anlage4Config.objects.first()
     template = (
-        cfg.prompt_plausibility
+        cfg.prompt_template
         or (
-            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
-            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
-            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
-            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
+            "Du bist ein Experte f\u00fcr deutsches Betriebsverfassungsrecht und Datenschutz "
+            "mit einem besonderen Fokus auf die Verhinderung von Leistungs- und Verhaltenskontrolle bei Mitarbeitern.\n\n"
+            "Analysiere die folgende administrative Auswertung. Deine Aufgabe ist es, die Plausibilit\xe4t zu bewerten, dass diese Auswertung rein administrativen Zwecken dient und nicht zur \xdcberwachung von Mitarbeitern missbraucht werden kann.\n\n"
+            "Ber\u00fccksichtige bei deiner Analyse die Kombination aus dem Namen der Auswertung, den anwendenden Gesellschaften und den zust\u00e4ndigen Fachbereichen.\n\n"
+            "Gib deine finale Bewertung ausschlie\xdflich als valides JSON-Objekt mit den Sch\xfcsseln 'plausibilitaet', 'score' (0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
     structured = {"name": item_text, "kontext": pf.projekt.title}
@@ -1002,15 +1002,15 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     """Bewertet einen strukturierten Eintrag."""
 
     pf = BVProjectFile.objects.get(pk=pf_id)
-    cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+    cfg = pf.anlage4_config or Anlage4Config.objects.first()
     template = (
-        cfg.prompt_plausibility
+        cfg.prompt_template
         or (
-            "Du bist Experte f\u00fcr Datenschutz und Arbeitnehmerrechte. "
-            "Bewerte die folgende Auswertung hinsichtlich des Risikos einer "
-            "m\u00f6glichen Leistungs- oder Verhaltenskontrolle. "
-            "Gib ein JSON mit den Schl\xfcsseln 'plausibilitaet', 'score' "
-            "(0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
+            "Du bist ein Experte f\u00fcr deutsches Betriebsverfassungsrecht und Datenschutz "
+            "mit einem besonderen Fokus auf die Verhinderung von Leistungs- und Verhaltenskontrolle bei Mitarbeitern.\n\n"
+            "Analysiere die folgende administrative Auswertung. Deine Aufgabe ist es, die Plausibilit\xe4t zu bewerten, dass diese Auswertung rein administrativen Zwecken dient und nicht zur \xdcberwachung von Mitarbeitern missbraucht werden kann.\n\n"
+            "Ber\u00fccksichtige bei deiner Analyse die Kombination aus dem Namen der Auswertung, den anwendenden Gesellschaften und den zust\u00e4ndigen Fachbereichen.\n\n"
+            "Gib deine finale Bewertung ausschlie\xdflich als valides JSON-Objekt mit den Sch\xfcsseln 'plausibilitaet', 'score' (0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
     prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))

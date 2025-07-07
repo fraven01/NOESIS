@@ -180,7 +180,7 @@ def parse_anlage4_dual(
 
     block_aliases: list[str] = []
     if delimiter_phrase:
-        block_aliases.append(r"\s*" + delimiter_phrase)
+        block_aliases.append(r"\s*" + delimiter_phrase + r"\W*")
     block_aliases.extend(_phrase_pattern(a) for a in name_aliases)
     if not block_aliases:
         logger.warning("Keine delimiter_phrase definiert")
@@ -233,7 +233,7 @@ def parse_anlage4_dual(
 
         end_pos = len(seg)
         name = seg[: anchors_found[0][1] if anchors_found else end_pos].strip()
-        name = re.sub(r'^[:\s]+', '', name)
+        name = re.sub(r'^[\s:.-]+', '', name)
         entry["name_der_auswertung"] = name
         for idx, (field, start, anchor_end) in enumerate(anchors_found):
             next_start = anchors_found[idx + 1][1] if idx + 1 < len(anchors_found) else end_pos
