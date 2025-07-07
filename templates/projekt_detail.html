@@ -57,13 +57,6 @@
                     <a href="{% url 'projekt_file_check_view' a.pk %}"
                        class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
                 {% endif %}
-                {% if a.anlage_nr == 2 %}
-                    <a href="{% url 'projekt_file_parse_anlage2' a.pk %}"
-                       class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Parser</a>
-                {% elif a.anlage_nr == 4 %}
-                    <a href="{% url 'projekt_file_analyse_anlage4' a.pk %}"
-                       class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Analyse</a>
-                {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
             {% if a.analysis_json %}
