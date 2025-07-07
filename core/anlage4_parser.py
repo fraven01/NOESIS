@@ -113,7 +113,7 @@ def parse_anlage4(
     for idx, item in enumerate(items):
         logger.debug("Item %s: %s", idx, item)
     logger.info(
-        "parse_anlage4 beendet für Datei %s mit %s Zwecken",
+        "parse_anlage4 beendet für Datei %s mit %s Auswertungen",
         project_file.pk,
         len(items),
     )

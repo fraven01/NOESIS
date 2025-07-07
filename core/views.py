@@ -2159,7 +2159,7 @@ def anlage3_review(request, pk):
 
 @login_required
 def anlage4_review(request, pk):
-    """Zeigt die Zwecke aus Anlage 4 und ermöglicht die manuelle Bewertung."""
+    """Zeigt die Auswertungen aus Anlage 4 und ermöglicht die manuelle Bewertung."""
     project_file = get_object_or_404(BVProjectFile, pk=pk)
     if project_file.anlage_nr != 4:
         raise Http404
@@ -2692,7 +2692,7 @@ def projekt_file_edit_json(request, pk):
     elif anlage.anlage_nr == 4:
         items = []
         if anlage.analysis_json:
-            items = anlage.analysis_json.get("zwecke")
+            items = anlage.analysis_json.get("items")
         if isinstance(items, dict):
             items = items.get("value", [])
         if not items:

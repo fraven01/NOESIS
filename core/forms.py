@@ -367,7 +367,7 @@ class Anlage2ReviewForm(forms.Form):
 
 
 class Anlage4ReviewForm(forms.Form):
-    """Manuelle Pr\xfcfung der Zwecke aus Anlage 4."""
+    """Manuelle Pr\xfcfung der Auswertungen aus Anlage 4."""
 
     def __init__(self, *args, items=None, initial=None, **kwargs):
         super().__init__(*args, **kwargs)

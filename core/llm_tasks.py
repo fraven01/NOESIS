@@ -901,11 +901,11 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         anlage4_logger.debug(
             "analyse_anlage4: benutze Dual-Parser mit config %s", parser_cfg.pk
         )
-        zwecke = parse_anlage4_dual(anlage)
+        auswertungen = parse_anlage4_dual(anlage)
     else:
         anlage4_logger.debug("analyse_anlage4: benutze Standard-Parser")
-        zwecke = parse_anlage4(anlage, cfg)
-    anlage4_logger.debug("Gefundene Zwecke: %s", zwecke)
+        auswertungen = parse_anlage4(anlage, cfg)
+    anlage4_logger.debug("Gefundene Auswertungen: %s", auswertungen)
 
     template = (
         parser_cfg.prompt_plausibility
@@ -919,7 +919,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
     )
 
     items: list[dict] = []
-    for idx, entry in enumerate(zwecke):
+    for idx, entry in enumerate(auswertungen):
         if isinstance(entry, dict):
             structured = entry
         else:
@@ -953,7 +953,7 @@ def worker_anlage4_evaluate(
         project_file_id,
         index,
     )
-    anlage4_logger.debug("Pr\u00fcfe Zweck #%s: %s", index, item_text)
+    anlage4_logger.debug("Pr\u00fcfe Auswertung #%s: %s", index, item_text)
 
     pf = BVProjectFile.objects.get(pk=project_file_id)
     cfg = pf.anlage4_parser_config or Anlage4ParserConfig.objects.first()
@@ -978,7 +978,7 @@ def worker_anlage4_evaluate(
     except Exception:  # noqa: BLE001
         data = {"raw": reply}
     anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
-    anlage4_logger.debug("Ergebnis f\u00fcr Zweck #%s: %s", index, data)
+    anlage4_logger.debug("Ergebnis f\u00fcr Auswertung #%s: %s", index, data)
 
     analysis = pf.analysis_json or {"items": []}
     items = analysis.get("items") or []
@@ -1053,15 +1053,15 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
             "analyse_anlage4_async: benutze Dual-Parser mit config %s",
             parser_cfg.pk,
         )
-        zwecke = parse_anlage4_dual(anlage)
+        auswertungen = parse_anlage4_dual(anlage)
     else:
         anlage4_logger.debug("analyse_anlage4_async: benutze Standard-Parser")
-        zwecke = parse_anlage4(anlage, cfg)
-    anlage4_logger.debug("Async gefundene Zwecke: %s", zwecke)
+        auswertungen = parse_anlage4(anlage, cfg)
+    anlage4_logger.debug("Async gefundene Auswertungen: %s", auswertungen)
     if use_dual:
-        items = [{"structured": z} for z in zwecke]
+        items = [{"structured": z} for z in auswertungen]
     else:
-        items = [{"text": z} for z in zwecke]
+        items = [{"text": z} for z in auswertungen]
     anlage.analysis_json = {"items": items}
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
