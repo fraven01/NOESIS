@@ -2199,6 +2199,8 @@ def anlage4_review(request, pk):
             }
         )
 
+    anlage4_logger.debug("Tabellenzeilen f\u00fcr Anlage4 Review: %s", rows)
+
     context = {
         "anlage": project_file,
         "rows": rows,
