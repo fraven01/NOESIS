@@ -672,7 +672,7 @@ class FormatBParserTests(NoesisTestCase):
 class Anlage4ParserTests(NoesisTestCase):
     def test_parse_table_and_regex(self):
         cfg = Anlage4Config.objects.create(
-            table_columns=["zweck"],
+            table_columns=["auswertung"],
             regex_patterns=[r"Zweck: (.+)"]
         )
         doc = Document()
@@ -696,7 +696,7 @@ class Anlage4ParserTests(NoesisTestCase):
         self.assertEqual(items, ["A"])
 
     def test_logs_table_detection(self):
-        cfg = Anlage4Config.objects.create(table_columns=["zweck"])
+        cfg = Anlage4Config.objects.create(table_columns=["auswertung"])
         doc = Document()
         table = doc.add_table(rows=1, cols=2)
         table.cell(0, 0).text = "Zweck"
@@ -903,7 +903,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         m_parse.assert_called_once_with(pf, cfg)
 
     def test_dual_parser_used_when_parser_config(self):
-        pcfg = Anlage4ParserConfig.objects.create(table_columns=["zweck"])
+        pcfg = Anlage4ParserConfig.objects.create(table_columns=["auswertung"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
