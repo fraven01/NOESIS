@@ -925,7 +925,11 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         else:
             structured = {"name_der_auswertung": entry}
         plausi_data = {**structured, "kontext": projekt.title}
-        prompt_text = template.format(json=json.dumps(plausi_data, ensure_ascii=False))
+        data_json = json.dumps(plausi_data, ensure_ascii=False)
+        try:
+            prompt_text = template.format(json=data_json, json_data=data_json)
+        except KeyError as exc:  # pragma: no cover - falsches Template
+            raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
         anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
         prompt_obj = Prompt(name="tmp", text=prompt_text)
         reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
@@ -968,7 +972,11 @@ def worker_anlage4_evaluate(
         )
     )
     structured = {"name": item_text, "kontext": pf.projekt.title}
-    prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+    data_json = json.dumps(structured, ensure_ascii=False)
+    try:
+        prompt_text = template.format(json=data_json, json_data=data_json)
+    except KeyError as exc:  # pragma: no cover - falsches Template
+        raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("Anlage4 Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
@@ -1013,7 +1021,11 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
             "Gib deine finale Bewertung ausschlie\xdflich als valides JSON-Objekt mit den Sch\xfcsseln 'plausibilitaet', 'score' (0.0-1.0) und 'begruendung' zur\u00fcck:\n{json}"
         )
     )
-    prompt_text = template.format(json=json.dumps(structured, ensure_ascii=False))
+    data_json = json.dumps(structured, ensure_ascii=False)
+    try:
+        prompt_text = template.format(json=data_json, json_data=data_json)
+    except KeyError as exc:  # pragma: no cover - falsches Template
+        raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("A4 Plausi Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
     reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
