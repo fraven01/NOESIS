@@ -1046,7 +1046,7 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
 
     def test_get_runs_analysis_and_redirects(self):
         url = reverse("projekt_file_analyse_anlage4", args=[self.file.pk])
-        with patch("core.views.analyse_anlage4") as mock_func:
+        with patch("core.views.analyse_anlage4_async") as mock_func:
             mock_func.return_value = {}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
@@ -1054,7 +1054,7 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
 
     def test_post_runs_analysis_and_redirects(self):
         url = reverse("projekt_file_analyse_anlage4", args=[self.file.pk])
-        with patch("core.views.analyse_anlage4") as mock_func:
+        with patch("core.views.analyse_anlage4_async") as mock_func:
             mock_func.return_value = {}
             resp = self.client.post(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
