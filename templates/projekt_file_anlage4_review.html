@@ -24,19 +24,23 @@
             </tr>
         </thead>
         <tbody>
-        {% for row in rows %}
-            <tr>
-                <td class="border px-2">{{ row.name }}</td>
-                <td class="border px-2">{{ row.gesellschaften }}</td>
-                <td class="border px-2">{{ row.fachbereiche }}</td>
-                <td class="border px-2">{{ row.plaus }}</td>
-                <td class="border px-2">{{ row.score }}</td>
-                <td class="border px-2">{{ row.begruendung }}</td>
-                <td class="border px-2">{{ row.ok_field }}</td>
-                <td class="border px-2">{{ row.nego_field }}</td>
-                <td class="border px-2">{{ row.note_field }}</td>
-            </tr>
-        {% endfor %}
+{% for row in rows %}
+    <tr>
+        <td class="border px-2">{{ row.name }}</td>
+        <td class="border px-2">{{ row.gesellschaften }}</td>
+        <td class="border px-2">{{ row.fachbereiche }}</td>
+        <td class="border px-2">{{ row.plaus }}</td>
+        <td class="border px-2">{{ row.score }}</td>
+        <td class="border px-2">{{ row.begruendung }}</td>
+        <td class="border px-2">{{ row.ok_field }}</td>
+        <td class="border px-2">{{ row.nego_field }}</td>
+        <td class="border px-2">{{ row.note_field }}</td>
+    </tr>
+{% empty %}
+    <tr>
+        <td colspan="9" class="border px-2 text-center">Keine Auswertungen gefunden. Bitte führen Sie die Analyse erneut aus.</td>
+    </tr>
+{% endfor %}
         </tbody>
     </table>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
