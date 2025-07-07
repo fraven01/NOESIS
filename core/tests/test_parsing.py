@@ -822,6 +822,18 @@ class Anlage4ParserTests(NoesisTestCase):
         )
         self.assertEqual(parse_anlage4_dual(pf), [])
 
+    def test_dual_parser_no_config(self):
+        pf = BVProjectFile.objects.create(
+            projekt=BVProject.objects.create(software_typen="A"),
+            anlage_nr=4,
+            upload=SimpleUploadedFile("x.txt", b""),
+            text_content="",
+        )
+        with self.assertLogs("anlage4_debug", level="WARNING") as cm:
+            items = parse_anlage4_dual(pf)
+        self.assertEqual(items, [])
+        self.assertIn("Keine Anlage4ParserConfig vorhanden", "".join(cm.output))
+
 
 class AnalyseAnlage4Tests(NoesisTestCase):
     def test_task_stores_json(self):
