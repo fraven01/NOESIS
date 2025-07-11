@@ -49,7 +49,6 @@ anlage2_logger = logging.getLogger("anlage2_debug")
 anlage3_logger = logging.getLogger("anlage3_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
 anlage5_logger = logging.getLogger("anlage5_debug")
-anlage6_logger = logging.getLogger("anlage6_debug")
 
 ANLAGE1_QUESTIONS = [
     "Frage 1: Extrahiere alle Unternehmen als Liste.",
@@ -1176,11 +1175,6 @@ def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dic
         anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
 
     return anlage.analysis_json
-
-
-def check_anlage6(projekt_id: int, model_name: str | None = None) -> dict:
-    """Pr\xfcft die sechste Anlage."""
-    return _check_anlage(projekt_id, 6, model_name)
 
 
 def check_anlage2_functions(

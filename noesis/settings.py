@@ -233,13 +233,6 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage6_file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage6-debug.log",
-            "formatter": "verbose",
-            "encoding": "utf-8",
-        },
         "anlage2_admin_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
@@ -304,11 +297,6 @@ LOGGING = {
         },
         "anlage5_debug": {
             "handlers": ["anlage5_file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-        "anlage6_debug": {
-            "handlers": ["anlage6_file"],
             "level": "DEBUG",
             "propagate": False,
         },

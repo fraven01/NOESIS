@@ -233,7 +233,6 @@ def seed_test_data() -> None:
         "check_anlage3": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
         "check_anlage4": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
         "check_anlage5": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
-        "check_anlage6": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
         "classify_system": {
             "text": (
                 "Bitte klassifiziere das folgende Softwaresystem. "

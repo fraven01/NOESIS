@@ -32,7 +32,7 @@ python manage.py test
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
 Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis. Das Log protokolliert alle Schritte beim Einlesen der Tabelle.
 Während der Entwicklung schreibt jede Anlage ihr eigenes Debug-Log. Die Dateien
-`anlage1-debug.log` bis `anlage6-debug.log` enthalten detaillierte Meldungen der
+`anlage1-debug.log` bis `anlage5-debug.log` enthalten detaillierte Meldungen der
 jeweiligen Analysefunktionen. Durch den Eintrag `*.log` im `.gitignore` werden
 diese Protokolle nicht ins Repository aufgenommen. Das Log für Anlage&nbsp;4
 heißt `anlage4-debug.log` und befindet sich wie die anderen Logs im

@@ -59,6 +59,9 @@
                 {% if a.anlage_nr == 5 %}
                     <a href="{% url 'anlage5_dummy' %}"
                        class="bg-gray-500 text-white px-2 py-1 rounded">Prüfen</a>
+                {% elif a.anlage_nr == 6 %}
+                    <a href="{% url 'anlage6_dummy' %}"
+                       class="bg-gray-500 text-white px-2 py-1 rounded">Prüfen</a>
                 {% else %}
                     <a href="{% url 'projekt_file_check_view' a.pk %}"
                        class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>

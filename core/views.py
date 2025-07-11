@@ -97,7 +97,6 @@ from .llm_tasks import (
     check_anlage3_vision,
     analyse_anlage4,
     analyse_anlage4_async,
-    check_anlage6,
     check_anlage2_functions,
     run_anlage2_analysis,
     check_gutachten_functions,
@@ -1322,7 +1321,6 @@ def admin_prompts(request):
         "anlage2": [],
         "anlage3": [],
         "anlage4": [],
-        "anlage6": [],
     }
     for p in prompts:
         name = p.name.lower()
@@ -1334,8 +1332,6 @@ def admin_prompts(request):
             groups["anlage3"].append(p)
         elif "anlage4" in name:
             groups["anlage4"].append(p)
-        elif "anlage6" in name:
-            groups["anlage6"].append(p)
         else:
             groups["general"].append(p)
 
@@ -1372,7 +1368,6 @@ def admin_prompts(request):
         ("anlage2", "Anlage 2 Prompts"),
         ("anlage3", "Anlage 3 Prompts"),
         ("anlage4", "Anlage 4 Prompts"),
-        ("anlage6", "Anlage 6 Prompts"),
     ]
 
     grouped = [(key, label, groups[key]) for key, label in labels]
@@ -2482,7 +2477,6 @@ def projekt_file_check(request, pk, nr):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        6: check_anlage6,
     }
     func = funcs.get(nr_int)
     if not func:
@@ -2518,7 +2512,6 @@ def projekt_file_check_pk(request, pk):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        6: check_anlage6,
     }
     func = funcs.get(anlage.anlage_nr)
     if not func:
@@ -2551,7 +2544,6 @@ def projekt_file_check_view(request, pk):
         2: check_anlage2 if use_llm else analyse_anlage2,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
-        6: check_anlage6,
     }
     func = funcs.get(anlage.anlage_nr)
     if not func:
@@ -3644,3 +3636,9 @@ def download_knowledge_as_word(request, knowledge_id):
 def anlage5_dummy(request):
     """Zeigt einen Platzhalter f\xFCr Anlage 5."""
     return render(request, "anlage5_dummy.html")
+
+
+@login_required
+def anlage6_dummy(request):
+    """Zeigt einen Platzhalter f\xFCr Anlage 6."""
+    return render(request, "anlage6_dummy.html")
