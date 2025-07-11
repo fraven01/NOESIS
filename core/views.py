@@ -3083,7 +3083,21 @@ def anlage2_feature_verify(request, pk):
     elif subquestion_id:
         object_type = "subquestion"
         obj_id = int(subquestion_id)
-        get_object_or_404(Anlage2SubQuestion, pk=obj_id)
+        sub_obj = get_object_or_404(Anlage2SubQuestion, pk=obj_id)
+        parent_res = (
+            Anlage2FunctionResult.objects.filter(
+                projekt=anlage.projekt, funktion=sub_obj.funktion
+            )
+            .order_by("-id")
+            .first()
+        )
+        if not parent_res or parent_res.technisch_verfuegbar is not True:
+            return JsonResponse(
+                {
+                    "status": "skipped",
+                    "message": "Hauptfunktion ist nicht vorhanden",
+                }
+            )
     else:
         logger.error(
             "FEHLER: Weder function_id noch subquestion_id im POST-Request gefunden. Sende 400 Bad Request."
