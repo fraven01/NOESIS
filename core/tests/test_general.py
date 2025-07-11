@@ -578,6 +578,20 @@ class LLMTasksTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
         self.assertEqual(res.source, "llm")
 
+    def test_check_anlage2_functions_stores_result(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        llm_reply = json.dumps({"technisch_verfuegbar": True})
+        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
+            check_anlage2_functions(projekt.pk)
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+
     def test_check_anlage2_llm_receives_text(self):
         """Der LLM-Prompt enthält den bekannten Text."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -685,6 +699,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=upload,
             text_content="ignored",
         )
+        func = Anlage2Function.objects.create(name="Login")
 
         result = run_anlage2_analysis(pf)
         expected = [
@@ -698,6 +713,8 @@ class LLMTasksTests(NoesisTestCase):
         ]
 
         pf.refresh_from_db()
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertTrue(res.doc_result["technisch_verfuegbar"]["value"])
         self.assertEqual(result, expected)
         self.assertEqual(json.loads(pf.analysis_json), expected)
 
@@ -2203,6 +2220,8 @@ class FeatureVerificationTests(NoesisTestCase):
                 "ki_beteiligt_begruendung": "",
             },
         )
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.ai_result["technisch_verfuegbar"])
 
     def test_all_no_returns_false(self):
         with patch(
@@ -2219,6 +2238,8 @@ class FeatureVerificationTests(NoesisTestCase):
                 "ki_beteiligt_begruendung": "",
             },
         )
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertFalse(res.ai_result["technisch_verfuegbar"])
 
     def test_subquestion_context_contains_question(self):
         """Die Subquestion wird korrekt im Kontext übergeben."""
@@ -2567,5 +2588,29 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         self.assertRedirects(resp, url + "?tab=text")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
+
+
+class AjaxAnlage2ReviewTests(NoesisTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("reviewer", password="pw")
+        self.client.login(username="reviewer", password="pw")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        self.func = Anlage2Function.objects.create(name="Login")
+
+    def test_manual_result_saved(self):
+        url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({"project_file_id": self.pf.pk, "function_id": self.func.pk, "status": True}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.manual_result["technisch_vorhanden"])
 
 

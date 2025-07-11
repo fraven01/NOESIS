@@ -290,6 +290,22 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
     project_file.save(update_fields=["analysis_json"])
+
+    # Dokumentergebnisse in Anlage2FunctionResult speichern
+    for row in analysis_result or []:
+        name = row.get("funktion")
+        if not name:
+            continue
+        try:
+            func = Anlage2Function.objects.get(name=name)
+        except Anlage2Function.DoesNotExist:
+            continue
+        Anlage2FunctionResult.objects.update_or_create(
+            projekt=project_file.projekt,
+            funktion=func,
+            defaults={"doc_result": row},
+        )
+
     return analysis_result
 
 
@@ -1223,6 +1239,7 @@ def check_anlage2_functions(
                 "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
                 "ki_beteiligung": vals.get("ki_beteiligung"),
                 "raw_json": data,
+                "ai_result": data,
                 "source": "llm",
             },
         )
@@ -1415,6 +1432,13 @@ def worker_verify_feature(
         verif[lookup_key] = verification_result
     pf.verification_json = verif
     pf.save(update_fields=["verification_json"])
+
+    func_id = obj_to_check.id if object_type == "function" else obj_to_check.funktion_id
+    Anlage2FunctionResult.objects.update_or_create(
+        projekt_id=project_id,
+        funktion_id=func_id,
+        defaults={"ai_result": verification_result},
+    )
 
     if object_type == "function":
         Anlage2FunctionResult.objects.filter(
