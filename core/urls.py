@@ -42,6 +42,16 @@ urlpatterns = [
     path("recording/delete/<int:pk>/", views.recording_delete, name="recording_delete"),
     path("talkdiary-admin/", views.admin_talkdiary, name="admin_talkdiary"),
     path("projects-admin/", views.admin_projects, name="admin_projects"),
+    path(
+        "projects-admin/export/",
+        views.admin_project_export,
+        name="admin_project_export",
+    ),
+    path(
+        "projects-admin/import/",
+        views.admin_project_import,
+        name="admin_project_import",
+    ),
     path("projects-admin/statuses/", views.admin_project_statuses, name="admin_project_statuses"),
     path("projects-admin/statuses/new/", views.admin_project_status_form, name="admin_project_status_new"),
     path("projects-admin/statuses/<int:pk>/edit/", views.admin_project_status_form, name="admin_project_status_edit"),

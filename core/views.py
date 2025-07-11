@@ -10,11 +10,15 @@ from django.http import (
     HttpResponse,
 )
 from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
 from django.urls import reverse
 from typing import Any
+import io
+import zipfile
+from django.db import transaction
 import subprocess
 import whisper
 import torch
@@ -51,6 +55,7 @@ from .forms import (
     UserPermissionsForm,
     UserImportForm,
     Anlage2ConfigImportForm,
+    ProjectImportForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
 
@@ -1180,6 +1185,121 @@ def admin_project_cleanup(request, pk):
 
     context = {"projekt": projekt, "files": projekt.anlagen.all()}
     return render(request, "admin_project_cleanup.html", context)
+
+
+@login_required
+@admin_required
+@require_http_methods(["POST"])
+def admin_project_export(request):
+    """Exportiert ausgewählte Projekte als ZIP-Archiv."""
+    ids = request.POST.getlist("selected_projects")
+    if not ids:
+        messages.error(request, "Keine Projekte zum Export ausgewählt.")
+        return redirect("admin_projects")
+
+    projects = BVProject.objects.filter(id__in=ids)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        data = []
+        for proj in projects:
+            item = {
+                "title": proj.title,
+                "beschreibung": proj.beschreibung,
+                "status": proj.status.key if proj.status else "",
+                "classification_json": proj.classification_json,
+                "gutachten_function_note": proj.gutachten_function_note,
+                "software": list(proj.bvsoftware_set.values_list("name", flat=True)),
+                "files": [],
+            }
+            if proj.gutachten_file:
+                path = Path(settings.MEDIA_ROOT) / proj.gutachten_file.name
+                if path.exists():
+                    zip_name = f"gutachten/{path.name}"
+                    zf.write(path, zip_name)
+                    item["gutachten_file"] = zip_name
+            for f in proj.anlagen.all():
+                fitem = {
+                    "anlage_nr": f.anlage_nr,
+                    "manual_comment": f.manual_comment,
+                    "manual_analysis_json": f.manual_analysis_json,
+                    "analysis_json": f.analysis_json,
+                    "manual_reviewed": f.manual_reviewed,
+                    "verhandlungsfaehig": f.verhandlungsfaehig,
+                    "filename": None,
+                }
+                if f.upload:
+                    p = Path(settings.MEDIA_ROOT) / f.upload.name
+                    if p.exists():
+                        zip_name = f"files/{p.name}"
+                        zf.write(p, zip_name)
+                        fitem["filename"] = zip_name
+                item["files"].append(fitem)
+            data.append(item)
+        zf.writestr("projects.json", json.dumps(data, ensure_ascii=False, indent=2))
+    buffer.seek(0)
+    resp = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    resp["Content-Disposition"] = "attachment; filename=projects_export.zip"
+    return resp
+
+
+@login_required
+@admin_required
+@require_http_methods(["POST"])
+def admin_project_import(request):
+    """Importiert Projekte aus einem ZIP-Archiv."""
+    form = ProjectImportForm(request.POST, request.FILES)
+    if not form.is_valid():
+        messages.error(request, "Keine gültige Datei hochgeladen.")
+        return redirect("admin_projects")
+
+    uploaded = form.cleaned_data["json_file"]
+    try:
+        with zipfile.ZipFile(uploaded) as zf:
+            raw = zf.read("projects.json").decode("utf-8")
+            items = json.loads(raw)
+            with transaction.atomic():
+                for entry in items:
+                    status = ProjectStatus.objects.filter(key=entry.get("status")).first()
+                    proj = BVProject.objects.create(
+                        title=entry.get("title", ""),
+                        beschreibung=entry.get("beschreibung", ""),
+                        status=status,
+                        classification_json=entry.get("classification_json"),
+                        gutachten_function_note=entry.get("gutachten_function_note", ""),
+                    )
+                    if entry.get("gutachten_file"):
+                        content = zf.read(entry["gutachten_file"])
+                        saved = default_storage.save(
+                            f"gutachten/{Path(entry['gutachten_file']).name}",
+                            ContentFile(content),
+                        )
+                        proj.gutachten_file = saved
+                        proj.save(update_fields=["gutachten_file"])
+                    for name in entry.get("software", []):
+                        BVSoftware.objects.create(projekt=proj, name=name)
+                    for fentry in entry.get("files", []):
+                        upload_name = ""
+                        if fentry.get("filename"):
+                            content = zf.read(fentry["filename"])
+                            upload_name = default_storage.save(
+                                f"bv_files/{Path(fentry['filename']).name}",
+                                ContentFile(content),
+                            )
+                        BVProjectFile.objects.create(
+                            projekt=proj,
+                            anlage_nr=fentry.get("anlage_nr"),
+                            upload=upload_name,
+                            manual_comment=fentry.get("manual_comment", ""),
+                            manual_analysis_json=fentry.get("manual_analysis_json"),
+                            analysis_json=fentry.get("analysis_json"),
+                            manual_reviewed=fentry.get("manual_reviewed", False),
+                            verhandlungsfaehig=fentry.get("verhandlungsfaehig", False),
+                        )
+        messages.success(request, "Projekte importiert.")
+    except Exception as exc:  # noqa: BLE001
+        messages.error(request, "Fehler beim Import: %s" % exc)
+        logger.error("Import error", exc_info=True)
+    return redirect("admin_projects")
 
 
 @login_required
