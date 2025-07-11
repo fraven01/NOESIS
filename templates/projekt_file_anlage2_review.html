@@ -35,7 +35,7 @@
             </tr>
             <tr>
                 {% for _ in labels %}
-                <th class="border px-2">Analyse</th>
+                <th class="border px-2">KI-Check</th>
                 <th class="border px-2">Review</th>
                 {% endfor %}
             </tr>
@@ -43,9 +43,9 @@
         <tbody>
         {% for row in rows %}
             <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}"
-                data-relevant="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
-                data-parsed-status="{{ row.analysis|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
-                data-parsed-notes="{{ row.analysis|raw_item:'technisch_vorhanden'|get_item:'note' }}"
+                data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
+                data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
+                data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
@@ -69,13 +69,15 @@
                 {% for field in fields %}
                 {% if field == 'ki_beteiligung' %}
                 <td class="border px-2 text-center">
+                    {% with doc=row.doc_result|raw_item:field note=doc|get_item:'note' %}
                     {% if row.ki_beteiligt == True %}
-                        <span class="status-badge status-ja">✓ Ja</span>
+                        <span class="status-badge status-ja" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✓ Ja</span>
                     {% elif row.ki_beteiligt == False %}
-                        <span class="status-badge status-nein">✗ Nein</span>
+                        <span class="status-badge status-nein" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✗ Nein</span>
                     {% else %}
-                        <span class="status-badge status-unbekannt">? Unbekannt</span>
+                        <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
                     {% endif %}
+                    {% endwith %}
                     {% if row.ki_beteiligt_begruendung %}
                     <i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ row.ki_beteiligt_begruendung }}"></i>
                     {% endif %}
@@ -87,16 +89,15 @@
                 </td>
                 {% endwith %}
                 {% else %}
-                {% with val=row.analysis|get_item:field note=row.analysis|raw_item:field|get_item:'note' f=row.form_fields|list_index:forloop.counter0 %}
+                {% with val=row.ai_result|get_item:field doc=row.doc_result|raw_item:field note=doc|get_item:'note' f=row.form_fields|list_index:forloop.counter0 %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
-                        <span class="status-badge status-ja">✓ Vorhanden</span>
+                        <span class="status-badge status-ja" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✓ Vorhanden</span>
                     {% elif val == False %}
-                        <span class="status-badge status-nein">✗ Nicht vorhanden</span>
+                        <span class="status-badge status-nein" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✗ Nicht vorhanden</span>
                     {% else %}
-                        <span class="status-badge status-unbekannt">? Unbekannt</span>
+                        <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
                     {% endif %}
-                    {% if note %}<i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ note }}"></i>{% endif %}
                 </td>
                 <td class="border px-2 text-center">
                     {{ f.widget }}
