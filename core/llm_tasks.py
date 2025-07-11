@@ -1581,3 +1581,52 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])
     return reply
+
+
+def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -> str:
+    """Erzeugt eine Gap-Zusammenfassung f\u00fcr ein Review-Ergebnis."""
+
+    logger.info("worker_generate_gap_summary gestartet f\u00fcr Result %s", result_id)
+    res = Anlage2FunctionResult.objects.select_related("projekt", "funktion").get(pk=result_id)
+
+    ai_val = None
+    if isinstance(res.ai_result, dict):
+        ai_val = res.ai_result.get("technisch_verfuegbar")
+    manual_val = None
+    if isinstance(res.manual_result, dict):
+        manual_val = res.manual_result.get("technisch_vorhanden")
+
+    conflict = f"KI-Check: {ai_val} / Review: {manual_val}"
+
+    gut_text = ""
+    projekt = res.projekt
+    if projekt.gutachten_file:
+        path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+        try:
+            gut_text = extract_text(path)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Gutachten konnte nicht geladen werden: %s", exc)
+
+    snippet = gut_text[:500]
+
+    base_prompt = Prompt.objects.filter(name="gap_summary").first()
+    prefix = (
+        base_prompt.text
+        if base_prompt
+        else (
+            "Fasse kurz zusammen, warum der manuelle Review von der KI-Einsch\xf" "tzung abweicht."\n\n"
+        )
+    )
+    text = f"Funktion: {res.funktion.name}\n{conflict}\n{snippet}"
+    prompt_obj = Prompt(name="tmp", text=prefix + text, role=base_prompt.role if base_prompt else None)
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt,
+    )
+    res.gap_summary = reply.strip()
+    res.save(update_fields=["gap_summary"])
+    logger.info("worker_generate_gap_summary beendet f\u00fcr Result %s", result_id)
+    return reply.strip()
