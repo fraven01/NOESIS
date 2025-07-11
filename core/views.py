@@ -468,13 +468,24 @@ def _build_row_data(
         lookup_key, analysis_lookup, verification_lookup, manual_lookup
     )
     fields_def = get_anlage2_fields()
-    widgets = [
-        {
-            "widget": form[f"{form_prefix}{field}"],
-            "source": disp["sources"][field],
-        }
-        for field, _ in fields_def
-    ]
+    widgets = []
+    for field, _ in fields_def:
+        bf = form[f"{form_prefix}{field}"]
+        if field == "technisch_vorhanden" and sub_id is None:
+            initial_value = disp["values"].get(field)
+            state = (
+                "true"
+                if initial_value is True
+                else "false" if initial_value is False else "unknown"
+            )
+            bf.field.widget.attrs.update(
+                {
+                    "data-tristate": "true",
+                    "data-initial-state": state,
+                    "style": "display: none;",
+                }
+            )
+        widgets.append({"widget": bf, "source": disp["sources"][field]})
     negotiable_widget = form[f"{form_prefix}is_negotiable"]
     gap_widget = form[f"{form_prefix}gap_summary"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))

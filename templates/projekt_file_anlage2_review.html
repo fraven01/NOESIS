@@ -122,7 +122,7 @@
                 <td class="border px-2 text-center">
                     {% if field == 'technisch_vorhanden' %}
                         <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
-                        {{ f.as_widget(attrs={'data-tristate':'1','style':'display:none'}) }}
+                        {{ f.widget }}
                     {% else %}
                         {{ f.widget }}
                     {% endif %}
@@ -247,8 +247,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.tri-state-icon').forEach(icon => {
         const input = document.getElementById(icon.dataset.inputId);
         if (!input) return;
-        input.dataset.tristate = '1';
-        input.dataset.state = input.dataset.state || (input.checked ? 'true' : 'unknown');
+        input.dataset.tristate = 'true';
+        input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
         updateTriState(icon, input);
         icon.addEventListener('click', () => {
             let st = input.dataset.state;
