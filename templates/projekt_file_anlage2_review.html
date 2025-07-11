@@ -79,7 +79,12 @@
                     {% endif %}
                     {% endwith %}
                     {% if row.ki_beteiligt_begruendung %}
-                    <i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ row.ki_beteiligt_begruendung }}"></i>
+                    <i class="fas fa-info-circle text-muted ms-1"
+                       data-bs-toggle="popover"
+                       data-bs-trigger="focus"
+                       tabindex="0"
+                       title="Informationsquelle"
+                       data-bs-content="{{ row.ki_beteiligt_begruendung }}"></i>
                     {% endif %}
                 </td>
                 {% with f=row.form_fields|list_index:forloop.counter0 %}
@@ -107,7 +112,7 @@
                 {% endif %}
                 {% endfor %}
                 <td class="border px-2 text-center">{{ row.negotiable_widget }}</td>
-                <td class="border px-2 text-center">
+                <td class="border px-2 text-center {% if row.has_preliminary_gap %}bg-purple-200{% endif %}">
                     <button type="button" class="gap-summary-btn" data-bs-toggle="collapse" data-bs-target="#gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
                         <i class="fa fa-comment-dots"></i>
                     </button>
@@ -178,6 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+    const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
 
     const formElem = document.querySelector('form[data-anlage-id]');
     const saveUrl = "{% url 'ajax_save_anlage2_review' %}";
