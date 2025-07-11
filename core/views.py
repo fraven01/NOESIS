@@ -3182,6 +3182,10 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             "ki_beteiligung": ki_beteiligt,
             "raw_json": {"notes": notes, "subquestion_id": sub_id},
             "source": "manual",
+            "manual_result": {
+                "technisch_vorhanden": status,
+                "ki_beteiligung": ki_beteiligt,
+            },
         }
 
         Anlage2FunctionResult.objects.update_or_create(
@@ -3225,6 +3229,11 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
     Anlage2FunctionResult.objects.filter(
         projekt=project_file.projekt
     ).exclude(source="parser").delete()
+    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
+        doc_result=None,
+        ai_result=None,
+        manual_result=None,
+    )
     project_file.verification_json = {}
     project_file.manual_analysis_json = None
     project_file.save(update_fields=["verification_json", "manual_analysis_json"])
