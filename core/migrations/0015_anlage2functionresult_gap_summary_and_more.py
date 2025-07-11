@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("core", "0013_remove_anlage4parserconfig_prompt_extraction"),
+        ("core", "0014_add_project_prompt"),
     ]
 
     operations = [
