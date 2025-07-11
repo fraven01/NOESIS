@@ -283,6 +283,11 @@ urlpatterns = [
         name="anlage5_dummy",
     ),
     path(
+        "work/anlage6/dummy/",
+        views.anlage6_dummy,
+        name="anlage6_dummy",
+    ),
+    path(
         "work/anlage4/<int:pk>/review/",
         views.anlage4_review,
         name="anlage4_review",
