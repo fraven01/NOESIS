@@ -162,6 +162,122 @@ def seed_test_data() -> None:
         name="check_anlage3_vision",
         defaults={"text": "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
     )
+    # Weitere Prompts für Tests bereitstellen
+    roles = {r.name: r for r in apps.get_model("core", "LLMRole").objects.all()}
+    prompt_data = {
+        "analyse_anlage2": {
+            "text": (
+                "Analysiere den folgenden Text und gib eine JSON-Liste von Objekten "
+                "mit den Schlüsseln 'funktion', 'technisch_vorhanden', "
+                "'einsatz_bei_telefonica', 'zur_lv_kontrolle' und 'ki_beteiligung' zur\n\n"
+            )
+        },
+        "anlage1_email": {
+            "text": (
+                "Formuliere eine freundliche E-Mail an den Fachbereich. "
+                "Wir haben die Anlage 1 geprüft und noch folgende Vorschläge, "
+                "bevor der Mitbestimmungsprozess weiter gehen kann. "
+                "Bitte fasse die folgenden Vorschläge zusammen:\r\n\r\n"
+            )
+        },
+        "anlage2_ai_involvement_check": {
+            "text": (
+                "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: "
+                "Beinhaltet die Funktion '{function_name}' der Software "
+                "'{software_name}' typischerweise eine KI-Komponente? "
+                "Eine KI-Komponente liegt vor, wenn die Funktion "
+                "unstrukturierte Daten (Text, Bild, Ton) verarbeitet, "
+                "Sentiment-Analysen durchführt oder nicht-deterministische, "
+                "probabilistische Ergebnisse liefert."
+            )
+        },
+        "anlage2_ai_involvement_justification": {
+            "text": (
+                "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+                "der Software '{software_name}' eine KI-Komponente beinhaltet oder "
+                "beinhalten kann, insbesondere im Hinblick auf die Verarbeitung "
+                "unstrukturierter Daten oder nicht-deterministischer Ergebnisse."
+            )
+        },
+        "anlage2_feature_justification": {
+            "text": (
+                "Warum besitzt die Software '{software_name}' typischerweise die "
+                "Funktion oder Eigenschaft '{function_name}'?   Ist es möglich "
+                "mit der {function_name} eine Leistungskontrolle oder eine "
+                "Verhaltenskontrolle  Ist damit eine Leistungskontrolle oder "
+                "eine Verhaltenskontrolle im Sinne des §87 Abs. 1 Nr. 6 möglich? "
+                "Wenn ja, wie?"
+            )
+        },
+        "anlage2_feature_verification": {
+            "text": (
+                "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen "
+                "Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", "
+                "\"Nein\", oder \"Unsicher\" sein. Gib keine Einleitung, keine "
+                "Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: "
+                "Besitzt die Software '{software_name}' basierend auf allgemeinem "
+                "Wissen typischerweise die Funktion oder Eigenschaft "
+                "'{function_name}'?"
+            ),
+            "role": roles.get("Standard"),
+            "use_system_role": False,
+        },
+        "check_anlage2_function": {
+            "text": (
+                "Prüfe anhand des folgenden Textes, ob die genannte Funktion "
+                "vorhanden ist. Gib ein JSON mit den Schlüsseln \"technisch_verfuegbar\", "
+                "\"einsatz_telefonica\", \"zur_lv_kontrolle\" und \"ki_beteiligung\" "
+                "zurück.\n\n"
+            )
+        },
+        "check_anlage3": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        "check_anlage4": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        "check_anlage5": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        "check_anlage6": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        "classify_system": {
+            "text": (
+                "Bitte klassifiziere das folgende Softwaresystem. "
+                "Gib ein JSON mit den Schlüsseln 'kategorie' und 'begruendung' zurück.\n\n"
+            )
+        },
+        "generate_gutachten": {
+            "text": (
+                "Erstelle ein tiefgehendes Gutachten zu der Software im Sinne des § 87 Abs. 1 Nr. 6 BetrVG. "
+                "Richte das Gutachten ausschließlich an Betriebsräte und überspringe allgemeine Erläuterungen "
+                "zu DSGVO oder Datenschutzrecht ebenso musst du nicht erläutern, wann Mitbestimmungsrechte "
+                "nach §87 (1) Nr. 6 gelten.\n\nDein Gutachten soll folgende Punkte abdecken: \n\n1. **Mitbestimmungspflichtige Funktionen**   \n- Liste alleFeatures auf, die der Leistungs- oder Verhaltenskontrolle dienen (z. B. Analyse von Nutzungshistorien, App- und Kommunikationsauswertung, Dateizugriffsprotokolle).\n- Erläutere kurz, warum jede einzelne Funktion unter § 87 1 Nr. 6 BetrVG fällt. \n\n2. **Eingriffsintensität aus Mitarbeitersicht**   \n   - Beschreibe, wie stark jede dieser Funktionen in den Arbeitsablauf eingreift und welche Verhaltensaspekte sie überwacht (z. B. Häufigkeit von App-Nutzung, Kommunikationsverhalten, Standortdaten).   \n   - Nutze eine Skala (gering – mittel – hoch) und begründe die Einstufung anhand typischer Betriebsabläufe in einem Telekommunikationsunternehmen. \n\n3. **Betroffene Leistungs- und Verhaltensaspekte**   \n   - Identifiziere konkret, welche Leistungskennzahlen (z. B. Aktivitätszeiten, App-Nutzungsdauer) und Verhaltensmuster (z. B. Kommunikationshäufigkeit, Datenübertragung) erfasst und ausgewertet werden.   \n   - Schätze ab, wie umfassend und detailliert die Auswertung jeweils ausfällt. \n\n4. **Handlungsbedarf für den Betriebsrat**   \n   - Fasse zusammen, bei welchen Funktionen und Einsatzszenarien eine Betriebsvereinbarung zwingend erforderlich ist. \n\n5. **Weitere Mitbestimmungsrechte (Kurzhinweise)**   \n   - Wenn offensichtlich erkennbar ist, dass andere relevante Mitbestimmungsrechte nach BetrVG (z. B. §§ 80 ff. zur Informationspflicht) berührt sind, bewerte kurz, warum diese Software dieses Recht des Betriebsrats berühren könnte. \n\nArbeite strukturiert mit klaren Überschriften und Bullet-Points. Wo sinnvoll, nutze kurze Tabellen oder Zusammenfassungen zur Übersicht. \n. Antworte auf deutsch.\nSoftware: \n"
+            ),
+            "role": roles.get("Gutachten"),
+        },
+        "initial_check_knowledge": {
+            "text": "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.",
+            "use_system_role": False,
+        },
+        "initial_check_knowledge_with_context": {
+            "text": (
+                "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". "
+                "Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'."
+            )
+        },
+        "initial_llm_check": {
+            "text": (
+                "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. "
+                "Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. "
+                "Erläutere, was sie tut und wie sie typischerweise eingesetzt wird."
+            ),
+            "role": roles.get("Gutachten"),
+        },
+    }
+
+    for name, data in prompt_data.items():
+        Prompt.objects.update_or_create(
+            name=name,
+            defaults={
+                "text": data["text"],
+                "role": data.get("role"),
+                "use_system_role": data.get("use_system_role", True),
+            },
+        )
 
 
 class NoesisTestCase(TestCase):
