@@ -50,6 +50,7 @@ from ..parsers import AbstractParser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
+import shutil
 from PIL import Image
 import fitz
 
@@ -217,7 +218,7 @@ def seed_test_data() -> None:
                 "Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: "
                 "Besitzt die Software '{software_name}' basierend auf allgemeinem "
                 "Wissen typischerweise die Funktion oder Eigenschaft "
-                "'{function_name}'?"
+                "'{function_name}'?\n\n{gutachten}"
             ),
             "role": roles.get("Standard"),
             "use_system_role": False,
@@ -2249,6 +2250,28 @@ class FeatureVerificationTests(NoesisTestCase):
             worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
         first_call_ctx = mock_q.call_args_list[0].args[1]
         self.assertEqual(first_call_ctx["subquestion_text"], self.sub.frage_text)
+
+    def test_gutachten_text_is_added_to_context(self):
+        doc = Document()
+        doc.add_paragraph("Info")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        dest_dir = Path(settings.MEDIA_ROOT) / "gutachten"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / Path(tmp.name).name
+        shutil.copy(tmp.name, dest)
+        Path(tmp.name).unlink(missing_ok=True)
+        self.projekt.gutachten_file.name = f"gutachten/{dest.name}"
+        self.projekt.save(update_fields=["gutachten_file"])
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["Ja", "Nein", "B", "Nein"],
+        ) as mock_q:
+            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+        ctx = mock_q.call_args_list[0].args[1]
+        self.assertIn("Info", ctx["gutachten"])
+        dest.unlink(missing_ok=True)
 
     def test_mixed_returns_none(self):
         with patch(
