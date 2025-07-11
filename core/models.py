@@ -747,6 +747,8 @@ class Anlage2FunctionResult(models.Model):
     technisch_verfuegbar = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     raw_json = models.JSONField(null=True, blank=True)
+    gap_summary = models.TextField(blank=True)
+    is_negotiable = models.BooleanField(default=False)
     source = models.CharField(max_length=10, default="llm")
     created_at = models.DateTimeField(auto_now_add=True)
 
