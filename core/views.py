@@ -476,6 +476,8 @@ def _build_row_data(
         }
         for field, _ in fields_def
     ]
+    negotiable_widget = form[f"{form_prefix}is_negotiable"]
+    gap_widget = form[f"{form_prefix}gap_summary"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
     bet_val, bet_reason = beteilig_map.get(
         (str(func_id), str(sub_id) if sub_id else None), (None, "")
@@ -485,6 +487,8 @@ def _build_row_data(
         "analysis": answers.get(lookup_key, {}),
         "initial": disp["values"],
         "form_fields": widgets,
+        "negotiable_widget": negotiable_widget,
+        "gap_summary_widget": gap_widget,
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,

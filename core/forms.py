@@ -334,6 +334,16 @@ class Anlage2ReviewForm(forms.Form):
                     widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
                 )
                 self.initial[name] = f_data.get(field, False)
+            self.fields[f"func{func.id}_gap_summary"] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+            )
+            self.initial[f"func{func.id}_gap_summary"] = f_data.get("gap_summary", "")
+            self.fields[f"func{func.id}_is_negotiable"] = forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+            )
+            self.initial[f"func{func.id}_is_negotiable"] = f_data.get("is_negotiable", False)
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_data = f_data.get("subquestions", {}).get(str(sub.id), {})
                 for field, _ in fields:
@@ -343,6 +353,16 @@ class Anlage2ReviewForm(forms.Form):
                         widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
                     )
                     self.initial[name] = s_data.get(field, False)
+                self.fields[f"sub{sub.id}_gap_summary"] = forms.CharField(
+                    required=False,
+                    widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+                )
+                self.initial[f"sub{sub.id}_gap_summary"] = s_data.get("gap_summary", "")
+                self.fields[f"sub{sub.id}_is_negotiable"] = forms.BooleanField(
+                    required=False,
+                    widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
+                )
+                self.initial[f"sub{sub.id}_is_negotiable"] = s_data.get("is_negotiable", False)
 
     def get_json(self) -> dict:
         out = {"functions": {}}
@@ -353,12 +373,24 @@ class Anlage2ReviewForm(forms.Form):
             item: dict[str, object] = {}
             for field, _ in fields:
                 item[field] = self.cleaned_data.get(f"func{func.id}_{field}", False)
+            item["gap_summary"] = self.cleaned_data.get(
+                f"func{func.id}_gap_summary", ""
+            )
+            item["is_negotiable"] = self.cleaned_data.get(
+                f"func{func.id}_is_negotiable", False
+            )
             sub_dict: dict[str, dict] = {}
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 sub_item = {
                     field: self.cleaned_data.get(f"sub{sub.id}_{field}", False)
                     for field, _ in fields
                 }
+                sub_item["gap_summary"] = self.cleaned_data.get(
+                    f"sub{sub.id}_gap_summary", ""
+                )
+                sub_item["is_negotiable"] = self.cleaned_data.get(
+                    f"sub{sub.id}_is_negotiable", False
+                )
                 sub_dict[str(sub.id)] = sub_item
             if sub_dict:
                 item["subquestions"] = sub_dict
