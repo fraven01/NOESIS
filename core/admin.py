@@ -185,6 +185,9 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "funktion",
         "technisch_verfuegbar",
         "ki_beteiligung",
+        "doc_result",
+        "ai_result",
+        "manual_result",
     )
 
 

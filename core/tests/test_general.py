@@ -490,6 +490,20 @@ class BVProjectModelTests(NoesisTestCase):
         self.assertEqual(projekt.software_typen, "A, B")
 
 
+class Anlage2FunctionResultModelTests(NoesisTestCase):
+    def test_manual_result_field(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        func = Anlage2Function.objects.create(name="Login")
+        res = Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=func,
+            manual_result={"technisch_vorhanden": True, "ki_beteiligung": False},
+            source="manual",
+        )
+        self.assertTrue(res.manual_result["technisch_vorhanden"])
+        self.assertFalse(res.manual_result["ki_beteiligung"])
+
+
 class WorkflowTests(NoesisTestCase):
     def test_default_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
