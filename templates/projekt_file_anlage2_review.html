@@ -46,6 +46,8 @@
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
+                data-ai="{{ row.ai_result|tojson|escapejs }}"
+                data-doc="{{ row.doc_result|tojson|escapejs }}"
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
@@ -175,6 +177,22 @@ document.addEventListener('DOMContentLoaded', function() {
             individualToggleButtons.forEach(btn => btn.textContent = '+');
         });
     }
+
+    document.querySelectorAll('tr[data-ai]').forEach(row => {
+        const ai = JSON.parse(row.dataset.ai || '{}');
+        const doc = JSON.parse(row.dataset.doc || '{}');
+        row.querySelectorAll('input[type="checkbox"]').forEach(inp => {
+            const parts = inp.name.split('_');
+            const key = parts[parts.length - 1];
+            const aiVal = ai[key] ? ai[key].value : undefined;
+            const docVal = doc[key] ? doc[key].value : undefined;
+            if (aiVal !== undefined || docVal !== undefined) {
+                const txt = `KI: ${aiVal} / Dok: ${docVal}`;
+                inp.setAttribute('data-bs-toggle', 'tooltip');
+                inp.setAttribute('title', txt);
+            }
+        });
+    });
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
