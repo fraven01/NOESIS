@@ -140,3 +140,12 @@
     border-color: #d1d5db;
     border-bottom-color: transparent;
 }
+
+* Keep admin button style, but reset color for EasyMDE buttons and editor */
+.admin-content .editor-toolbar button {
+    color: #1f2937;         /* Tailwind gray‑800 / any dark color */
+}
+
+.admin-content .CodeMirror {
+    color: #1f2937;         /* ensures editor text is visible when not focused */
+}
