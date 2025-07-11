@@ -1806,15 +1806,22 @@ def admin_import_users_permissions(request):
 @login_required
 @admin_required
 def admin_anlage2_config_export(request):
-    """Exportiert Spaltenüberschriften als JSON-Datei."""
+    """Exportiert die komplette Anlage-2-Konfiguration als JSON."""
     cfg = Anlage2Config.get_instance()
-    alias_headings = Anlage2ColumnHeading.objects.all().values(
-        "field_name",
-        "text",
-    )
+    alias_headings = cfg.headers.all().values("field_name", "text")
+
+    cfg_data = {
+        "enforce_subquestion_override": cfg.enforce_subquestion_override,
+        "parser_mode": cfg.parser_mode,
+        "parser_order": cfg.parser_order,
+        "text_technisch_verfuegbar_true": cfg.text_technisch_verfuegbar_true,
+    }
+
     data = {
+        "config": cfg_data,
         "alias_headings": list(alias_headings),
     }
+
     content = json.dumps(data, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
     resp["Content-Disposition"] = "attachment; filename=anlage2_config.json"
@@ -1833,7 +1840,23 @@ def admin_anlage2_config_import(request):
         except Exception:  # noqa: BLE001
             messages.error(request, "Ungültige JSON-Datei")
             return redirect("admin_anlage2_config_import")
+
         cfg = Anlage2Config.get_instance()
+
+        cfg_fields = items.get("config", {})
+        updated_fields: list[str] = []
+        for field in [
+            "enforce_subquestion_override",
+            "parser_mode",
+            "parser_order",
+            "text_technisch_verfuegbar_true",
+        ]:
+            if field in cfg_fields:
+                setattr(cfg, field, cfg_fields[field])
+                updated_fields.append(field)
+        if updated_fields:
+            cfg.save(update_fields=updated_fields)
+
         alias_headings_data = items.get("alias_headings", [])
         for h in alias_headings_data:
             Anlage2ColumnHeading.objects.update_or_create(
@@ -1841,6 +1864,7 @@ def admin_anlage2_config_import(request):
                 field_name=h.get("field_name"),
                 defaults={"text": h.get("text", "")},
             )
+
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
     return render(request, "admin_anlage2_config_import.html", {"form": form})
