@@ -1258,11 +1258,19 @@ def worker_verify_feature(
 
     projekt = BVProject.objects.get(pk=project_id)
 
+    gutachten_text = ""
+    if projekt.gutachten_file:
+        path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+        try:
+            gutachten_text = extract_text(path)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Gutachten konnte nicht geladen werden: %s", exc)
+    context: dict[str, str] = {"gutachten": gutachten_text}
+
     obj_to_check = None
     lookup_key: str | None = None
     verification_prompt_key = "anlage2_feature_verification"
     justification_prompt_key = "anlage2_feature_justification"
-    context: dict[str, str] = {}
     ai_function_name = ""
 
     if object_type == "function":
@@ -1291,7 +1299,7 @@ def worker_verify_feature(
                 "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
                 'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
                 "Aussage: Besitzt die Software '{software_name}' typischerweise "
-                "die Funktion oder Eigenschaft '{function_name}'?"
+                "die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}"
             ),
             use_system_role=False,
         )
