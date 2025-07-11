@@ -106,10 +106,29 @@
                         <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
                     {% endif %}
                 </td>
+                {% if field == 'technisch_vorhanden' and row.sub %}
                 <td class="border px-2 text-center">
-                    {{ f.widget }}
+                    {% with parsed=row.doc_result|get_item:field %}
+                    {% if parsed == True %}
+                        <span class="status-badge status-ja" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✓ Vorhanden</span>
+                    {% elif parsed == False %}
+                        <span class="status-badge status-nein" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✗ Nicht vorhanden</span>
+                    {% else %}
+                        <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
+                    {% endif %}
+                    {% endwith %}
+                </td>
+                {% else %}
+                <td class="border px-2 text-center">
+                    {% if field == 'technisch_vorhanden' %}
+                        <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
+                        {{ f.as_widget(attrs={'data-tristate':'1','style':'display:none'}) }}
+                    {% else %}
+                        {{ f.widget }}
+                    {% endif %}
                     {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
                 </td>
+                {% endif %}
                 {% endwith %}
                 {% endif %}
                 {% endfor %}
@@ -204,6 +223,51 @@ document.addEventListener('DOMContentLoaded', function() {
     const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
     const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
 
+    function updateTriState(icon, input) {
+        const state = input.dataset.state;
+        icon.classList.remove('status-ja', 'status-nein', 'status-unbekannt');
+        if (state === 'true') {
+            icon.textContent = '✓';
+            icon.classList.add('status-badge', 'status-ja');
+        } else if (state === 'false') {
+            icon.textContent = '✗';
+            icon.classList.add('status-badge', 'status-nein');
+        } else {
+            icon.textContent = '?';
+            icon.classList.add('status-badge', 'status-unbekannt');
+        }
+    }
+
+    function toggleSubRows(funcId, enabled) {
+        document.querySelectorAll(`.subquestions-for-${funcId} input, .subquestions-for-${funcId} button`).forEach(el => {
+            el.disabled = !enabled;
+        });
+    }
+
+    document.querySelectorAll('.tri-state-icon').forEach(icon => {
+        const input = document.getElementById(icon.dataset.inputId);
+        if (!input) return;
+        input.dataset.tristate = '1';
+        input.dataset.state = input.dataset.state || (input.checked ? 'true' : 'unknown');
+        updateTriState(icon, input);
+        icon.addEventListener('click', () => {
+            let st = input.dataset.state;
+            st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
+            input.dataset.state = st;
+            const evt = new Event('statechange');
+            input.dispatchEvent(evt);
+            updateTriState(icon, input);
+            const row = icon.closest('tr');
+            if (row && !row.classList.contains('subquestion-row')) {
+                toggleSubRows(row.dataset.funcId, st === 'true');
+            }
+        });
+        const row = icon.closest('tr');
+        if (row && !row.classList.contains('subquestion-row')) {
+            toggleSubRows(row.dataset.funcId, input.dataset.state === 'true');
+        }
+    });
+
     const formElem = document.querySelector('form[data-anlage-id]');
     const saveUrl = "{% url 'ajax_save_anlage2_review' %}";
 
@@ -224,7 +288,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!row || !formElem) { return; }
         const funcId = row.dataset.funcId;
         const subId = row.dataset.subId;
-        const status = el.type === 'checkbox' ? el.checked : el.value;
+        let status;
+        if (el.dataset.tristate !== undefined) {
+            const st = el.dataset.state;
+            if (st === 'true') status = true; else if (st === 'false') status = false; else status = null;
+        } else {
+            status = el.type === 'checkbox' ? el.checked : el.value;
+        }
         const payload = {
             project_file_id: formElem.dataset.anlageId,
             function_id: funcId,
@@ -256,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (formElem) {
         formElem.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.addEventListener('change', autoSave));
+        formElem.querySelectorAll('input[data-tristate]').forEach(inp => inp.addEventListener('statechange', autoSave));
         formElem.querySelectorAll('input[type="text"], textarea').forEach(inp => inp.addEventListener('blur', autoSave));
     }
 
@@ -332,7 +403,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                if (data.status === 'queued' && data.task_id) {
+                if (data.status === 'skipped') {
+                    alert(data.message || 'Hauptfunktion ist nicht vorhanden');
+                    hideSpinner(clickedButton);
+                    clickedButton.disabled = false;
+                } else if (data.status === 'queued' && data.task_id) {
                     const tmpl = "{% url 'ajax_check_task_status' 'TASKID' %}";
                     const pollUrl = tmpl.replace('TASKID', data.task_id);
                     const iv = setInterval(() => {
