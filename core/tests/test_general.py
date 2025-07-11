@@ -854,7 +854,9 @@ class LLMTasksTests(NoesisTestCase):
         cfg.parser_order = ["p1", "p2"]
         cfg.save()
 
-        with patch("core.llm_tasks.parse_anlage2_table") as m_tab, patch(
+        with patch(
+            "core.llm_tasks.parse_anlage2_table", return_value=[]
+        ) as m_tab, patch(
             "core.llm_tasks.parse_anlage2_text", return_value=[]
         ) as m_text:
             run_anlage2_analysis(pf)
