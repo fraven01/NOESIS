@@ -25,16 +25,19 @@
     <table class="table-auto w-full border">
         <thead>
             <tr>
-                <th class="border px-2">Funktion</th>
-                <th class="border px-2">Aktion</th>
+                <th class="border px-2" rowspan="2">Funktion</th>
+                <th class="border px-2" rowspan="2">Aktion</th>
                 {% for label in labels %}
-                <th class="border px-2">{{ label }} (Analyse)</th>
+                <th class="border px-2" colspan="2">{{ label }}</th>
                 {% endfor %}
-                {% for label in labels %}
-                <th class="border px-2">{{ label }} (Review)</th>
+                <th class="border px-2" rowspan="2">Verhandlungsfähig</th>
+                <th class="border px-2" rowspan="2">Gap</th>
+            </tr>
+            <tr>
+                {% for _ in labels %}
+                <th class="border px-2">Analyse</th>
+                <th class="border px-2">Review</th>
                 {% endfor %}
-                <th class="border px-2">Verhandlungsfähig</th>
-                <th class="border px-2">Gap Summary</th>
             </tr>
         </thead>
         <tbody>
@@ -77,8 +80,14 @@
                     <i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ row.ki_beteiligt_begruendung }}"></i>
                     {% endif %}
                 </td>
+                {% with f=row.form_fields|list_index:forloop.counter0 %}
+                <td class="border px-2 text-center">
+                    {{ f.widget }}
+                    {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
+                </td>
+                {% endwith %}
                 {% else %}
-                {% with val=row.analysis|get_item:field note=row.analysis|raw_item:field|get_item:'note' %}
+                {% with val=row.analysis|get_item:field note=row.analysis|raw_item:field|get_item:'note' f=row.form_fields|list_index:forloop.counter0 %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
                         <span class="status-badge status-ja">✓ Vorhanden</span>
@@ -89,17 +98,22 @@
                     {% endif %}
                     {% if note %}<i class="fa fa-info-circle ms-1" data-bs-toggle="tooltip" title="{{ note }}"></i>{% endif %}
                 </td>
-                {% endwith %}
-                {% endif %}
-                {% endfor %}
-                {% for f in row.form_fields %}
                 <td class="border px-2 text-center">
                     {{ f.widget }}
                     {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
                 </td>
+                {% endwith %}
+                {% endif %}
                 {% endfor %}
                 <td class="border px-2 text-center">{{ row.negotiable_widget }}</td>
-                <td class="border px-2">{{ row.gap_summary_widget }}</td>
+                <td class="border px-2 text-center">
+                    <button type="button" class="gap-summary-btn" data-bs-toggle="collapse" data-bs-target="#gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
+                        <i class="fa fa-comment-dots"></i>
+                    </button>
+                    <div id="gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="collapse mt-2">
+                        {{ row.gap_summary_widget }}
+                    </div>
+                </td>
             </tr>
         {% endfor %}
         </tbody>
