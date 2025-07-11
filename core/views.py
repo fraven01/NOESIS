@@ -481,6 +481,19 @@ def _build_row_data(
     bet_val, bet_reason = beteilig_map.get(
         (str(func_id), str(sub_id) if sub_id else None), (None, "")
     )
+    has_gap = False
+    for field, _ in fields_def:
+        doc_val = analysis_lookup.get(lookup_key, {}).get(field)
+        ai_val = verification_lookup.get(lookup_key, {}).get(field)
+        manual_val = manual_lookup.get(lookup_key, {}).get(field)
+        if (
+            doc_val is not None
+            and ai_val is not None
+            and doc_val != ai_val
+            and manual_val is None
+        ):
+            has_gap = True
+            break
     return {
         "name": display_name,
         "doc_result": answers.get(lookup_key, {}),
@@ -499,6 +512,7 @@ def _build_row_data(
         "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
         "ki_beteiligt": bet_val,
         "ki_beteiligt_begruendung": bet_reason,
+        "has_preliminary_gap": has_gap,
     }
 
 
