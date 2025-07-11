@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("core", "0014_add_project_prompt"),
-        ("core", "0014_anlage2functionresult_gap_summary_and_more"),
+        ("core", "0015_anlage2functionresult_gap_summary_and_more"),
     ]
 
     operations = []
