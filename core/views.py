@@ -484,7 +484,8 @@ def _build_row_data(
     )
     return {
         "name": display_name,
-        "analysis": answers.get(lookup_key, {}),
+        "doc_result": answers.get(lookup_key, {}),
+        "ai_result": verification_lookup.get(lookup_key, {}),
         "initial": disp["values"],
         "form_fields": widgets,
         "negotiable_widget": negotiable_widget,
