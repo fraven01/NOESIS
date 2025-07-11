@@ -211,7 +211,7 @@ def parse_anlage1_questions(
     return parsed if parsed else None
 
 
-def _parse_anlage2(text_content: str) -> list[str] | None:
+def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list[str] | None:
     """Extrahiert Funktionslisten aus Anlage 2."""
     if not text_content:
         return None
@@ -235,7 +235,13 @@ def _parse_anlage2(text_content: str) -> list[str] | None:
         prompt_obj = Prompt(
             name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
         )
-        reply = query_llm(prompt_obj, {}, model_name=None, model_type="anlagen")
+        reply = query_llm(
+            prompt_obj,
+            {},
+            model_name=None,
+            model_type="anlagen",
+            project_prompt=project_prompt,
+        )
         try:
             data = json.loads(reply)
             if isinstance(data, list):
@@ -303,7 +309,7 @@ def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         parser_logger.error("Fehler im Parser: %s", exc)
         table_data = []
     table_names = [row["funktion"] for row in table_data]
-    anlage_funcs = _parse_anlage2(anlage2.text_content) or []
+    anlage_funcs = _parse_anlage2(anlage2.text_content, projekt.project_prompt) or []
 
     missing = [f for f in anlage_funcs if f not in table_names]
     additional = [f for f in table_names if f not in anlage_funcs]
@@ -334,7 +340,13 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     prompt_obj = Prompt(
         name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
     )
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="default")
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="default",
+        project_prompt=projekt.project_prompt,
+    )
     try:
         data = json.loads(reply)
     except Exception:  # noqa: BLE001
@@ -363,7 +375,13 @@ def generate_gutachten(
         prompt_obj = Prompt(
             name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
         )
-        text = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
+        text = query_llm(
+            prompt_obj,
+            {},
+            model_name=model_name,
+            model_type="gutachten",
+            project_prompt=projekt.project_prompt,
+        )
     doc = Document()
     for line in text.splitlines():
         doc.add_paragraph(line)
@@ -424,7 +442,13 @@ def worker_generate_gutachten(
     prompt_obj = Prompt(
         name="tmp", text=prefix + target, role=base_obj.role if base_obj else None
     )
-    text = query_llm(prompt_obj, {}, model_name=model, model_type="gutachten")
+    text = query_llm(
+        prompt_obj,
+        {},
+        model_name=model,
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt,
+    )
     path = generate_gutachten(projekt.id, text, model_name=model)
 
     if knowledge:
@@ -535,7 +559,12 @@ def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict
                 anlage3_logger.error("Fehler beim Lesen von %s: %s", path, exc)
                 images = []
 
-        reply = query_llm_with_images(prompt, images, model)
+        reply = query_llm_with_images(
+            prompt,
+            images,
+            model,
+            project_prompt=projekt.project_prompt,
+        )
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -571,7 +600,13 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
         name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
     )
 
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="anlagen",
+        project_prompt=projekt.project_prompt,
+    )
     try:
         data = json.loads(reply)
     except Exception as _:
@@ -659,7 +694,13 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r",
             prompt_text[:500],
         )
-        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+        reply = query_llm(
+            prompt_obj,
+            {},
+            model_name=model_name,
+            model_type="anlagen",
+            project_prompt=projekt.project_prompt,
+        )
         anlage1_logger.debug(
             "check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500]
         )
@@ -706,7 +747,11 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             )
             try:
                 reply = query_llm(
-                    prompt_obj, {}, model_name=model_name, model_type="anlagen"
+                    prompt_obj,
+                    {},
+                    model_name=model_name,
+                    model_type="anlagen",
+                    project_prompt=projekt.project_prompt,
                 )
                 anlage1_logger.debug(
                     "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
@@ -810,7 +855,11 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
             reply = query_llm(
-                prompt_obj, {}, model_name=model_name, model_type="anlagen"
+                prompt_obj,
+                {},
+                model_name=model_name,
+                model_type="anlagen",
+                project_prompt=projekt.project_prompt,
             )
             anlage2_logger.debug(
                 "LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply
@@ -857,7 +906,11 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             )
             prompt_obj = Prompt(name="tmp", text=prompt_text)
             reply = query_llm(
-                prompt_obj, {}, model_name=model_name, model_type="anlagen"
+                prompt_obj,
+                {},
+                model_name=model_name,
+                model_type="anlagen",
+                project_prompt=projekt.project_prompt,
             )
             anlage2_logger.debug(
                 "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
@@ -932,7 +985,13 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
             raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
         anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
         prompt_obj = Prompt(name="tmp", text=prompt_text)
-        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+        reply = query_llm(
+            prompt_obj,
+            {},
+            model_name=model_name,
+            model_type="anlagen",
+            project_prompt=projekt.project_prompt,
+        )
         anlage4_logger.debug("A4 Sync Raw Response #%s: %s", idx, reply)
         if "```json" in reply:
             reply = reply.split("```json", 1)[1].split("```")[0]
@@ -982,7 +1041,13 @@ def worker_anlage4_evaluate(
         raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("Anlage4 Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="anlagen",
+        project_prompt=pf.projekt.project_prompt,
+    )
     anlage4_logger.debug("Anlage4 Raw Response #%s: %s", index, reply)
     try:
         data = json.loads(reply)
@@ -1032,7 +1097,13 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
         raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("A4 Plausi Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="anlagen",
+        project_prompt=pf.projekt.project_prompt,
+    )
     anlage4_logger.debug("A4 Plausi Raw Response #%s: %s", index, reply)
     try:
         data = json.loads(reply)
@@ -1130,7 +1201,13 @@ def check_anlage2_functions(
     for func in Anlage2Function.objects.order_by("name"):
         prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
         prompt_obj = Prompt(name="tmp", text=prompt_text)
-        reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="anlagen")
+        reply = query_llm(
+            prompt_obj,
+            {},
+            model_name=model_name,
+            model_type="anlagen",
+            project_prompt=projekt.project_prompt,
+        )
         try:
             data = json.loads(reply)
         except Exception:  # noqa: BLE001
@@ -1221,6 +1298,7 @@ def worker_verify_feature(
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
+            project_prompt=projekt.project_prompt,
         )
         ans = reply.strip()
         low = ans.lower()
@@ -1259,6 +1337,7 @@ def worker_verify_feature(
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
+            project_prompt=projekt.project_prompt,
         ).strip()
 
         try:
@@ -1279,6 +1358,7 @@ def worker_verify_feature(
                 model_name=model_name,
                 model_type="anlagen",
                 temperature=0.1,
+                project_prompt=projekt.project_prompt,
             )
             .strip()
             .lower()
@@ -1309,6 +1389,7 @@ def worker_verify_feature(
                 model_name=model_name,
                 model_type="anlagen",
                 temperature=0.1,
+                project_prompt=projekt.project_prompt,
             ).strip()
 
     # Ergebnisdictionary für Datenbank und Rückgabewert
@@ -1388,7 +1469,12 @@ def worker_run_initial_check(
             user_context=user_context or "",
         )
         tmp_prompt = Prompt(text=prompt1_text, use_system_role=False)
-        reply1 = query_llm(tmp_prompt, {}, model_type="default")
+        reply1 = query_llm(
+            tmp_prompt,
+            {},
+            model_type="default",
+            project_prompt=sk.projekt.project_prompt,
+        )
         sk.is_known_by_llm = "ja" in reply1.strip().lower()
         result["is_known_by_llm"] = sk.is_known_by_llm
 
@@ -1399,6 +1485,7 @@ def worker_run_initial_check(
                 description_prompt,
                 {"name": software_name},
                 model_type="default",
+                project_prompt=sk.projekt.project_prompt,
             )
             description = reply2.strip()
             sk.description = description
@@ -1458,7 +1545,13 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
     prompt_obj = Prompt(
         name="tmp", text=prefix + text, role=base_obj.role if base_obj else None
     )
-    reply = query_llm(prompt_obj, {}, model_name=model_name, model_type="gutachten")
+    reply = query_llm(
+        prompt_obj,
+        {},
+        model_name=model_name,
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt,
+    )
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])
     return reply
