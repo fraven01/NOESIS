@@ -25,6 +25,7 @@ def query_llm(
     model_name: str | None = None,
     model_type: str = "default",
     temperature: float = 0.5,
+    project_prompt: str | None = None,
 ) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
     from .models import LLMConfig, LLMRole, Prompt
@@ -61,6 +62,9 @@ def query_llm(
             ) from exc
     else:
         task_prompt = prompt_object.text
+
+    if project_prompt:
+        task_prompt = project_prompt.strip() + "\n\n" + task_prompt
 
     prompt = (
         f"{final_role_prompt}\n\n---\n\n{task_prompt}" if final_role_prompt else task_prompt
@@ -225,12 +229,17 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
         raise
 
 
-def query_llm_with_images(prompt: str, images: list[bytes], model_name: str) -> str:
+def query_llm_with_images(
+    prompt: str, images: list[bytes], model_name: str, project_prompt: str | None = None
+) -> str:
     """Sendet einen Prompt mit Bildern an ein LLM."""
 
     import base64
 
     correlation_id = str(uuid.uuid4())
+
+    if project_prompt:
+        prompt = project_prompt.strip() + "\n\n" + prompt
 
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:
         logger.error(

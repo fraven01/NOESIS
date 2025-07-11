@@ -89,6 +89,7 @@ class BVProject(models.Model):
 
     title = models.CharField("Titel", max_length=50, blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
+    project_prompt = models.TextField("Projekt-Prompt", blank=True)
     status = models.ForeignKey(
         ProjectStatus,
         on_delete=models.PROTECT,

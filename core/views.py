@@ -2248,6 +2248,11 @@ def projekt_list(request):
 @login_required
 def projekt_detail(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
+    if request.method == "POST" and "project_prompt" in request.POST:
+        projekt.project_prompt = request.POST.get("project_prompt", "")
+        projekt.save(update_fields=["project_prompt"])
+        messages.success(request, "Projekt-Prompt gespeichert")
+        return redirect("projekt_detail", pk=projekt.pk)
     anh = projekt.anlagen.all()
     reviewed = anh.filter(manual_reviewed=True).count()
     is_admin = request.user.groups.filter(name="admin").exists()
@@ -2902,7 +2907,12 @@ def anlage1_generate_email(request, pk):
     base_obj = Prompt.objects.filter(name="anlage1_email").first()
     prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
     try:
-        text = query_llm(prompt_obj, {}, model_type="default")
+        text = query_llm(
+            prompt_obj,
+            {},
+            model_type="default",
+            project_prompt=anlage.projekt.project_prompt,
+        )
     except RuntimeError:
         return JsonResponse({"error": "llm"}, status=500)
     except Exception:
@@ -2921,7 +2931,7 @@ def _validate_llm_output(text: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]:
+def _run_llm_check(name: str, additional: str | None = None, project_prompt: str | None = None) -> tuple[str, bool]:
     """Führt die LLM-Abfrage für eine einzelne Software durch."""
     base = get_prompt(
         "initial_llm_check",
@@ -2937,7 +2947,7 @@ def _run_llm_check(name: str, additional: str | None = None) -> tuple[str, bool]
     prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
 
     logger.debug("Starte LLM-Check für %s", name)
-    reply = query_llm(prompt_obj, {})
+    reply = query_llm(prompt_obj, {}, project_prompt=project_prompt)
     valid, _ = _validate_llm_output(reply)
     logger.debug("LLM-Antwort für %s: %s", name, reply[:100])
     return reply, valid
