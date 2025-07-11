@@ -2457,6 +2457,8 @@ def projekt_file_upload(request, pk):
             obj.projekt = projekt
             obj.text_content = content
             obj.save()
+            if obj.anlage_nr == 2:
+                run_anlage2_analysis(obj)
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()
