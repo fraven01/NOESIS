@@ -64,3 +64,12 @@ def tojson(value) -> str:
         return json.dumps(value, indent=2, ensure_ascii=False)
     except Exception:  # pragma: no cover - ungültige Daten
         return str(value)
+
+
+@register.filter(name="list_index")
+def list_index(value, index):
+    """Gibt das Listenelement an Position ``index`` zurück."""
+    try:
+        return value[int(index)]
+    except (IndexError, ValueError, TypeError):  # pragma: no cover - ungültiger Index
+        return None

@@ -2442,6 +2442,8 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
+        self.assertEqual(data["config"]["parser_mode"], self.cfg.parser_mode)
+        self.assertEqual(data["config"]["parser_order"], self.cfg.parser_order)
         self.assertIn(
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
             data["alias_headings"],
@@ -2450,9 +2452,15 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
     def test_import_creates_headings(self):
         payload = json.dumps(
             {
+                "config": {
+                    "parser_mode": "text_only",
+                    "parser_order": ["text"],
+                    "enforce_subquestion_override": True,
+                    "text_technisch_verfuegbar_true": ["ja"],
+                },
                 "alias_headings": [
                     {"field_name": "ki_beteiligung", "text": "KI?"}
-                ]
+                ],
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
@@ -2464,6 +2472,11 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
         )
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_mode, "text_only")
+        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertTrue(self.cfg.enforce_subquestion_override)
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja"])
 
 
 class Anlage2ConfigViewTests(NoesisTestCase):
