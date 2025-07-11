@@ -42,10 +42,16 @@
 <form id="post-actions-form" method="post">
     {% csrf_token %}
     {% if projects %}
-    <div class="mt-4">
+    <div class="mt-4 space-x-2">
+        <button type="button" id="import-btn" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</button>
+        <button type="submit" id="export-btn" formaction="{% url 'admin_project_export' %}" class="px-4 py-2 bg-blue-600 text-white rounded" disabled>Exportieren</button>
         <button type="submit" name="delete_selected" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Einträge wirklich löschen?');">Markierte löschen</button>
     </div>
     {% endif %}
+</form>
+<form id="import-form" method="post" enctype="multipart/form-data" action="{% url 'admin_project_import' %}" class="hidden">
+    {% csrf_token %}
+    <input type="file" name="json_file" id="import-file" accept="application/zip" class="hidden">
 </form>
 <script>
 function debounce(fn,delay){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),delay);};}
@@ -57,11 +63,30 @@ function updateProjects(){
   if(q)params.append('q',q);if(s)params.append('software',s);if(stat)params.append('status',stat);
   fetch(`?${params.toString()}`,{headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(r=>r.text())
-    .then(html=>{document.getElementById('project-table-body').innerHTML=html;});
+    .then(html=>{
+      const body=document.getElementById('project-table-body');
+      body.innerHTML=html;
+      document.querySelectorAll('input[name="selected_projects"]').forEach(cb=>cb.addEventListener('change',toggleExport));
+      toggleExport();
+    });
 }
 const debouncedUpdate=debounce(updateProjects,300);
 document.querySelector('input[name="q"]').addEventListener('input',debouncedUpdate);
 document.querySelector('input[name="software"]').addEventListener('input',debouncedUpdate);
 document.querySelector('select[name="status"]').addEventListener('change',updateProjects);
+
+function toggleExport(){
+  const anyChecked=[...document.querySelectorAll('input[name="selected_projects"]')].some(cb=>cb.checked);
+  document.getElementById('export-btn').disabled=!anyChecked;
+}
+document.querySelectorAll('input[name="selected_projects"]').forEach(cb=>cb.addEventListener('change',toggleExport));
+toggleExport();
+
+document.getElementById('import-btn').addEventListener('click',()=>{
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change',()=>{
+  document.getElementById('import-form').submit();
+});
 </script>
 {% endblock %}
