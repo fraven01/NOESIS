@@ -1614,7 +1614,7 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         base_prompt.text
         if base_prompt
         else (
-            "Fasse kurz zusammen, warum der manuelle Review von der KI-Einsch\xf" "tzung abweicht."\n\n"
+            "Fasse kurz zusammen, warum der manuelle Review von der KI-Einschätzung abweicht.\n\n"
         )
     )
     text = f"Funktion: {res.funktion.name}\n{conflict}\n{snippet}"
