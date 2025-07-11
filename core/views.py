@@ -3181,11 +3181,26 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             },
         }
 
-        Anlage2FunctionResult.objects.update_or_create(
+        res, _created = Anlage2FunctionResult.objects.update_or_create(
             projekt=anlage.projekt,
             funktion=funktion,
             defaults=defaults,
         )
+
+        gap_text = res.gap_summary
+        ai_val = None
+        if isinstance(res.ai_result, dict):
+            ai_val = res.ai_result.get("technisch_verfuegbar")
+        if ai_val is not None and ai_val != status:
+            task_id = async_task(
+                "core.llm_tasks.worker_generate_gap_summary",
+                res.id,
+            )
+            # Bei synchronem Testing wartet async_task nicht, daher neu laden
+            if task_id is None:
+                res.refresh_from_db()
+                gap_text = res.gap_summary
+        gap_text = gap_text or ""
 
         manual_data = anlage.manual_analysis_json or {"functions": {}}
         func_entry = manual_data.setdefault("functions", {}).setdefault(
@@ -3204,7 +3219,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         anlage.manual_analysis_json = manual_data
         anlage.save(update_fields=["manual_analysis_json"])
 
-        return JsonResponse({"status": "success"})
+        return JsonResponse({"status": "success", "gap_summary": gap_text})
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
         logger.error("Fehler beim Speichern des manuellen Reviews: %s", exc)
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)

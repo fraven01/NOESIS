@@ -218,7 +218,14 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(payload)
         })
             .then(r => r.json())
-            .then(() => { indicator.textContent = '✓ Gespeichert'; setTimeout(() => indicator.textContent = '', 1500); })
+            .then(data => {
+                indicator.textContent = '✓ Gespeichert';
+                if (data.gap_summary !== undefined) {
+                    const gapField = row.querySelector('textarea[name$="_gap_summary"]');
+                    if (gapField) { gapField.value = data.gap_summary; }
+                }
+                setTimeout(() => indicator.textContent = '', 1500);
+            })
             .catch(() => { indicator.textContent = '⚠️'; });
     }
 

@@ -78,6 +78,7 @@ from ..llm_tasks import (
     worker_run_initial_check,
     worker_run_anlage3_vision,
     worker_anlage4_evaluate,
+    worker_generate_gap_summary,
     get_prompt,
     generate_gutachten,
     run_anlage2_analysis,
@@ -2634,5 +2635,36 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertTrue(res.manual_result["technisch_vorhanden"])
+
+    def test_gap_generated_on_difference(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            ai_result={"technisch_verfuegbar": True},
+        )
+        url = reverse("ajax_save_anlage2_review")
+
+        def immediate(name, *args):
+            self.assertEqual(name, "core.llm_tasks.worker_generate_gap_summary")
+            worker_generate_gap_summary(*args)
+
+        with patch("core.views.async_task", side_effect=immediate), patch(
+            "core.llm_tasks.query_llm",
+            return_value="Abweichung",
+        ):
+            resp = self.client.post(
+                url,
+                data=json.dumps({
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": False,
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data.get("gap_summary"), "Abweichung")
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertEqual(res.gap_summary, "Abweichung")
 
 
