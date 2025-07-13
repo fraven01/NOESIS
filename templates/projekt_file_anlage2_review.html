@@ -182,8 +182,10 @@
 <script>
 const csrftoken = getCookie('csrftoken');
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('textarea').forEach(el => new EasyMDE({ element: el }));
+function initAnlage2Review() {
+    try {
+        document.querySelectorAll('textarea').forEach(el => new EasyMDE({ element: el }));
+    } catch (e) {}
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
@@ -273,11 +275,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!input) return;
         input.dataset.tristate = 'true';
         input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
+        if (input.type === 'checkbox') {
+            input.checked = input.dataset.state === 'true';
+        } else {
+            input.value = input.dataset.state === 'unknown' ? '' : input.dataset.state;
+        }
         updateTriState(icon, input);
         icon.addEventListener('click', () => {
             let st = input.dataset.state;
             st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
             input.dataset.state = st;
+            if (input.type === 'checkbox') {
+                input.checked = st === 'true';
+            } else {
+                input.value = st === 'unknown' ? '' : st;
+            }
             const evt = new Event('statechange');
             input.dispatchEvent(evt);
             updateTriState(icon, input);
@@ -488,6 +500,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ... andere Skripte f\u00fcr diese Seite ...
-});
+}
+document.addEventListener('DOMContentLoaded', initAnlage2Review);
+initAnlage2Review();
 </script>
 {% endblock %}
