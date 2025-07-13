@@ -262,14 +262,6 @@ LOGGING = {
             "level": "DEBUG",  # Hier setzt du den Loglevel für DEINE App auf DEBUG
             "propagate": False,
         },
-        # Wenn du den Namen deines Loggers in deinem Skript genau matchen möchtest:
-        # Dein Skript verwendet: logger = logging.getLogger(__name__)
-        # Wenn dein Skript z.B. in myapp/utils.py liegt, wäre __name__ 'myapp.utils'
-        "bv_project_tasks": {  # Passe dies an den tatsächlichen Modulnamen an, wenn du nur diesen spezifischen Logger debuggen möchtest
-            "handlers": ["console", "file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
         "parser_debug": {
             "handlers": ["parser_file"],
             "level": "DEBUG",
