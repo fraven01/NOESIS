@@ -17,6 +17,18 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    ```
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 
+## Dependencies for Tests
+
+Bevor `python manage.py makemigrations --check` oder `python manage.py test`
+ausgeführt werden, müssen die benötigten Pakete installiert sein:
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
+
 ## Tests und Checks
 
 Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
