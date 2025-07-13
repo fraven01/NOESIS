@@ -57,4 +57,4 @@ Procfile: Definiert die Prozesse (web, worker) für den Start mit honcho.
 
 ## Tests und Checks
 - Vor jedem Commit `python manage.py makemigrations --check` ausführen.
-- Mit `python manage.py test` die Test-Suite starten.
+
