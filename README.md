@@ -17,6 +17,18 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    ```
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 
+## Dependencies for Tests
+
+Bevor `python manage.py makemigrations --check` oder `python manage.py test`
+ausgeführt werden, müssen die benötigten Pakete installiert sein:
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
+
 ## Tests und Checks
 
 Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
@@ -98,18 +110,17 @@ Extrahieren berücksichtigt.
 
 ### Anlage 2 analysieren
 
-Die Analyse der zweiten Anlage erfolgt über das Webinterface. In der
-Projektübersicht lässt sich über den Button **Prüfen** neben Anlage 2 der
-Parser starten. Dieser ermittelt ausschließlich anhand des Dokuments, welche
-Funktionen oder Unterfragen ausgefüllt wurden. Eine Abfrage zum
-**KI‑Beteiligung**‑Flag findet dabei nicht statt. In der Detailansicht kann im
-Bedarfsfall eine weitergehende Prüfung per LLM ausgelöst werden.
+Beim Hochladen einer Anlage 2 startet automatisch die KI‑Prüfung. Zuerst
+analysiert der Parser das Dokument, anschließend bewertet das LLM alle
+gefundenen Funktionen. Die Ergebnisse landen wie gewohnt in der Logdatei
+`parser-debug.log`.
 
-Daneben bietet die Detailansicht einen separaten **Parser**‑Button. Dieser
-ruft nur den Dokumentparser auf, ohne die Ergebnisse mit der
-Systembeschreibung abzugleichen. Nach Änderungen an Aliaslisten lässt sich so
-die Tabelle unkompliziert neu einlesen. Sämtliche Schritte landen in der
-Logdatei `parser-debug.log`.
+In der Projektübersicht stehen zwei Schaltflächen bereit. Über **Prüfen** wird
+der Parser erneut ausgeführt, um aktualisierte Dateien einzulesen. Mit
+**Analyse bearbeiten** lässt sich die erzeugte JSON‑Struktur manuell anpassen.
+
+Wird im Projekt der Prompt geändert, setzt dies den KI‑Check zurück und führt
+ihn beim nächsten Speichern erneut aus.
 
 
 Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;

@@ -386,7 +386,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         file_obj = self.projekt.anlagen.get(anlage_nr=3)
         self.assertEqual(file_obj.text_content, "")
 
-    def test_anlage2_upload_runs_parser(self):
+    def test_anlage2_upload_queues_check(self):
         doc = Document()
         table = doc.add_table(rows=2, cols=2)
         table.cell(0, 0).text = "Funktion"
@@ -403,17 +403,19 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
-            format="multipart",
-        )
+        with patch("core.views.async_task") as mock_async:
+            resp = self.client.post(
+                url,
+                {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
+                format="multipart",
+            )
         self.assertEqual(resp.status_code, 302)
         pf = self.projekt.anlagen.get(anlage_nr=2)
-        self.assertIsNotNone(pf.analysis_json)
-        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion__name="Login")
-        self.assertIsNotNone(res.doc_result)
-        self.assertIsNone(res.ai_result)
+        self.assertIsNone(pf.analysis_json)
+        mock_async.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            self.projekt.pk,
+        )
 
 
 class AutoApprovalTests(NoesisTestCase):
@@ -2130,6 +2132,16 @@ class ModelSelectionTests(NoesisTestCase):
             resp = self.client.post(url, {"model": "mf"})
         self.assertEqual(resp.status_code, 200)
         mock_func.assert_called_with(self.projekt.pk, model_name="mf")
+
+    def test_prompt_save_triggers_async_check(self):
+        url = reverse("projekt_detail", args=[self.projekt.pk])
+        with patch("core.views.async_task") as mock_task:
+            resp = self.client.post(url, {"project_prompt": "Test"})
+        self.assertRedirects(resp, url)
+        mock_task.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            self.projekt.pk,
+        )
 
 
 class FunctionImportExportTests(NoesisTestCase):
