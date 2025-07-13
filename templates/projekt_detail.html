@@ -15,7 +15,7 @@
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
 <form method="post" action="">
     {% csrf_token %}
-    <h3 class="font-semibold mb-2">Projekt-Prompt</h3>
+    <h3 class="font-semibold mb-2">Projekt Kontext</h3>
     <textarea name="project_prompt" rows="4" class="border rounded w-full p-2">{{ projekt.project_prompt }}</textarea>
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded mt-2">Speichern</button>
 </form>
