@@ -123,6 +123,7 @@ from .templatetags.recording_extras import markdownify
 logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("parser_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
+anlage2_logger = logging.getLogger("anlage2_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
 
 
@@ -3261,6 +3262,16 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             },
         }
 
+        anlage2_logger.debug(
+            "Review gespeichert: pf=%s func=%s sub=%s status=%s ki=%s notes=%r",
+            pf_id,
+            func_id,
+            sub_id,
+            status,
+            ki_beteiligt,
+            notes,
+        )
+
         res, _created = Anlage2FunctionResult.objects.update_or_create(
             projekt=anlage.projekt,
             funktion=funktion,
@@ -3280,6 +3291,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                 "core.llm_tasks.worker_generate_gap_summary",
                 res.id,
             )
+            anlage2_logger.debug("Gap-Summary Task gestartet: %s", task_id)
             # Bei synchronem Testing wartet async_task nicht, daher neu laden
             if task_id is None:
                 res.refresh_from_db()
