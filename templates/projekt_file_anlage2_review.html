@@ -150,7 +150,7 @@
                 {% endwith %}
                 {% endif %}
                 {% endfor %}
-                <td class="border px-2 text-center">
+                <td class="border px-2 text-center negotiable-cell">
                     {% if row.is_negotiable %}
                     <span class="text-green-600">✓</span>
                     {% else %}
@@ -354,6 +354,14 @@ function initAnlage2Review() {
                 if (data.gap_summary !== undefined) {
                     const gapField = row.querySelector('textarea[name$="_gap_summary"]');
                     if (gapField) { gapField.value = data.gap_summary; }
+                }
+                if (data.is_negotiable !== undefined) {
+                    const cell = row.querySelector('.negotiable-cell');
+                    if (cell) {
+                        cell.innerHTML = data.is_negotiable ?
+                            '<span class="text-green-600">✓</span>' :
+                            '<span class="text-gray-400">–</span>';
+                    }
                 }
                 setTimeout(() => indicator.textContent = '', 1500);
             })
