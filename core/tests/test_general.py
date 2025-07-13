@@ -2316,6 +2316,34 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertIsNone(result["ki_beteiligt"])
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
 
+    def test_negotiable_set_on_match(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            doc_result={"technisch_verfuegbar": {"value": True}},
+        )
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["Ja", "Nein", "", "Nein"],
+        ):
+            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.is_negotiable)
+
+    def test_negotiable_not_set_on_mismatch(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            doc_result={"technisch_verfuegbar": {"value": False}},
+        )
+        with patch(
+            "core.llm_tasks.query_llm",
+            side_effect=["Ja", "Nein", "", "Nein"],
+        ):
+            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertFalse(res.is_negotiable)
+
 
 class InitialCheckTests(NoesisTestCase):
     def setUp(self):
@@ -2697,5 +2725,16 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(data.get("gap_summary"), "Abweichung")
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertEqual(res.gap_summary, "Abweichung")
+
+    def test_manual_sets_negotiable(self):
+        url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({"project_file_id": self.pf.pk, "function_id": self.func.pk, "status": True}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.is_negotiable)
 
 

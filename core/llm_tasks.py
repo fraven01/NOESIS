@@ -1436,11 +1436,22 @@ def worker_verify_feature(
     pf.save(update_fields=["verification_json"])
 
     func_id = obj_to_check.id if object_type == "function" else obj_to_check.funktion_id
-    Anlage2FunctionResult.objects.update_or_create(
+    res, _ = Anlage2FunctionResult.objects.update_or_create(
         projekt_id=project_id,
         funktion_id=func_id,
         defaults={"ai_result": verification_result},
     )
+
+    doc_val = None
+    if isinstance(res.doc_result, dict):
+        d = res.doc_result.get("technisch_verfuegbar")
+        if isinstance(d, dict):
+            doc_val = d.get("value")
+        elif isinstance(d, bool):
+            doc_val = d
+    ai_val = verification_result.get("technisch_verfuegbar")
+    res.is_negotiable = doc_val is not None and ai_val is not None and doc_val == ai_val
+    res.save(update_fields=["ai_result", "is_negotiable"])
 
     if object_type == "function":
         Anlage2FunctionResult.objects.filter(
