@@ -2329,9 +2329,13 @@ def projekt_list(request):
 def projekt_detail(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     if request.method == "POST" and "project_prompt" in request.POST:
-        projekt.project_prompt = request.POST.get("project_prompt", "")
+        new_prompt = request.POST.get("project_prompt", "")
+        changed = projekt.project_prompt != new_prompt
+        projekt.project_prompt = new_prompt
         projekt.save(update_fields=["project_prompt"])
+
         async_task("core.llm_tasks.check_anlage2_functions", projekt.pk)
+
         messages.success(request, "Projekt-Prompt gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
     anh = projekt.anlagen.all()
@@ -2515,7 +2519,7 @@ def projekt_file_upload(request, pk):
             obj.text_content = content
             obj.save()
             if obj.anlage_nr == 2:
-                run_anlage2_analysis(obj)
+                async_task("core.llm_tasks.check_anlage2_functions", projekt.pk)
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()
