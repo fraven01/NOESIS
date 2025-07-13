@@ -3303,7 +3303,11 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         anlage.manual_analysis_json = manual_data
         anlage.save(update_fields=["manual_analysis_json"])
 
-        return JsonResponse({"status": "success", "gap_summary": gap_text})
+        return JsonResponse({
+            "status": "success",
+            "gap_summary": gap_text,
+            "is_negotiable": res.is_negotiable,
+        })
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
         logger.error("Fehler beim Speichern des manuellen Reviews: %s", exc)
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
