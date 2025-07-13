@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.db import models
+from django_q.tasks import async_task
 from pathlib import Path
 
 
@@ -108,13 +109,22 @@ class BVProject(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        """Speichert das Projekt und legt bei Bedarf einen Status an."""
+        """Speichert das Projekt und triggert bei Bedarf Folgepr\u00fcfungen."""
         is_new = self._state.adding
+        old_prompt = None
+        if not is_new and self.pk:
+            old_prompt = (
+                BVProject.objects.filter(pk=self.pk)
+                .values_list("project_prompt", flat=True)
+                .first()
+            )
         if not self.status:
             self.status = ProjectStatus.objects.filter(is_default=True).first()
         super().save(*args, **kwargs)
         if is_new:
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
+        elif old_prompt is not None and old_prompt != self.project_prompt:
+            async_task("core.llm_tasks.check_anlage2_functions", self.pk)
 
     def __str__(self) -> str:
         return self.title

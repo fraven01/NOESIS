@@ -2131,6 +2131,16 @@ class ModelSelectionTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         mock_func.assert_called_with(self.projekt.pk, model_name="mf")
 
+    def test_prompt_save_triggers_async_check(self):
+        url = reverse("projekt_detail", args=[self.projekt.pk])
+        with patch("core.views.async_task") as mock_task:
+            resp = self.client.post(url, {"project_prompt": "Test"})
+        self.assertRedirects(resp, url)
+        mock_task.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            self.projekt.pk,
+        )
+
 
 class FunctionImportExportTests(NoesisTestCase):
     def setUp(self):
