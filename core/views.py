@@ -398,9 +398,26 @@ def _initial_to_lookup(data: dict) -> dict[str, dict]:
 
 
 def _resolve_value(
-    manual_val: bool | None, ai_val: bool | None, doc_val: bool | None
-) -> tuple[bool, str]:
-    """Bestimme Wert und Quelle anhand der Priorität Manuell > KI > Dokument."""
+    manual_val: bool | None,
+    ai_val: bool | None,
+    doc_val: bool | None,
+    field: str,
+) -> tuple[bool | None, str]:
+    """Ermittelt Wert und Quelle je nach Feld."""
+
+    if field == "technisch_vorhanden":
+        if manual_val is not None:
+            return manual_val, "Manuell"
+        if ai_val is not None:
+            return ai_val, "KI-Prüfung"
+        return None, "N/A"
+
+    if field in {"einsatz_bei_telefonica", "zur_lv_kontrolle"}:
+        if manual_val is not None:
+            return manual_val, "Manuell"
+        if doc_val is not None:
+            return doc_val, "Dokumenten-Analyse"
+        return None, "N/A"
 
     val = False
     src = "N/A"
@@ -436,7 +453,7 @@ def _get_display_data(
         man_val = m_data.get(field)
         ai_val = v_data.get(field)
         doc_val = a_data.get(field)
-        val, src = _resolve_value(man_val, ai_val, doc_val)
+        val, src = _resolve_value(man_val, ai_val, doc_val, field)
         values[field] = val
         sources[field] = src
 
@@ -460,6 +477,7 @@ def _build_row_data(
     analysis_lookup: dict[str, dict],
     verification_lookup: dict[str, dict],
     manual_lookup: dict[str, dict],
+    result_map: dict[str, Anlage2FunctionResult],
     sub_id: int | None = None,
 ) -> dict:
     """Erzeugt die Darstellungsdaten für eine Funktion oder Unterfrage."""
@@ -469,6 +487,7 @@ def _build_row_data(
     )
     fields_def = get_anlage2_fields()
     widgets = []
+    rev_origin = {}
     for field, _ in fields_def:
         bf = form[f"{form_prefix}{field}"]
         if field == "technisch_vorhanden" and sub_id is None:
@@ -485,8 +504,19 @@ def _build_row_data(
                     "style": "display: none;",
                 }
             )
-        widgets.append({"widget": bf, "source": disp["sources"][field]})
-    negotiable_widget = form[f"{form_prefix}is_negotiable"]
+        if field == "technisch_vorhanden":
+            man_val = manual_lookup.get(lookup_key, {}).get(field)
+            ai_val = verification_lookup.get(lookup_key, {}).get(field)
+            if man_val is not None:
+                rev_origin[field] = "manual"
+            elif ai_val is not None:
+                rev_origin[field] = "ai"
+            else:
+                rev_origin[field] = "none"
+        widgets.append({"widget": bf, "source": disp["sources"][field], "origin": rev_origin.get(field)})
+
+    result_obj = result_map.get(lookup_key)
+    is_negotiable = result_obj.is_negotiable if result_obj else False
     gap_widget = form[f"{form_prefix}gap_summary"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
     bet_val, bet_reason = beteilig_map.get(
@@ -511,7 +541,7 @@ def _build_row_data(
         "ai_result": verification_lookup.get(lookup_key, {}),
         "initial": disp["values"],
         "form_fields": widgets,
-        "negotiable_widget": negotiable_widget,
+        "is_negotiable": is_negotiable,
         "gap_summary_widget": gap_widget,
         "sub": sub_id is not None,
         "func_id": func_id,
@@ -2753,6 +2783,11 @@ def projekt_file_edit_json(request, pk):
                 )
             }
 
+            result_map = {
+                r.get_lookup_key(): r
+                for r in Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+            }
+
             manual_init = (
                 anlage.manual_analysis_json if isinstance(anlage.manual_analysis_json, dict) else {}
             )
@@ -2848,6 +2883,7 @@ def projekt_file_edit_json(request, pk):
                     analysis_lookup,
                     verification_lookup,
                     manual_lookup,
+                    result_map,
                 )
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
@@ -2872,6 +2908,7 @@ def projekt_file_edit_json(request, pk):
                         analysis_lookup,
                         verification_lookup,
                         manual_lookup,
+                        result_map,
                         sub_id=sub.id,
                     )
                 )
@@ -2921,6 +2958,8 @@ def projekt_file_edit_json(request, pk):
                 "rows": rows,
                 "fields": [f[0] for f in fields_def],
                 "labels": [f[1] for f in fields_def],
+                "field_pairs": fields_def,
+                "no_ai_fields": ["einsatz_bei_telefonica", "zur_lv_kontrolle"],
             }
         )
     elif anlage.anlage_nr == 4:
@@ -3228,6 +3267,10 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             defaults=defaults,
         )
 
+        if sub_id is None:
+            res.is_negotiable = True
+            res.save(update_fields=["is_negotiable"])
+
         gap_text = res.gap_summary
         ai_val = None
         if isinstance(res.ai_result, dict):
@@ -3282,6 +3325,7 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         doc_result=None,
         ai_result=None,
         manual_result=None,
+        is_negotiable=False,
     )
     project_file.verification_json = {}
     project_file.manual_analysis_json = None
@@ -3329,6 +3373,9 @@ def projekt_file_delete_result(request, pk: int):
             projekt=project_file.projekt
         ).exclude(source="parser").delete()
         project_file.verification_json = {}
+        Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
+            is_negotiable=False
+        )
 
     project_file.analysis_json = None
     project_file.manual_analysis_json = None
@@ -3341,6 +3388,7 @@ def projekt_file_delete_result(request, pk: int):
             "manual_reviewed",
             "verhandlungsfaehig",
             "verification_json",
+            
         ]
     )
 

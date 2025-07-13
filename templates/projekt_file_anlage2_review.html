@@ -27,16 +27,22 @@
             <tr>
                 <th class="border px-2" rowspan="2">Funktion</th>
                 <th class="border px-2" rowspan="2">Aktion</th>
-                {% for label in labels %}
+                {% for field,label in field_pairs %}
+                {% if field in no_ai_fields %}
+                <th class="border px-2" rowspan="2">{{ label }}</th>
+                {% else %}
                 <th class="border px-2" colspan="2">{{ label }}</th>
+                {% endif %}
                 {% endfor %}
                 <th class="border px-2" rowspan="2">Verhandlungsfähig</th>
                 <th class="border px-2" rowspan="2">Gap</th>
             </tr>
             <tr>
-                {% for _ in labels %}
+                {% for field,label in field_pairs %}
+                {% if field not in no_ai_fields %}
                 <th class="border px-2">KI-Check</th>
                 <th class="border px-2">Review</th>
+                {% endif %}
                 {% endfor %}
             </tr>
         </thead>
@@ -106,7 +112,14 @@
                         <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
                     {% endif %}
                 </td>
-                {% if field == 'technisch_vorhanden' and row.sub %}
+                {% if field in no_ai_fields %}
+                {% with f=row.form_fields|list_index:forloop.counter0 %}
+                <td class="border px-2 text-center">
+                    {{ f.widget }}
+                    {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
+                </td>
+                {% endwith %}
+                {% elif field == 'technisch_vorhanden' and row.sub %}
                 <td class="border px-2 text-center">
                     {% with parsed=row.doc_result|get_item:field %}
                     {% if parsed == True %}
@@ -123,6 +136,11 @@
                     {% if field == 'technisch_vorhanden' %}
                         <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
                         {{ f.widget }}
+                        {% if f.origin == 'ai' %}
+                        <span title="KI bestätigt">✅</span>
+                        {% elif f.origin == 'manual' %}
+                        <span title="Manuell geändert">✏️</span>
+                        {% endif %}
                     {% else %}
                         {{ f.widget }}
                     {% endif %}
@@ -132,7 +150,13 @@
                 {% endwith %}
                 {% endif %}
                 {% endfor %}
-                <td class="border px-2 text-center">{{ row.negotiable_widget }}</td>
+                <td class="border px-2 text-center">
+                    {% if row.is_negotiable %}
+                    <span class="text-green-600">✓</span>
+                    {% else %}
+                    <span class="text-gray-400">–</span>
+                    {% endif %}
+                </td>
                 <td class="border px-2 text-center {% if row.has_preliminary_gap %}bg-purple-200{% endif %}">
                     <button type="button" class="gap-summary-btn" data-bs-toggle="collapse" data-bs-target="#gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
                         <i class="fa fa-comment-dots"></i>
