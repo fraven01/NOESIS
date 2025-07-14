@@ -1238,6 +1238,10 @@ def check_anlage2_functions(
             },
         )
         results.append({**vals, "source": "llm", "funktion": func.name})
+    pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
+    if pf:
+        pf.verification_task_id = ""
+        pf.save(update_fields=["verification_task_id"])
     return results
 
 

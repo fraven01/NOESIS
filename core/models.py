@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.db import models
-from django_q.tasks import async_task
+from django_q.tasks import async_task, fetch
 from pathlib import Path
 
 
@@ -220,6 +220,11 @@ class BVProjectFile(models.Model):
         null=True,
         help_text="Ergebnis der KI-gestützten Verifizierung der Funktionen.",
     )
+    verification_task_id = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="ID des laufenden Verifizierungstasks.",
+    )
     manual_reviewed = models.BooleanField("Manuell geprüft", default=False)
     verhandlungsfaehig = models.BooleanField("Verhandlungsfähig", default=False)
 
@@ -228,6 +233,26 @@ class BVProjectFile(models.Model):
 
     def __str__(self) -> str:
         return f"Anlage {self.anlage_nr} zu {self.projekt}"
+
+    def save(self, *args, **kwargs):
+        """Speichert die Datei und startet ggf. die Funktionsprüfung."""
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if is_new and self.anlage_nr == 2:
+            task_id = async_task(
+                "core.llm_tasks.check_anlage2_functions",
+                self.projekt_id,
+            )
+            if task_id:
+                self.verification_task_id = str(task_id)
+                super().save(update_fields=["verification_task_id"])
+
+    def is_verification_running(self) -> bool:
+        """Prüft, ob ein Verifizierungstask läuft."""
+        if not self.verification_task_id:
+            return False
+        task = fetch(self.verification_task_id)
+        return bool(task and task.success is None)
 
 
 class SoftwareKnowledge(models.Model):
