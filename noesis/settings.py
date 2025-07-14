@@ -32,7 +32,9 @@ if "test" in sys.argv:
 else:
     SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
     if not SECRET_KEY:
-        raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein")
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein"
+        )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -91,6 +93,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "TIMEOUT": 20,  # Timeout für Datenbankabfragen auf 20 Sekunden setzen
     }
 }
 
@@ -321,7 +324,7 @@ Q_CLUSTER = {
     "name": "noesis_q",
     "workers": 2,
     "recycle": 500,
-    "timeout": 60,
+    "timeout": 900,
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
