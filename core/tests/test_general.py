@@ -910,7 +910,7 @@ class LLMTasksTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
         self.assertTrue(res.doc_result["technisch_verfuegbar"]["value"])
         self.assertEqual(result, expected)
-        self.assertEqual(json.loads(pf.analysis_json), expected)
+        self.assertEqual(pf.analysis_json["functions"], expected)
 
     def test_run_anlage2_analysis_sets_negotiable_on_match(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
