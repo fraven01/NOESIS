@@ -61,6 +61,7 @@ from ..forms import (
     BVProjectUploadForm,
     BVProjectFileJSONForm,
     Anlage2ConfigForm,
+    Anlage2ReviewForm,
 )
 from ..workflow import set_project_status
 from ..models import ProjectStatus
@@ -86,7 +87,7 @@ from ..llm_tasks import (
     parse_anlage1_questions,
     _parse_anlage2,
 )
-from ..views import _verification_to_initial
+from ..views import _verification_to_initial, _build_row_data
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY
 from django.core.management import call_command
@@ -635,6 +636,51 @@ class WorkflowTests(NoesisTestCase):
         self.assertEqual(projekt.status_history.count(), 1)
         set_project_status(projekt, "CLASSIFIED")
         self.assertEqual(projekt.status_history.count(), 2)
+
+
+class BuildRowDataTests(NoesisTestCase):
+    def setUp(self):
+        self.func = Anlage2Function.objects.create(name="Testfunktion")
+        self.form = Anlage2ReviewForm()
+
+    def test_flag_set_on_difference(self):
+        analysis = {"Testfunktion": {"technisch_vorhanden": True}}
+        verification = {"Testfunktion": {"technisch_vorhanden": False}}
+        row = _build_row_data(
+            "Testfunktion",
+            "Testfunktion",
+            self.func.id,
+            f"func{self.func.id}_",
+            self.form,
+            {},
+            {},
+            {},
+            analysis,
+            verification,
+            {},
+            {},
+        )
+        self.assertTrue(row["requires_manual_review"])
+
+    def test_flag_not_set_when_manual(self):
+        analysis = {"Testfunktion": {"technisch_vorhanden": True}}
+        verification = {"Testfunktion": {"technisch_vorhanden": False}}
+        manual = {"Testfunktion": {"technisch_vorhanden": True}}
+        row = _build_row_data(
+            "Testfunktion",
+            "Testfunktion",
+            self.func.id,
+            f"func{self.func.id}_",
+            self.form,
+            {},
+            {},
+            {},
+            analysis,
+            verification,
+            manual,
+            {},
+        )
+        self.assertFalse(row["requires_manual_review"])
 
 
 class LLMTasksTests(NoesisTestCase):

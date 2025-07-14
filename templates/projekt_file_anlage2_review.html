@@ -161,6 +161,9 @@
                     <button type="button" class="gap-summary-btn" data-bs-toggle="collapse" data-bs-target="#gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
                         <i class="fa fa-comment-dots"></i>
                     </button>
+                    {% if row.requires_manual_review %}
+                    <div class="text-danger text-sm">Manueller Review erforderlich</div>
+                    {% endif %}
                     <div id="gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="collapse mt-2">
                         {{ row.gap_summary_widget }}
                     </div>
