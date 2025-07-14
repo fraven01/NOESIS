@@ -120,7 +120,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         if sub_list:
             sub_aliases[func.id] = sub_list
 
-    token_map: List[Tuple[str, bool, List[str]]] = []
+    token_map: Dict[str, List[Tuple[str, bool]]] = {}
     for attr in dir(cfg):
         if not attr.startswith("text_"):
             continue
@@ -129,10 +129,14 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             continue
         if attr.endswith("_true"):
             field = attr[5:-5]
-            token_map.append((field, True, [p.lower() for p in phrases]))
+            token_map.setdefault(field, []).extend(
+                (p.lower(), True) for p in phrases
+            )
         elif attr.endswith("_false"):
             field = attr[5:-6]
-            token_map.append((field, False, [p.lower() for p in phrases]))
+            token_map.setdefault(field, []).extend(
+                (p.lower(), False) for p in phrases
+            )
 
     # Spezifischere Namen zuerst prüfen
     func_aliases.sort(key=lambda t: len(t[0]), reverse=True)
@@ -144,8 +148,10 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
         lower = text_part.lower()
         parser_logger.debug("Prüfe Tokens in '%s'", text_part)
-        for field, value, phrases in token_map:
-            for phrase in phrases:
+        for field, items in token_map.items():
+            if field in entry:
+                continue
+            for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
                 if phrase in lower:
                     parser_logger.debug(
                         "Token '%s' gefunden, setze %s=%s",
