@@ -796,9 +796,13 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             q_data["vorschlag"] = fb.get("vorschlag", "")
         found_num = found_nums.get(key)
         if found_num and str(found_num) != key:
-            q_data["hinweis"] = (
+            msg = (
                 f"Entspricht nicht den Frage Anforderungen der IT Rahmen 2.0: Frage {found_num} statt {q.num}."
             )
+            if q_data["hinweis"]:
+                q_data["hinweis"] += " " + msg
+            else:
+                q_data["hinweis"] = msg
         questions[key] = q_data
 
     data["questions"] = questions

@@ -1484,6 +1484,12 @@ class LLMTasksTests(NoesisTestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
 
+    def test_parse_anlage1_questions_detects_wrong_number(self):
+        """Die erkannte Nummer wird zur\u00fcckgegeben."""
+        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1.2"}})
+
     def test_wrong_question_number_sets_hint(self):
         """Hinweis wird gesetzt, wenn die Nummer nicht passt."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1498,6 +1504,23 @@ class LLMTasksTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
             analysis = check_anlage1(projekt.pk)
         hint = analysis["questions"]["1"]["hinweis"]
+        self.assertIn("Frage 1.2 statt 1", hint)
+
+    def test_wrong_question_number_appends_hint(self):
+        """Bestehender Hinweis bleibt erhalten."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            text_content=text,
+        )
+        eval_reply = json.dumps({"status": "ok", "hinweis": "Basis", "vorschlag": ""})
+        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
+            analysis = check_anlage1(projekt.pk)
+        hint = analysis["questions"]["1"]["hinweis"]
+        self.assertIn("Basis", hint)
         self.assertIn("Frage 1.2 statt 1", hint)
 
     def test_generate_gutachten_twice_replaces_file(self):
