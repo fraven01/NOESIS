@@ -405,6 +405,19 @@ class BVProjectFileTests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertEqual(pf.verification_task_id, "")
 
+    def test_template_shows_disabled_state_when_task_running(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            verification_task_id="tid",
+        )
+        self.client.login(username=self.user.username, password="pass")
+        url = reverse("projekt_detail", args=[projekt.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "disabled-btn")
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
