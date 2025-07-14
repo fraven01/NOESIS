@@ -17,6 +17,15 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    ```
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 
+## Entwickler-Setup
+
+Bevor Tests ausgeführt werden, sollten zusätzlich die Entwicklungsabhängigkeiten
+installiert werden:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 ## Dependencies for Tests
 
 Bevor `python manage.py makemigrations --check` oder `python manage.py test`
