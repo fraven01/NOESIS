@@ -404,36 +404,20 @@ def _resolve_value(
     doc_val: bool | None,
     field: str,
 ) -> tuple[bool | None, str]:
-    """Ermittelt Wert und Quelle je nach Feld."""
+    """Ermittelt den Review-Wert und dessen Quelle."""
 
-    if field == "technisch_vorhanden":
-        if manual_val is not None:
-            return manual_val, "Manuell"
-        if ai_val is not None:
-            return ai_val, "KI-Prüfung"
-        if doc_val is not None:
-            return doc_val, "Dokumenten-Analyse"
-        return None, "N/A"
-
-    if field in {"einsatz_bei_telefonica", "zur_lv_kontrolle"}:
-        if manual_val is not None:
-            return manual_val, "Manuell"
-        if doc_val is not None:
-            return doc_val, "Dokumenten-Analyse"
-        return None, "N/A"
-
-    val = False
-    src = "N/A"
-    if doc_val is not None:
-        val = doc_val
-        src = "Dokumenten-Analyse"
-    if ai_val is not None:
-        val = ai_val
-        src = "KI-Prüfung"
+    # Manuelle Entscheidung hat immer Vorrang
     if manual_val is not None:
-        val = manual_val
-        src = "Manuell"
-    return val, src
+        return manual_val, "Manuell"
+
+    # Quelle richtet sich ausschließlich nach dem Dokument
+    src = "Dokumenten-Analyse" if doc_val is not None else "N/A"
+
+    # Vorauswahl der Checkbox kann durch KI bestimmt werden
+    if ai_val is not None:
+        return ai_val, src
+
+    return doc_val, src
 
 
 def _get_display_data(
