@@ -60,6 +60,7 @@ from .forms import (
     Anlage4ParserConfigForm,
 
 )
+from .text_parser import PHRASE_TYPE_CHOICES
 from .models import (
     Recording,
     BVProject,
@@ -1871,8 +1872,9 @@ def admin_anlage2_config_export(request):
         "enforce_subquestion_override": cfg.enforce_subquestion_override,
         "parser_mode": cfg.parser_mode,
         "parser_order": cfg.parser_order,
-        "text_technisch_verfuegbar_true": cfg.text_technisch_verfuegbar_true,
     }
+    for key, _ in PHRASE_TYPE_CHOICES:
+        cfg_data[f"text_{key}"] = getattr(cfg, f"text_{key}")
 
     data = {
         "config": cfg_data,
@@ -1902,12 +1904,13 @@ def admin_anlage2_config_import(request):
 
         cfg_fields = items.get("config", {})
         updated_fields: list[str] = []
-        for field in [
+        base_fields = [
             "enforce_subquestion_override",
             "parser_mode",
             "parser_order",
-            "text_technisch_verfuegbar_true",
-        ]:
+        ]
+        phrase_fields = [f"text_{key}" for key, _ in PHRASE_TYPE_CHOICES]
+        for field in base_fields + phrase_fields:
             if field in cfg_fields:
                 setattr(cfg, field, cfg_fields[field])
                 updated_fields.append(field)

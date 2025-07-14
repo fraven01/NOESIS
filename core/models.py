@@ -563,9 +563,43 @@ class Anlage2Config(models.Model):
     )
 
     text_technisch_verfuegbar_true = models.JSONField(
-
         default=list,
-        help_text="Reihenfolge der zu verwendenden Parser.",
+        help_text="Phrasen für technisch verfügbar = Ja",
+    )
+
+    text_technisch_verfuegbar_false = models.JSONField(
+        default=list,
+        help_text="Phrasen für technisch verfügbar = Nein",
+    )
+
+    text_einsatz_telefonica_true = models.JSONField(
+        default=list,
+        help_text="Phrasen für Einsatz bei Telefónica = Ja",
+    )
+
+    text_einsatz_telefonica_false = models.JSONField(
+        default=list,
+        help_text="Phrasen für Einsatz bei Telefónica = Nein",
+    )
+
+    text_zur_lv_kontrolle_true = models.JSONField(
+        default=list,
+        help_text="Phrasen für zur LV-Kontrolle = Ja",
+    )
+
+    text_zur_lv_kontrolle_false = models.JSONField(
+        default=list,
+        help_text="Phrasen für zur LV-Kontrolle = Nein",
+    )
+
+    text_ki_beteiligung_true = models.JSONField(
+        default=list,
+        help_text="Phrasen für KI-Beteiligung = Ja",
+    )
+
+    text_ki_beteiligung_false = models.JSONField(
+        default=list,
+        help_text="Phrasen für KI-Beteiligung = Nein",
     )
 
 
