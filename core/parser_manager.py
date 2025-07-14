@@ -39,11 +39,14 @@ class ParserManager:
                 continue
             try:
                 result = parser.parse(project_file)
+                count = _count_technisch_true(result)
             except Exception as exc:  # pragma: no cover - Fehlkonfiguration
                 logger.error("Parser '%s' Fehler: %s", name, exc)
                 result = []
-            count = _count_technisch_true(result)
-            if count > best_count:
+                count = -1
+            if count > best_count or (
+                count == best_count and len(result) > len(best_result)
+            ):
                 best_result = result
                 best_count = count
         return best_result
