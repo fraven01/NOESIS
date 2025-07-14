@@ -1279,6 +1279,31 @@ def check_anlage2_functions(
     return results
 
 
+def run_conditional_anlage2_check(
+    projekt_id: int, model_name: str | None = None
+) -> None:
+    """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+
+    for func in Anlage2Function.objects.prefetch_related(
+        "anlage2subquestion_set"
+    ).order_by("name"):
+        result = worker_verify_feature(
+            projekt_id, "function", func.id, model_name
+        )
+        if result.get("technisch_verfuegbar") is True:
+            for sub in func.anlage2subquestion_set.all():
+                worker_verify_feature(
+                    projekt_id, "subquestion", sub.id, model_name
+                )
+
+    pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
+    if pf:
+        pf.verification_task_id = ""
+        pf.save(update_fields=["verification_task_id"])
+
+
 def worker_verify_feature(
     project_id: int,
     object_type: str,

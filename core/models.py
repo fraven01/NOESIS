@@ -127,7 +127,10 @@ class BVProject(models.Model):
         if is_new:
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
         elif old_prompt is not None and old_prompt != self.project_prompt:
-            async_task("core.llm_tasks.check_anlage2_functions", self.pk)
+            async_task(
+                "core.llm_tasks.run_conditional_anlage2_check",
+                self.pk,
+            )
 
     def __str__(self) -> str:
         return self.title
@@ -250,25 +253,12 @@ class BVProjectFile(models.Model):
                 self.projekt_id,
                 len(funcs),
             )
-            first_id: str | None = None
-            for idx, func in enumerate(funcs):
-                tid = async_task(
-                    "core.llm_tasks.worker_verify_feature",
-                    self.projekt_id,
-                    "function",
-                    func.id,
-                )
-                if idx == 0 and tid:
-                    first_id = str(tid)
-                for sub in func.anlage2subquestion_set.all():
-                    async_task(
-                        "core.llm_tasks.worker_verify_feature",
-                        self.projekt_id,
-                        "subquestion",
-                        sub.id,
-                    )
-            if first_id:
-                self.verification_task_id = first_id
+            task_id = async_task(
+                "core.llm_tasks.run_conditional_anlage2_check",
+                self.projekt_id,
+            )
+            if task_id:
+                self.verification_task_id = str(task_id)
                 super().save(update_fields=["verification_task_id"])
 
     def is_verification_running(self) -> bool:

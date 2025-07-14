@@ -97,7 +97,7 @@ from .llm_tasks import (
     check_anlage3_vision,
     analyse_anlage4,
     analyse_anlage4_async,
-    check_anlage2_functions,
+    run_conditional_anlage2_check,
     run_anlage2_analysis,
     check_gutachten_functions,
     generate_gutachten,
@@ -2332,7 +2332,10 @@ def projekt_detail(request, pk):
         projekt.project_prompt = new_prompt
         projekt.save(update_fields=["project_prompt"])
 
-        async_task("core.llm_tasks.check_anlage2_functions", projekt.pk)
+        async_task(
+            "core.llm_tasks.run_conditional_anlage2_check",
+            projekt.pk,
+        )
 
         messages.success(request, "Projekt-Prompt gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
@@ -3162,10 +3165,11 @@ def projekt_functions_check(request, pk):
     """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
     model = request.POST.get("model")
     projekt = get_object_or_404(BVProject, pk=pk)
-    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set"):
-        async_task("core.llm_tasks.worker_verify_feature", projekt.pk, "function", func.id, model)
-        for sub in func.anlage2subquestion_set.all():
-            async_task("core.llm_tasks.worker_verify_feature", projekt.pk, "subquestion", sub.id, model)
+    async_task(
+        "core.llm_tasks.run_conditional_anlage2_check",
+        projekt.pk,
+        model,
+    )
     return JsonResponse({"status": "ok"})
 
 
