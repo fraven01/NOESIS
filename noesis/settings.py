@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
@@ -26,9 +27,12 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-if not SECRET_KEY:
-    raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein")
+if "test" in sys.argv:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dummy_test_key")
+else:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+    if not SECRET_KEY:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in der Umgebung gesetzt sein")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
