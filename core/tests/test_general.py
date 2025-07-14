@@ -166,6 +166,20 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         pass
     create_statuses()
 
+    # Anlage1 Fragen aktualisieren
+    Anlage1QuestionModel = apps.get_model("core", "Anlage1Question")
+    Anlage1QuestionVariant = apps.get_model("core", "Anlage1QuestionVariant")
+    for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
+        try:
+            question = Anlage1QuestionModel.objects.get(num=idx)
+        except Anlage1QuestionModel.DoesNotExist:
+            continue
+        question.text = text
+        question.parser_enabled = True
+        question.llm_enabled = True
+        question.save()
+        Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
+
     if skip_prompts:
         return
 
