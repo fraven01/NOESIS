@@ -127,8 +127,27 @@ def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     return projekt
 
 
-def seed_test_data() -> None:
-    """Befüllt die Test-Datenbank mit Initialdaten."""
+def seed_test_data(*, skip_prompts: bool = False) -> None:
+    """Befüllt die Test-Datenbank mit Initialdaten.
+
+    Bestehende Einträge werden zuvor gelöscht. Optional können die
+    Prompt-Definitionen übersprungen werden.
+    """
+    BVProject.objects.all().delete()
+    Prompt.objects.all().delete()
+    Tile.objects.all().delete()
+    Area.objects.all().delete()
+    Anlage2Function.objects.all().delete()
+    Anlage2SubQuestion.objects.all().delete()
+    Anlage2ColumnHeading.objects.all().delete()
+    Anlage2Config.objects.all().delete()
+    Anlage1Question.objects.all().delete()
+    apps.get_model("core", "Anlage1QuestionVariant").objects.all().delete()
+    apps.get_model("core", "LLMRole").objects.all().delete()
+    FormatBParserRule.objects.all().delete()
+    AntwortErkennungsRegel.objects.all().delete()
+    Anlage4Config.objects.all().delete()
+    LLMConfig.objects.all().delete()
     from django.apps import apps as django_apps
     from importlib import import_module
     create_initial_data = import_module(
@@ -146,6 +165,9 @@ def seed_test_data() -> None:
     except LookupError:
         pass
     create_statuses()
+
+    if skip_prompts:
+        return
 
     for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
         Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
