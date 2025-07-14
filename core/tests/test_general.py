@@ -448,7 +448,7 @@ class BVProjectFileTests(NoesisTestCase):
             verification_task_id="tid",
         )
         self.client.login(username=self.user.username, password="pass")
-        with patch("django_q.tasks.fetch") as mock_fetch:
+        with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
             resp = self.client.get(url)
