@@ -524,6 +524,9 @@ def _build_row_data(
         (str(func_id), str(sub_id) if sub_id else None), (None, "")
     )
     has_gap = False
+    # Manuelle Nachprüfung erforderlich, wenn Dokument und KI sich unterscheiden
+    # und kein manueller Wert hinterlegt ist
+    manual_review_required = False
     for field, _ in fields_def:
         doc_val = analysis_lookup.get(lookup_key, {}).get(field)
         ai_val = verification_lookup.get(lookup_key, {}).get(field)
@@ -535,6 +538,7 @@ def _build_row_data(
             and manual_val is None
         ):
             has_gap = True
+            manual_review_required = True
             break
     return {
         "name": display_name,
@@ -555,6 +559,7 @@ def _build_row_data(
         "ki_beteiligt": bet_val,
         "ki_beteiligt_begruendung": bet_reason,
         "has_preliminary_gap": has_gap,
+        "requires_manual_review": manual_review_required,
     }
 
 
