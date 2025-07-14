@@ -86,12 +86,10 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
 def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]]:
     """Parst eine Freitext-Liste von Funktionen aus Anlage 2.
 
-    Jede Zeile wird in ein Fragment vor und nach dem Doppelpunkt zerlegt. Das
-    Fragment vor dem Doppelpunkt wird gegen alle bekannten Funktions- und
-    Unterfragen-Namen geprüft. Die Namen werden nach ihrer Länge sortiert, so
-    dass spezifische Varianten vor allgemeinen geprüft werden. Der
-    ``threshold`` gibt an, ab welcher Ähnlichkeit (0–100) ein Treffer
-    akzeptiert wird.
+    Die neue Logik arbeitet zweistufig: Zuerst werden nur die
+    Hauptfunktionen erkannt und bewertet. Anschließend erfolgt –
+    ausschließlich bei technisch vorhandenen Hauptfunktionen – eine
+    gezielte Suche nach zugehörigen Unterfragen.
     """
 
     parser_logger.info("parse_anlage2_text gestartet")
@@ -100,19 +98,27 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     def _normalize(s: str) -> str:
         return re.sub(r"[\s\-_/]+", "", s).lower()
 
-    phrase_map: List[Tuple[str, Anlage2Function, Anlage2SubQuestion | None]] = []
+    # Aliase für Hauptfunktionen und Unterfragen aufbauen
+    func_aliases: List[Tuple[str, Anlage2Function]] = []
+    sub_aliases: Dict[int, List[Tuple[str, Anlage2SubQuestion]]] = {}
+    func_map: Dict[int, Anlage2Function] = {}
     for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set"):
+        func_map[func.id] = func
         aliases = [func.name]
-        if hasattr(func, "detection_phrases") and func.detection_phrases:
+        if getattr(func, "detection_phrases", None):
             aliases.extend(func.detection_phrases.get("name_aliases", []))
         for alias in aliases:
-            phrase_map.append((_normalize(alias), func, None))
+            func_aliases.append((_normalize(alias), func))
+
+        sub_list: List[Tuple[str, Anlage2SubQuestion]] = []
         for sub in func.anlage2subquestion_set.all():
-            sub_aliases = [sub.frage_text]
-            if hasattr(sub, "detection_phrases") and sub.detection_phrases:
-                sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
-            for alias in sub_aliases:
-                phrase_map.append((_normalize(alias), func, sub))
+            sub_aliases_list = [sub.frage_text]
+            if getattr(sub, "detection_phrases", None):
+                sub_aliases_list.extend(sub.detection_phrases.get("name_aliases", []))
+            for alias in sub_aliases_list:
+                sub_list.append((_normalize(alias), sub))
+        if sub_list:
+            sub_aliases[func.id] = sub_list
 
     token_map: List[Tuple[str, bool, List[str]]] = []
     for attr in dir(cfg):
@@ -128,127 +134,142 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             field = attr[5:-6]
             token_map.append((field, False, [p.lower() for p in phrases]))
 
-    # Spezifische Namen zuerst prüfen, um Präzision zu erhöhen
-    phrase_map.sort(key=lambda t: len(t[0]), reverse=True)
+    # Spezifischere Namen zuerst prüfen
+    func_aliases.sort(key=lambda t: len(t[0]), reverse=True)
+    for sub_list in sub_aliases.values():
+        sub_list.sort(key=lambda t: len(t[0]), reverse=True)
+
     rules = list(AntwortErkennungsRegel.objects.all())
 
-    results: Dict[Tuple[int, int | None], Dict[str, object]] = {}
-    unmatched: List[Dict[str, object]] = []
-    found: List[str] = []
-    last_key: Tuple[int, int | None] | None = None
+    def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
+        lower = text_part.lower()
+        parser_logger.debug("Prüfe Tokens in '%s'", text_part)
+        for field, value, phrases in token_map:
+            for phrase in phrases:
+                if phrase in lower:
+                    parser_logger.debug(
+                        "Token '%s' gefunden, setze %s=%s",
+                        phrase,
+                        field,
+                        value,
+                    )
+                    entry[field] = {"value": value, "note": None}
+                    break
 
-    for raw in text.splitlines():
+    def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
+        parser_logger.debug("Prüfe Regeln in '%s'", text_part)
+        found_rules: Dict[str, tuple[bool, int, str]] = {}
+        for rule in rules:
+            if rule.erkennungs_phrase.lower() in text_part.lower():
+                current = found_rules.get(rule.ziel_feld)
+                if current is None or rule.prioritaet < current[1]:
+                    found_rules[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
+                    parser_logger.debug(
+                        "Regel '%s' (%s) setzt %s=%s",
+                        rule.regel_name,
+                        rule.erkennungs_phrase,
+                        rule.ziel_feld,
+                        rule.wert,
+                    )
+
+        if not found_rules:
+            return
+
+        for field, (val, _prio, _phrase) in found_rules.items():
+            entry[field] = {"value": val, "note": None}
+
+        remaining = text_part
+        for _val, _prio, phrase in found_rules.values():
+            remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
+        remaining = remaining.strip()
+
+        if remaining:
+            best_field = min(found_rules.items(), key=lambda i: i[1][1])[0]
+            entry[best_field]["note"] = remaining
+
+    # Stufe 1: Hauptfunktionen erkennen
+    main_results: Dict[int, Dict[str, object]] = {}
+    sub_lines: Dict[int, List[Tuple[Anlage2SubQuestion, str]]] = {}
+    current_func_id: int | None = None
+    found_main: List[str] = []
+
+    lines = text.splitlines()
+    for raw in lines:
         line = raw.strip()
         if not line:
             continue
-        parser_logger.debug("Verarbeite Zeile: '%s'", line)
         before, after = (line.split(":", 1) + [""])[0:2]
-        parser_logger.debug("Vor dem Doppelpunkt: '%s', danach: '%s'", before, after)
         before_norm = _normalize(before)
-        parser_logger.debug("Normalisiere '%s' zu '%s'", before, before_norm)
-        matched: Tuple[Anlage2Function, Anlage2SubQuestion | None] | None = None
-        for alias_norm, func, sub in phrase_map:
+
+        matched_func: Anlage2Function | None = None
+        for alias_norm, func in func_aliases:
             score = fuzz.partial_ratio(alias_norm, before_norm)
-            parser_logger.debug(
-                "Vergleiche '%s' mit '%s': %s%%",
-                alias_norm,
-                before_norm,
-                score,
-            )
             if score >= threshold:
-                matched = (func, sub)
-                q_name = (
-                    func.name
-                    if func and sub is None
-                    else f"{func.name}: {sub.frage_text}"
-                )
-                parser_logger.debug("Treffer: '%s'", q_name)
+                matched_func = func
+                parser_logger.debug("Hauptfunktion '%s' erkannt", func.name)
                 break
-        if not matched:
-            parser_logger.debug("Kein Fuzzy-Treffer für '%s'", before)
 
-        def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
-            lower = text_part.lower()
-            parser_logger.debug("Prüfe Tokens in '%s'", text_part)
-            for field, value, phrases in token_map:
-                for phrase in phrases:
-                    if phrase in lower:
-                        parser_logger.debug(
-                            "Token '%s' gefunden, setze %s=%s",
-                            phrase,
-                            field,
-                            value,
-                        )
-                        entry[field] = {"value": value, "note": None}
-                        break
-
-        def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
-            parser_logger.debug("Prüfe Regeln in '%s'", text_part)
-            found: Dict[str, tuple[bool, int, str]] = {}
-            for rule in rules:
-                if rule.erkennungs_phrase.lower() in text_part.lower():
-                    current = found.get(rule.ziel_feld)
-                    if current is None or rule.prioritaet < current[1]:
-                        found[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
-                        parser_logger.debug(
-                            "Regel '%s' (%s) setzt %s=%s",
-                            rule.regel_name,
-                            rule.erkennungs_phrase,
-                            rule.ziel_feld,
-                            rule.wert,
-                        )
-
-            if not found:
-                return
-
-            # Set values using the best rule per field
-            for field, (val, _prio, _phrase) in found.items():
-                entry[field] = {"value": val, "note": None}
-
-            # Entferne alle gefundenen Phrasen für Notizbestimmung
-            remaining = text_part
-            for _val, _prio, phrase in found.values():
-                remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
-            remaining = remaining.strip()
-
-            if remaining:
-                # Note beim Feld mit höchster Priorität ablegen
-                best_field = min(found.items(), key=lambda i: i[1][1])[0]
-                entry[best_field]["note"] = remaining
-
-        if matched:
-            func, sub = matched
-            key = (func.id, sub.id if sub else None)
-            entry = results.get(key)
+        if matched_func:
+            current_func_id = matched_func.id
+            entry = main_results.get(current_func_id)
             if not entry:
-                name = func.name if sub is None else f"{func.name}: {sub.frage_text}"
-                entry = {"funktion": name}
-                results[key] = entry
-                found.append(name)
+                entry = {"funktion": matched_func.name}
+                main_results[current_func_id] = entry
+                found_main.append(matched_func.name)
             _apply_tokens(entry, after or line)
             _apply_rules(entry, after or line)
-            last_key = key
-        elif last_key is not None:
-            entry = results[last_key]
-            parser_logger.debug(
-                "Aktualisiere vorherige Funktion '%s' mit '%s'",
-                entry.get("funktion"),
-                line,
-            )
-            _apply_tokens(entry, after or line)
-            _apply_rules(entry, after or line)
-        else:
-            entry = {"funktion": before}
-            _apply_tokens(entry, after or line)
-            _apply_rules(entry, after or line)
-            entry.setdefault("technisch_verfuegbar", {"value": False, "note": None})
-            unmatched.append(entry)
+            continue
 
-    all_results = list(results.values()) + unmatched
-    if found:
-        parser_logger.info("Gefundene Funktionen: %s", ", ".join(found))
-    if unmatched:
-        parser_logger.info("Zeilen ohne Treffer: %s", len(unmatched))
+        if current_func_id is None:
+            continue
+
+        # Prüfen, ob die Zeile eine Unterfrage der aktuellen Funktion enthält
+        matched_sub: Anlage2SubQuestion | None = None
+        for alias_norm, sub in sub_aliases.get(current_func_id, []):
+            score = fuzz.partial_ratio(alias_norm, before_norm)
+            if score >= threshold:
+                matched_sub = sub
+                parser_logger.debug(
+                    "Unterfrage '%s' erkannt", sub.frage_text
+                )
+                break
+
+        if matched_sub:
+            sub_lines.setdefault(current_func_id, []).append((matched_sub, line))
+            continue
+
+        # Keine Unterfrage -> zusätzliche Informationen zur aktuellen Funktion
+        entry = main_results[current_func_id]
+        _apply_tokens(entry, after or line)
+        _apply_rules(entry, after or line)
+
+    # Stufe 2: Unterfragen nur für vorhandene Funktionen prüfen
+    sub_results: Dict[Tuple[int, int], Dict[str, object]] = {}
+    for func_id, lines_list in sub_lines.items():
+        main_entry = main_results.get(func_id)
+        if not main_entry:
+            continue
+        tech = main_entry.get("technisch_verfuegbar")
+        if not tech or tech.get("value") is not True:
+            parser_logger.debug(
+                "Überspringe Unterfragen zu '%s', da technisch nicht vorhanden",
+                func_map[func_id].name,
+            )
+            continue
+
+        for sub, line in lines_list:
+            before, after = (line.split(":", 1) + [""])[0:2]
+            key = (func_id, sub.id)
+            entry = sub_results.get(key)
+            if not entry:
+                entry = {"funktion": f"{func_map[func_id].name}: {sub.frage_text}"}
+                sub_results[key] = entry
+            _apply_tokens(entry, after or line)
+            _apply_rules(entry, after or line)
+
+    all_results = list(main_results.values()) + list(sub_results.values())
+    if found_main:
+        parser_logger.info("Gefundene Funktionen: %s", ", ".join(found_main))
     parser_logger.info(
         "parse_anlage2_text beendet: %s Einträge", len(all_results)
     )
