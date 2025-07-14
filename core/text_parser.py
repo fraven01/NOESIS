@@ -195,6 +195,20 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             best_field = min(found_rules.items(), key=lambda i: i[1][1])[0]
             entry[best_field]["note"] = remaining
 
+    def _format_result(entry: Dict[str, object]) -> str:
+        parts = []
+        for key, val in entry.items():
+            if key == "funktion":
+                continue
+            if isinstance(val, dict):
+                val_str = str(val.get("value"))
+                if val.get("note"):
+                    val_str += f" ({val['note']})"
+            else:
+                val_str = str(val)
+            parts.append(f"{key}={val_str}")
+        return f"{entry['funktion']}: " + ", ".join(parts)
+
     # Stufe 1: Hauptfunktionen erkennen
     main_results: Dict[int, Dict[str, object]] = {}
     sub_lines: Dict[int, List[Tuple[Anlage2SubQuestion, str]]] = {}
@@ -311,6 +325,9 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     ] + list(sub_results.values())
     if found_main:
         parser_logger.info("Gefundene Funktionen: %s", ", ".join(found_main))
+    if all_results:
+        summary = "; ".join(_format_result(e) for e in all_results)
+        parser_logger.info("Ergebnisse: %s", summary)
     parser_logger.info(
         "parse_anlage2_text beendet: %s Einträge", len(all_results)
     )
