@@ -967,6 +967,7 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(DummyParser)
         cfg = Anlage2Config.get_instance()
         cfg.parser_order = ["fail", "dummy"]
+        cfg.parser_mode = "custom"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -990,6 +991,7 @@ class LLMTasksTests(NoesisTestCase):
             parser_manager._parsers.pop("fail")
             parser_manager._parsers.pop("dummy")
             cfg.parser_order = ["table"]
+            cfg.parser_mode = "auto"
             cfg.save()
 
         self.assertEqual(result, [{"funktion": "Dummy"}])
@@ -1011,6 +1013,7 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(P2)
         cfg = Anlage2Config.get_instance()
         cfg.parser_order = ["two", "one"]
+        cfg.parser_mode = "custom"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1033,6 +1036,7 @@ class LLMTasksTests(NoesisTestCase):
             parser_manager._parsers.pop("one")
             parser_manager._parsers.pop("two")
             cfg.parser_order = ["table"]
+            cfg.parser_mode = "auto"
             cfg.save()
 
         self.assertEqual(result, [{"val": 2}])
@@ -1058,6 +1062,7 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(P2)
         cfg = Anlage2Config.get_instance()
         cfg.parser_order = ["p1", "p2"]
+        cfg.parser_mode = "custom"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1086,6 +1091,7 @@ class LLMTasksTests(NoesisTestCase):
             parser_manager._parsers.pop("p1", None)
             parser_manager._parsers.pop("p2", None)
             cfg.parser_order = ["table"]
+            cfg.parser_mode = "auto"
             cfg.save()
 
         m_tab.assert_not_called()
