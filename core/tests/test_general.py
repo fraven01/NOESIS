@@ -1137,6 +1137,50 @@ class LLMTasksTests(NoesisTestCase):
         m_text.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
 
+    def test_run_anlage2_analysis_includes_missing_functions(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="",
+        )
+        func = Anlage2Function.objects.create(name="Login")
+
+        result = run_anlage2_analysis(pf)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["funktion"], "Login")
+        self.assertTrue(result[0].get("not_found") or result[0].get("technisch_verfuegbar") is None)
+        pf.refresh_from_db()
+        self.assertEqual(pf.analysis_json["functions"], result)
+
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        if isinstance(res.doc_result, dict):
+            self.assertIn("not_found", res.doc_result)
+        else:
+            self.assertIsNone(res.doc_result)
+
+    def test_run_anlage2_analysis_includes_missing_subquestions(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="",
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
+
+        result = run_anlage2_analysis(pf)
+
+        self.assertEqual(len(result), 2)
+        names = [row["funktion"] for row in result]
+        self.assertIn("Login", names)
+        self.assertTrue(any("Warum?" in n for n in names))
+        pf.refresh_from_db()
+        self.assertEqual(pf.analysis_json["functions"], result)
+
 
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):
