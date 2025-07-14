@@ -386,7 +386,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         file_obj = self.projekt.anlagen.get(anlage_nr=3)
         self.assertEqual(file_obj.text_content, "")
 
-    def test_anlage2_upload_runs_parser(self):
+    def test_anlage2_upload_triggers_ki_check(self):
         doc = Document()
         table = doc.add_table(rows=2, cols=2)
         table.cell(0, 0).text = "Funktion"
@@ -403,17 +403,22 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
-            format="multipart",
-        )
+        with patch("core.views.async_task") as m_task, patch(
+            "core.views.run_anlage2_analysis"
+        ) as m_parse:
+            resp = self.client.post(
+                url,
+                {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
+                format="multipart",
+            )
         self.assertEqual(resp.status_code, 302)
         pf = self.projekt.anlagen.get(anlage_nr=2)
-        self.assertIsNotNone(pf.analysis_json)
-        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion__name="Login")
-        self.assertIsNotNone(res.doc_result)
-        self.assertIsNone(res.ai_result)
+        self.assertIsNone(pf.analysis_json)
+        m_parse.assert_not_called()
+        m_task.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            self.projekt.pk,
+        )
 
 
 class AutoApprovalTests(NoesisTestCase):
@@ -1753,10 +1758,10 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
-    def test_anlage2_uses_parser_by_default(self):
+    def test_anlage2_uses_ki_check_by_default(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk])
-        with patch("core.views.analyse_anlage2") as mock_func:
-            mock_func.return_value = {"task": "analyse_anlage2"}
+        with patch("core.views.check_anlage2") as mock_func:
+            mock_func.return_value = {"task": "check_anlage2"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
@@ -2390,6 +2395,28 @@ class InitialCheckTests(NoesisTestCase):
         prompt_text = mock_q.call_args[0][0].text
         self.assertIn("Hint", prompt_text)
 
+
+
+class ProjectPromptUpdateTests(NoesisTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("promptuser", password="pass")
+        self.client.login(username="promptuser", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+        )
+
+    def test_prompt_change_triggers_ki_check(self):
+        url = reverse("projekt_detail", args=[self.projekt.pk])
+        with patch("core.views.async_task") as m_task:
+            resp = self.client.post(url, {"project_prompt": "neu"})
+        self.assertRedirects(resp, url)
+        m_task.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            self.projekt.pk,
+        )
 
 
 class EditKIJustificationTests(NoesisTestCase):
