@@ -244,6 +244,8 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     logger.debug("Erzeugtes Header-Mapping: %s", header_map)
 
     results: list[dict[str, object]] = []
+    found: list[str] = []
+    skipped = 0
     if not doc.tables:
         logger.debug("Keine Tabellen im Dokument gefunden")
         parser_logger.debug("Keine Tabellen im Dokument gefunden")
@@ -315,6 +317,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
                     "Zeile %s: Keine verarbeitbare Funktion gefunden, übersprungen",
                     row_idx,
                 )
+                skipped += 1
                 continue
 
             for col_name, idx in col_indices.items():
@@ -322,6 +325,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
                     row_data[col_name] = _parse_cell_value(row.cells[idx].text)
 
             parser_logger.debug("Verarbeite Zeile %s: %s", row_idx, row_data)
+            found.append(row_data["funktion"])
             logger.debug(
                 "Zeile %s: Funktion '%s' Daten %s",
                 row_idx,
@@ -336,6 +340,10 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
             break
 
     logger.debug(f"Endgültige Ergebnisse: {results}")
+    if found:
+        parser_logger.info("Gefundene Funktionen: %s", ", ".join(found))
+    if skipped:
+        parser_logger.info("Übersprungene Zeilen: %s", skipped)
     parser_logger.info("parse_anlage2_table beendet: %s", path)
     return results
 

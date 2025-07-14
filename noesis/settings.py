@@ -268,7 +268,7 @@ LOGGING = {
         },
         "parser_debug": {
             "handlers": ["parser_file"],
-            "level": "DEBUG",
+            "level": "INFO",
             "propagate": False,
         },
         "anlage1_debug": {

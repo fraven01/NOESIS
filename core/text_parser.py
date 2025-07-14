@@ -134,6 +134,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
 
     results: Dict[Tuple[int, int | None], Dict[str, object]] = {}
     unmatched: List[Dict[str, object]] = []
+    found: List[str] = []
     last_key: Tuple[int, int | None] | None = None
 
     for raw in text.splitlines():
@@ -223,7 +224,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                 name = func.name if sub is None else f"{func.name}: {sub.frage_text}"
                 entry = {"funktion": name}
                 results[key] = entry
-                parser_logger.debug("Neuer Eintrag für '%s'", name)
+                found.append(name)
             _apply_tokens(entry, after or line)
             _apply_rules(entry, after or line)
             last_key = key
@@ -237,7 +238,6 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             _apply_tokens(entry, after or line)
             _apply_rules(entry, after or line)
         else:
-            parser_logger.warning("Keine Funktion gefunden für Zeile: %s", line)
             entry = {"funktion": before}
             _apply_tokens(entry, after or line)
             _apply_rules(entry, after or line)
@@ -245,6 +245,10 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             unmatched.append(entry)
 
     all_results = list(results.values()) + unmatched
+    if found:
+        parser_logger.info("Gefundene Funktionen: %s", ", ".join(found))
+    if unmatched:
+        parser_logger.info("Zeilen ohne Treffer: %s", len(unmatched))
     parser_logger.info(
         "parse_anlage2_text beendet: %s Einträge", len(all_results)
     )
