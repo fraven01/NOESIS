@@ -269,7 +269,11 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-    """Parst eine Anlage 2-Datei anhand der Konfiguration."""
+    """Parst eine Anlage 2-Datei anhand der Konfiguration.
+
+    Das Ergebnis wird als JSON-String im Feld ``analysis_json`` gespeichert,
+    damit die originale Struktur unverändert erhalten bleibt.
+    """
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
