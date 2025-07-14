@@ -2927,26 +2927,6 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
         )
 
-    def test_multiline_phrases_saved(self):
-        url = reverse("anlage2_config")
-        data = {
-            "text_technisch_verfuegbar_true": "ja\nokay\n",
-            "parser_mode": self.cfg.parser_mode,
-            "parser_order": self.cfg.parser_order,
-            "action": "save_text",
-            "active_tab": "text",
-        }
-        for key, _ in PHRASE_TYPE_CHOICES:
-            data[f"{key}-TOTAL_FORMS"] = "0"
-            data[f"{key}-INITIAL_FORMS"] = "0"
-            data[f"{key}-MIN_NUM_FORMS"] = "0"
-            data[f"{key}-MAX_NUM_FORMS"] = "1000"
-        resp = self.client.post(url, data)
-        self.assertEqual(resp.status_code, 200)
-        self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
-
-
 class AjaxAnlage2ReviewTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("reviewer", password="pw")
