@@ -173,12 +173,17 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
         try:
             question = Anlage1QuestionModel.objects.get(num=idx)
+            question.text = text
+            question.parser_enabled = True
+            question.llm_enabled = True
+            question.save()
         except Anlage1QuestionModel.DoesNotExist:
-            continue
-        question.text = text
-        question.parser_enabled = True
-        question.llm_enabled = True
-        question.save()
+            question = Anlage1QuestionModel.objects.create(
+                num=idx,
+                text=text,
+                parser_enabled=True,
+                llm_enabled=True,
+            )
         Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
 
     if skip_prompts:
@@ -1469,6 +1474,23 @@ class LLMTasksTests(NoesisTestCase):
         text = (
             "Frage 1:\nExtrahiere alle Unternehmen als Liste.\nA1\n"
             "Frage 2:\nExtrahiere alle Fachbereiche als Liste.\nA2"
+        )
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(
+            parsed,
+            {
+                "1": {"answer": "A1", "found_num": "1"},
+                "2": {"answer": "A2", "found_num": "2"},
+            },
+        )
+
+    def test_parse_anlage1_questions_split_lines(self):
+        """Fragen werden auch mit Zeilenumbruch nach dem Doppelpunkt erkannt."""
+        text = (
+            "Frage 1:\n"
+            "Extrahiere alle Unternehmen als Liste.\r\n"
+            "A1\nFrage 2:\n"
+            "Extrahiere alle Fachbereiche als Liste.\r\nA2"
         )
         parsed = parse_anlage1_questions(text)
         self.assertEqual(

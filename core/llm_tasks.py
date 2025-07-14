@@ -123,9 +123,9 @@ def parse_structured_anlage(text_content: str) -> dict | None:
 def _clean_text(text: str) -> str:
     """Bereinigt Sonderzeichen vor dem Parsen."""
     text = text.replace("\\n", " ")
-    text = text.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+    text = re.sub(r"[\r\n\t]+", " ", text)
     text = text.replace("\u00b6", " ")
-    text = re.sub(r" {2,}", " ", text)
+    text = re.sub(r"\s{2,}", " ", text)
     return text.strip()
 
 
@@ -168,10 +168,11 @@ def parse_anlage1_questions(
             if m_start:
                 rest = m_start.group(1)
                 pattern = re.compile(
-                    r"Frage\s+\d+(?:\.\d+)?[:.]?\s*" + re.escape(_clean_text(rest))
+                    r"Frage\s+\d+(?:\.\d+)?[:.]?\s*" + re.escape(_clean_text(rest)),
+                    re.IGNORECASE | re.DOTALL,
                 )
             else:
-                pattern = re.compile(re.escape(clean_var))
+                pattern = re.compile(re.escape(clean_var), re.IGNORECASE | re.DOTALL)
             m = pattern.search(text_content)
             if m and (best is None or m.start() < best[0]):
                 best = (m.start(), m.end(), m.group(0))
