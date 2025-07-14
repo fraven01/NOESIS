@@ -17,6 +17,7 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
+    ZweckKategorieA,
 )
 
 
@@ -233,6 +234,10 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
 
 
 
+# Registrierung der Modelle
+@admin.register(ZweckKategorieA)
+class ZweckKategorieAAdmin(admin.ModelAdmin):
+    list_display = ("beschreibung",)
 
 # Registrierung der Modelle
 admin.site.register(Tile, TileAdmin)
