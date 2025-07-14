@@ -122,10 +122,13 @@ Extrahieren berücksichtigt.
 
 ### Anlage 2 analysieren
 
-Beim Hochladen einer Anlage 2 startet automatisch die KI‑Prüfung. Zuerst
-analysiert der Parser das Dokument, anschließend bewertet das LLM alle
-gefundenen Funktionen. Die Ergebnisse werden kompakt in `parser-debug.log`
-gespeichert.
+Beim Hochladen einer Anlage 2 startet automatisch die KI‑Prüfung.
+Der Parser geht inzwischen datenbankorientiert vor: Er lädt zunächst
+den vollständigen Funktionskatalog aus der Datenbank und sucht dann im
+Dokument nach passenden Stellen. Anschließend bewertet das LLM jede
+einzelne Funktion. Dadurch erhält jede Funktion einen Eintrag im
+Ergebnis, selbst wenn sie im Dokument gar nicht vorkommt. Die
+gesammelten Resultate landen kompakt in `parser-debug.log`.
 
 In der Projektübersicht stehen zwei Schaltflächen bereit. Über **Prüfen** wird
 der Parser erneut ausgeführt, um aktualisierte Dateien einzulesen. Mit
