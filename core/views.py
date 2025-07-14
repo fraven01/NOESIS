@@ -92,7 +92,6 @@ from .workflow import set_project_status
 from .reporting import generate_gap_analysis, generate_management_summary
 from .llm_tasks import (
     check_anlage1,
-    analyse_anlage2,
     analyse_anlage3,
     check_anlage2,
     check_anlage3_vision,
@@ -2544,9 +2543,13 @@ def projekt_file_check(request, pk, nr):
         return JsonResponse({"error": "invalid"}, status=400)
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+    def parse_only(pid: int, model_name: str | None = None):
+        pf = BVProjectFile.objects.filter(projekt_id=pid, anlage_nr=2).first()
+        if pf:
+            run_anlage2_analysis(pf)
     funcs = {
         1: check_anlage1,
-        2: check_anlage2 if use_llm else analyse_anlage2,
+        2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
     }
@@ -2583,9 +2586,11 @@ def projekt_file_check_pk(request, pk):
         return JsonResponse({"error": "not found"}, status=404)
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+    def parse_only(_pid: int, model_name: str | None = None):
+        run_anlage2_analysis(anlage)
     funcs = {
         1: check_anlage1,
-        2: check_anlage2 if use_llm else analyse_anlage2,
+        2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
     }
@@ -2617,9 +2622,11 @@ def projekt_file_check_view(request, pk):
         raise Http404
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+    def parse_only(_pid: int, model_name: str | None = None):
+        run_anlage2_analysis(anlage)
     funcs = {
         1: check_anlage1,
-        2: check_anlage2 if use_llm else analyse_anlage2,
+        2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
     }

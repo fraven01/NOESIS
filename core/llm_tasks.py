@@ -349,38 +349,6 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     return analysis_result
 
 
-def analyse_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
-    """Analysiert Anlage 2 im Kontext der Systembeschreibung."""
-    projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage2 = projekt.anlagen.get(anlage_nr=2)
-    except (
-        BVProjectFile.DoesNotExist
-    ) as exc:  # pragma: no cover - sollte selten passieren
-        raise ValueError("Anlage 2 fehlt") from exc
-
-    try:
-        table_data = parser_manager.parse_anlage2(anlage2)
-    except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
-        parser_logger.error("Fehler im Parser: %s", exc)
-        table_data = []
-    table_names = [row["funktion"] for row in table_data]
-    anlage_funcs = _parse_anlage2(anlage2.text_content, projekt.project_prompt) or []
-
-    missing = [f for f in anlage_funcs if f not in table_names]
-    additional = [f for f in table_names if f not in anlage_funcs]
-
-    result = {
-        "functions": table_data,
-        "anlage2_functions": anlage_funcs,
-        "missing": missing,
-        "additional": additional,
-    }
-
-    result = _add_editable_flags(result)
-    anlage2.analysis_json = result
-    anlage2.save(update_fields=["analysis_json"])
-    return result
 
 
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:

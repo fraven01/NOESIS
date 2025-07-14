@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
 from django.test import TestCase
+from django.conf import settings
 from django.http import QueryDict
 from django.db import IntegrityError
 from types import SimpleNamespace
@@ -69,7 +70,6 @@ from ..llm_tasks import (
     classify_system,
     check_anlage1,
     check_anlage2,
-    analyse_anlage2,
     analyse_anlage3,
     analyse_anlage4,
     analyse_anlage4_async,
@@ -224,13 +224,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     # Weitere Prompts für Tests bereitstellen
     roles = {r.name: r for r in apps.get_model("core", "LLMRole").objects.all()}
     prompt_data = {
-        "analyse_anlage2": {
-            "text": (
-                "Analysiere den folgenden Text und gib eine JSON-Liste von Objekten "
-                "mit den Schlüsseln 'funktion', 'technisch_vorhanden', "
-                "'einsatz_bei_telefonica', 'zur_lv_kontrolle' und 'ki_beteiligung' zur\n\n"
-            )
-        },
         "anlage1_email": {
             "text": (
                 "Formuliere eine freundliche E-Mail an den Fachbereich. "
@@ -1178,44 +1171,6 @@ class LLMTasksTests(NoesisTestCase):
         self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
 
 
-    def test_analyse_anlage2(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="b")
-        BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Text A1",
-        )
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-        table.cell(1, 0).text = "Login"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("b.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=upload,
-            text_content="- Login",
-        )
-
-        data = analyse_anlage2(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(data["missing"]["value"], [])
-        self.assertEqual(file_obj.analysis_json["additional"]["value"], [])
-
 
     def test_analyse_anlage3_auto_ok(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2067,11 +2022,11 @@ class ProjektFileCheckResultTests(NoesisTestCase):
 
     def test_anlage2_uses_parser_by_default(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk])
-        with patch("core.views.analyse_anlage2") as mock_func:
-            mock_func.return_value = {"task": "analyse_anlage2"}
+        with patch("core.views.run_anlage2_analysis") as mock_func:
+            mock_func.return_value = []
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
-        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+        mock_func.assert_called_with(self.file2)
 
     def test_llm_param_triggers_full_check(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk]) + "?llm=1"
