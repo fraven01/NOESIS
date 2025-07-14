@@ -606,6 +606,53 @@ class DocxExtractTests(NoesisTestCase):
             },
         )
 
+    def test_subquestion_skipped_when_main_absent(self):
+        func = Anlage2Function.objects.create(name="Anwesenheit")
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_false = ["nicht verfuegbar"]
+        cfg.save()
+        text = "Anwesenheit: technisch nicht verfuegbar\nGrund? nicht verfuegbar"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anwesenheit",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                }
+            ],
+        )
+
+    def test_subquestion_processed_when_main_present(self):
+        func = Anlage2Function.objects.create(name="Anwesenheit")
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
+        cfg.text_technisch_verfuegbar_false = ["nicht verfuegbar"]
+        cfg.save()
+        text = "Anwesenheit: verfuegbar\nGrund? nicht verfuegbar"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anwesenheit",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {
+                    "funktion": "Anwesenheit: Grund?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                },
+            ],
+        )
+
 class FormatBParserTests(NoesisTestCase):
     def test_parse_format_b_basic(self):
         text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
