@@ -50,6 +50,7 @@ anlage1_logger = logging.getLogger("anlage1_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
 anlage3_logger = logging.getLogger("anlage3_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
+workflow_logger = logging.getLogger("workflow_debug")
 
 # Standard-Prompt für die Prüfung von Anlage 4
 _DEFAULT_A4_PROMPT = (
@@ -284,6 +285,10 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     """Analysiert eine Anlage 2 und legt Ergebnisse ab."""
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
+    workflow_logger.info(
+        "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
+        project_file.projekt_id,
+    )
 
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
@@ -308,6 +313,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         return entry
 
     for func in functions:
+        workflow_logger.info(
+            "[%s] - PARSER-LOOP - Suche nach Funktion '%s' im Dokument.",
+            project_file.projekt_id,
+            func.name,
+        )
         aliases = [func.name]
         if func.detection_phrases:
             aliases.extend(func.detection_phrases.get("name_aliases", []))
@@ -320,6 +330,12 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         else:
             entry = _blank_entry(func.name)
         results.append(entry)
+        workflow_logger.info(
+            "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> doc_result: %s",
+            project_file.projekt_id,
+            func.name,
+            json.dumps(entry, ensure_ascii=False),
+        )
 
         for sub in func.anlage2subquestion_set.all():
             sub_aliases = [sub.frage_text]
@@ -1277,6 +1293,12 @@ def worker_verify_feature(
         object_type,
         object_id,
     )
+    workflow_logger.info(
+        "[%s] - KI-CHECK START - Pr\u00fcfe Objekt [Typ: %s, ID: %s]",
+        project_id,
+        object_type,
+        object_id,
+    )
 
     projekt = BVProject.objects.get(pk=project_id)
 
@@ -1433,6 +1455,12 @@ def worker_verify_feature(
         "ki_beteiligt": ai_involved,
         "ki_beteiligt_begruendung": ai_reason,
     }
+    workflow_logger.info(
+        "[%s] - KI-CHECK ERGEBNIS - Objekt [ID: %s] -> ai_result: %s",
+        project_id,
+        object_id,
+        json.dumps(verification_result, ensure_ascii=False),
+    )
 
     pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
     if not pf:

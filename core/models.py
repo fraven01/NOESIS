@@ -4,6 +4,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django_q.tasks import async_task, fetch
 from pathlib import Path
+import logging
+
+workflow_logger = logging.getLogger("workflow_debug")
 
 
 class BVProjectManager(models.Manager):
@@ -239,10 +242,16 @@ class BVProjectFile(models.Model):
         is_new = self._state.adding
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
-            first_id: str | None = None
-            for idx, func in enumerate(
+            funcs = list(
                 Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
-            ):
+            )
+            workflow_logger.info(
+                "[%s] - UPLOAD - Anlage 2 hochgeladen. Starte automatische KI-Pr\u00fcfung f\u00fcr %s Funktionen.",
+                self.projekt_id,
+                len(funcs),
+            )
+            first_id: str | None = None
+            for idx, func in enumerate(funcs):
                 tid = async_task(
                     "core.llm_tasks.worker_verify_feature",
                     self.projekt_id,
