@@ -817,6 +817,44 @@ class LLMTasksTests(NoesisTestCase):
         self.assertEqual(result, expected)
         self.assertEqual(json.loads(pf.analysis_json), expected)
 
+    def test_run_anlage2_analysis_sets_negotiable_on_match(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("b.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+            text_content="ignored",
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=func,
+            ai_result={"technisch_verfuegbar": True},
+        )
+
+        run_anlage2_analysis(pf)
+
+        res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
+        self.assertTrue(res.is_negotiable)
+
     def test_parser_manager_fallback(self):
         class FailParser(AbstractParser):
             name = "fail"

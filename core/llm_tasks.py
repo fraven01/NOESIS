@@ -299,11 +299,28 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             func = Anlage2Function.objects.get(name=name)
         except Anlage2Function.DoesNotExist:
             continue
-        Anlage2FunctionResult.objects.update_or_create(
+        res, _ = Anlage2FunctionResult.objects.update_or_create(
             projekt=project_file.projekt,
             funktion=func,
             defaults={"doc_result": row},
         )
+
+        doc_val = None
+        col = row.get("technisch_verfuegbar")
+        if isinstance(col, dict):
+            doc_val = col.get("value")
+        elif isinstance(col, bool):
+            doc_val = col
+
+        ai_val = None
+        if isinstance(res.ai_result, dict):
+            ai_val = res.ai_result.get("technisch_verfuegbar")
+
+        res.is_negotiable = (
+            doc_val is not None and ai_val is not None and doc_val == ai_val
+        )
+        res.doc_result = row
+        res.save(update_fields=["doc_result", "is_negotiable"])
 
     return analysis_result
 
