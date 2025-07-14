@@ -7,6 +7,9 @@ from docx import Document
 
 from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
 
+# Standard-Regul\xE4rausdr\xFCcke zur Erkennung von Auswertungen
+_DEFAULT_REGEX_PATTERNS = [r"Zweck: (.+)"]
+
 
 logger = logging.getLogger("anlage4_debug")
 
@@ -55,10 +58,8 @@ def parse_anlage4(
         re.compile(p, re.I)
         for p in (cfg.negative_patterns if cfg else [])
     ]
-    patterns = [
-        re.compile(p, re.I)
-        for p in (cfg.regex_patterns if cfg else [])
-    ]
+    regex_list = (cfg.regex_patterns if cfg and cfg.regex_patterns else _DEFAULT_REGEX_PATTERNS)
+    patterns = [re.compile(p, re.I) for p in regex_list]
 
     text = project_file.text_content or ""
 
