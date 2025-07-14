@@ -786,7 +786,7 @@ class Anlage4ParserTests(NoesisTestCase):
         )
         with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
             parse_anlage4(pf)
-        self.assertIn("free text found - 1 items", cm.output[0])
+        self.assertIn("free text found - 1 items", "".join(cm.output))
 
     def test_dual_parser_handles_invalid_rules(self):
         pcfg = Anlage4ParserConfig.objects.create(delimiter_phrase="")
