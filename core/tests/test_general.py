@@ -2146,6 +2146,7 @@ class ModelSelectionTests(NoesisTestCase):
 
 class FunctionImportExportTests(NoesisTestCase):
     def setUp(self):
+        Anlage2Function.objects.all().delete()
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("adminie", password="pass")
         self.user.groups.add(admin_group)
