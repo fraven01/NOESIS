@@ -517,7 +517,14 @@ class Anlage2ConfigForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name in self.OPTIONAL_JSON_FIELDS:
-            self.fields[name].required = False
+            self.fields[name] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"rows": 2}),
+                label=self.fields[name].label,
+            )
+            if not self.is_bound:
+                current = getattr(self.instance, name, [])
+                self.initial[name] = "\n".join(current)
         # Vorhandene Instanzwerte nutzen, falls nichts übergeben wurde
         self.fields["parser_mode"].required = False
 
@@ -525,9 +532,16 @@ class Anlage2ConfigForm(forms.ModelForm):
         """Speichert nur übergebene Werte."""
         instance = super().save(commit=False)
         for name in self.OPTIONAL_JSON_FIELDS:
-            if self.cleaned_data.get(name) is None:
-                # Fehlender Wert: Ursprünglichen beibehalten
+            value = self.cleaned_data.get(name)
+            if not value:
+                # Fehlender oder leerer Wert: Ursprünglichen beibehalten
                 setattr(instance, name, getattr(self.instance, name))
+            else:
+                setattr(
+                    instance,
+                    name,
+                    [v.strip() for v in value.splitlines() if v.strip()],
+                )
         if not self.cleaned_data.get("parser_mode"):
             instance.parser_mode = self.instance.parser_mode
         if commit:
