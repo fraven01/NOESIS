@@ -75,7 +75,7 @@ from ..llm_tasks import (
     analyse_anlage4,
     analyse_anlage4_async,
     check_anlage3_vision,
-    check_anlage2_functions,
+    run_conditional_anlage2_check,
     worker_verify_feature,
     worker_generate_gutachten,
     worker_run_initial_check,
@@ -402,7 +402,7 @@ class BVProjectFileTests(NoesisTestCase):
             )
         self.assertEqual(pf.verification_task_id, "tid1")
         mock_task.assert_called_with(
-            "core.llm_tasks.check_anlage2_functions",
+            "core.llm_tasks.run_conditional_anlage2_check",
             projekt.pk,
         )
 
@@ -430,7 +430,7 @@ class BVProjectFileTests(NoesisTestCase):
         )
         Anlage2Function.objects.create(name="Login")
         with patch("core.llm_tasks.query_llm", return_value="{}"):
-            check_anlage2_functions(projekt.pk)
+            run_conditional_anlage2_check(projekt.pk)
         pf.refresh_from_db()
         self.assertEqual(pf.verification_task_id, "")
 
@@ -525,7 +525,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertIsNone(pf.analysis_json)
         self.assertEqual(pf.verification_task_id, "tid1")
         mock_async.assert_called_with(
-            "core.llm_tasks.check_anlage2_functions",
+            "core.llm_tasks.run_conditional_anlage2_check",
             self.projekt.pk,
         )
 
@@ -777,7 +777,7 @@ class LLMTasksTests(NoesisTestCase):
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": True})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
-            check_anlage2_functions(projekt.pk)
+            run_conditional_anlage2_check(projekt.pk)
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
         self.assertTrue(res.ai_result["technisch_verfuegbar"])
 
@@ -2444,11 +2444,14 @@ class ModelSelectionTests(NoesisTestCase):
 
     def test_functions_check_uses_model(self):
         url = reverse("projekt_functions_check", args=[self.projekt.pk])
-        with patch("core.views.check_anlage2_functions") as mock_func:
-            mock_func.return_value = []
+        with patch("core.views.async_task") as mock_task:
             resp = self.client.post(url, {"model": "mf"})
         self.assertEqual(resp.status_code, 200)
-        mock_func.assert_called_with(self.projekt.pk, model_name="mf")
+        mock_task.assert_called_with(
+            "core.llm_tasks.run_conditional_anlage2_check",
+            self.projekt.pk,
+            "mf",
+        )
 
     def test_prompt_save_triggers_async_check(self):
         url = reverse("projekt_detail", args=[self.projekt.pk])
@@ -2456,7 +2459,7 @@ class ModelSelectionTests(NoesisTestCase):
             resp = self.client.post(url, {"project_prompt": "Test"})
         self.assertRedirects(resp, url)
         mock_task.assert_called_with(
-            "core.llm_tasks.check_anlage2_functions",
+            "core.llm_tasks.run_conditional_anlage2_check",
             self.projekt.pk,
         )
 
