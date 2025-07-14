@@ -46,8 +46,8 @@ class DocxExtractTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         try:
             count = get_pdf_page_count(Path(tmp.name))
         finally:
@@ -59,8 +59,8 @@ class DocxExtractTests(NoesisTestCase):
         pdf.new_page()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         try:
             count = get_pdf_page_count(Path(tmp.name))
         finally:
@@ -786,7 +786,7 @@ class Anlage4ParserTests(NoesisTestCase):
         )
         with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
             parse_anlage4(pf)
-        self.assertIn("free text found - 1 items", cm.output[0])
+        self.assertIn("free text found - 1 items", "".join(cm.output))
 
     def test_dual_parser_handles_invalid_rules(self):
         pcfg = Anlage4ParserConfig.objects.create(delimiter_phrase="")
@@ -1200,7 +1200,10 @@ class Anlage4ReviewViewTests(NoesisTestCase):
         self.file.refresh_from_db()
         self.assertEqual(
             self.file.manual_analysis_json,
-            {"0": {"ok": True, "note": "gut"}, "1": {"ok": False, "note": "schlecht"}},
+            {
+                "0": {"ok": True, "nego": False, "note": "gut"},
+                "1": {"ok": False, "nego": False, "note": "schlecht"},
+            },
         )
 
 

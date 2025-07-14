@@ -448,7 +448,7 @@ class BVProjectFileTests(NoesisTestCase):
             verification_task_id="tid",
         )
         self.client.login(username=self.user.username, password="pass")
-        with patch("django_q.tasks.fetch") as mock_fetch:
+        with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
             resp = self.client.get(url)
@@ -486,8 +486,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("t.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
@@ -1042,13 +1042,17 @@ class LLMTasksTests(NoesisTestCase):
             name = "p1"
 
             def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
+                return [
+                    {"funktion": "A", "technisch_verfuegbar": {"value": False}}
+                ]
 
         class P2(AbstractParser):
             name = "p2"
 
             def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
+                return [
+                    {"funktion": "A", "technisch_verfuegbar": {"value": True}}
+                ]
 
         parser_manager.register(P1)
         parser_manager.register(P2)
@@ -1056,12 +1060,34 @@ class LLMTasksTests(NoesisTestCase):
         cfg.parser_order = ["p1", "p2"]
         cfg.save()
 
-        with patch(
-            "core.llm_tasks.parse_anlage2_table", return_value=[]
-        ) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[]
-        ) as m_text:
-            run_anlage2_analysis(pf)
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        doc = Document()
+        doc.add_table(rows=1, cols=1)
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("e.docx", fh.read())
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=upload,
+        )
+
+        try:
+            with patch(
+                "core.llm_tasks.parse_anlage2_table", return_value=[]
+            ) as m_tab, patch(
+                "core.llm_tasks.parse_anlage2_text", return_value=[]
+            ) as m_text:
+                run_anlage2_analysis(pf)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+            parser_manager._parsers.pop("p1", None)
+            parser_manager._parsers.pop("p2", None)
+            cfg.parser_order = ["table"]
+            cfg.save()
+
         m_tab.assert_not_called()
         m_text.assert_called_once()
 
@@ -1112,6 +1138,27 @@ class LLMTasksTests(NoesisTestCase):
 
 
     def test_check_anlage2_table_error_fallback(self):
+        class P1(AbstractParser):
+            name = "p1"
+
+            def parse(self, project_file):
+                return [
+                    {"funktion": "A", "technisch_verfuegbar": {"value": False}}
+                ]
+
+        class P2(AbstractParser):
+            name = "p2"
+
+            def parse(self, project_file):
+                return [
+                    {"funktion": "A", "technisch_verfuegbar": {"value": True}}
+                ]
+
+        parser_manager.register(P1)
+        parser_manager.register(P2)
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_order = ["p1", "p2"]
+        cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
@@ -1123,8 +1170,8 @@ class LLMTasksTests(NoesisTestCase):
         try:
             result = parser_manager.parse_anlage2(pf)
         finally:
-            parser_manager._parsers.pop("p1")
-            parser_manager._parsers.pop("p2")
+            parser_manager._parsers.pop("p1", None)
+            parser_manager._parsers.pop("p2", None)
             cfg.parser_order = ["table"]
             cfg.save()
 
@@ -1225,8 +1272,8 @@ class LLMTasksTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("c.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
@@ -1248,8 +1295,8 @@ class LLMTasksTests(NoesisTestCase):
         pdf.new_page()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("d.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)

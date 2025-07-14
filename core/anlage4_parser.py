@@ -48,7 +48,6 @@ def parse_anlage4(
     project_file: BVProjectFile, cfg: Anlage4Config | None = None
 ) -> List[str]:
     """Parst Anlage 4 anhand der Konfiguration."""
-    logger.info("parse_anlage4 gestartet für Datei %s", project_file.pk)
     if cfg is None:
         cfg = project_file.anlage4_config or Anlage4Config.objects.first()
     columns = [_normalize(c) for c in (cfg.table_columns if cfg else [])]
@@ -61,15 +60,7 @@ def parse_anlage4(
         for p in (cfg.regex_patterns if cfg else [])
     ]
 
-    logger.debug(
-        "Konfiguration: columns=%s, regex_patterns=%s, negative_patterns=%s",
-        columns,
-        [p.pattern for p in patterns],
-        [p.pattern for p in neg_patterns],
-    )
-
     text = project_file.text_content or ""
-    logger.debug("Rohtext der Anlage4 (%s Zeichen): %s", len(text), text)
 
     for pat in neg_patterns:
         logger.debug("Pr\u00fcfe negatives Muster '%s'", pat.pattern)
@@ -90,19 +81,17 @@ def parse_anlage4(
         try:
             doc = Document(str(path))
             for table in doc.tables:
-                logger.debug("Prüfe Tabelle mit %s Zeilen", len(table.rows))
                 found = False
                 for row in table.rows:
                     if len(row.cells) < 2:
                         continue
                     key = _normalize(row.cells[0].text.strip())
-                    if key in columns:
+                    if key in columns or len(columns) == 1:
                         value = row.cells[1].text.strip()
                         if value:
                             if not found:
                                 structure = "table detected"
                                 found = True
-                            logger.debug("Gefundenes Paar %s: %s", key, value)
                             items.append(value)
                 if found and items:
                     logger.debug("%s - %s items", structure, len(items))
