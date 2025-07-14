@@ -503,6 +503,37 @@ class Anlage2ConfigForm(forms.ModelForm):
         required=False,
     )
 
+    OPTIONAL_JSON_FIELDS = [
+        "text_technisch_verfuegbar_true",
+        "text_technisch_verfuegbar_false",
+        "text_einsatz_telefonica_true",
+        "text_einsatz_telefonica_false",
+        "text_zur_lv_kontrolle_true",
+        "text_zur_lv_kontrolle_false",
+        "text_ki_beteiligung_true",
+        "text_ki_beteiligung_false",
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in self.OPTIONAL_JSON_FIELDS:
+            self.fields[name].required = False
+        # Vorhandene Instanzwerte nutzen, falls nichts übergeben wurde
+        self.fields["parser_mode"].required = False
+
+    def save(self, commit: bool = True) -> Anlage2Config:
+        """Speichert nur übergebene Werte."""
+        instance = super().save(commit=False)
+        for name in self.OPTIONAL_JSON_FIELDS:
+            if self.cleaned_data.get(name) is None:
+                # Fehlender Wert: Ursprünglichen beibehalten
+                setattr(instance, name, getattr(self.instance, name))
+        if not self.cleaned_data.get("parser_mode"):
+            instance.parser_mode = self.instance.parser_mode
+        if commit:
+            instance.save()
+        return instance
+
     class Meta:
         model = Anlage2Config
 
