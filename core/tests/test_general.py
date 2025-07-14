@@ -1684,6 +1684,25 @@ class Anlage2ReviewTests(NoesisTestCase):
             rows[1]["verif_key"], f"{self.func.name}: {self.sub.frage_text}"
         )
 
+    def test_auto_analysis_runs_once_for_new_file(self):
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("n.txt", b"x"),
+            text_content="t",
+        )
+        url = reverse("projekt_file_edit_json", args=[pf.pk])
+
+        def _fake(obj):
+            obj.analysis_json = {"functions": []}
+            obj.save(update_fields=["analysis_json"])
+            return []
+
+        with patch("core.views.run_anlage2_analysis", side_effect=_fake) as mock_func:
+            self.client.get(url)
+            self.client.get(url)
+        self.assertEqual(mock_func.call_count, 1)
+
 
 class WorkerGenerateGutachtenTests(NoesisTestCase):
     def setUp(self):

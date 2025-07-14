@@ -2664,6 +2664,10 @@ def projekt_file_edit_json(request, pk):
     except BVProjectFile.DoesNotExist:
         raise Http404
 
+    if anlage.anlage_nr == 2 and not anlage.analysis_json:
+        run_anlage2_analysis(anlage)
+        anlage.refresh_from_db()
+
     if anlage.anlage_nr == 1:
         if request.method == "POST":
             form = Anlage1ReviewForm(request.POST)
