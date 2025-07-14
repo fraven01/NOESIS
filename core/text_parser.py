@@ -190,6 +190,7 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
     # Stufe 1: Hauptfunktionen erkennen
     main_results: Dict[int, Dict[str, object]] = {}
     sub_lines: Dict[int, List[Tuple[Anlage2SubQuestion, str]]] = {}
+    sub_results: Dict[Tuple[int, int], Dict[str, object]] = {}
     current_func_id: int | None = None
     found_main: List[str] = []
 
@@ -211,6 +212,37 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
 
         if matched_func:
             current_func_id = matched_func.id
+            # Prüfen, ob im selben Text eine Unterfrage angesprochen wird
+            matched_sub: Anlage2SubQuestion | None = None
+            for alias_norm, sub in sub_aliases.get(current_func_id, []):
+                score = fuzz.partial_ratio(alias_norm, before_norm)
+                if score >= threshold:
+                    matched_sub = sub
+                    parser_logger.debug(
+                        "Unterfrage '%s' erkannt", sub.frage_text
+                    )
+                    break
+
+            if matched_sub:
+                entry = main_results.get(current_func_id)
+                if not entry:
+                    entry = {"funktion": matched_func.name, "_skip_output": True}
+                    main_results[current_func_id] = entry
+                    found_main.append(matched_func.name)
+                _apply_tokens(entry, after or line)
+                _apply_rules(entry, after or line)
+
+                key = (current_func_id, matched_sub.id)
+                sub_entry = sub_results.get(key)
+                if not sub_entry:
+                    sub_entry = {
+                        "funktion": f"{matched_func.name} - {matched_sub.frage_text}"
+                    }
+                sub_results[key] = sub_entry
+                _apply_tokens(sub_entry, after or line)
+                _apply_rules(sub_entry, after or line)
+                continue
+
             entry = main_results.get(current_func_id)
             if not entry:
                 entry = {"funktion": matched_func.name}
@@ -244,7 +276,6 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         _apply_rules(entry, after or line)
 
     # Stufe 2: Unterfragen nur für vorhandene Funktionen prüfen
-    sub_results: Dict[Tuple[int, int], Dict[str, object]] = {}
     for func_id, lines_list in sub_lines.items():
         main_entry = main_results.get(func_id)
         if not main_entry:
@@ -267,7 +298,9 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             _apply_tokens(entry, after or line)
             _apply_rules(entry, after or line)
 
-    all_results = list(main_results.values()) + list(sub_results.values())
+    all_results = [
+        entry for entry in main_results.values() if not entry.pop("_skip_output", False)
+    ] + list(sub_results.values())
     if found_main:
         parser_logger.info("Gefundene Funktionen: %s", ", ".join(found_main))
     parser_logger.info(
