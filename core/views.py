@@ -412,6 +412,8 @@ def _resolve_value(
             return manual_val, "Manuell"
         if ai_val is not None:
             return ai_val, "KI-Prüfung"
+        if doc_val is not None:
+            return doc_val, "Dokumenten-Analyse"
         return None, "N/A"
 
     if field in {"einsatz_bei_telefonica", "zur_lv_kontrolle"}:
