@@ -23,13 +23,15 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2FunctionResult,
     Anlage2Config,
+    FormatBParserRule,
+    AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
 )
-from .text_parser import parse_anlage2_text
+from .text_parser import build_token_map, apply_tokens, apply_rules
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     extract_text,
@@ -37,7 +39,6 @@ from .docx_utils import (
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
-    parse_anlage2_table,
 )
 from .parser_manager import parser_manager
 from .anlage4_parser import parse_anlage4, parse_anlage4_dual
@@ -280,42 +281,73 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-    """Parst eine Anlage 2-Datei anhand der Konfiguration.
-
-    Das Ergebnis wird im Feld ``analysis_json`` gespeichert und unter dem
-    Schlüssel ``functions`` abgelegt, damit die originale Struktur
-    unverändert erhalten bleibt.
-    """
+    """Analysiert eine Anlage 2 und legt Ergebnisse ab."""
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
 
     cfg = Anlage2Config.get_instance()
-    mode = cfg.parser_mode
+    token_map = build_token_map(cfg)
+    rules = list(AntwortErkennungsRegel.objects.all())
 
-    if mode == "table_only":
-        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
-    elif mode == "text_only":
-        parser_logger.debug(
-            "Textinhalt vor Text-Parser:\n%s",
-            project_file.text_content,
-        )
-        analysis_result = parse_anlage2_text(project_file.text_content)
-    elif mode == "auto":
-        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
-        if not analysis_result:
-            parser_logger.debug(
-                "Textinhalt vor Text-Parser:\n%s",
-                project_file.text_content,
+    functions = list(
+        Anlage2Function.objects.prefetch_related("anlage2subquestion_set").all()
+    )
+
+    text = _clean_text(project_file.text_content or "")
+    lines = text.splitlines()
+
+    fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
+
+    results: list[dict[str, object]] = []
+
+    def _blank_entry(name: str) -> dict[str, object]:
+        entry: dict[str, object] = {"funktion": name}
+        for f in fields:
+            entry[f] = None
+        entry["not_found"] = True
+        return entry
+
+    for func in functions:
+        aliases = [func.name]
+        if func.detection_phrases:
+            aliases.extend(func.detection_phrases.get("name_aliases", []))
+
+        hit_line = next((l for l in lines if any(a.lower() in l.lower() for a in aliases)), None)
+        if hit_line:
+            entry = {"funktion": func.name}
+            apply_tokens(entry, hit_line, token_map)
+            apply_rules(entry, hit_line, rules)
+        else:
+            entry = _blank_entry(func.name)
+        results.append(entry)
+
+        for sub in func.anlage2subquestion_set.all():
+            sub_aliases = [sub.frage_text]
+            if sub.detection_phrases:
+                sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
+            sub_line = next(
+                (l for l in lines if any(a.lower() in l.lower() for a in sub_aliases)),
+                None,
             )
-            analysis_result = parse_anlage2_text(project_file.text_content)
-    else:
-        analysis_result = parser_manager.parse_anlage2(project_file)
+            sub_entry = {
+                "funktion": f"{func.name}: {sub.frage_text}",
+                "subquestion_id": sub.id,
+            }
+            if sub_line:
+                apply_tokens(sub_entry, sub_line, token_map)
+                apply_rules(sub_entry, sub_line, rules)
+            else:
+                for f in fields:
+                    sub_entry[f] = None
+                sub_entry["not_found"] = True
+            results.append(sub_entry)
 
-    project_file.analysis_json = {"functions": analysis_result}
+    project_file.analysis_json = {"functions": results}
     project_file.save(update_fields=["analysis_json"])
 
-    # Dokumentergebnisse in Anlage2FunctionResult speichern
-    for row in analysis_result or []:
+    for row in results:
+        if row.get("subquestion_id"):
+            continue
         name = row.get("funktion")
         if not name:
             continue
@@ -346,7 +378,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         res.doc_result = row
         res.save(update_fields=["doc_result", "is_negotiable"])
 
-    return analysis_result
+    return results
 
 
 

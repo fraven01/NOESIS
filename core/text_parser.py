@@ -5,6 +5,7 @@ import logging
 import re
 from typing import Dict, List, Tuple
 
+
 from thefuzz import fuzz
 
 from .models import (
@@ -81,6 +82,75 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     parser_logger.info("parse_format_b beendet: %s Einträge", len(results))
 
     return results
+
+
+def build_token_map(cfg: Anlage2Config) -> Dict[str, List[Tuple[str, bool]]]:
+    """Erstellt die Token-Zuordnung für Anlage 2."""
+    token_map: Dict[str, List[Tuple[str, bool]]] = {}
+    for attr in dir(cfg):
+        if not attr.startswith("text_"):
+            continue
+        phrases = getattr(cfg, attr, [])
+        if not isinstance(phrases, list):
+            continue
+        if attr.endswith("_true"):
+            field = attr[5:-5]
+            token_map.setdefault(field, []).extend((p.lower(), True) for p in phrases)
+        elif attr.endswith("_false"):
+            field = attr[5:-6]
+            token_map.setdefault(field, []).extend((p.lower(), False) for p in phrases)
+    return token_map
+
+
+def apply_tokens(
+    entry: Dict[str, object], text_part: str, token_map: Dict[str, List[Tuple[str, bool]]]
+) -> None:
+    """Wendet Token-Regeln auf einen Textabschnitt an."""
+    lower = text_part.lower()
+    parser_logger.debug("Prüfe Tokens in '%s'", text_part)
+    for field, items in token_map.items():
+        if field in entry:
+            continue
+        for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
+            if phrase in lower:
+                parser_logger.debug("Token '%s' gefunden, setze %s=%s", phrase, field, value)
+                entry[field] = {"value": value, "note": None}
+                break
+
+
+def apply_rules(
+    entry: Dict[str, object], text_part: str, rules: List[AntwortErkennungsRegel]
+) -> None:
+    """Wendet Antwortregeln auf einen Textabschnitt an."""
+    parser_logger.debug("Prüfe Regeln in '%s'", text_part)
+    found_rules: Dict[str, tuple[bool, int, str]] = {}
+    for rule in rules:
+        if rule.erkennungs_phrase.lower() in text_part.lower():
+            current = found_rules.get(rule.ziel_feld)
+            if current is None or rule.prioritaet < current[1]:
+                found_rules[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
+                parser_logger.debug(
+                    "Regel '%s' (%s) setzt %s=%s",
+                    rule.regel_name,
+                    rule.erkennungs_phrase,
+                    rule.ziel_feld,
+                    rule.wert,
+                )
+
+    if not found_rules:
+        return
+
+    for field, (val, _prio, _phrase) in found_rules.items():
+        entry[field] = {"value": val, "note": None}
+
+    remaining = text_part
+    for _val, _prio, phrase in found_rules.values():
+        remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
+    remaining = remaining.strip()
+
+    if remaining:
+        best_field = min(found_rules.items(), key=lambda i: i[1][1])[0]
+        entry[best_field]["note"] = remaining
 
 
 def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]]:
