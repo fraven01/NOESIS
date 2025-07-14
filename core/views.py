@@ -2560,6 +2560,10 @@ def projekt_file_check(request, pk, nr):
     model = LLMConfig.get_default(category) if category else None
     try:
         func(pk, model_name=model)
+        anlage = BVProjectFile.objects.filter(
+            projekt_id=pk, anlage_nr=nr_int
+        ).first()
+        analysis = anlage.analysis_json if anlage else None
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=404)
     except RuntimeError:
@@ -2569,7 +2573,7 @@ def projekt_file_check(request, pk, nr):
     except Exception:
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
-    return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "ok", "analysis": analysis})
 
 
 @login_required
@@ -2595,6 +2599,8 @@ def projekt_file_check_pk(request, pk):
     model = LLMConfig.get_default(category) if category else None
     try:
         func(anlage.projekt_id, model_name=model)
+        anlage.refresh_from_db()
+        analysis = anlage.analysis_json
     except RuntimeError:
         return JsonResponse(
             {"error": "Missing LLM credentials from environment."}, status=500
@@ -2602,7 +2608,7 @@ def projekt_file_check_pk(request, pk):
     except Exception:
         logger.exception("LLM Fehler")
         return JsonResponse({"status": "error"}, status=502)
-    return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "ok", "analysis": analysis})
 
 
 @login_required
