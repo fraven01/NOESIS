@@ -141,6 +141,18 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
+def _split_lines(text: str) -> list[str]:
+    """Bereitet einen Text zeilengenau auf."""
+    text = text.replace("\u00b6", "\n").replace("\r", "\n")
+    lines = text.splitlines()
+    cleaned: list[str] = []
+    for line in lines:
+        line = re.sub(r"\s{2,}", " ", line.replace("\t", " ")).strip()
+        if line:
+            cleaned.append(line)
+    return cleaned
+
+
 def parse_anlage1_questions(
     text_content: str,
 ) -> dict[str, dict[str, str | None]] | None:
@@ -298,8 +310,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         Anlage2Function.objects.prefetch_related("anlage2subquestion_set").all()
     )
 
-    text = _clean_text(project_file.text_content or "")
-    lines = text.splitlines()
+    lines = _split_lines(project_file.text_content or "")
 
     fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
 
@@ -324,9 +335,10 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
         hit_line = next((l for l in lines if any(a.lower() in l.lower() for a in aliases)), None)
         if hit_line:
+            _, after = (hit_line.split(":", 1) + [""])[0:2]
             entry = {"funktion": func.name}
-            apply_tokens(entry, hit_line, token_map)
-            apply_rules(entry, hit_line, rules)
+            apply_tokens(entry, after, token_map)
+            apply_rules(entry, after, rules)
         else:
             entry = _blank_entry(func.name)
         results.append(entry)
@@ -350,8 +362,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 "subquestion_id": sub.id,
             }
             if sub_line:
-                apply_tokens(sub_entry, sub_line, token_map)
-                apply_rules(sub_entry, sub_line, rules)
+                _, after = (sub_line.split(":", 1) + [""])[0:2]
+                apply_tokens(sub_entry, after, token_map)
+                apply_rules(sub_entry, after, rules)
             else:
                 for f in fields:
                     sub_entry[f] = None
