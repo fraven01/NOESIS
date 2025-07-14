@@ -54,6 +54,7 @@ from docx import Document
 import shutil
 from PIL import Image
 import fitz
+from django.conf import settings
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from ..forms import (
@@ -2979,6 +2980,22 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         self.assertTrue(
             Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
         )
+
+    def test_multiline_phrases_saved(self):
+        url = reverse("anlage2_config")
+        resp = self.client.post(
+            url,
+            {
+                "text_technisch_verfuegbar_true": "ja\nokay\n",
+                "parser_mode": self.cfg.parser_mode,
+                "parser_order": self.cfg.parser_order,
+                "action": "save_general",
+                "active_tab": "general",
+            },
+        )
+        self.assertRedirects(resp, url + "?tab=general")
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
 
 class AjaxAnlage2ReviewTests(NoesisTestCase):
     def setUp(self):

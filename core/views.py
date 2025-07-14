@@ -2025,13 +2025,17 @@ def anlage2_config(request):
 
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
-            cfg.enforce_subquestion_override = bool(
-                request.POST.get("enforce_subquestion_override")
-            )
-            cfg.parser_order = request.POST.getlist("parser_order")
-            cfg.save(update_fields=["enforce_subquestion_override", "parser_order"])
-            messages.success(request, "Einstellungen gespeichert")
-            return redirect(f"{reverse('anlage2_config')}?tab=general")
+            cfg_form = Anlage2ConfigForm(request.POST, instance=cfg)
+            if cfg_form.is_valid():
+                admin_a2_logger.debug(
+                    "Ge\u00e4nderte Felder: %r",
+                    {f: cfg_form.cleaned_data[f] for f in cfg_form.changed_data},
+                )
+                cfg_form.save()
+                messages.success(request, "Einstellungen gespeichert")
+                return redirect(f"{reverse('anlage2_config')}?tab=general")
+            messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
+            active_tab = "general"
 
 
 
