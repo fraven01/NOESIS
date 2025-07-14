@@ -16,6 +16,7 @@
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
         <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
+        <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
     </div>
     <div class="mb-3">
         <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>
@@ -145,6 +146,11 @@
                         {{ f.widget }}
                     {% endif %}
                     {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
+                    {% with parsed=row.doc_result|raw_item:field %}
+                    <span class="text-xs text-gray-500 ms-1">Parser-Ergebnis:
+                        {% if parsed == True %}Ja{% elif parsed == False %}Nein{% else %}Unbekannt{% endif %}
+                    </span>
+                    {% endwith %}
                 </td>
                 {% endif %}
                 {% endwith %}
