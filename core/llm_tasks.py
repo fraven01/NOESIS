@@ -1259,29 +1259,22 @@ def worker_verify_feature(
 
     obj_to_check = None
     lookup_key: str | None = None
-    verification_prompt_key = "anlage2_feature_verification"
-    justification_prompt_key = "anlage2_feature_justification"
-    ai_function_name = ""
 
     if object_type == "function":
         obj_to_check = Anlage2Function.objects.get(pk=object_id)
         context["function_name"] = obj_to_check.name
         lookup_key = obj_to_check.name
-        ai_function_name = obj_to_check.name
     elif object_type == "subquestion":
         obj_to_check = Anlage2SubQuestion.objects.get(pk=object_id)
-        context["subquestion_text"] = obj_to_check.frage_text
+        context["function_name"] = obj_to_check.frage_text
         lookup_key = f"{obj_to_check.funktion.name}: {obj_to_check.frage_text}"
-        verification_prompt_key = "anlage2_subquestion_verification"
-        justification_prompt_key = "anlage2_subquestion_justification"
-        ai_function_name = obj_to_check.funktion.name
     else:
         raise ValueError("invalid object_type")
 
     try:
-        prompt_obj = Prompt.objects.get(name=verification_prompt_key)
+        prompt_obj = Prompt.objects.get(name="anlage2_feature_verification")
     except Prompt.DoesNotExist:
-        logger.error("Prompt '%s' nicht gefunden!", verification_prompt_key)
+        logger.error("Prompt '%s' nicht gefunden!", "anlage2_feature_verification")
         prompt_obj = Prompt(
             text=(
                 "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
@@ -1296,7 +1289,7 @@ def worker_verify_feature(
 
     software_list = projekt.software_list
 
-    name = ai_function_name
+    name = context["function_name"]
 
     individual_results: list[bool | None] = []
     for software in software_list:
@@ -1329,7 +1322,7 @@ def worker_verify_feature(
     ai_reason = ""
     if result:
         try:
-            just_prompt_obj = Prompt.objects.get(name=justification_prompt_key)
+            just_prompt_obj = Prompt.objects.get(name="anlage2_feature_justification")
         except Prompt.DoesNotExist:
             just_prompt_obj = Prompt(
                 text=(
