@@ -37,6 +37,7 @@ from .docx_utils import (
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
+    parse_anlage2_table,
 )
 from .parser_manager import parser_manager
 from .anlage4_parser import parse_anlage4, parse_anlage4_dual
