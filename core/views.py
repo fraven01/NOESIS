@@ -2518,8 +2518,14 @@ def projekt_file_upload(request, pk):
             obj.projekt = projekt
             obj.text_content = content
             obj.save()
-            if obj.anlage_nr == 2:
-                async_task("core.llm_tasks.check_anlage2_functions", projekt.pk)
+            if obj.anlage_nr == 2 and not obj.verification_task_id:
+                task_id = async_task(
+                    "core.llm_tasks.check_anlage2_functions",
+                    projekt.pk,
+                )
+                if task_id:
+                    obj.verification_task_id = str(task_id)
+                    obj.save(update_fields=["verification_task_id"])
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()

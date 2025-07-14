@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.test import TestCase
 from django.http import QueryDict
 from django.db import IntegrityError
+from types import SimpleNamespace
 
 
 from django.apps import apps
@@ -337,6 +338,50 @@ class BVProjectFileTests(NoesisTestCase):
         )
         form = BVProjectFileJSONForm(instance=pf)
         self.assertIn("analysis_json", form.fields)
+
+    def test_save_stores_task_id(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        Anlage2Function.objects.create(name="Login")
+        with patch("core.models.async_task", return_value="tid1") as mock_task:
+            pf = BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                text_content="t",
+            )
+        self.assertEqual(pf.verification_task_id, "tid1")
+        mock_task.assert_called_with(
+            "core.llm_tasks.check_anlage2_functions",
+            projekt.pk,
+        )
+
+    def test_is_verification_running(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            verification_task_id="tid",
+        )
+        with patch("core.models.fetch") as mock_fetch:
+            mock_fetch.return_value = SimpleNamespace(success=None)
+            self.assertTrue(pf.is_verification_running())
+            mock_fetch.return_value = SimpleNamespace(success=True)
+            self.assertFalse(pf.is_verification_running())
+
+    def test_check_functions_clears_task_id(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            verification_task_id="tid",
+        )
+        Anlage2Function.objects.create(name="Login")
+        with patch("core.llm_tasks.query_llm", return_value="{}"):
+            check_anlage2_functions(projekt.pk)
+        pf.refresh_from_db()
+        self.assertEqual(pf.verification_task_id, "")
 
 
 class ProjektFileUploadTests(NoesisTestCase):
