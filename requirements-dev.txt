@@ -1,4 +1,7 @@
 -r requirements.txt
-pytest
 coverage
+django-picklefield
+django-q2>=1.8.0
 honcho
+pytest
+rich
