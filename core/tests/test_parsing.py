@@ -46,8 +46,8 @@ class DocxExtractTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         try:
             count = get_pdf_page_count(Path(tmp.name))
         finally:
@@ -59,8 +59,8 @@ class DocxExtractTests(NoesisTestCase):
         pdf.new_page()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         try:
             count = get_pdf_page_count(Path(tmp.name))
         finally:
