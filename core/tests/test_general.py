@@ -164,7 +164,21 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     try:
         create_initial_data(django_apps, None)
     except LookupError:
-        pass
+        # Falls die Migrationsfunktion wegen entfernter Modelle
+        # fehlschlägt, legen wir die benötigten Objekte manuell an.
+        Anlage1QuestionModel = apps.get_model("core", "Anlage1Question")
+        Anlage1QuestionVariant = apps.get_model("core", "Anlage1QuestionVariant")
+        for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
+            question, _ = Anlage1QuestionModel.objects.update_or_create(
+                num=idx,
+                defaults={
+                    "text": text,
+                    "enabled": True,
+                    "parser_enabled": True,
+                    "llm_enabled": True,
+                },
+            )
+            Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
     create_statuses()
 
     # Anlage1 Fragen aktualisieren
