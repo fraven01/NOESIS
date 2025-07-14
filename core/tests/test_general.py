@@ -498,7 +498,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        with patch("core.views.async_task") as mock_async:
+        with patch("core.models.async_task", return_value="tid1") as mock_async:
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
@@ -507,6 +507,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 302)
         pf = self.projekt.anlagen.get(anlage_nr=2)
         self.assertIsNone(pf.analysis_json)
+        self.assertEqual(pf.verification_task_id, "tid1")
         mock_async.assert_called_with(
             "core.llm_tasks.check_anlage2_functions",
             self.projekt.pk,
