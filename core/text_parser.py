@@ -145,6 +145,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
         lower = text_part.lower()
         parser_logger.debug("Prüfe Tokens in '%s'", text_part)
         for field, value, phrases in token_map:
+            if field in entry:
+                continue
             for phrase in phrases:
                 if phrase in lower:
                     parser_logger.debug(
