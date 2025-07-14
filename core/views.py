@@ -2683,9 +2683,6 @@ def projekt_file_edit_json(request, pk):
     except BVProjectFile.DoesNotExist:
         raise Http404
 
-    if anlage.anlage_nr == 2 and not anlage.analysis_json:
-        run_anlage2_analysis(anlage)
-        anlage.refresh_from_db()
 
     if anlage.anlage_nr == 1:
         if request.method == "POST":
@@ -2743,6 +2740,10 @@ def projekt_file_edit_json(request, pk):
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
         if request.method == "POST":
+            if "run_parser" in request.POST:
+                run_anlage2_analysis(anlage)
+                anlage.refresh_from_db()
+                return redirect("projekt_file_edit_json", pk=pk)
             form = Anlage2ReviewForm(request.POST)
             if form.is_valid():
                 cfg_rule = Anlage2Config.get_instance()
@@ -3153,15 +3154,11 @@ def projekt_status_update(request, pk):
 def projekt_functions_check(request, pk):
     """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
     model = request.POST.get("model")
-    try:
-        check_anlage2_functions(pk, model_name=model)
-    except RuntimeError:
-        return JsonResponse(
-            {"error": "Missing LLM credentials from environment."}, status=500
-        )
-    except Exception:
-        logger.exception("LLM Fehler")
-        return JsonResponse({"status": "error"}, status=502)
+    projekt = get_object_or_404(BVProject, pk=pk)
+    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set"):
+        async_task("core.llm_tasks.worker_verify_feature", projekt.pk, "function", func.id, model)
+        for sub in func.anlage2subquestion_set.all():
+            async_task("core.llm_tasks.worker_verify_feature", projekt.pk, "subquestion", sub.id, model)
     return JsonResponse({"status": "ok"})
 
 

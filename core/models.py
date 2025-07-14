@@ -239,12 +239,27 @@ class BVProjectFile(models.Model):
         is_new = self._state.adding
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
-            task_id = async_task(
-                "core.llm_tasks.check_anlage2_functions",
-                self.projekt_id,
-            )
-            if task_id:
-                self.verification_task_id = str(task_id)
+            first_id: str | None = None
+            for idx, func in enumerate(
+                Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
+            ):
+                tid = async_task(
+                    "core.llm_tasks.worker_verify_feature",
+                    self.projekt_id,
+                    "function",
+                    func.id,
+                )
+                if idx == 0 and tid:
+                    first_id = str(tid)
+                for sub in func.anlage2subquestion_set.all():
+                    async_task(
+                        "core.llm_tasks.worker_verify_feature",
+                        self.projekt_id,
+                        "subquestion",
+                        sub.id,
+                    )
+            if first_id:
+                self.verification_task_id = first_id
                 super().save(update_fields=["verification_task_id"])
 
     def is_verification_running(self) -> bool:
