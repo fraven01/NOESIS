@@ -272,8 +272,9 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
     """Parst eine Anlage 2-Datei anhand der Konfiguration.
 
-    Das Ergebnis wird als JSON-String im Feld ``analysis_json`` gespeichert,
-    damit die originale Struktur unverändert erhalten bleibt.
+    Das Ergebnis wird im Feld ``analysis_json`` gespeichert und unter dem
+    Schlüssel ``functions`` abgelegt, damit die originale Struktur
+    unverändert erhalten bleibt.
     """
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
@@ -292,7 +293,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     else:
         analysis_result = parser_manager.parse_anlage2(project_file)
 
-    project_file.analysis_json = json.dumps(analysis_result, ensure_ascii=False)
+    project_file.analysis_json = {"functions": analysis_result}
     project_file.save(update_fields=["analysis_json"])
 
     # Dokumentergebnisse in Anlage2FunctionResult speichern
