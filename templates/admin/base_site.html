@@ -37,9 +37,9 @@
                 {% with open_anl=request.resolver_match.url_name %}
                 <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
                     <span>Anlagen-Konfiguration</span>
-                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
+                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config core_zweckkategoriea_changelist' %}rotate-180{% endif %}"></i>
                 </h3>
-                <div class="accordion-content pl-2 space-y-1 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
+                <div class="accordion-content pl-2 space-y-1 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config core_zweckkategoriea_changelist' %}block{% else %}hidden{% endif %}">
                     <a href="{% url 'admin_anlage1' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_anlage1' %}active-nav-link{% endif %}">
                         <i class="fas fa-question-circle fa-fw mr-2"></i>
                         Anlage 1 Fragen
@@ -51,6 +51,10 @@
                     <a href="{% url 'anlage2_config' %}" class="nav-link {% if request.resolver_match.url_name == 'anlage2_config' %}active-nav-link{% endif %}">
                         <i class="fas fa-globe fa-fw mr-2"></i>
                         Anlage 2 Globale Phrasen
+                    </a>
+                    <a href="{% url 'admin:core_zweckkategoriea_changelist' %}" class="nav-link {% if request.resolver_match.url_name == 'core_zweckkategoriea_changelist' %}active-nav-link{% endif %}">
+                        <i class="fas fa-list fa-fw mr-2"></i>
+                        Anlage 5 Konfiguration
                     </a>
                 </div>
                 {% endwith %}

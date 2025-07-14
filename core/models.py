@@ -799,3 +799,17 @@ class Anlage2SubQuestion(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.frage_text
+
+
+class ZweckKategorieA(models.Model):
+    """Zweck für Auswertungen der Kategorie A in Anlage 5."""
+
+    beschreibung = models.TextField()
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Zweck Kategorie A"
+        verbose_name_plural = "Zwecke Kategorie A"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.beschreibung[:50]
