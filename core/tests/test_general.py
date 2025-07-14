@@ -486,8 +486,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("t.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
@@ -1272,8 +1272,8 @@ class LLMTasksTests(NoesisTestCase):
         pdf = fitz.open()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("c.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
@@ -1295,8 +1295,8 @@ class LLMTasksTests(NoesisTestCase):
         pdf.new_page()
         pdf.new_page()
         tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        pdf.save(tmp.name)
         tmp.close()
+        pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("d.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
