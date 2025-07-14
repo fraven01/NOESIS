@@ -38,6 +38,9 @@ pip install -r requirements-dev.txt
 
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
+Beim Testlauf wird `DJANGO_SECRET_KEY` automatisch auf `dummy_test_key` gesetzt,
+falls die Variable nicht gesetzt ist.
+
 ## Tests und Checks
 
 Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
