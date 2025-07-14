@@ -2886,11 +2886,32 @@ def projekt_file_edit_json(request, pk):
 
         for func in Anlage2Function.objects.order_by("name"):
             lookup_key = func.name
-            debug_logger.info("--- Starte Prüfung für Funktion: '%s' ---", func.name)
-            if answers.get(lookup_key):
-                debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+            func_status = analysis_lookup.get(lookup_key, {}).get("technisch_vorhanden")
+            if func.name == "Anwesenheitsüberwachung":
+                debug_logger.info(
+                    "--- Starte detaillierte Prüfung für Funktion: '%s' ---",
+                    func.name,
+                )
+                if func_status is True:
+                    debug_logger.info("-> Status: Als 'Technisch verfügbar' erkannt.")
+                elif func_status is False:
+                    debug_logger.info(
+                        "-> Status: Als 'Technisch NICHT verfügbar' erkannt."
+                    )
+                note = None
+                tv_entry = answers.get(lookup_key, {}).get("technisch_vorhanden")
+                if isinstance(tv_entry, dict):
+                    note = tv_entry.get("note") or tv_entry.get("text")
+                if note:
+                    debug_logger.info("-> Entscheidungsgrundlage im Text: '%s'", note)
             else:
-                debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
+                debug_logger.info(
+                    "--- Starte Prüfung für Funktion: '%s' ---", func.name
+                )
+                if answers.get(lookup_key):
+                    debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+                else:
+                    debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
             rows.append(
                 _build_row_data(
                     func.name,
@@ -2908,14 +2929,17 @@ def projekt_file_edit_json(request, pk):
                 )
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
-                debug_logger.info(
-                    "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
-                )
                 lookup_key = f"{func.name}: {sub.frage_text}"
-                if answers.get(lookup_key):
-                    debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
-                else:
-                    debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
+                if not (func.name == "Anwesenheitsüberwachung" and func_status is not True):
+                    debug_logger.info(
+                        "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
+                    )
+                    if answers.get(lookup_key):
+                        debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+                    else:
+                        debug_logger.info(
+                            "-> Ergebnis: Nicht im Dokument gefunden."
+                        )
                 rows.append(
                     _build_row_data(
                         sub.frage_text,
