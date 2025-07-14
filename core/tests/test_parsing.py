@@ -1200,7 +1200,10 @@ class Anlage4ReviewViewTests(NoesisTestCase):
         self.file.refresh_from_db()
         self.assertEqual(
             self.file.manual_analysis_json,
-            {"0": {"ok": True, "note": "gut"}, "1": {"ok": False, "note": "schlecht"}},
+            {
+                "0": {"ok": True, "nego": False, "note": "gut"},
+                "1": {"ok": False, "nego": False, "note": "schlecht"},
+            },
         )
 
 
