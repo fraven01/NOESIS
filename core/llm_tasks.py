@@ -37,6 +37,7 @@ from .docx_utils import (
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
+    parse_anlage2_table,
 )
 from .parser_manager import parser_manager
 from .anlage4_parser import parse_anlage4, parse_anlage4_dual
@@ -290,6 +291,14 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             project_file.text_content,
         )
         analysis_result = parse_anlage2_text(project_file.text_content)
+    elif mode == "auto":
+        analysis_result = parse_anlage2_table(Path(project_file.upload.path))
+        if not analysis_result:
+            parser_logger.debug(
+                "Textinhalt vor Text-Parser:\n%s",
+                project_file.text_content,
+            )
+            analysis_result = parse_anlage2_text(project_file.text_content)
     else:
         analysis_result = parser_manager.parse_anlage2(project_file)
 
