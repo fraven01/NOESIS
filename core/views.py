@@ -125,6 +125,7 @@ debug_logger = logging.getLogger("parser_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
+workflow_logger = logging.getLogger("workflow_debug")
 
 
 _WHISPER_MODEL = None
@@ -2820,6 +2821,28 @@ def projekt_file_edit_json(request, pk):
 
             for key, res in manual_results_map.items():
                 manual_lookup.setdefault(key, {}).update(res)
+
+            sample_funcs = list(Anlage2Function.objects.order_by("name")[:2])
+            for sf in sample_funcs:
+                lk = sf.name
+                workflow_logger.info(
+                    "[%s] - UI RENDER - Daten f\u00fcr Funktion '%s': doc_result: %s, ai_result: %s, manual_result: %s",
+                    anlage.projekt_id,
+                    sf.name,
+                    analysis_lookup.get(lk),
+                    verification_lookup.get(lk),
+                    manual_lookup.get(lk),
+                )
+                disp_sample = _get_display_data(
+                    lk, analysis_lookup, verification_lookup, manual_lookup
+                )
+                workflow_logger.info(
+                    "[%s] - UI RENDER - Finaler Anzeigewert f\u00fcr '%s': Wert=%s, Quelle='%s'",
+                    anlage.projekt_id,
+                    sf.name,
+                    disp_sample["values"].get("technisch_vorhanden"),
+                    disp_sample["sources"].get("technisch_vorhanden"),
+                )
 
             init = {"functions": {}}
 

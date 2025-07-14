@@ -244,6 +244,13 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
+        "workflow_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "debug_workflow.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
@@ -298,6 +305,11 @@ LOGGING = {
         },
         "anlage2_admin_debug": {
             "handlers": ["anlage2_admin_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "workflow_debug": {
+            "handlers": ["workflow_file"],
             "level": "DEBUG",
             "propagate": False,
         },
