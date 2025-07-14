@@ -1665,6 +1665,7 @@ class ProjektFileCheckViewTests(NoesisTestCase):
         ):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
+        resp_json = resp.json()
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
@@ -1672,6 +1673,7 @@ class ProjektFileCheckViewTests(NoesisTestCase):
             for i in nums
         }
         self.assertEqual(file_obj.analysis_json, expected)
+        self.assertEqual(resp_json["analysis"], expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
@@ -1696,6 +1698,7 @@ class ProjektFileCheckViewTests(NoesisTestCase):
         ):
             resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
+        resp_json = resp.json()
         file_obj.refresh_from_db()
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
@@ -1703,6 +1706,7 @@ class ProjektFileCheckViewTests(NoesisTestCase):
             for i in nums
         }
         self.assertEqual(file_obj.analysis_json, expected)
+        self.assertEqual(resp_json["analysis"], expected)
 
 
 class Anlage2ReviewTests(NoesisTestCase):
