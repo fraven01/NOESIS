@@ -345,18 +345,20 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             aliases.extend(func.detection_phrases.get("name_aliases", []))
 
         alias_norms = [_normalize_search(a) for a in aliases]
-        best_after: str | None = None
-        best_score = 0
+
+        matches: list[str] = []
         for before, after, norm in line_data:
             for a_norm in alias_norms:
                 score = fuzz.partial_ratio(a_norm, norm)
-                if score > best_score:
-                    best_score = score
-                    best_after = after
-        if best_after is not None and best_score >= 90:
+                if score >= 90:
+                    matches.append(after)
+                    break
+
+        if matches:
             entry = {"funktion": func.name}
-            apply_tokens(entry, best_after, token_map)
-            apply_rules(entry, best_after, rules)
+            for part in matches:
+                apply_tokens(entry, part, token_map)
+                apply_rules(entry, part, rules)
         else:
             entry = _blank_entry(func.name)
 
@@ -373,21 +375,21 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             if sub.detection_phrases:
                 sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
             sub_alias_norms = [_normalize_search(a) for a in sub_aliases]
-            sub_best: str | None = None
-            sub_score = 0
+            sub_matches: list[str] = []
             for before, after, norm in line_data:
                 for a_norm in sub_alias_norms:
                     score = fuzz.partial_ratio(a_norm, norm)
-                    if score > sub_score:
-                        sub_score = score
-                        sub_best = after
+                    if score >= 90:
+                        sub_matches.append(after)
+                        break
             sub_entry = {
                 "funktion": f"{func.name}: {sub.frage_text}",
                 "subquestion_id": sub.id,
             }
-            if sub_best is not None and sub_score >= 90:
-                apply_tokens(sub_entry, sub_best, token_map)
-                apply_rules(sub_entry, sub_best, rules)
+            if sub_matches:
+                for part in sub_matches:
+                    apply_tokens(sub_entry, part, token_map)
+                    apply_rules(sub_entry, part, rules)
             else:
                 for f in fields:
                     sub_entry[f] = None
