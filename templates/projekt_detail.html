@@ -63,13 +63,19 @@
                     <a href="{% url 'anlage6_dummy' %}"
                        class="bg-gray-500 text-white px-2 py-1 rounded">Prüfen</a>
                 {% else %}
-                    <a href="{% url 'projekt_file_check_view' a.pk %}"
-                       class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
+                    {% if a.anlage_nr == 2 and a.is_verification_running %}
+                        <span class="bg-gray-400 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Läuft...</span>
+                    {% else %}
+                        <a href="{% url 'projekt_file_check_view' a.pk %}"
+                           class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
+                    {% endif %}
                 {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
             {% if a.analysis_json %}
-                {% if a.anlage_nr == 4 %}
+                {% if a.anlage_nr == 2 and a.is_verification_running %}
+                    <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span></span>
+                {% elif a.anlage_nr == 4 %}
                     <a href="{% url 'anlage4_review' a.pk %}"
                        class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
                 {% else %}
