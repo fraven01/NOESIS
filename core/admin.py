@@ -3,7 +3,10 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django import forms
 from django.utils.html import format_html
-from django.contrib.admin.widgets import FilteredSelectMultiple, AdminFileWidget
+from django.contrib.admin.widgets import (
+    FilteredSelectMultiple,
+    AdminFileWidget,
+)
 from django.urls import URLPattern, URLResolver, get_resolver
 from .models import (
     Recording,
@@ -233,14 +236,12 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
     )
 
 
-
 # Registrierung der Modelle
 @admin.register(ZweckKategorieA)
 class ZweckKategorieAAdmin(admin.ModelAdmin):
     list_display = ("beschreibung",)
 
+
 # Registrierung der Modelle
 admin.site.register(Tile, TileAdmin)
 admin.site.register(Area, AreaAdmin)
-
-

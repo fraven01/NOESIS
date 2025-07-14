@@ -3,7 +3,6 @@ import string
 import logging
 from pathlib import Path
 from typing import List
-
 from docx import Document
 
 from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
@@ -53,8 +52,14 @@ def parse_anlage4(
     if cfg is None:
         cfg = project_file.anlage4_config or Anlage4Config.objects.first()
     columns = [_normalize(c) for c in (cfg.table_columns if cfg else [])]
-    neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
-    patterns = [re.compile(p, re.I) for p in (cfg.regex_patterns if cfg else [])]
+    neg_patterns = [
+        re.compile(p, re.I)
+        for p in (cfg.negative_patterns if cfg else [])
+    ]
+    patterns = [
+        re.compile(p, re.I)
+        for p in (cfg.regex_patterns if cfg else [])
+    ]
 
     logger.debug(
         "Konfiguration: columns=%s, regex_patterns=%s, negative_patterns=%s",
@@ -71,7 +76,9 @@ def parse_anlage4(
         match = pat.search(text)
         if match:
             logger.error(
-                "Negative pattern erkannt: %s -> %r", pat.pattern, match.group(0)
+                "Negative pattern erkannt: %s -> %r",
+                pat.pattern,
+                match.group(0),
             )
             return []
 
@@ -100,10 +107,12 @@ def parse_anlage4(
                 if found and items:
                     logger.debug("%s - %s items", structure, len(items))
                     return items
-        except Exception as exc:  # pragma: no cover - ungültige Datei
+        except Exception:  # pragma: no cover - ungültige Datei
             logger.error("Anlage4Parser Fehler", exc_info=True)
-            structure = structure or ("free text found" if text.strip() else "empty document")
-    
+            structure = structure or (
+                "free text found" if text.strip() else "empty document"
+            )
+
     for pat in patterns:
         logger.debug("Suche Muster '%s'", pat.pattern)
         matches = pat.findall(text)
@@ -125,7 +134,6 @@ def parse_anlage4(
     return items
 
 
-
 def parse_anlage4_dual(
     project_file: BVProjectFile,
     cfg: Anlage4ParserConfig | None = None,
@@ -138,7 +146,10 @@ def parse_anlage4_dual(
 
     logger.info("parse_anlage4_dual gestartet für Datei %s", project_file.pk)
     if cfg is None:
-        cfg = project_file.anlage4_parser_config or Anlage4ParserConfig.objects.first()
+        cfg = (
+            project_file.anlage4_parser_config
+            or Anlage4ParserConfig.objects.first()
+        )
     if cfg is None:
         logger.warning("Keine Anlage4ParserConfig vorhanden")
         return []
@@ -150,7 +161,10 @@ def parse_anlage4_dual(
     name_aliases = cfg.name_aliases if cfg else []
     ges_aliases = cfg.gesellschaft_aliases if cfg else []
     fach_aliases = cfg.fachbereich_aliases if cfg else []
-    neg_patterns = [re.compile(p, re.I) for p in (cfg.negative_patterns if cfg else [])]
+    neg_patterns = [
+        re.compile(p, re.I)
+        for p in (cfg.negative_patterns if cfg else [])
+    ]
 
     path = Path(project_file.upload.path)
     if path.exists() and path.suffix.lower() == ".docx" and columns:
@@ -165,7 +179,11 @@ def parse_anlage4_dual(
             field_map = {}
             for idx, name in enumerate(cfg.table_columns):
                 norm = _normalize(name)
-                key = default_keys[idx] if idx < len(default_keys) else _keyify(name)
+                key = (
+                    default_keys[idx]
+                    if idx < len(default_keys)
+                    else _keyify(name)
+                )
                 field_map[norm] = key
 
             all_items: list[dict] = []
@@ -178,7 +196,10 @@ def parse_anlage4_dual(
                 if not table.rows or len(table.columns) < 2:
                     continue
 
-                first_col = [_normalize(row.cells[0].text.strip()) for row in table.rows]
+                first_col = [
+                    _normalize(row.cells[0].text.strip())
+                    for row in table.rows
+                ]
                 if not set(columns).issubset(first_col):
                     continue
 
@@ -216,7 +237,10 @@ def parse_anlage4_dual(
         logger.warning("Keine delimiter_phrase definiert")
         return []
 
-    pattern_block = re.compile(r"^(?:" + "|".join(block_aliases) + ")", re.I | re.M)
+    pattern_block = re.compile(
+        r"^(?:" + "|".join(block_aliases) + ")",
+        re.I | re.M,
+    )
     matches = list(pattern_block.finditer(text))
     logger.debug("Gefundene Blöcke: %s", len(matches))
     if not matches:
@@ -225,35 +249,57 @@ def parse_anlage4_dual(
     segs: list[str] = []
     for idx, match in enumerate(matches):
         start = match.end()
-        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        end = (
+            matches[idx + 1].start()
+            if idx + 1 < len(matches)
+            else len(text)
+        )
         segs.append(text[start:end])
 
     if ges_phrase or ges_aliases:
         patterns = ([ges_phrase] if ges_phrase else []) + ges_aliases
         escaped = [r"\s*" + _phrase_pattern(p) for p in patterns]
-        reg_ges = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
+        reg_ges = re.compile(
+            r"^(?:" + "|".join(escaped) + ")",
+            re.I | re.M,
+        )
     else:
         reg_ges = None
     if fach_phrase or fach_aliases:
         patterns = ([fach_phrase] if fach_phrase else []) + fach_aliases
         escaped = [r"\s*" + _phrase_pattern(p) for p in patterns]
-        reg_fach = re.compile(r"^(?:" + "|".join(escaped) + ")", re.I | re.M)
+        reg_fach = re.compile(
+            r"^(?:" + "|".join(escaped) + ")",
+            re.I | re.M,
+        )
     else:
         reg_fach = None
 
     results: list[dict] = []
     for seg in segs:
-        entry = {"name_der_auswertung": "", "gesellschaften": "", "fachbereiche": ""}
+        entry = {
+            "name_der_auswertung": "",
+            "gesellschaften": "",
+            "fachbereiche": "",
+        }
         anchors_found: list[tuple[str, int, int]] = []
 
-        _log_phrase_presence("gesellschaften_phrase", cfg.gesellschaften_phrase, seg)
+        _log_phrase_presence(
+            "gesellschaften_phrase",
+            cfg.gesellschaften_phrase,
+            seg,
+        )
 
         if reg_ges:
             m = reg_ges.search(seg)
             if m:
                 anchors_found.append(("gesellschaften", m.start(), m.end()))
 
-        _log_phrase_presence("fachbereiche_phrase", cfg.fachbereiche_phrase, seg)
+        _log_phrase_presence(
+            "fachbereiche_phrase",
+            cfg.fachbereiche_phrase,
+            seg,
+        )
 
         if reg_fach:
             m = reg_fach.search(seg)
@@ -266,7 +312,11 @@ def parse_anlage4_dual(
         name = re.sub(r'^[\s:.-]+', '', name)
         entry["name_der_auswertung"] = name
         for idx, (field, start, anchor_end) in enumerate(anchors_found):
-            next_start = anchors_found[idx + 1][1] if idx + 1 < len(anchors_found) else end_pos
+            next_start = (
+                anchors_found[idx + 1][1]
+                if idx + 1 < len(anchors_found)
+                else end_pos
+            )
             entry[field] = seg[anchor_end:next_start].strip()
 
         results.append(entry)
