@@ -1181,6 +1181,24 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertEqual(pf.analysis_json["functions"], result)
 
+    def test_run_anlage2_analysis_fuzzy_match(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="Logn: ja",
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+
+        result = run_anlage2_analysis(pf)
+
+        self.assertEqual(len(result), 1)
+        self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
+
 
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):

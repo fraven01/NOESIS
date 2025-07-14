@@ -40,6 +40,7 @@ from .docx_utils import (
     get_docx_page_count,
     get_pdf_page_count,
 )
+from thefuzz import fuzz
 from .parser_manager import parser_manager
 from .anlage4_parser import parse_anlage4, parse_anlage4_dual
 from docx import Document
@@ -312,6 +313,15 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     lines = _split_lines(project_file.text_content or "")
 
+    def _normalize_search(text: str) -> str:
+        """Bereitet einen String für Fuzzy-Vergleiche vor."""
+        return re.sub(r"[\W_]+", "", text).lower()
+
+    line_data: list[tuple[str, str, str]] = []
+    for line in lines:
+        before, after = (line.split(":", 1) + [""])[0:2]
+        line_data.append((before, after, _normalize_search(before)))
+
     fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
 
     results: list[dict[str, object]] = []
@@ -329,18 +339,27 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             project_file.projekt_id,
             func.name,
         )
+
         aliases = [func.name]
         if func.detection_phrases:
             aliases.extend(func.detection_phrases.get("name_aliases", []))
 
-        hit_line = next((l for l in lines if any(a.lower() in l.lower() for a in aliases)), None)
-        if hit_line:
-            _, after = (hit_line.split(":", 1) + [""])[0:2]
+        alias_norms = [_normalize_search(a) for a in aliases]
+        best_after: str | None = None
+        best_score = 0
+        for before, after, norm in line_data:
+            for a_norm in alias_norms:
+                score = fuzz.partial_ratio(a_norm, norm)
+                if score > best_score:
+                    best_score = score
+                    best_after = after
+        if best_after is not None and best_score >= 90:
             entry = {"funktion": func.name}
-            apply_tokens(entry, after, token_map)
-            apply_rules(entry, after, rules)
+            apply_tokens(entry, best_after, token_map)
+            apply_rules(entry, best_after, rules)
         else:
             entry = _blank_entry(func.name)
+
         results.append(entry)
         workflow_logger.info(
             "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> doc_result: %s",
@@ -353,18 +372,22 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             sub_aliases = [sub.frage_text]
             if sub.detection_phrases:
                 sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
-            sub_line = next(
-                (l for l in lines if any(a.lower() in l.lower() for a in sub_aliases)),
-                None,
-            )
+            sub_alias_norms = [_normalize_search(a) for a in sub_aliases]
+            sub_best: str | None = None
+            sub_score = 0
+            for before, after, norm in line_data:
+                for a_norm in sub_alias_norms:
+                    score = fuzz.partial_ratio(a_norm, norm)
+                    if score > sub_score:
+                        sub_score = score
+                        sub_best = after
             sub_entry = {
                 "funktion": f"{func.name}: {sub.frage_text}",
                 "subquestion_id": sub.id,
             }
-            if sub_line:
-                _, after = (sub_line.split(":", 1) + [""])[0:2]
-                apply_tokens(sub_entry, after, token_map)
-                apply_rules(sub_entry, after, rules)
+            if sub_best is not None and sub_score >= 90:
+                apply_tokens(sub_entry, sub_best, token_map)
+                apply_rules(sub_entry, sub_best, rules)
             else:
                 for f in fields:
                     sub_entry[f] = None
