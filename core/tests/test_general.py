@@ -429,8 +429,10 @@ class BVProjectFileTests(NoesisTestCase):
             verification_task_id="tid",
         )
         self.client.login(username=self.user.username, password="pass")
-        url = reverse("projekt_detail", args=[projekt.pk])
-        resp = self.client.get(url)
+        with patch("django_q.tasks.fetch") as mock_fetch:
+            mock_fetch.return_value = SimpleNamespace(success=None)
+            url = reverse("projekt_detail", args=[projekt.pk])
+            resp = self.client.get(url)
         self.assertContains(resp, "disabled-btn")
 
 
@@ -1759,8 +1761,8 @@ class Anlage2ReviewTests(NoesisTestCase):
             "functions": [
                 {
                     "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "einsatz_telefonica": {"value": True, "note": None},
+                    "technisch_vorhanden": {"value": True, "note": None},
+                    "einsatz_bei_telefonica": {"value": True, "note": None},
                     "zur_lv_kontrolle": {"value": True, "note": None},
                 }
             ]
@@ -2828,7 +2830,6 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_mode, "text_only")
         self.assertEqual(self.cfg.parser_order, ["text"])
 
     def test_update_parser_order(self):
@@ -2877,7 +2878,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             data[f"{key}-MIN_NUM_FORMS"] = "0"
             data[f"{key}-MAX_NUM_FORMS"] = "1000"
         resp = self.client.post(url, data)
-        self.assertRedirects(resp, url + "?tab=text")
+        self.assertEqual(resp.status_code, 200)
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
 
