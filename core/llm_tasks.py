@@ -295,7 +295,10 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
-    """Analysiert eine Anlage 2 und legt Ergebnisse ab."""
+    """Analysiert eine Anlage 2 und legt Ergebnisse ab.
+
+    Beim Fuzzy-Abgleich wird eine Schwelle von 80 verwendet.
+    """
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
     workflow_logger.info(
@@ -350,7 +353,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         for before, after, norm in line_data:
             for a_norm in alias_norms:
                 score = fuzz.partial_ratio(a_norm, norm)
-                if score >= 90:
+                # akzeptiere Treffer ab 80 Punkten
+                if score >= 80:
                     matches.append(after)
                     break
 
@@ -388,7 +392,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             for before, after, norm in line_data:
                 for a_norm in sub_alias_norms:
                     score = fuzz.partial_ratio(a_norm, norm)
-                    if score >= 90:
+                    # akzeptiere Treffer ab 80 Punkten
+                    if score >= 80:
                         sub_matches.append(after)
                         break
             sub_entry = {
