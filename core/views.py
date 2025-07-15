@@ -3411,13 +3411,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             "zur_lv_kontrolle": "zur_lv_kontrolle",
         }
 
-        defaults = {
-            field_map.get(field_name, "technisch_verfuegbar"): status,
-            "raw_json": {"notes": notes, "subquestion_id": sub_id},
-            "source": "manual",
-            "manual_result": {field_name: status},
-        }
-
         anlage2_logger.debug(
             "Review gespeichert: pf=%s func=%s sub=%s field=%s status=%s notes=%r",
             pf_id,
@@ -3428,15 +3421,24 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             notes,
         )
 
-        res, _created = Anlage2FunctionResult.objects.update_or_create(
+        res, _created = Anlage2FunctionResult.objects.get_or_create(
             projekt=anlage.projekt,
             funktion=funktion,
-            defaults=defaults,
+            defaults={"source": "manual"},
         )
 
-        if sub_id is None:
+        attr = field_map.get(field_name, "technisch_verfuegbar")
+        setattr(res, attr, status)
+        res.raw_json = {"notes": notes, "subquestion_id": sub_id}
+        res.source = "manual"
+        manual = res.manual_result or {}
+        manual[field_name] = status
+        res.manual_result = manual
+        update_fields = [attr, "raw_json", "manual_result", "source"]
+        if sub_id is None and not res.is_negotiable:
             res.is_negotiable = True
-            res.save(update_fields=["is_negotiable"])
+            update_fields.append("is_negotiable")
+        res.save(update_fields=update_fields)
 
         gap_text = res.gap_summary
         ai_val = None
