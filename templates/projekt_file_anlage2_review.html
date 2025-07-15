@@ -239,21 +239,30 @@ function initAnlage2Review() {
         });
     }
 
-    document.querySelectorAll('tr[data-ai]').forEach(row => {
-        const ai = JSON.parse(row.dataset.ai || '{}');
-        const doc = JSON.parse(row.dataset.doc || '{}');
-        row.querySelectorAll('input[type="checkbox"]').forEach(inp => {
-            const parts = inp.name.split('_');
-            const key = parts[parts.length - 1];
-            const aiVal = ai[key] ? ai[key].value : undefined;
-            const docVal = doc[key] ? doc[key].value : undefined;
-            if (aiVal !== undefined || docVal !== undefined) {
-                const txt = `KI: ${aiVal} / Dok: ${docVal}`;
-                inp.setAttribute('data-bs-toggle', 'tooltip');
-                inp.setAttribute('title', txt);
-            }
-        });
+document.querySelectorAll('tr[data-ai]').forEach(row => {
+    let ai, doc; // Variablen außerhalb des try-Blocks deklarieren
+
+    try {
+        ai = JSON.parse(row.dataset.ai || '{}');
+        doc = JSON.parse(row.dataset.doc || '{}');
+    } catch (e) {
+        console.warn('Fehlerhafte JSON-Daten in Zeile gefunden. Fahre fort.', row, e);
+        ai = {}; // Auf leere Objekte zurückfallen
+        doc = {};
+    }
+
+    row.querySelectorAll('input[type="checkbox"]').forEach(inp => {
+        const parts = inp.name.split('_');
+        const key = parts[parts.length - 1];
+        const aiVal = ai[key] ? ai[key].value : undefined;
+        const docVal = doc[key] ? doc[key].value : undefined;
+        if (aiVal !== undefined || docVal !== undefined) {
+            const txt = `KI: ${aiVal} / Dok: ${docVal}`;
+            inp.setAttribute('data-bs-toggle', 'tooltip');
+            inp.setAttribute('title', txt);
+        }
     });
+});
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
@@ -592,7 +601,8 @@ function initAnlage2Review() {
 
     // ... andere Skripte f\u00fcr diese Seite ...
 }
-document.addEventListener('DOMContentLoaded', initAnlage2Review);
-initAnlage2Review();
+document.addEventListener('DOMContentLoaded', function() {
+    initAnlage2Review();
+});
 </script>
 {% endblock %}
