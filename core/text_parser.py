@@ -25,6 +25,48 @@ parser_logger = logging.getLogger("parser_debug")
 FUZZY_THRESHOLD = 80
 
 
+def _normalize(text: str) -> str:
+    """Normalisiert einen Begriff für Vergleiche."""
+
+    return re.sub(r"[\s\-_/]+", "", text).lower()
+
+
+def _load_alias_lists() -> tuple[
+    list[tuple[str, Anlage2Function]],
+    dict[int, list[tuple[str, Anlage2SubQuestion]]],
+    dict[int, Anlage2Function],
+]:
+    """Lädt alle Funktions- und Unterfragen-Aliase."""
+
+    func_aliases: list[tuple[str, Anlage2Function]] = []
+    sub_aliases: dict[int, list[tuple[str, Anlage2SubQuestion]]] = {}
+    func_map: dict[int, Anlage2Function] = {}
+
+    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set"):
+        func_map[func.id] = func
+        aliases = [func.name]
+        if func.detection_phrases:
+            aliases.extend(func.detection_phrases.get("name_aliases", []))
+        for alias in aliases:
+            func_aliases.append((_normalize(alias), func))
+
+        sub_list: list[tuple[str, Anlage2SubQuestion]] = []
+        for sub in func.anlage2subquestion_set.all():
+            sub_aliases_list = [sub.frage_text]
+            if sub.detection_phrases:
+                sub_aliases_list.extend(sub.detection_phrases.get("name_aliases", []))
+            for alias in sub_aliases_list:
+                sub_list.append((_normalize(alias), sub))
+        if sub_list:
+            sub_aliases[func.id] = sub_list
+
+    func_aliases.sort(key=lambda t: len(t[0]), reverse=True)
+    for sub_list in sub_aliases.values():
+        sub_list.sort(key=lambda t: len(t[0]), reverse=True)
+
+    return func_aliases, sub_aliases, func_map
+
+
 def fuzzy_match(phrase: str, text: str, threshold: int = FUZZY_THRESHOLD) -> bool:
     """Vergleicht zwei Phrasen unscharf.
 
@@ -194,30 +236,7 @@ def parse_anlage2_text(
     parser_logger.info("parse_anlage2_text gestartet")
     cfg = Anlage2Config.get_instance()
 
-    def _normalize(s: str) -> str:
-        return re.sub(r"[\s\-_/]+", "", s).lower()
-
-    # Aliase für Hauptfunktionen und Unterfragen aufbauen
-    func_aliases: List[Tuple[str, Anlage2Function]] = []
-    sub_aliases: Dict[int, List[Tuple[str, Anlage2SubQuestion]]] = {}
-    func_map: Dict[int, Anlage2Function] = {}
-    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set"):
-        func_map[func.id] = func
-        aliases = [func.name]
-        if getattr(func, "detection_phrases", None):
-            aliases.extend(func.detection_phrases.get("name_aliases", []))
-        for alias in aliases:
-            func_aliases.append((_normalize(alias), func))
-
-        sub_list: List[Tuple[str, Anlage2SubQuestion]] = []
-        for sub in func.anlage2subquestion_set.all():
-            sub_aliases_list = [sub.frage_text]
-            if getattr(sub, "detection_phrases", None):
-                sub_aliases_list.extend(sub.detection_phrases.get("name_aliases", []))
-            for alias in sub_aliases_list:
-                sub_list.append((_normalize(alias), sub))
-        if sub_list:
-            sub_aliases[func.id] = sub_list
+    func_aliases, sub_aliases, func_map = _load_alias_lists()
 
     token_map: Dict[str, List[Tuple[str, bool]]] = {}
     for attr in dir(cfg):
@@ -236,11 +255,6 @@ def parse_anlage2_text(
             token_map.setdefault(field, []).extend(
                 (p.lower(), False) for p in phrases
             )
-
-    # Spezifischere Namen zuerst prüfen
-    func_aliases.sort(key=lambda t: len(t[0]), reverse=True)
-    for sub_list in sub_aliases.values():
-        sub_list.sort(key=lambda t: len(t[0]), reverse=True)
 
     rules = list(AntwortErkennungsRegel.objects.all())
 
