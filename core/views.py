@@ -388,14 +388,24 @@ def _initial_to_lookup(data: dict) -> dict[str, dict]:
     fields = get_anlage2_fields()
     for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set").order_by("name"):
         fid = str(func.id)
-        func_data = data.get("functions", {}).get(fid, {})
-        lookup[func.name] = {field: func_data.get(field) for field, _ in fields}
+        func_data = data.get("functions", {}).get(fid)
+        if isinstance(func_data, dict):
+            lookup[func.name] = {
+                field: func_data[field] for field, _ in fields if field in func_data
+            }
+        else:
+            lookup[func.name] = {}
         for sub in func.anlage2subquestion_set.all():
             sid = str(sub.id)
-            sub_data = func_data.get("subquestions", {}).get(sid, {})
-            lookup[f"{func.name}: {sub.frage_text}"] = {
-                field: sub_data.get(field) for field, _ in fields
-            }
+            sub_data: dict | None = None
+            if isinstance(func_data, dict):
+                sub_data = func_data.get("subquestions", {}).get(sid)
+            if isinstance(sub_data, dict):
+                lookup[f"{func.name}: {sub.frage_text}"] = {
+                    field: sub_data[field] for field, _ in fields if field in sub_data
+                }
+            else:
+                lookup[f"{func.name}: {sub.frage_text}"] = {}
     return lookup
 
 
@@ -404,10 +414,14 @@ def _resolve_value(
     ai_val: bool | None,
     doc_val: bool | None,
     field: str,
+    manual_exists: bool = False,
 ) -> tuple[bool | None, str]:
     """Ermittelt den Review-Wert und dessen Quelle."""
 
-    # Manuelle Entscheidung hat immer Vorrang
+    # Explizit gesetzte manuelle Werte haben Vorrang
+    if manual_exists:
+        return manual_val, "Manuell"
+
     if manual_val is not None:
         return manual_val, "Manuell"
 
@@ -441,7 +455,8 @@ def _get_display_data(
         man_val = m_data.get(field)
         ai_val = v_data.get(field)
         doc_val = a_data.get(field)
-        val, src = _resolve_value(man_val, ai_val, doc_val, field)
+        manual_exists = field in m_data
+        val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists)
         values[field] = val
         sources[field] = src
 
@@ -2885,14 +2900,21 @@ def projekt_file_edit_json(request, pk):
                 entry = {}
                 for f in fields_def:
                     val = None
-                    if isinstance(r.manual_result, dict):
+                    has_field = False
+                    if isinstance(r.manual_result, dict) and f in r.manual_result:
                         val = r.manual_result.get(f)
-                    if val is None:
+                        has_field = True
+                    if not has_field:
                         attr = field_map.get(f)
                         if attr:
-                            val = getattr(r, attr, None)
-                    entry[f] = val
-                manual_results_map[r.get_lookup_key()] = entry
+                            attr_val = getattr(r, attr, None)
+                            if attr_val is not None:
+                                val = attr_val
+                                has_field = True
+                    if has_field:
+                        entry[f] = val
+                if entry:
+                    manual_results_map[r.get_lookup_key()] = entry
 
             result_map = {
                 r.get_lookup_key(): r
@@ -2910,7 +2932,10 @@ def projekt_file_edit_json(request, pk):
             manual_lookup = _initial_to_lookup(manual_init)
 
             for key, res in manual_results_map.items():
-                manual_lookup.setdefault(key, {}).update(res)
+                entry = manual_lookup.setdefault(key, {})
+                for f, val in res.items():
+                    if val is not None or f in entry:
+                        entry[f] = val
 
             sample_funcs = list(Anlage2Function.objects.order_by("name")[:2])
             for sf in sample_funcs:
