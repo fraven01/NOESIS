@@ -424,24 +424,70 @@ class Anlage4ReviewForm(forms.Form):
 class Anlage2FunctionForm(forms.ModelForm):
     """Formular für eine Funktion aus Anlage 2."""
 
+    name_aliases = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}), required=False
+    )
+
     class Meta:
         model = Anlage2Function
-        fields = ["name"]
+        fields = ["name", "name_aliases"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "border rounded p-2"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        aliases = []
+        if self.instance and self.instance.detection_phrases:
+            aliases = self.instance.detection_phrases.get("name_aliases", [])
+        if not self.is_bound:
+            self.initial["name_aliases"] = "\n".join(aliases)
+
+    def save(self, name_aliases: list[str] | None = None, commit: bool = True):
+        if name_aliases is None:
+            value = self.cleaned_data.get("name_aliases", "")
+            alias_list = [v.strip() for v in value.splitlines() if v.strip()]
+        else:
+            alias_list = [v.strip() for v in name_aliases if v.strip()]
+        data = dict(self.instance.detection_phrases or {})
+        data["name_aliases"] = alias_list
+        self.instance.detection_phrases = data
+        return super().save(commit=commit)
 
 
 class Anlage2SubQuestionForm(forms.ModelForm):
     """Formular für eine Unterfrage zu Anlage 2."""
 
+    name_aliases = forms.CharField(
+        widget=Textarea(attrs={"rows": 3}), required=False
+    )
+
     class Meta:
         model = Anlage2SubQuestion
-        fields = ["frage_text"]
+        fields = ["frage_text", "name_aliases"]
         labels = {"frage_text": "Frage"}
         widgets = {
             "frage_text": Textarea(attrs={"class": "border rounded p-2", "rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        aliases = []
+        if self.instance and self.instance.detection_phrases:
+            aliases = self.instance.detection_phrases.get("name_aliases", [])
+        if not self.is_bound:
+            self.initial["name_aliases"] = "\n".join(aliases)
+
+    def save(self, name_aliases: list[str] | None = None, commit: bool = True):
+        if name_aliases is None:
+            value = self.cleaned_data.get("name_aliases", "")
+            alias_list = [v.strip() for v in value.splitlines() if v.strip()]
+        else:
+            alias_list = [v.strip() for v in name_aliases if v.strip()]
+        data = dict(self.instance.detection_phrases or {})
+        data["name_aliases"] = alias_list
+        self.instance.detection_phrases = data
+        return super().save(commit=commit)
 
 
 class Anlage2FunctionImportForm(forms.Form):
