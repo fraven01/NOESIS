@@ -563,6 +563,41 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
+    def test_parse_anlage2_text_fuzzy_token_phrase(self):
+        func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja bitte"]
+        cfg.save()
+        data = parse_anlage2_text("Lgin: ja bitte")
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_fuzzy_rule_phrase(self):
+        func = Anlage2Function.objects.create(name="Login")
+        AntwortErkennungsRegel.objects.create(
+            regel_name="aktiv",
+            erkennungs_phrase="aktivv",
+            ziel_feld="einsatz_telefonica",
+            wert=True,
+        )
+        data = parse_anlage2_text("Lgin: aktivv")
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "einsatz_telefonica": {"value": True, "note": None},
+                }
+            ],
+        )
+
     def test_parse_anlage2_text_multiple_rules_priority(self):
         func = Anlage2Function.objects.create(name="Login")
         AntwortErkennungsRegel.objects.create(
