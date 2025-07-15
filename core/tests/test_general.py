@@ -3083,4 +3083,38 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertTrue(res.is_negotiable)
 
+    def test_save_einsatz_telefonica(self):
+        url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": True,
+                "field_name": "einsatz_bei_telefonica",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.einsatz_bei_telefonica)
+        self.assertTrue(res.manual_result["einsatz_bei_telefonica"])
+
+    def test_save_lv_kontrolle(self):
+        url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": False,
+                "field_name": "zur_lv_kontrolle",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertFalse(res.zur_lv_kontrolle)
+        self.assertFalse(res.manual_result["zur_lv_kontrolle"])
+
 
