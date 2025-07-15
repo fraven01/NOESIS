@@ -31,7 +31,12 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .text_parser import build_token_map, apply_tokens, apply_rules
+from .text_parser import (
+    build_token_map,
+    apply_tokens,
+    apply_rules,
+    parse_anlage2_text,
+)
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     extract_text,
@@ -39,6 +44,7 @@ from .docx_utils import (
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
+    parse_anlage2_table,
 )
 from thefuzz import fuzz
 from .parser_manager import parser_manager

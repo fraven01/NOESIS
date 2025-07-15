@@ -300,6 +300,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
             )
 
             row_data: dict[str, object] | None = None
+            is_sub = False
 
             if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
                 current_main_function_name = main_col_text
@@ -311,6 +312,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
                 full_name = f"{current_main_function_name}: {sub_col_text}"
                 parser_logger.debug("Unterfrage erkannt: %s", full_name)
                 row_data = {"funktion": full_name}
+                is_sub = True
 
             if row_data is None:
                 logger.debug(
@@ -322,6 +324,8 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
             for col_name, idx in col_indices.items():
                 if idx is not None:
+                    if is_sub and col_name == "technisch_verfuegbar":
+                        continue
                     row_data[col_name] = _parse_cell_value(row.cells[idx].text)
 
             parser_logger.debug("Verarbeite Zeile %s: %s", row_idx, row_data)

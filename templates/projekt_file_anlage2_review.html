@@ -116,41 +116,24 @@
                 {% if field in no_ai_fields %}
                 {% with f=row.form_fields|list_index:forloop.counter0 %}
                 <td class="border px-2 text-center">
+                    <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
                     {{ f.widget }}
                     {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
                 </td>
                 {% endwith %}
                 {% elif field == 'technisch_vorhanden' and row.sub %}
                 <td class="border px-2 text-center">
-                    {% with parsed=row.doc_result|get_item:field %}
-                    {% if parsed == True %}
-                        <span class="status-badge status-ja" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✓ Vorhanden</span>
-                    {% elif parsed == False %}
-                        <span class="status-badge status-nein" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✗ Nicht vorhanden</span>
-                    {% else %}
-                        <span class="status-badge status-unbekannt" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">? Unbekannt</span>
-                    {% endif %}
-                    {% endwith %}
+                    <span class="tri-state-icon disabled-field" data-input-id="{{ f.auto_id }}"></span>
+                    {{ f.widget }}
                 </td>
                 {% else %}
                 <td class="border px-2 text-center">
+                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}" data-input-id="{{ f.auto_id }}"></span>
+                    {{ f.widget }}
                     {% if field == 'technisch_vorhanden' %}
-                        <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
-                        {{ f.widget }}
-                        {% if f.origin == 'ai' %}
-                        <span title="KI bestätigt">✅</span>
-                        {% elif f.origin == 'manual' %}
-                        <span title="Manuell geändert">✏️</span>
-                        {% endif %}
-                    {% else %}
-                        {{ f.widget }}
+                        {% if f.origin == 'ai' %}<span title="KI bestätigt">✅</span>{% elif f.origin == 'manual' %}<span title="Manuell geändert">✏️</span>{% endif %}
                     {% endif %}
                     {% if f.source %}<span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>{% endif %}
-                    {% with parsed=row.doc_result|raw_item:field %}
-                    <span class="text-xs text-gray-500 ms-1">Parser-Ergebnis:
-                        {% if parsed == True %}Ja{% elif parsed == False %}Nein{% else %}Unbekannt{% endif %}
-                    </span>
-                    {% endwith %}
                 </td>
                 {% endif %}
                 {% endwith %}
@@ -327,14 +310,21 @@ function initAnlage2Review() {
         return span;
     }
 
+    function getFieldName(name) {
+        let m = name.match(/^func\d+_(.+)$/);
+        if (m) { return m[1]; }
+        m = name.match(/^sub\d+_(.+)$/);
+        if (m) { return m[1]; }
+        return name;
+    }
+
     function autoSave(event) {
         const el = event.target;
         const row = el.closest('tr');
         if (!row || !formElem) { return; }
         const funcId = row.dataset.funcId;
         const subId = row.dataset.subId;
-        const parts = (el.name || '').split('_');
-        const fieldName = parts[parts.length - 1];
+        const fieldName = getFieldName(el.name || '');
         let status;
         if (el.dataset.tristate !== undefined) {
             const st = el.dataset.state;

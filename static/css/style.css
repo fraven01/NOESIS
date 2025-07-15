@@ -152,3 +152,9 @@ input[type="submit"]:hover {
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* Generische Stilklasse für ausgegraute Formfelder */
+.disabled-field {
+    opacity: 0.5;
+    pointer-events: none;
+}
