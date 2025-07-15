@@ -2242,14 +2242,17 @@ def anlage2_function_form(request, pk=None):
     form = Anlage2FunctionForm(request.POST or None, instance=funktion)
 
     if request.method == "POST" and form.is_valid():
-        funktion = form.save()
+        aliases = request.POST.getlist("name_aliases")
+        funktion = form.save(name_aliases=aliases)
         return redirect("anlage2_function_edit", funktion.pk)
 
     subquestions = list(funktion.anlage2subquestion_set.all()) if funktion else []
+    aliases = funktion.detection_phrases.get("name_aliases", []) if funktion else []
     context = {
         "form": form,
         "funktion": funktion,
         "subquestions": subquestions,
+        "aliases": aliases,
     }
     return render(request, "anlage2/function_form.html", context)
 
@@ -2333,13 +2336,16 @@ def anlage2_subquestion_form(request, function_pk=None, pk=None):
     form = Anlage2SubQuestionForm(request.POST or None, instance=subquestion)
 
     if request.method == "POST" and form.is_valid():
-        subquestion = form.save()
+        aliases = request.POST.getlist("name_aliases")
+        subquestion = form.save(name_aliases=aliases)
         return redirect("anlage2_function_edit", funktion.pk)
 
+    aliases = subquestion.detection_phrases.get("name_aliases", []) if pk else []
     context = {
         "form": form,
         "funktion": funktion,
         "subquestion": subquestion if pk else None,
+        "aliases": aliases,
     }
     return render(request, "anlage2/subquestion_form.html", context)
 
