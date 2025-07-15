@@ -30,6 +30,7 @@ from ..models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
+    Anlage4ParserConfig,
 )
 from ..docx_utils import (
     extract_text,
@@ -2906,6 +2907,14 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
             field_name="technisch_vorhanden",
             text="Verfügbar?",
         )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="R1",
+            erkennungs_phrase="ja",
+            ziel_feld="technisch_verfuegbar",
+            wert=True,
+            prioritaet=0,
+        )
+        a4 = Anlage4ParserConfig.objects.create(delimiter_phrase="X")
         url = reverse("admin_anlage2_config_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -2916,6 +2925,9 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
             data["alias_headings"],
         )
+        self.assertIn("answer_rules", data)
+        self.assertTrue(any(r["regel_name"] == "R1" for r in data["answer_rules"]))
+        self.assertEqual(data["a4_parser"]["delimiter_phrase"], "X")
 
     def test_import_creates_headings(self):
         payload = json.dumps(
@@ -2929,6 +2941,16 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                 "alias_headings": [
                     {"field_name": "ki_beteiligung", "text": "KI?"}
                 ],
+                "answer_rules": [
+                    {
+                        "regel_name": "R2",
+                        "erkennungs_phrase": "nein",
+                        "ziel_feld": "technisch_verfuegbar",
+                        "wert": False,
+                        "prioritaet": 1
+                    }
+                ],
+                "a4_parser": {"delimiter_phrase": "Y"}
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
@@ -2940,6 +2962,11 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
         )
+        self.assertTrue(
+            AntwortErkennungsRegel.objects.filter(regel_name="R2").exists()
+        )
+        a4_cfg = Anlage4ParserConfig.objects.first()
+        self.assertEqual(a4_cfg.delimiter_phrase, "Y")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.parser_mode, "text_only")
         self.assertEqual(self.cfg.parser_order, ["text"])

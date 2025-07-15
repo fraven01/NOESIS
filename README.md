@@ -239,12 +239,20 @@ nach und nach in `analysis_json` ergänzt.
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
 Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
-Konfiguration sichern. Die exportierte JSON-Datei enthält zwei Listen:
+Konfiguration sichern. Die exportierte JSON-Datei enthält nun alle
+bearbeitbaren Bereiche:
 
 ```json
 {
-  "column_headings": [{"field_name": "technisch_vorhanden", "text": "Verfügbar?"}],
-  "global_phrases": [{"phrase_type": "technisch_verfuegbar_true", "phrase_text": "ja"}]
+  "config": {"parser_order": ["table"]},
+  "alias_headings": [{"field_name": "technisch_vorhanden", "text": "Verfügbar?"}],
+  "answer_rules": [{
+    "regel_name": "Standard",
+    "erkennungs_phrase": "ja",
+    "ziel_feld": "technisch_verfuegbar",
+    "wert": true
+  }],
+  "a4_parser": {"delimiter_phrase": "Name der"}
 }
 ```
 

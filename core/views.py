@@ -1853,6 +1853,8 @@ def admin_anlage2_config_export(request):
     """Exportiert die komplette Anlage-2-Konfiguration als JSON."""
     cfg = Anlage2Config.get_instance()
     alias_headings = cfg.headers.all().values("field_name", "text")
+    rules = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
+    a4_cfg = Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
 
     cfg_data = {
         "enforce_subquestion_override": cfg.enforce_subquestion_override,
@@ -1862,9 +1864,34 @@ def admin_anlage2_config_export(request):
     for key, _ in PHRASE_TYPE_CHOICES:
         cfg_data[f"text_{key}"] = getattr(cfg, f"text_{key}")
 
+    rules_data = [
+        {
+            "regel_name": r.regel_name,
+            "erkennungs_phrase": r.erkennungs_phrase,
+            "ziel_feld": r.ziel_feld,
+            "wert": r.wert,
+            "prioritaet": r.prioritaet,
+        }
+        for r in rules
+    ]
+
+    a4_data = {
+        "table_columns": a4_cfg.table_columns,
+        "delimiter_phrase": a4_cfg.delimiter_phrase,
+        "gesellschaften_phrase": a4_cfg.gesellschaften_phrase,
+        "fachbereiche_phrase": a4_cfg.fachbereiche_phrase,
+        "name_aliases": a4_cfg.name_aliases,
+        "gesellschaft_aliases": a4_cfg.gesellschaft_aliases,
+        "fachbereich_aliases": a4_cfg.fachbereich_aliases,
+        "negative_patterns": a4_cfg.negative_patterns,
+        "prompt_plausibility": a4_cfg.prompt_plausibility,
+    }
+
     data = {
         "config": cfg_data,
         "alias_headings": list(alias_headings),
+        "answer_rules": rules_data,
+        "a4_parser": a4_data,
     }
 
     content = json.dumps(data, ensure_ascii=False, indent=2)
@@ -1910,6 +1937,42 @@ def admin_anlage2_config_import(request):
                 field_name=h.get("field_name"),
                 defaults={"text": h.get("text", "")},
             )
+
+        rules_data = items.get("answer_rules", [])
+        for r in rules_data:
+            AntwortErkennungsRegel.objects.update_or_create(
+                regel_name=r.get("regel_name"),
+                defaults={
+                    "erkennungs_phrase": r.get("erkennungs_phrase", ""),
+                    "ziel_feld": r.get("ziel_feld", ""),
+                    "wert": r.get("wert", False),
+                    "prioritaet": r.get("prioritaet", 0),
+                },
+            )
+
+        a4_data = items.get("a4_parser", {})
+        if a4_data:
+            a4_cfg = (
+                Anlage4ParserConfig.objects.first()
+                or Anlage4ParserConfig.objects.create()
+            )
+            updated_a4_fields: list[str] = []
+            for field in [
+                "table_columns",
+                "delimiter_phrase",
+                "gesellschaften_phrase",
+                "fachbereiche_phrase",
+                "name_aliases",
+                "gesellschaft_aliases",
+                "fachbereich_aliases",
+                "negative_patterns",
+                "prompt_plausibility",
+            ]:
+                if field in a4_data:
+                    setattr(a4_cfg, field, a4_data[field])
+                    updated_a4_fields.append(field)
+            if updated_a4_fields:
+                a4_cfg.save(update_fields=updated_a4_fields)
 
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
