@@ -31,7 +31,12 @@ from .models import (
     SoftwareKnowledge,
     Gutachten,
 )
-from .text_parser import build_token_map, apply_tokens, apply_rules
+from .text_parser import (
+    build_token_map,
+    apply_tokens,
+    apply_rules,
+    parse_anlage2_text,
+)
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
     extract_text,
@@ -39,6 +44,7 @@ from .docx_utils import (
     extract_images,
     get_docx_page_count,
     get_pdf_page_count,
+    parse_anlage2_table,
 )
 from thefuzz import fuzz
 from .parser_manager import parser_manager
@@ -311,19 +317,17 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         Anlage2Function.objects.prefetch_related("anlage2subquestion_set").all()
     )
 
-    lines = _split_lines(project_file.text_content or "")
-
-    def _normalize_search(text: str) -> str:
-        """Bereitet einen String für Fuzzy-Vergleiche vor."""
-        return re.sub(r"[\W_]+", "", text).lower()
-
-    line_data: list[tuple[str, str, str]] = []
-    for line in lines:
-        before, after = (line.split(":", 1) + [""])[0:2]
-        line_data.append((before, after, _normalize_search(before)))
+    # Basisdaten je nach Konfiguration ermitteln
+    if cfg.parser_mode == "manager":
+        parsed = parser_manager.parse_anlage2(project_file)
+    else:
+        parsed = []
+        if cfg.parser_mode in ("auto", "table_only"):
+            parsed = parse_anlage2_table(Path(project_file.upload.path))
+        if cfg.parser_mode == "text_only" or (cfg.parser_mode == "auto" and not parsed):
+            parsed = parse_anlage2_text(project_file.text_content or "")
 
     fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
-
     results: list[dict[str, object]] = []
 
     def _blank_entry(name: str) -> dict[str, object]:
@@ -333,66 +337,17 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         entry["not_found"] = True
         return entry
 
-    for func in functions:
-        workflow_logger.info(
-            "[%s] - PARSER-LOOP - Suche nach Funktion '%s' im Dokument.",
-            project_file.projekt_id,
-            func.name,
-        )
-
-        aliases = [func.name]
-        if func.detection_phrases:
-            aliases.extend(func.detection_phrases.get("name_aliases", []))
-
-        alias_norms = [_normalize_search(a) for a in aliases]
-        best_after: str | None = None
-        best_score = 0
-        for before, after, norm in line_data:
-            for a_norm in alias_norms:
-                score = fuzz.partial_ratio(a_norm, norm)
-                if score > best_score:
-                    best_score = score
-                    best_after = after
-        if best_after is not None and best_score >= 90:
-            entry = {"funktion": func.name}
-            apply_tokens(entry, best_after, token_map)
-            apply_rules(entry, best_after, rules)
-        else:
+    if parsed:
+        # Nur erkannte Einträge verwenden
+        results.extend(parsed)
+    else:
+        for func in functions:
             entry = _blank_entry(func.name)
-
-        results.append(entry)
-        workflow_logger.info(
-            "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> doc_result: %s",
-            project_file.projekt_id,
-            func.name,
-            json.dumps(entry, ensure_ascii=False),
-        )
-
-        for sub in func.anlage2subquestion_set.all():
-            sub_aliases = [sub.frage_text]
-            if sub.detection_phrases:
-                sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
-            sub_alias_norms = [_normalize_search(a) for a in sub_aliases]
-            sub_best: str | None = None
-            sub_score = 0
-            for before, after, norm in line_data:
-                for a_norm in sub_alias_norms:
-                    score = fuzz.partial_ratio(a_norm, norm)
-                    if score > sub_score:
-                        sub_score = score
-                        sub_best = after
-            sub_entry = {
-                "funktion": f"{func.name}: {sub.frage_text}",
-                "subquestion_id": sub.id,
-            }
-            if sub_best is not None and sub_score >= 90:
-                apply_tokens(sub_entry, sub_best, token_map)
-                apply_rules(sub_entry, sub_best, rules)
-            else:
-                for f in fields:
-                    sub_entry[f] = None
-                sub_entry["not_found"] = True
-            results.append(sub_entry)
+            results.append(entry)
+            for sub in func.anlage2subquestion_set.all():
+                sub_entry = _blank_entry(f"{func.name}: {sub.frage_text}")
+                sub_entry["subquestion_id"] = sub.id
+                results.append(sub_entry)
 
     project_file.analysis_json = {"functions": results}
     project_file.save(update_fields=["analysis_json"])
