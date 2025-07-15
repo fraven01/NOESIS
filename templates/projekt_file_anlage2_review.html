@@ -102,6 +102,7 @@
                 </td>
                 {% with f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
+                    <span class="tri-state-icon" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                     {% if f.source and f.source != 'N/A' %}
                     <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
@@ -113,7 +114,7 @@
                 {% elif field in no_ai_fields %}
                 {% with f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
+                    <span class="tri-state-icon" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                     {% if f.source and f.source != 'N/A' %}
                     <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
@@ -135,12 +136,12 @@
                 </td>
                 {% if field == 'technisch_vorhanden' and row.sub %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon disabled-field" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
+                    <span class="tri-state-icon disabled-field" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                 </td>
                 {% else %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
+                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                     {% if field == 'technisch_vorhanden' %}
                         {% if f.origin == 'ai' %}<span title="KI bestätigt">✅</span>{% elif f.origin == 'manual' %}<span title="Manuell geändert">✏️</span>{% endif %}
