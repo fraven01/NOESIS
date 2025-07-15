@@ -162,15 +162,18 @@
                     <span class="text-gray-400">–</span>
                     {% endif %}
                 </td>
-                <td class="border px-2 text-center {% if row.has_preliminary_gap %}bg-purple-200{% endif %}">
-                    <button type="button" class="gap-summary-btn" data-bs-toggle="collapse" data-bs-target="#gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
-                        <i class="fa fa-comment-dots"></i>
-                    </button>
+                <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
+                    class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
+                    <span class="gap-note-icon" data-target="#gap-note-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
+                        <i class="fas fa-pencil-alt"></i>
+                    </span>
                     {% if row.requires_manual_review %}
                     <div class="text-danger text-sm">Manueller Review erforderlich</div>
                     {% endif %}
-                    <div id="gap-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="collapse mt-2">
-                        {{ row.gap_summary_widget }}
+                    <div id="gap-note-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="gap-note-editor mt-2" style="display:none;">
+                        {{ row.gap_notiz_widget }}
+                        <button type="button" class="btn btn-primary btn-save-gap mt-1"
+                                data-function-id="{{ row.func_id }}"{% if row.sub %} data-sub-id="{{ row.sub_id }}"{% endif %}>Speichern</button>
                     </div>
                 </td>
             </tr>
@@ -334,6 +337,18 @@ function initAnlage2Review() {
         return name;
     }
 
+    function updateGapHighlight(row, reviewVal) {
+        const ai = JSON.parse(row.dataset.ai || '{}');
+        let aiVal = ai.technisch_vorhanden;
+        const cell = row.querySelector('[id^="gap-cell-"]');
+        if (!cell) return;
+        if (aiVal !== undefined && reviewVal !== null && aiVal !== reviewVal) {
+            cell.classList.add('has-gap');
+        } else {
+            cell.classList.remove('has-gap');
+        }
+    }
+
     function autoSave(event) {
         const el = event.target;
         const row = el.closest('tr');
@@ -384,6 +399,10 @@ function initAnlage2Review() {
                 setTimeout(() => indicator.textContent = '', 1500);
             })
             .catch(() => { indicator.textContent = '⚠️'; });
+
+        if (fieldName === 'technisch_vorhanden') {
+            updateGapHighlight(row, status);
+        }
     }
 
     if (formElem) {
@@ -391,6 +410,38 @@ function initAnlage2Review() {
         formElem.querySelectorAll('input[data-tristate]').forEach(inp => inp.addEventListener('statechange', autoSave));
         formElem.querySelectorAll('input[type="text"], textarea').forEach(inp => inp.addEventListener('blur', autoSave));
     }
+
+    document.querySelectorAll('.gap-note-icon').forEach(icon => {
+        icon.addEventListener('click', function() {
+            const target = document.querySelector(this.dataset.target);
+            if (target) { target.style.display = 'block'; }
+        });
+    });
+
+    document.querySelectorAll('.btn-save-gap').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const container = this.closest('.gap-note-editor');
+            const textarea = container ? container.querySelector('textarea') : null;
+            if (!textarea) return;
+            const funcId = this.dataset.functionId;
+            const subId = this.dataset.subId;
+            const payload = {
+                project_file_id: formElem.dataset.anlageId,
+                function_id: funcId,
+                gap_notiz: textarea.value
+            };
+            if (subId) payload.subquestion_id = subId;
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => r.json()).then(() => { container.style.display = 'none'; });
+        });
+    });
+
+    document.querySelectorAll('tr[data-ai]').forEach(row => {
+        updateGapHighlight(row);
+    });
 
     const filterCheckbox = document.getElementById('show-relevant-only-filter');
 

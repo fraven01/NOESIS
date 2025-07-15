@@ -339,6 +339,11 @@ class Anlage2ReviewForm(forms.Form):
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.initial[f"func{func.id}_gap_summary"] = f_data.get("gap_summary", "")
+            self.fields[f"func{func.id}_gap_notiz"] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+            )
+            self.initial[f"func{func.id}_gap_notiz"] = f_data.get("gap_notiz", "")
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 s_data = f_data.get("subquestions", {}).get(str(sub.id), {})
                 for field, _ in fields:
@@ -353,6 +358,11 @@ class Anlage2ReviewForm(forms.Form):
                     widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
                 )
                 self.initial[f"sub{sub.id}_gap_summary"] = s_data.get("gap_summary", "")
+                self.fields[f"sub{sub.id}_gap_notiz"] = forms.CharField(
+                    required=False,
+                    widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+                )
+                self.initial[f"sub{sub.id}_gap_notiz"] = s_data.get("gap_notiz", "")
 
     def get_json(self) -> dict:
         out = {"functions": {}}
@@ -366,6 +376,9 @@ class Anlage2ReviewForm(forms.Form):
             item["gap_summary"] = self.cleaned_data.get(
                 f"func{func.id}_gap_summary", ""
             )
+            item["gap_notiz"] = self.cleaned_data.get(
+                f"func{func.id}_gap_notiz", ""
+            )
             sub_dict: dict[str, dict] = {}
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 sub_item = {
@@ -374,6 +387,9 @@ class Anlage2ReviewForm(forms.Form):
                 }
                 sub_item["gap_summary"] = self.cleaned_data.get(
                     f"sub{sub.id}_gap_summary", ""
+                )
+                sub_item["gap_notiz"] = self.cleaned_data.get(
+                    f"sub{sub.id}_gap_notiz", ""
                 )
                 sub_dict[str(sub.id)] = sub_item
             if sub_dict:

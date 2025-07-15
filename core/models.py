@@ -837,6 +837,7 @@ class Anlage2FunctionResult(models.Model):
     manual_result = models.JSONField(null=True, blank=True)
     raw_json = models.JSONField(null=True, blank=True)
     gap_summary = models.TextField(blank=True)
+    gap_notiz = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
     source = models.CharField(max_length=10, default="llm")
     created_at = models.DateTimeField(auto_now_add=True)

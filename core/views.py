@@ -521,6 +521,7 @@ def _build_row_data(
     result_obj = result_map.get(lookup_key)
     is_negotiable = result_obj.is_negotiable if result_obj else False
     gap_widget = form[f"{form_prefix}gap_summary"]
+    note_widget = form[f"{form_prefix}gap_notiz"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
     bet_val, bet_reason = beteilig_map.get(
         (str(func_id), str(sub_id) if sub_id else None), (None, "")
@@ -550,6 +551,8 @@ def _build_row_data(
         "form_fields": widgets,
         "is_negotiable": is_negotiable,
         "gap_summary_widget": gap_widget,
+        "gap_notiz_widget": note_widget,
+        "gap_notiz": result_obj.gap_notiz if result_obj else "",
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,
@@ -3406,7 +3409,8 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         pf_id = data.get("project_file_id")
         func_id = data.get("function_id")
         sub_id = data.get("subquestion_id")
-        field_name = data.get("field_name") or "technisch_vorhanden"
+        field_name = data.get("field_name")
+        gap_notiz = data.get("gap_notiz")
 
         status_val = data.get("status")
         if status_val in (True, "True", "true", "1", 1):
@@ -3452,14 +3456,21 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             defaults={"source": "manual"},
         )
 
-        attr = field_map.get(field_name, "technisch_verfuegbar")
-        setattr(res, attr, status)
-        res.raw_json = {"notes": notes, "subquestion_id": sub_id}
-        res.source = "manual"
-        manual = res.manual_result or {}
-        manual[field_name] = status
-        res.manual_result = manual
-        update_fields = [attr, "raw_json", "manual_result", "source"]
+        update_fields = []
+
+        if gap_notiz is not None:
+            res.gap_notiz = gap_notiz
+            update_fields.append("gap_notiz")
+
+        if field_name:
+            attr = field_map.get(field_name, "technisch_verfuegbar")
+            setattr(res, attr, status)
+            res.raw_json = {"notes": notes, "subquestion_id": sub_id}
+            res.source = "manual"
+            manual = res.manual_result or {}
+            manual[field_name] = status
+            res.manual_result = manual
+            update_fields.extend([attr, "raw_json", "manual_result", "source"])
 
         if field_name == "technisch_vorhanden" and sub_id is None:
             ai_val = None
@@ -3476,32 +3487,32 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         ai_val = None
         if field_name == "technisch_vorhanden" and isinstance(res.ai_result, dict):
             ai_val = res.ai_result.get("technisch_verfuegbar")
-        if ai_val is not None and ai_val != status:
+        if field_name == "technisch_vorhanden" and ai_val is not None and ai_val != status:
             task_id = async_task(
                 "core.llm_tasks.worker_generate_gap_summary",
                 res.id,
             )
             anlage2_logger.debug("Gap-Summary Task gestartet: %s", task_id)
-            # Bei synchronem Testing wartet async_task nicht, daher neu laden
             if task_id is None:
                 res.refresh_from_db()
                 gap_text = res.gap_summary
         gap_text = gap_text or ""
 
-        manual_data = anlage.manual_analysis_json or {"functions": {}}
-        func_entry = manual_data.setdefault("functions", {}).setdefault(
-            str(func_id), {}
-        )
-        if sub_id:
-            sub_map = func_entry.setdefault("subquestions", {}).setdefault(
-                str(sub_id), {}
+        if field_name:
+            manual_data = anlage.manual_analysis_json or {"functions": {}}
+            func_entry = manual_data.setdefault("functions", {}).setdefault(
+                str(func_id), {}
             )
-            sub_map[field_name] = status
-        else:
-            func_entry[field_name] = status
+            if sub_id:
+                sub_map = func_entry.setdefault("subquestions", {}).setdefault(
+                    str(sub_id), {}
+                )
+                sub_map[field_name] = status
+            else:
+                func_entry[field_name] = status
 
-        anlage.manual_analysis_json = manual_data
-        anlage.save(update_fields=["manual_analysis_json"])
+            anlage.manual_analysis_json = manual_data
+            anlage.save(update_fields=["manual_analysis_json"])
 
         return JsonResponse({
             "status": "success",
