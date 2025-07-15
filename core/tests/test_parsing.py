@@ -386,10 +386,7 @@ class DocxExtractTests(NoesisTestCase):
                     "technisch_verfuegbar": {"value": True, "note": None},
                     "ki_beteiligung": {"value": False, "note": None},
                 },
-                {
-                    "funktion": "Login: Warum?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
+                {"funktion": "Login: Warum?"},
             ],
         )
 
@@ -414,10 +411,7 @@ class DocxExtractTests(NoesisTestCase):
                     "technisch_verfuegbar": {"value": True, "note": None},
                     "ki_beteiligung": {"value": False, "note": None},
                 },
-                {
-                    "funktion": "Login: Warum?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
+                {"funktion": "Login: Warum?"},
             ],
         )
 
@@ -444,10 +438,7 @@ class DocxExtractTests(NoesisTestCase):
                     "funktion": "Anmelden",
                     "technisch_verfuegbar": {"value": True, "note": None},
                 },
-                {
-                    "funktion": "Anmelden: Grund?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
+                {"funktion": "Anmelden: Grund?"},
             ],
         )
 
@@ -504,7 +495,6 @@ class DocxExtractTests(NoesisTestCase):
             [
                 {
                     "funktion": "Analyse-/Reportingfunktionen - Bitte wähle zutreffendes aus",
-                    "technisch_verfuegbar": {"value": True, "note": None},
                 }
             ],
         )
@@ -681,10 +671,7 @@ class DocxExtractTests(NoesisTestCase):
                     "funktion": "Anwesenheit",
                     "technisch_verfuegbar": {"value": True, "note": None},
                 },
-                {
-                    "funktion": "Anwesenheit: Grund?",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                },
+                {"funktion": "Anwesenheit: Grund?"},
             ],
         )
 

@@ -492,6 +492,14 @@ def _build_row_data(
                     "style": "display: none;",
                 }
             )
+        elif field == "technisch_vorhanden" and sub_id is not None:
+            bf.field.widget.attrs.update({
+                "disabled": True,
+                "class": "disabled-field",
+                "style": "display: none;",
+                "data-tristate": "true",
+                "data-initial-state": "unknown",
+            })
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
             ai_val = verification_lookup.get(lookup_key, {}).get(field)
