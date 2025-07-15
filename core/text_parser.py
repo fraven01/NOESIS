@@ -21,6 +21,19 @@ from .parsers import AbstractParser
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
 
+# Standard-Schwelle für Fuzzy-Vergleiche
+FUZZY_THRESHOLD = 80
+
+
+def fuzzy_match(phrase: str, text: str, threshold: int = FUZZY_THRESHOLD) -> bool:
+    """Vergleicht zwei Phrasen unscharf.
+
+    Gibt ``True`` zurück, wenn ``thefuzz.fuzz.partial_ratio`` die
+    angegebene Schwelle erreicht oder überschreitet.
+    """
+    score = fuzz.partial_ratio(phrase.lower(), text.lower())
+    return score >= threshold
+
 # Globale Phrasenarten, die beim Parsen von Freitext erkannt werden.
 PHRASE_TYPE_CHOICES: list[tuple[str, str]] = [
     ("einsatz_telefonica_false", "einsatz_telefonica_false"),
@@ -103,32 +116,46 @@ def build_token_map(cfg: Anlage2Config) -> Dict[str, List[Tuple[str, bool]]]:
 
 
 def apply_tokens(
-    entry: Dict[str, object], text_part: str, token_map: Dict[str, List[Tuple[str, bool]]]
+    entry: Dict[str, object],
+    text_part: str,
+    token_map: Dict[str, List[Tuple[str, bool]]],
+    threshold: int = FUZZY_THRESHOLD,
 ) -> None:
     """Wendet Token-Regeln auf einen Textabschnitt an."""
-    lower = text_part.lower()
     parser_logger.debug("Prüfe Tokens in '%s'", text_part)
     for field, items in token_map.items():
         if field in entry:
             continue
         for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
-            if phrase in lower:
-                parser_logger.debug("Token '%s' gefunden, setze %s=%s", phrase, field, value)
+            if fuzzy_match(phrase, text_part, threshold):
+                parser_logger.debug(
+                    "Token '%s' gefunden, setze %s=%s",
+                    phrase,
+                    field,
+                    value,
+                )
                 entry[field] = {"value": value, "note": None}
                 break
 
 
 def apply_rules(
-    entry: Dict[str, object], text_part: str, rules: List[AntwortErkennungsRegel]
+    entry: Dict[str, object],
+    text_part: str,
+    rules: List[AntwortErkennungsRegel],
+    threshold: int = FUZZY_THRESHOLD,
 ) -> None:
     """Wendet Antwortregeln auf einen Textabschnitt an."""
     parser_logger.debug("Prüfe Regeln in '%s'", text_part)
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
-        if rule.erkennungs_phrase.lower() in text_part.lower():
+        if fuzzy_match(rule.erkennungs_phrase, text_part, threshold):
             current = found_rules.get(rule.ziel_feld)
             if current is None or rule.prioritaet < current[1]:
-                found_rules[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
+                found_rules[rule.ziel_feld] = (
+                    rule.wert,
+                    rule.prioritaet,
+                    rule.erkennungs_phrase,
+                )
                 parser_logger.debug(
                     "Regel '%s' (%s) setzt %s=%s",
                     rule.regel_name,
@@ -153,7 +180,9 @@ def apply_rules(
         entry[best_field]["note"] = remaining
 
 
-def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]]:
+def parse_anlage2_text(
+    text: str, threshold: int = FUZZY_THRESHOLD
+) -> List[dict[str, object]]:
     """Parst eine Freitext-Liste von Funktionen aus Anlage 2.
 
     Die neue Logik arbeitet zweistufig: Zuerst werden nur die
@@ -215,56 +244,6 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
 
     rules = list(AntwortErkennungsRegel.objects.all())
 
-    def _apply_tokens(entry: Dict[str, object], text_part: str) -> None:
-        lower = text_part.lower()
-        parser_logger.debug("Prüfe Tokens in '%s'", text_part)
-
-        for field, items in token_map.items():
-            if field in entry:
-                continue
-            for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
-
-                if phrase in lower:
-                    parser_logger.debug(
-                        "Token '%s' gefunden, setze %s=%s",
-                        phrase,
-                        field,
-                        value,
-                    )
-                    entry[field] = {"value": value, "note": None}
-                    break
-
-    def _apply_rules(entry: Dict[str, object], text_part: str) -> None:
-        parser_logger.debug("Prüfe Regeln in '%s'", text_part)
-        found_rules: Dict[str, tuple[bool, int, str]] = {}
-        for rule in rules:
-            if rule.erkennungs_phrase.lower() in text_part.lower():
-                current = found_rules.get(rule.ziel_feld)
-                if current is None or rule.prioritaet < current[1]:
-                    found_rules[rule.ziel_feld] = (rule.wert, rule.prioritaet, rule.erkennungs_phrase)
-                    parser_logger.debug(
-                        "Regel '%s' (%s) setzt %s=%s",
-                        rule.regel_name,
-                        rule.erkennungs_phrase,
-                        rule.ziel_feld,
-                        rule.wert,
-                    )
-
-        if not found_rules:
-            return
-
-        for field, (val, _prio, _phrase) in found_rules.items():
-            entry[field] = {"value": val, "note": None}
-
-        remaining = text_part
-        for _val, _prio, phrase in found_rules.values():
-            remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
-        remaining = remaining.strip()
-
-        if remaining:
-            best_field = min(found_rules.items(), key=lambda i: i[1][1])[0]
-            entry[best_field]["note"] = remaining
-
     def _format_result(entry: Dict[str, object]) -> str:
         parts = []
         for key, val in entry.items():
@@ -321,8 +300,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                     entry = {"funktion": matched_func.name, "_skip_output": True}
                     main_results[current_func_id] = entry
                     found_main.append(matched_func.name)
-                _apply_tokens(entry, after or line)
-                _apply_rules(entry, after or line)
+                apply_tokens(entry, after or line, token_map, threshold)
+                apply_rules(entry, after or line, rules, threshold)
 
                 key = (current_func_id, matched_sub.id)
                 sub_entry = sub_results.get(key)
@@ -331,8 +310,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                         "funktion": f"{matched_func.name} - {matched_sub.frage_text}"
                     }
                 sub_results[key] = sub_entry
-                _apply_tokens(sub_entry, after or line)
-                _apply_rules(sub_entry, after or line)
+                apply_tokens(sub_entry, after or line, token_map, threshold)
+                apply_rules(sub_entry, after or line, rules, threshold)
                 continue
 
             entry = main_results.get(current_func_id)
@@ -340,8 +319,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
                 entry = {"funktion": matched_func.name}
                 main_results[current_func_id] = entry
                 found_main.append(matched_func.name)
-            _apply_tokens(entry, after or line)
-            _apply_rules(entry, after or line)
+            apply_tokens(entry, after or line, token_map, threshold)
+            apply_rules(entry, after or line, rules, threshold)
             continue
 
         if current_func_id is None:
@@ -364,8 +343,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
 
         # Keine Unterfrage -> zusätzliche Informationen zur aktuellen Funktion
         entry = main_results[current_func_id]
-        _apply_tokens(entry, after or line)
-        _apply_rules(entry, after or line)
+        apply_tokens(entry, after or line, token_map, threshold)
+        apply_rules(entry, after or line, rules, threshold)
 
     # Stufe 2: Unterfragen nur für vorhandene Funktionen prüfen
     for func_id, lines_list in sub_lines.items():
@@ -387,8 +366,8 @@ def parse_anlage2_text(text: str, threshold: int = 80) -> List[dict[str, object]
             if not entry:
                 entry = {"funktion": f"{func_map[func_id].name}: {sub.frage_text}"}
                 sub_results[key] = entry
-            _apply_tokens(entry, after or line)
-            _apply_rules(entry, after or line)
+            apply_tokens(entry, after or line, token_map, threshold)
+            apply_rules(entry, after or line, rules, threshold)
 
     all_results = [
         entry for entry in main_results.values() if not entry.pop("_skip_output", False)
