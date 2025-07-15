@@ -68,13 +68,21 @@ def _load_alias_lists() -> tuple[
 
 
 def fuzzy_match(phrase: str, text: str, threshold: int = FUZZY_THRESHOLD) -> bool:
-    """Vergleicht zwei Phrasen unscharf.
+    """Prüft präzise, ob eine Phrase als exakte Wortfolge im Text vorkommt.
 
-    Gibt ``True`` zurück, wenn ``thefuzz.fuzz.partial_ratio`` die
-    angegebene Schwelle erreicht oder überschreitet.
+    Verwendet reguläre Ausdrücke mit Wortgrenzen (\b), um Fehler
+    durch Teil-Übereinstimmungen zu vermeiden. Die Suche ignoriert
+    Groß- und Kleinschreibung. Der ``threshold``-Parameter wird aus
+    Kompatibilitätsgründen beibehalten, aber nicht verwendet.
     """
-    score = fuzz.partial_ratio(phrase.lower(), text.lower())
-    return score >= threshold
+
+    # re.escape behandelt mögliche Sonderzeichen in der Suchphrase.
+    # \b sorgt für die Übereinstimmung ganzer Wörter.
+    pattern = r"\b" + re.escape(phrase) + r"\b"
+
+    # re.search findet das Muster an beliebiger Stelle im Text.
+    # re.IGNORECASE ignoriert Groß-/Kleinschreibung.
+    return bool(re.search(pattern, text, re.IGNORECASE))
 
 # Globale Phrasenarten, die beim Parsen von Freitext erkannt werden.
 PHRASE_TYPE_CHOICES: list[tuple[str, str]] = [
