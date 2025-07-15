@@ -369,6 +369,9 @@ def parse_anlage2_text(
             apply_tokens(entry, after or line, token_map, threshold)
             apply_rules(entry, after or line, rules, threshold)
 
+    for entry in sub_results.values():
+        entry.pop("technisch_verfuegbar", None)
+
     all_results = [
         entry for entry in main_results.values() if not entry.pop("_skip_output", False)
     ] + list(sub_results.values())
