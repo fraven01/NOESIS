@@ -264,7 +264,16 @@ def parse_anlage2_text(
                 (p.lower(), False) for p in phrases
             )
 
-    rules = list(AntwortErkennungsRegel.objects.all())
+    rules_main = list(
+        AntwortErkennungsRegel.objects.filter(
+            regel_anwendungsbereich="Hauptfunktion"
+        ).order_by("prioritaet")
+    )
+    rules_sub = list(
+        AntwortErkennungsRegel.objects.filter(
+            regel_anwendungsbereich="Unterfrage"
+        ).order_by("prioritaet")
+    )
 
     def _format_result(entry: Dict[str, object]) -> str:
         parts = []
@@ -323,7 +332,7 @@ def parse_anlage2_text(
                     main_results[current_func_id] = entry
                     found_main.append(matched_func.name)
                 apply_tokens(entry, after or line, token_map, threshold)
-                apply_rules(entry, after or line, rules, threshold)
+                apply_rules(entry, after or line, rules_main, threshold)
 
                 key = (current_func_id, matched_sub.id)
                 sub_entry = sub_results.get(key)
@@ -333,7 +342,7 @@ def parse_anlage2_text(
                     }
                 sub_results[key] = sub_entry
                 apply_tokens(sub_entry, after or line, token_map, threshold)
-                apply_rules(sub_entry, after or line, rules, threshold)
+                apply_rules(sub_entry, after or line, rules_sub, threshold)
                 sub_entry.pop("technisch_verfuegbar", None)
                 continue
 
@@ -343,7 +352,7 @@ def parse_anlage2_text(
                 main_results[current_func_id] = entry
                 found_main.append(matched_func.name)
             apply_tokens(entry, after or line, token_map, threshold)
-            apply_rules(entry, after or line, rules, threshold)
+            apply_rules(entry, after or line, rules_main, threshold)
             continue
 
         if current_func_id is None:
@@ -367,7 +376,7 @@ def parse_anlage2_text(
         # Keine Unterfrage -> zusätzliche Informationen zur aktuellen Funktion
         entry = main_results[current_func_id]
         apply_tokens(entry, after or line, token_map, threshold)
-        apply_rules(entry, after or line, rules, threshold)
+        apply_rules(entry, after or line, rules_main, threshold)
 
     # Stufe 2: Unterfragen nur für vorhandene Funktionen prüfen
     for func_id, lines_list in sub_lines.items():
@@ -390,7 +399,7 @@ def parse_anlage2_text(
                 entry = {"funktion": f"{func_map[func_id].name}: {sub.frage_text}"}
                 sub_results[key] = entry
             apply_tokens(entry, after or line, token_map, threshold)
-            apply_rules(entry, after or line, rules, threshold)
+            apply_rules(entry, after or line, rules_sub, threshold)
             entry.pop("technisch_verfuegbar", None)
 
     all_results = [
