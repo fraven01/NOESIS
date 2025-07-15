@@ -2802,16 +2802,28 @@ def projekt_file_edit_json(request, pk):
                                 ki_map[(fid, None)] = begr
                             beteilig_map[(fid, None)] = (beteiligt, beteiligt_begr)
 
-            manual_results_map = {
-                r.get_lookup_key(): {
-                    "technisch_vorhanden": r.technisch_verfuegbar,
-                    "ki_beteiligung": r.ki_beteiligung,
-                }
-                for r in Anlage2FunctionResult.objects.filter(
-                    projekt=anlage.projekt,
-                    source="manual",
-                )
+            fields_def = [f[0] for f in get_anlage2_fields()]
+            field_map = {
+                "technisch_vorhanden": "technisch_verfuegbar",
+                "ki_beteiligung": "ki_beteiligung",
+                "einsatz_bei_telefonica": "einsatz_bei_telefonica",
+                "zur_lv_kontrolle": "zur_lv_kontrolle",
             }
+            manual_results_map = {}
+            for r in Anlage2FunctionResult.objects.filter(
+                projekt=anlage.projekt, source="manual"
+            ):
+                entry = {}
+                for f in fields_def:
+                    val = None
+                    if isinstance(r.manual_result, dict):
+                        val = r.manual_result.get(f)
+                    if val is None:
+                        attr = field_map.get(f)
+                        if attr:
+                            val = getattr(r, attr, None)
+                    entry[f] = val
+                manual_results_map[r.get_lookup_key()] = entry
 
             result_map = {
                 r.get_lookup_key(): r
@@ -3300,6 +3312,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         pf_id = data.get("project_file_id")
         func_id = data.get("function_id")
         sub_id = data.get("subquestion_id")
+        field_name = data.get("field_name") or "technisch_vorhanden"
 
         status_val = data.get("status")
         if status_val in (True, "True", "true", "1", 1):
@@ -3310,7 +3323,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             status = None
 
         notes = data.get("notes", "")
-        ki_beteiligt = data.get("ki_beteiligt")
 
         if pf_id is None or func_id is None:
             return JsonResponse({"error": "invalid"}, status=400)
@@ -3323,24 +3335,27 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         if sub_id:
             get_object_or_404(Anlage2SubQuestion, pk=sub_id)
 
+        field_map = {
+            "technisch_vorhanden": "technisch_verfuegbar",
+            "ki_beteiligung": "ki_beteiligung",
+            "einsatz_bei_telefonica": "einsatz_bei_telefonica",
+            "zur_lv_kontrolle": "zur_lv_kontrolle",
+        }
+
         defaults = {
-            "technisch_verfuegbar": status,
-            "ki_beteiligung": ki_beteiligt,
+            field_map.get(field_name, "technisch_verfuegbar"): status,
             "raw_json": {"notes": notes, "subquestion_id": sub_id},
             "source": "manual",
-            "manual_result": {
-                "technisch_vorhanden": status,
-                "ki_beteiligung": ki_beteiligt,
-            },
+            "manual_result": {field_name: status},
         }
 
         anlage2_logger.debug(
-            "Review gespeichert: pf=%s func=%s sub=%s status=%s ki=%s notes=%r",
+            "Review gespeichert: pf=%s func=%s sub=%s field=%s status=%s notes=%r",
             pf_id,
             func_id,
             sub_id,
+            field_name,
             status,
-            ki_beteiligt,
             notes,
         )
 
@@ -3356,7 +3371,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 
         gap_text = res.gap_summary
         ai_val = None
-        if isinstance(res.ai_result, dict):
+        if field_name == "technisch_vorhanden" and isinstance(res.ai_result, dict):
             ai_val = res.ai_result.get("technisch_verfuegbar")
         if ai_val is not None and ai_val != status:
             task_id = async_task(
@@ -3378,11 +3393,9 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             sub_map = func_entry.setdefault("subquestions", {}).setdefault(
                 str(sub_id), {}
             )
-            sub_map["technisch_vorhanden"] = status
-            sub_map["ki_beteiligung"] = ki_beteiligt
+            sub_map[field_name] = status
         else:
-            func_entry["technisch_vorhanden"] = status
-            func_entry["ki_beteiligung"] = ki_beteiligt
+            func_entry[field_name] = status
 
         anlage.manual_analysis_json = manual_data
         anlage.save(update_fields=["manual_analysis_json"])
