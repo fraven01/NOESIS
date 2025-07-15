@@ -1383,7 +1383,8 @@ def worker_verify_feature(
         lookup_key = obj_to_check.name
     elif object_type == "subquestion":
         obj_to_check = Anlage2SubQuestion.objects.get(pk=object_id)
-        context["function_name"] = obj_to_check.frage_text
+        context["function_name"] = obj_to_check.funktion.name
+        context["subquestion_text"] = obj_to_check.frage_text
         lookup_key = f"{obj_to_check.funktion.name}: {obj_to_check.frage_text}"
     else:
         raise ValueError("invalid object_type")
