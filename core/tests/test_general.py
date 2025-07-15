@@ -944,7 +944,7 @@ class LLMTasksTests(NoesisTestCase):
         run_anlage2_analysis(pf)
 
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        self.assertTrue(res.is_negotiable)
+        self.assertFalse(res.is_negotiable)
 
     def test_parser_manager_fallback(self):
         class FailParser(AbstractParser):
@@ -2680,7 +2680,7 @@ class FeatureVerificationTests(NoesisTestCase):
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.is_negotiable)
+        self.assertFalse(res.is_negotiable)
 
     def test_negotiable_not_set_on_mismatch(self):
         Anlage2FunctionResult.objects.create(
@@ -3100,6 +3100,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(res.gap_summary, "Abweichung")
 
     def test_manual_sets_negotiable(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            ai_result={"technisch_verfuegbar": True},
+        )
+
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,

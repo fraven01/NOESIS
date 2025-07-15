@@ -444,22 +444,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             defaults={"doc_result": row},
         )
 
-        doc_val = None
-        col = row.get("technisch_verfuegbar")
-        if isinstance(col, dict):
-            doc_val = col.get("value")
-        elif isinstance(col, bool):
-            doc_val = col
-
-        ai_val = None
-        if isinstance(res.ai_result, dict):
-            ai_val = res.ai_result.get("technisch_verfuegbar")
-
-        res.is_negotiable = (
-            doc_val is not None and ai_val is not None and doc_val == ai_val
-        )
         res.doc_result = row
-        res.save(update_fields=["doc_result", "is_negotiable"])
+        res.save(update_fields=["doc_result"])
 
     return results
 
@@ -1586,15 +1572,14 @@ def worker_verify_feature(
         defaults={"ai_result": verification_result},
     )
 
-    doc_val = None
-    if isinstance(res.doc_result, dict):
-        d = res.doc_result.get("technisch_verfuegbar")
-        if isinstance(d, dict):
-            doc_val = d.get("value")
-        elif isinstance(d, bool):
-            doc_val = d
+    manual_val = None
+    if isinstance(res.manual_result, dict):
+        manual_val = res.manual_result.get("technisch_vorhanden")
+
     ai_val = verification_result.get("technisch_verfuegbar")
-    res.is_negotiable = doc_val is not None and ai_val is not None and doc_val == ai_val
+    res.is_negotiable = (
+        manual_val is not None and ai_val is not None and manual_val == ai_val
+    )
     res.save(update_fields=["ai_result", "is_negotiable"])
 
     if object_type == "function":

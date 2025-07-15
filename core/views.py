@@ -3460,9 +3460,16 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         manual[field_name] = status
         res.manual_result = manual
         update_fields = [attr, "raw_json", "manual_result", "source"]
-        if sub_id is None and not res.is_negotiable:
-            res.is_negotiable = True
+
+        if field_name == "technisch_vorhanden" and sub_id is None:
+            ai_val = None
+            if isinstance(res.ai_result, dict):
+                ai_val = res.ai_result.get("technisch_verfuegbar")
+            res.is_negotiable = (
+                ai_val is not None and status is not None and ai_val == status
+            )
             update_fields.append("is_negotiable")
+
         res.save(update_fields=update_fields)
 
         gap_text = res.gap_summary
