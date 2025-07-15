@@ -47,7 +47,7 @@
                 {% endfor %}
             </tr>
         </thead>
-        <tbody>
+        <tbody id="anlage2-table-body">
         {% for row in rows %}
             <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }}{% endif %}"
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
@@ -113,7 +113,7 @@
                 {% elif field in no_ai_fields %}
                 {% with f=row.form_fields|list_index:forloop.counter0 %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon" data-input-id="{{ f.auto_id }}"></span>
+                    <span class="tri-state-icon" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                     {% if f.source and f.source != 'N/A' %}
                     <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
@@ -135,12 +135,12 @@
                 </td>
                 {% if field == 'technisch_vorhanden' and row.sub %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon disabled-field" data-input-id="{{ f.auto_id }}"></span>
+                    <span class="tri-state-icon disabled-field" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                 </td>
                 {% else %}
                 <td class="border px-2 text-center">
-                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}" data-input-id="{{ f.auto_id }}"></span>
+                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
                     {% if field == 'technisch_vorhanden' %}
                         {% if f.origin == 'ai' %}<span title="KI bestätigt">✅</span>{% elif f.origin == 'manual' %}<span title="Manuell geändert">✏️</span>{% endif %}
@@ -281,18 +281,37 @@ function initAnlage2Review() {
         });
     }
 
-    document.querySelectorAll('.tri-state-icon').forEach(icon => {
-        const input = document.getElementById(icon.dataset.inputId);
-        if (!input) return;
-        input.dataset.tristate = 'true';
-        input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
-        if (input.type === 'checkbox') {
-            input.checked = input.dataset.state === 'true';
-        } else {
-            input.value = input.dataset.state === 'unknown' ? '' : input.dataset.state;
-        }
-        updateTriState(icon, input);
-        icon.addEventListener('click', () => {
+    function initTriStateIcons() {
+        document.querySelectorAll('.tri-state-icon').forEach(icon => {
+            const input = document.getElementById(icon.dataset.inputId);
+            if (!input) return;
+            if (icon.dataset.fieldName) {
+                input.dataset.fieldName = icon.dataset.fieldName;
+            }
+            input.dataset.tristate = 'true';
+            input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
+            if (input.type === 'checkbox') {
+                input.checked = input.dataset.state === 'true';
+            } else {
+                input.value = input.dataset.state === 'unknown' ? '' : input.dataset.state;
+            }
+            updateTriState(icon, input);
+            const row = icon.closest('tr');
+            if (row && !row.classList.contains('subquestion-row')) {
+                toggleSubRows(row.dataset.funcId, input.dataset.state === 'true');
+            }
+        });
+    }
+
+    initTriStateIcons();
+
+    const tableBody = document.getElementById('anlage2-table-body');
+    if (tableBody) {
+        tableBody.addEventListener('click', function(event) {
+            const icon = event.target.closest('.tri-state-icon');
+            if (!icon || icon.classList.contains('disabled-field')) return;
+            const input = document.getElementById(icon.dataset.inputId);
+            if (!input) return;
             let st = input.dataset.state;
             st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
             input.dataset.state = st;
@@ -301,19 +320,14 @@ function initAnlage2Review() {
             } else {
                 input.value = st === 'unknown' ? '' : st;
             }
-            const evt = new Event('statechange');
-            input.dispatchEvent(evt);
             updateTriState(icon, input);
             const row = icon.closest('tr');
             if (row && !row.classList.contains('subquestion-row')) {
                 toggleSubRows(row.dataset.funcId, st === 'true');
             }
+            autoSave({ target: input });
         });
-        const row = icon.closest('tr');
-        if (row && !row.classList.contains('subquestion-row')) {
-            toggleSubRows(row.dataset.funcId, input.dataset.state === 'true');
-        }
-    });
+    }
 
     const formElem = document.querySelector('form[data-anlage-id]');
     const saveUrl = "{% url 'ajax_save_anlage2_review' %}";
@@ -355,7 +369,7 @@ function initAnlage2Review() {
         if (!row || !formElem) { return; }
         const funcId = row.dataset.funcId;
         const subId = row.dataset.subId;
-        const fieldName = getFieldName(el.name || '');
+        const fieldName = el.dataset.fieldName || getFieldName(el.name || '');
         let status;
         if (el.dataset.tristate !== undefined) {
             const st = el.dataset.state;
