@@ -100,7 +100,7 @@
                        data-bs-content="{{ row.ki_beteiligt_begruendung }}"></i>
                     {% endif %}
                 </td>
-                {% with f=row.form_fields|list_index:forloop.counter0 %}
+                {% with f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
                     {{ f.widget }}
                     {% if f.source and f.source != 'N/A' %}
@@ -111,7 +111,7 @@
                 </td>
                 {% endwith %}
                 {% elif field in no_ai_fields %}
-                {% with f=row.form_fields|list_index:forloop.counter0 %}
+                {% with f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
                     <span class="tri-state-icon" data-input-id="{{ f.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
@@ -123,7 +123,7 @@
                 </td>
                 {% endwith %}
                 {% else %}
-                {% with val=row.ai_result|get_item:field doc=row.doc_result|raw_item:field note=doc|get_item:'note' f=row.form_fields|list_index:forloop.counter0 %}
+                {% with val=row.ai_result|get_item:field doc=row.doc_result|raw_item:field note=doc|get_item:'note' f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
                     {% if val == True %}
                         <span class="status-badge status-ja" data-bs-toggle="tooltip" title="Dok: {{ doc|get_item:'value' }}{% if note %} - {{ note }}{% endif %}">✓ Vorhanden</span>

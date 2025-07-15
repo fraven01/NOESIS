@@ -489,7 +489,7 @@ def _build_row_data(
         lookup_key, analysis_lookup, verification_lookup, manual_lookup
     )
     fields_def = get_anlage2_fields()
-    widgets = []
+    form_fields_map: dict[str, dict] = {}
     rev_origin = {}
     for field, _ in fields_def:
         bf = form[f"{form_prefix}{field}"]
@@ -516,7 +516,11 @@ def _build_row_data(
                 rev_origin[field] = "ai"
             else:
                 rev_origin[field] = "none"
-        widgets.append({"widget": bf, "source": disp["sources"][field], "origin": rev_origin.get(field)})
+        form_fields_map[field] = {
+            "widget": bf,
+            "source": disp["sources"][field],
+            "origin": rev_origin.get(field),
+        }
 
     result_obj = result_map.get(lookup_key)
     is_negotiable = result_obj.is_negotiable if result_obj else False
@@ -548,7 +552,7 @@ def _build_row_data(
         "doc_result": answers.get(lookup_key, {}),
         "ai_result": verification_lookup.get(lookup_key, {}),
         "initial": disp["values"],
-        "form_fields": widgets,
+        "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
         "gap_summary_widget": gap_widget,
         "gap_notiz_widget": note_widget,
