@@ -356,9 +356,18 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
         if matches:
             entry = {"funktion": func.name}
+            for f in fields:
+                entry[f] = None
+            entry["not_found"] = False
             for part in matches:
-                apply_tokens(entry, part, token_map)
-                apply_rules(entry, part, rules)
+                line_entry: dict[str, object] = {}
+                apply_tokens(line_entry, part, token_map)
+                apply_rules(line_entry, part, rules)
+                for key, value in line_entry.items():
+                    if key == "funktion":
+                        continue
+                    if entry.get(key) is None:
+                        entry[key] = value
         else:
             entry = _blank_entry(func.name)
 
@@ -387,9 +396,18 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 "subquestion_id": sub.id,
             }
             if sub_matches:
+                for f in fields:
+                    sub_entry[f] = None
+                sub_entry["not_found"] = False
                 for part in sub_matches:
-                    apply_tokens(sub_entry, part, token_map)
-                    apply_rules(sub_entry, part, rules)
+                    line_entry: dict[str, object] = {}
+                    apply_tokens(line_entry, part, token_map)
+                    apply_rules(line_entry, part, rules)
+                    for key, value in line_entry.items():
+                        if key == "funktion" or key == "subquestion_id":
+                            continue
+                        if sub_entry.get(key) is None:
+                            sub_entry[key] = value
             else:
                 for f in fields:
                     sub_entry[f] = None
