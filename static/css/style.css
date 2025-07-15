@@ -152,3 +152,15 @@ input[type="submit"]:hover {
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* Deaktivierte Tri-State-Icons */
+.tri-state-icon.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Deaktivierte Eingabefelder */
+input[disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+}
