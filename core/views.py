@@ -3525,7 +3525,11 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             "is_negotiable": res.is_negotiable,
         })
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
-        logger.error("Fehler beim Speichern des manuellen Reviews: %s", exc)
+        logger.error(
+            "Fehler beim Speichern des manuellen Reviews: %s",
+            exc,
+            exc_info=True,
+        )
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
 
 
