@@ -683,6 +683,15 @@ class AntwortErkennungsRegel(models.Model):
         choices=FormatBParserRule.FIELD_CHOICES,
     )
     wert = models.BooleanField()
+    REGEL_ANWENDUNGSBEREICH_CHOICES = [
+        ("Hauptfunktion", "Hauptfunktion"),
+        ("Unterfrage", "Unterfrage"),
+    ]
+    regel_anwendungsbereich = models.CharField(
+        max_length=20,
+        choices=REGEL_ANWENDUNGSBEREICH_CHOICES,
+        default="Hauptfunktion",
+    )
     prioritaet = models.IntegerField(default=0)
 
     class Meta:

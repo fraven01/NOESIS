@@ -917,7 +917,13 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
 
     class Meta:
         model = AntwortErkennungsRegel
-        fields = ["regel_name", "erkennungs_phrase", "ziel_feld", "wert"]
+        fields = [
+            "regel_name",
+            "erkennungs_phrase",
+            "ziel_feld",
+            "regel_anwendungsbereich",
+            "wert",
+        ]
         widgets = {
             "regel_name": forms.TextInput(
                 attrs={"class": "border rounded p-2 w-full"}
@@ -926,6 +932,9 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
                 attrs={"class": "border rounded p-2 w-full"}
             ),
             "ziel_feld": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "regel_anwendungsbereich": forms.Select(
+                attrs={"class": "border rounded p-2 w-full"}
+            ),
             "wert": forms.CheckboxInput(attrs={"class": "mx-auto"}),
         }
 

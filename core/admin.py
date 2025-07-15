@@ -214,8 +214,14 @@ class FormatBParserRuleAdmin(admin.ModelAdmin):
 
 @admin.register(AntwortErkennungsRegel)
 class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
-    list_display = ("regel_name", "ziel_feld", "wert", "prioritaet")
-    list_editable = ("ziel_feld", "wert", "prioritaet")
+    list_display = (
+        "regel_name",
+        "ziel_feld",
+        "regel_anwendungsbereich",
+        "wert",
+        "prioritaet",
+    )
+    list_editable = ("ziel_feld", "regel_anwendungsbereich", "wert", "prioritaet")
 
 
 @admin.register(Anlage4ParserConfig)

@@ -1887,6 +1887,7 @@ def admin_anlage2_config_export(request):
             "regel_name": r.regel_name,
             "erkennungs_phrase": r.erkennungs_phrase,
             "ziel_feld": r.ziel_feld,
+            "regel_anwendungsbereich": r.regel_anwendungsbereich,
             "wert": r.wert,
             "prioritaet": r.prioritaet,
         }
@@ -1963,6 +1964,10 @@ def admin_anlage2_config_import(request):
                 defaults={
                     "erkennungs_phrase": r.get("erkennungs_phrase", ""),
                     "ziel_feld": r.get("ziel_feld", ""),
+                    "regel_anwendungsbereich": r.get(
+                        "regel_anwendungsbereich",
+                        "Hauptfunktion",
+                    ),
                     "wert": r.get("wert", False),
                     "prioritaet": r.get("prioritaet", 0),
                 },
