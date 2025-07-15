@@ -333,6 +333,8 @@ function initAnlage2Review() {
         if (!row || !formElem) { return; }
         const funcId = row.dataset.funcId;
         const subId = row.dataset.subId;
+        const parts = (el.name || '').split('_');
+        const fieldName = parts[parts.length - 1];
         let status;
         if (el.dataset.tristate !== undefined) {
             const st = el.dataset.state;
@@ -345,6 +347,7 @@ function initAnlage2Review() {
             function_id: funcId,
             status: status,
             notes: '',
+            field_name: fieldName,
         };
         if (subId) { payload.subquestion_id = subId; }
 

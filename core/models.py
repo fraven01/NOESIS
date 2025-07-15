@@ -830,6 +830,8 @@ class Anlage2FunctionResult(models.Model):
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     technisch_verfuegbar = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
+    einsatz_bei_telefonica = models.BooleanField(null=True)
+    zur_lv_kontrolle = models.BooleanField(null=True)
     doc_result = models.JSONField(null=True, blank=True)
     ai_result = models.JSONField(null=True, blank=True)
     manual_result = models.JSONField(null=True, blank=True)
