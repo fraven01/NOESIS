@@ -1418,6 +1418,14 @@ def worker_verify_feature(
             project_prompt=projekt.project_prompt,
         )
         ans = reply.strip()
+        try:
+            json_data = json.loads(ans)
+        except Exception:  # noqa: BLE001
+            json_data = None
+        if isinstance(json_data, dict) and "technisch_verfuegbar" in json_data:
+            val = json_data.get("technisch_verfuegbar")
+            individual_results.append(val if isinstance(val, bool) else None)
+            continue
         low = ans.lower()
         if low.startswith("ja"):
             individual_results.append(True)
