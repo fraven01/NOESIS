@@ -504,6 +504,7 @@ class DocxExtractTests(NoesisTestCase):
             [
                 {
                     "funktion": "Analyse-/Reportingfunktionen - Bitte wähle zutreffendes aus",
+                    "technisch_verfuegbar": {"value": True, "note": None},
                 }
             ],
         )
@@ -682,6 +683,7 @@ class DocxExtractTests(NoesisTestCase):
                 },
                 {
                     "funktion": "Anwesenheit: Grund?",
+                    "technisch_verfuegbar": {"value": False, "note": None},
                 },
             ],
         )
