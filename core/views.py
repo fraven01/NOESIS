@@ -478,28 +478,20 @@ def _build_row_data(
     rev_origin = {}
     for field, _ in fields_def:
         bf = form[f"{form_prefix}{field}"]
-        if field == "technisch_vorhanden" and sub_id is None:
-            initial_value = disp["values"].get(field)
-            state = (
-                "true"
-                if initial_value is True
-                else "false" if initial_value is False else "unknown"
-            )
-            bf.field.widget.attrs.update(
-                {
-                    "data-tristate": "true",
-                    "data-initial-state": state,
-                    "style": "display: none;",
-                }
-            )
-        elif field == "technisch_vorhanden" and sub_id is not None:
-            bf.field.widget.attrs.update({
-                "disabled": True,
-                "class": "disabled-field",
-                "style": "display: none;",
-                "data-tristate": "true",
-                "data-initial-state": "unknown",
-            })
+        initial_value = disp["values"].get(field)
+        state = (
+            "true"
+            if initial_value is True
+            else "false" if initial_value is False else "unknown"
+        )
+        attrs = {
+            "data-tristate": "true",
+            "data-initial-state": state,
+            "style": "display: none;",
+        }
+        if field == "technisch_vorhanden" and sub_id is not None:
+            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
+        bf.field.widget.attrs.update(attrs)
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
             ai_val = verification_lookup.get(lookup_key, {}).get(field)
