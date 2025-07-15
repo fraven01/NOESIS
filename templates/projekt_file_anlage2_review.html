@@ -240,8 +240,20 @@ function initAnlage2Review() {
     }
 
     document.querySelectorAll('tr[data-ai]').forEach(row => {
-        const ai = JSON.parse(row.dataset.ai || '{}');
-        const doc = JSON.parse(row.dataset.doc || '{}');
+        let ai = {};
+        let doc = {};
+        try {
+            ai = JSON.parse(row.dataset.ai || '{}');
+        } catch (e) {
+            console.warn('Fehlerhafte JSON-Daten in Zeile (data-ai):', row, e);
+            ai = {};
+        }
+        try {
+            doc = JSON.parse(row.dataset.doc || '{}');
+        } catch (e) {
+            console.warn('Fehlerhafte JSON-Daten in Zeile (data-doc):', row, e);
+            doc = {};
+        }
         row.querySelectorAll('input[type="checkbox"]').forEach(inp => {
             const parts = inp.name.split('_');
             const key = parts[parts.length - 1];
@@ -352,7 +364,13 @@ function initAnlage2Review() {
     }
 
     function updateGapHighlight(row, reviewVal) {
-        const ai = JSON.parse(row.dataset.ai || '{}');
+        let ai = {};
+        try {
+            ai = JSON.parse(row.dataset.ai || '{}');
+        } catch (e) {
+            console.warn('Fehlerhafte JSON-Daten in Zeile (data-ai):', row, e);
+            ai = {};
+        }
         let aiVal = ai.technisch_vorhanden;
         const cell = row.querySelector('[id^="gap-cell-"]');
         if (!cell) return;
