@@ -3144,4 +3144,29 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertFalse(res.zur_lv_kontrolle)
         self.assertFalse(res.manual_result["zur_lv_kontrolle"])
 
+    def test_manual_result_merge(self):
+        url = reverse("ajax_save_anlage2_review")
+        self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": True,
+            }),
+            content_type="application/json",
+        )
+        self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": False,
+                "field_name": "ki_beteiligung",
+            }),
+            content_type="application/json",
+        )
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.manual_result["technisch_vorhanden"])
+        self.assertFalse(res.manual_result["ki_beteiligung"])
+
 
