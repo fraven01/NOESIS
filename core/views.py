@@ -178,6 +178,13 @@ def _deep_update(base: dict, extra: dict) -> dict:
     return base
 
 
+def _normalize_fields(data: dict | None) -> dict:
+    """Passt die Feldernamen an ``FIELD_RENAME`` an."""
+    if not isinstance(data, dict):
+        return {}
+    return {FIELD_RENAME.get(k, k): v for k, v in data.items()}
+
+
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat für ``Anlage1ReviewForm``."""
 
@@ -566,8 +573,8 @@ def _build_row_data(
             break
     return {
         "name": display_name,
-        "doc_result": answers.get(lookup_key, {}),
-        "ai_result": verification_lookup.get(lookup_key, {}),
+        "doc_result": _normalize_fields(answers.get(lookup_key, {})),
+        "ai_result": _normalize_fields(verification_lookup.get(lookup_key, {})),
         "initial": disp["values"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
