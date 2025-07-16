@@ -201,27 +201,18 @@ function initAnlage2Review() {
         });
     }
 
+function refreshRowData(row) {
+    try { row.aiData = JSON.parse(row.dataset.ai || '{}'); } catch (e) { row.aiData = {}; }
+    try { row.docData = JSON.parse(row.dataset.doc || '{}'); } catch (e) { row.docData = {}; }
+    row.negotiableVal = row.dataset.negotiable === 'true';
+    const ov = row.dataset.manualOverride;
+    if (ov === 'true') row.negotiableOverride = true;
+    else if (ov === 'false') row.negotiableOverride = false;
+    else row.negotiableOverride = null;
+}
+
 document.querySelectorAll('tr[data-ai]').forEach(row => {
-    let ai = {};
-    let doc = {};
-    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
-    row.querySelectorAll('.tri-state-icon').forEach(icon => {
-        const key = icon.dataset.fieldName;
-        let aiVal = ai.hasOwnProperty(key) ? ai[key] : undefined;
-        if (aiVal !== undefined && aiVal !== null && typeof aiVal === 'object' && 'value' in aiVal) {
-            aiVal = aiVal.value;
-        }
-        let docVal = doc.hasOwnProperty(key) ? doc[key] : undefined;
-        if (docVal !== undefined && docVal !== null && typeof docVal === 'object' && 'value' in docVal) {
-            docVal = docVal.value;
-        }
-        if (aiVal !== undefined || docVal !== undefined) {
-            const txt = `Dok: ${docVal} / KI: ${aiVal}`;
-            icon.setAttribute('data-bs-toggle', 'tooltip');
-            icon.setAttribute('title', txt);
-        }
-    });
+    refreshRowData(row);
 });
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -251,9 +242,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         const row = icon.closest('tr');
         const parserRaw = row.dataset.parsedStatus;
         const parserVal = parserRaw === 'True' ? true : parserRaw === 'False' ? false : null;
-        let ai = {};
-        try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-        let aiVal = ai.technisch_vorhanden;
+        const aiValRaw = row.aiData ? row.aiData.technisch_vorhanden : undefined;
+        let aiVal = aiValRaw;
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         const state = input.dataset.state;
         const manualVal = state === 'true' ? true : state === 'false' ? false : null;
@@ -272,10 +262,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
 
     function updateTooltip(icon, input) {
         const row = icon.closest('tr');
-        let ai = {};
-        let doc = {};
-        try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-        try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+        const ai = row.aiData || {};
+        const doc = row.docData || {};
         const key = icon.dataset.fieldName;
         let aiVal = ai.hasOwnProperty(key) ? ai[key] : undefined;
         if (aiVal !== undefined && aiVal !== null && typeof aiVal === 'object' && 'value' in aiVal) {
@@ -310,8 +298,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     function updateReviewFlag(row) {
         let needsReview = false;
         try {
-            const ai = JSON.parse(row.dataset.ai || '{}');
-            const doc = JSON.parse(row.dataset.doc || '{}');
+            const ai = row.aiData || {};
+            const doc = row.docData || {};
             ['technisch_vorhanden', 'einsatz_bei_telefonica', 'zur_lv_kontrolle', 'ki_beteiligung'].forEach(field => {
                 if (needsReview) return;
                 const docVal = doc[field];
@@ -335,6 +323,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
 
     function updateRowAppearance(rowElement) {
         if (!rowElement) return;
+        refreshRowData(rowElement);
 
         rowElement.querySelectorAll('.tri-state-icon').forEach(icon => {
             const input = document.getElementById(icon.dataset.inputId);
@@ -367,11 +356,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
 
         const negCell = rowElement.querySelector('.negotiable-cell');
         if (negCell) {
-            const val = rowElement.dataset.negotiable === 'true';
-            const overrideRaw = rowElement.dataset.manualOverride;
-            let override = null;
-            if (overrideRaw === 'true') override = true;
-            else if (overrideRaw === 'false') override = false;
+            const val = rowElement.negotiableVal;
+            const override = rowElement.negotiableOverride;
             updateNegotiableCell(negCell, val, override);
             rowElement.classList.toggle('negotiated-row', val);
         }
@@ -449,14 +435,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     }
 
     function updateGapHighlight(row, reviewVal) {
-        let ai = {};
-        try {
-            ai = JSON.parse(row.dataset.ai || '{}');
-        } catch (e) {
-            console.warn('Fehlerhafte JSON-Daten in Zeile (data-ai):', row, e);
-            ai = {};
-        }
-        let aiVal = ai.technisch_vorhanden;
+        const aiValRaw = row.aiData ? row.aiData.technisch_vorhanden : undefined;
+        let aiVal = aiValRaw;
         const cell = row.querySelector('[id^="gap-cell-"]');
         if (!cell) return;
         if (aiVal !== undefined && reviewVal !== null && aiVal !== reviewVal) {
@@ -677,8 +657,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         btn.addEventListener('click', function() {
             const row = this.closest('tr');
             if (!row) return;
-            let ai = {};
-            try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+            const ai = row.aiData || {};
             const val = ai.technisch_vorhanden;
             const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
             if (!icon) return;
