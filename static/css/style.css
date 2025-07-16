@@ -26,8 +26,22 @@
 .status-nein {
     background-color: #6c757d;
 }
+/* Farblogik für technische Verfügbarkeit */
+.status-ok {
+    background-color: #28a745;
+    color: white;
+}
+.status-konflikt {
+    background-color: #dc3545;
+    color: white;
+}
+.status-manuell-abweichung {
+    background-color: #ffc107;
+    color: black;
+}
 .status-unbekannt {
     background-color: #6c757d;
+    color: white;
 }
 
 /* Einfaches Collapse-Verhalten für Tabellenzeilen */
