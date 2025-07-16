@@ -169,6 +169,39 @@ function updateNegotiableCell(cell, value, override) {
     }
 }
 
+function updateTooltip(icon, input) {
+    const row = icon.closest('tr');
+    if (!row) return;
+    let doc = {};
+    let ai = {};
+    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+    const field = icon.dataset.fieldName;
+    const docKey = field === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
+    const aiKey = field === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
+    let docVal = doc[docKey];
+    if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
+    let aiVal = ai[aiKey];
+    if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
+    let manualVal = null;
+    if (input && input.dataset && 'state' in input.dataset) {
+        const st = input.dataset.state;
+        manualVal = st === 'true' ? true : st === 'false' ? false : null;
+    } else {
+        const txt = icon.textContent.trim();
+        manualVal = txt.startsWith('✓') ? true : (txt.startsWith('✗') ? false : null);
+    }
+    const txt = `Dokument: ${docVal}\nKI-Check: ${aiVal}\nManuell: ${manualVal}`;
+    icon.setAttribute('title', txt);
+    icon.dataset.bsToggle = 'tooltip';
+    const inst = bootstrap.Tooltip.getInstance(icon);
+    if (inst) {
+        inst.setContent({ '.tooltip-inner': txt });
+    } else {
+        new bootstrap.Tooltip(icon);
+    }
+}
+
 function updateRowAppearance(row) {
     if (!row) return;
     let ai = {};
@@ -182,8 +215,12 @@ function updateRowAppearance(row) {
         const icon = row.querySelector(`.tri-state-icon[data-field-name="${f}"]`);
         if (!icon) return;
         const manual = textToState(icon.textContent);
-        const docVal = doc[f];
-        const aiVal = ai[f];
+        const docKey = f === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
+        const aiKey = f === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
+        let docVal = doc[docKey];
+        if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
+        let aiVal = ai[aiKey];
+        if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
         if (manual === true) icon.classList.add('status-badge','status-ja');
         else if (manual === false) icon.classList.add('status-badge','status-nein');
@@ -195,8 +232,7 @@ function updateRowAppearance(row) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
         }
         icon.classList.add(cls);
-        icon.setAttribute('title', `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manual}`);
-        icon.dataset.bsToggle = 'tooltip';
+        updateTooltip(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
         if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
             needsReview = true;
         }
@@ -206,7 +242,8 @@ function updateRowAppearance(row) {
     if (techIcon && !row.classList.contains('subquestion-row')) {
         techState = textToState(techIcon.textContent);
         toggleSubRows(row.dataset.funcId, techState === true);
-        const aiVal = ai.technisch_vorhanden;
+        let aiVal = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
+        if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         const gapCell = row.querySelector('[id^="gap-cell-"]');
         if (gapCell) {
             if (aiVal !== undefined && techState !== null && aiVal !== techState) gapCell.classList.add('has-gap');
