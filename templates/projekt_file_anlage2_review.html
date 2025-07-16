@@ -300,6 +300,19 @@ function updateRowAppearance(row) {
     document.querySelectorAll("tbody tr[data-parsed-status]").forEach(r => updateRowAppearance(r));
     applyFilters();
 }
-document.addEventListener('DOMContentLoaded', initAnlage2Review);
+function initDynamicElements(container) {
+    if (!container) return;
+    container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    container.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => new bootstrap.Popover(el));
+}
+
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    initDynamicElements(event.detail.target);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    initDynamicElements(document);
+    initAnlage2Review();
+});
 </script>
 {% endblock %}
