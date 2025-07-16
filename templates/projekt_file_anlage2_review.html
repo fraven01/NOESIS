@@ -15,6 +15,10 @@
             <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
+        <label class="ml-4">
+            <input type="checkbox" id="show-conflicts-only-filter" class="form-check-input mr-2">
+            Nur Konflikte anzeigen
+        </label>
         <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
         <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
     </div>
@@ -194,22 +198,7 @@ function initAnlage2Review() {
         });
     }
 
-document.querySelectorAll('tr[data-ai]').forEach(row => {
-    let ai = {};
-    let doc = {};
-    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
-    row.querySelectorAll('.tri-state-icon').forEach(icon => {
-        const key = icon.dataset.fieldName;
-        const aiVal = ai[key] ? ai[key].value : undefined;
-        const docVal = doc[key] ? doc[key].value : undefined;
-        if (aiVal !== undefined || docVal !== undefined) {
-            const txt = `Dok: ${docVal} / KI: ${aiVal}`;
-            icon.setAttribute('data-bs-toggle', 'tooltip');
-            icon.setAttribute('title', txt);
-        }
-    });
-});
+
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
@@ -217,18 +206,47 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
 
     function updateTriState(icon, input) {
+        const row = icon.closest('tr');
         const state = input.dataset.state;
-        icon.classList.remove('status-ja', 'status-nein', 'status-unbekannt');
+        const manualVal = state === 'true' ? true : (state === 'false' ? false : null);
+        const parserStr = row.dataset.parsedStatus;
+        const parserVal = parserStr === 'True' ? true : (parserStr === 'False' ? false : null);
+        let aiVal;
+        try {
+            const ai = JSON.parse(row.dataset.ai || '{}');
+            aiVal = ai.technisch_vorhanden;
+        } catch (e) { aiVal = undefined; }
+        const hasManual = input.dataset.origin === 'manual';
+
+        let cls = 'status-unbekannt';
+        if (hasManual && manualVal !== null && manualVal !== parserVal) {
+            cls = 'status-manuell-abweichung';
+        } else if (!hasManual && parserVal !== null && aiVal !== undefined && parserVal !== aiVal) {
+            cls = 'status-konflikt';
+        } else if ((manualVal !== null && manualVal === parserVal) || (!hasManual && aiVal === parserVal)) {
+            cls = 'status-ok';
+        }
+
+        icon.classList.remove('status-badge', 'status-ja', 'status-nein', 'status-unbekannt', 'status-ok', 'status-konflikt', 'status-manuell-abweichung');
+        icon.classList.add('status-badge', cls);
+
         if (state === 'true') {
             icon.textContent = '✓ Vorhanden';
-            icon.classList.add('status-badge', 'status-ja');
         } else if (state === 'false') {
             icon.textContent = '✗ Nicht vorhanden';
-            icon.classList.add('status-badge', 'status-nein');
         } else {
             icon.textContent = '? Unbekannt';
-            icon.classList.add('status-badge', 'status-unbekannt');
         }
+
+        row.classList.remove('status-ok', 'status-konflikt', 'status-manuell-abweichung', 'status-unbekannt');
+        row.classList.add(cls);
+
+        const tip = `Dok: ${parserVal} / KI: ${aiVal} / Manuell: ${manualVal}`;
+        icon.setAttribute('data-bs-toggle', 'tooltip');
+        icon.setAttribute('title', tip);
+        const t = bootstrap.Tooltip.getInstance(icon);
+        if (t) { t.dispose(); }
+        new bootstrap.Tooltip(icon);
     }
 
     function toggleSubRows(funcId, enabled) {
@@ -466,6 +484,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     });
 
     const filterCheckbox = document.getElementById('show-relevant-only-filter');
+    const conflictCheckbox = document.getElementById('show-conflicts-only-filter');
 
     if (filterCheckbox) {
         filterCheckbox.addEventListener('change', function() {
@@ -478,6 +497,24 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
 
                 if (showOnlyAvailable) {
                     if (isAvailable) {
+                        row.classList.remove('filter-hidden');
+                    } else {
+                        row.classList.add('filter-hidden');
+                    }
+                } else {
+                    row.classList.remove('filter-hidden');
+                }
+            });
+        });
+    }
+
+    if (conflictCheckbox) {
+        conflictCheckbox.addEventListener('change', function() {
+            const onlyConflicts = this.checked;
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                if (onlyConflicts) {
+                    if (row.classList.contains('status-konflikt') || row.classList.contains('status-manuell-abweichung')) {
                         row.classList.remove('filter-hidden');
                     } else {
                         row.classList.add('filter-hidden');

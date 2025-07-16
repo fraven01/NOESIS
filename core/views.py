@@ -506,7 +506,6 @@ def _build_row_data(
         }
         if field == "technisch_vorhanden" and sub_id is not None:
             attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
-        bf.field.widget.attrs.update(attrs)
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
             ai_val = verification_lookup.get(lookup_key, {}).get(field)
@@ -516,6 +515,8 @@ def _build_row_data(
                 rev_origin[field] = "ai"
             else:
                 rev_origin[field] = "none"
+            attrs["data-origin"] = rev_origin[field]
+        bf.field.widget.attrs.update(attrs)
         form_fields_map[field] = {
             "widget": bf,
             "source": disp["sources"][field],

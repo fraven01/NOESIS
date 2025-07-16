@@ -1,6 +1,10 @@
 :root {
     --color-primary: #2563eb; /* blue-600 */
     --color-primary-dark: #1e40af; /* blue-800 */
+    --status-ok: #28a745;
+    --status-konflikt: #dc3545;
+    --status-manuell-abweichung: #ffc107;
+    --status-unbekannt: #6c757d;
 }
 
 /* Custom styles for card hover effects */
@@ -26,8 +30,25 @@
 .status-nein {
     background-color: #6c757d;
 }
+
+.status-ok {
+    background-color: var(--status-ok);
+    color: white;
+}
+
+.status-konflikt {
+    background-color: var(--status-konflikt);
+    color: white;
+}
+
+.status-manuell-abweichung {
+    background-color: var(--status-manuell-abweichung);
+    color: black;
+}
+
 .status-unbekannt {
-    background-color: #6c757d;
+    background-color: var(--status-unbekannt);
+    color: white;
 }
 
 /* Einfaches Collapse-Verhalten für Tabellenzeilen */
