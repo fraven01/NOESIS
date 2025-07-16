@@ -565,6 +565,7 @@ def _build_row_data(
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,
+        "result_id": result_obj.id if result_obj else None,
         "verif_key": lookup_key,
         "source_text": disp["source"],
         "ki_begruendung": begr_md,
@@ -3572,6 +3573,87 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             exc_info=True,
         )
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
+
+
+@login_required
+@require_POST
+def hx_update_review_cell(request, result_id: int, field_name: str):
+    """Aktualisiert eine Bewertungszelle via htmx."""
+    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    sub_id = request.POST.get("sub_id")
+
+    manual = result.manual_result or {}
+    if sub_id:
+        sub_map = manual.setdefault("subquestions", {}).setdefault(str(sub_id), {})
+        cur = sub_map.get(field_name)
+    else:
+        cur = manual.get(field_name)
+
+    if cur is True:
+        new_state = False
+    elif cur is False:
+        new_state = None
+    else:
+        new_state = True
+
+    if sub_id:
+        manual.setdefault("subquestions", {}).setdefault(str(sub_id), {})[field_name] = new_state
+    else:
+        manual[field_name] = new_state
+    result.manual_result = manual
+
+    field_map = {
+        "technisch_vorhanden": "technisch_verfuegbar",
+        "ki_beteiligung": "ki_beteiligung",
+        "einsatz_bei_telefonica": "einsatz_bei_telefonica",
+        "zur_lv_kontrolle": "zur_lv_kontrolle",
+    }
+    attr = field_map.get(field_name, "technisch_verfuegbar")
+    setattr(result, attr, new_state)
+    result.source = "manual"
+
+    result.save(update_fields=[attr, "manual_result", "source"])
+
+    context = {
+        "state": new_state,
+        "source": "Manuell",
+        "field_name": field_name,
+        "row": {
+            "sub": sub_id is not None,
+            "result_id": result.id,
+            "sub_id": sub_id,
+        },
+    }
+    return render(request, "partials/review_cell.html", context)
+
+
+@login_required
+@require_POST
+def hx_toggle_negotiable(request, result_id: int):
+    """Schaltet den Verhandlungsstatus um."""
+    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+
+    current = result.is_negotiable_manual_override
+    if current is True:
+        new_override = False
+    elif current is False:
+        new_override = None
+    else:
+        new_override = True
+
+    result.is_negotiable_manual_override = new_override
+    if new_override is not None:
+        result.is_negotiable = new_override
+    else:
+        result.is_negotiable = bool(result.technisch_verfuegbar)
+    result.save(update_fields=["is_negotiable", "is_negotiable_manual_override"])
+
+    context = {
+        "is_negotiable": result.is_negotiable,
+        "override": result.is_negotiable_manual_override,
+        "row": {"result_id": result.id},
+    }
+    return render(request, "partials/negotiable_cell.html", context)
 
 
 @login_required

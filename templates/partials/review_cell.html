@@ -1,0 +1,23 @@
+{% load recording_extras %}
+<td class="border px-2 text-center">
+    <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
+            hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
+            hx-target="closest td" hx-swap="outerHTML">
+        {% if state == True %}
+        ✓ Vorhanden
+        {% elif state == False %}
+        ✗ Nicht vorhanden
+        {% else %}
+        ? Unbekannt
+        {% endif %}
+    </button>
+    <span class="source-icon" title="{{ source }}">
+        {% if source == 'Manuell' %}
+        <i class="fas fa-user"></i>
+        {% elif source == 'KI-Check' %}
+        <i class="fas fa-robot"></i>
+        {% else %}
+        <i class="fas fa-file-alt"></i>
+        {% endif %}
+    </span>
+</td>

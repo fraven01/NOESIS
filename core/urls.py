@@ -248,6 +248,16 @@ urlpatterns = [
         name="ajax_save_anlage2_review",
     ),
     path(
+        "hx/review-cell/<int:result_id>/<str:field_name>/",
+        views.hx_update_review_cell,
+        name="hx_update_review_cell",
+    ),
+    path(
+        "hx/negotiable/<int:result_id>/",
+        views.hx_toggle_negotiable,
+        name="hx_toggle_negotiable",
+    ),
+    path(
         "ajax/start-gutachten/<int:project_id>/",
         views.ajax_start_gutachten_generation,
         name="ajax_start_gutachten_generation",
