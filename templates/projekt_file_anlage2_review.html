@@ -298,25 +298,58 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         });
     }
 
+    function updateSourceIcon(row, input) {
+        const icon = row.querySelector(`.source-icon[data-field-name="${input.dataset.fieldName}"]`);
+        if (!icon) return;
+        let html = '<i class="fas fa-file-alt"></i>';
+        if (input.dataset.origin === 'manual') html = '<i class="fas fa-user"></i>';
+        else if (input.dataset.origin === 'ai') html = '<i class="fas fa-robot"></i>';
+        icon.innerHTML = html;
+    }
+
+    function updateReviewFlag(row) {
+        let needsReview = false;
+        try {
+            const ai = JSON.parse(row.dataset.ai || '{}');
+            const doc = JSON.parse(row.dataset.doc || '{}');
+            ['technisch_vorhanden', 'einsatz_bei_telefonica', 'zur_lv_kontrolle', 'ki_beteiligung'].forEach(field => {
+                if (needsReview) return;
+                const docVal = doc[field];
+                const aiVal = ai[field];
+                const icon = row.querySelector(`.tri-state-icon[data-field-name="${field}"]`);
+                const inp = icon ? document.getElementById(icon.dataset.inputId) : null;
+                let manVal = null;
+                if (inp) {
+                    const st = inp.dataset.state;
+                    manVal = st === 'true' ? true : st === 'false' ? false : null;
+                }
+                if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manVal === null) {
+                    needsReview = true;
+                }
+            });
+        } catch (e) { /* ignore */ }
+        row.dataset.requiresReview = needsReview ? 'true' : 'false';
+        const indicator = row.querySelector('.text-danger.text-sm');
+        if (indicator) indicator.style.display = needsReview ? '' : 'none';
+    }
+
     function updateRowAppearance(rowElement) {
         if (!rowElement) return;
 
         rowElement.querySelectorAll('.tri-state-icon').forEach(icon => {
             const input = document.getElementById(icon.dataset.inputId);
             if (!input) return;
-            if (icon.dataset.fieldName) {
-                input.dataset.fieldName = icon.dataset.fieldName;
-            }
+            if (icon.dataset.fieldName) input.dataset.fieldName = icon.dataset.fieldName;
             input.dataset.tristate = 'true';
-            if (!input.dataset.state) {
-                input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
-            }
+            const state = input.dataset.state || input.dataset.initialState || (input.checked ? 'true' : 'unknown');
+            input.dataset.state = state;
             if (input.type === 'checkbox') {
-                input.checked = input.dataset.state === 'true';
+                input.checked = state === 'true';
             } else {
-                input.value = input.dataset.state === 'unknown' ? '' : input.dataset.state;
+                input.value = state === 'unknown' ? '' : state;
             }
             updateTriState(icon, input);
+            updateSourceIcon(rowElement, input);
         });
 
         const techIcon = rowElement.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
@@ -342,31 +375,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             updateNegotiableCell(negCell, val, override);
             rowElement.classList.toggle('negotiated-row', val);
         }
-        let needsReview = false;
-        try {
-            const ai = JSON.parse(rowElement.dataset.ai || '{}');
-            const doc = JSON.parse(rowElement.dataset.doc || '{}');
-            ['technisch_vorhanden', 'einsatz_bei_telefonica', 'zur_lv_kontrolle', 'ki_beteiligung'].forEach(field => {
-                if (needsReview) return;
-                const docVal = doc[field];
-                const aiVal = ai[field];
-                const icon = rowElement.querySelector(`.tri-state-icon[data-field-name="${field}"]`);
-                const inp = icon ? document.getElementById(icon.dataset.inputId) : null;
-                let manVal = null;
-                if (inp) {
-                    const st = inp.dataset.state;
-                    manVal = st === 'true' ? true : st === 'false' ? false : null;
-                }
-                if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manVal === null) {
-                    needsReview = true;
-                }
-            });
-        } catch (e) { /* ignore */ }
-        rowElement.dataset.requiresReview = needsReview ? 'true' : 'false';
-        const reviewIndicator = rowElement.querySelector('.text-danger.text-sm');
-        if (reviewIndicator) {
-            reviewIndicator.style.display = needsReview ? '' : 'none';
-        }
+
+        updateReviewFlag(rowElement);
     }
 
     document.querySelectorAll('tbody tr[data-parsed-status]').forEach(row => updateRowAppearance(row));
@@ -384,16 +394,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
                 input.dataset.state = st;
                 input.dataset.origin = 'manual';
-                if (input.type === 'checkbox') {
-                    input.checked = st === 'true';
-                } else {
-                    input.value = st === 'unknown' ? '' : st;
-                }
-                updateTriState(triIcon, input);
                 const row = triIcon.closest('tr');
-                if (row && !row.classList.contains('subquestion-row')) {
-                    toggleSubRows(row.dataset.funcId, st === 'true');
-                }
+                updateRowAppearance(row);
                 autoSave({ target: input });
                 return;
             }
@@ -416,10 +418,9 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                     headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 }).then(r => r.json()).then(data => {
-                    updateNegotiableCell(negCell, data.is_negotiable, data.is_negotiable_override);
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
                     row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
-                    row.classList.toggle('negotiated-row', data.is_negotiable);
+                    updateRowAppearance(row);
                 });
             }
         });
@@ -516,13 +517,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                     if (gapField) { gapField.value = data.gap_summary; }
                 }
                 if (data.is_negotiable !== undefined) {
-                    const cell = row.querySelector('.negotiable-cell');
-                    if (cell && !row.dataset.manualOverride) {
-                        updateNegotiableCell(cell, data.is_negotiable, data.is_negotiable_override);
-                    }
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
                     row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
-                    row.classList.toggle('negotiated-row', data.is_negotiable);
                 }
                 const srcIcon = row.querySelector(`.source-icon[data-field-name="${fieldName}"]`);
                 if (srcIcon) {
@@ -533,11 +529,6 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             })
             .catch(() => { indicator.textContent = '⚠️'; });
 
-        if (fieldName === 'technisch_vorhanden') {
-            updateGapHighlight(row, status);
-            const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
-            if (icon) { applyStatusColor(icon, el); updateTooltip(icon, el); }
-        }
     }
 
     if (formElem) {
@@ -575,10 +566,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     });
 
     document.querySelectorAll('tr[data-ai]').forEach(row => {
-        updateGapHighlight(row);
-        if (row.dataset.negotiable === 'true') {
-            row.classList.add('negotiated-row');
-        }
+        updateRowAppearance(row);
     });
 
 
@@ -701,11 +689,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             else if (val === false) st = 'false';
             input.dataset.state = st;
             input.dataset.origin = 'manual';
-            if (input.type === 'checkbox') { input.checked = st === 'true'; }
-            else { input.value = st === 'unknown' ? '' : st; }
-            updateTriState(icon, input);
-            const srcIcon = row.querySelector('.source-icon[data-field-name="technisch_vorhanden"]');
-            if (srcIcon) { srcIcon.innerHTML = '<i class="fas fa-user"></i>'; }
+            updateRowAppearance(row);
             autoSave({ target: input });
         });
     });
