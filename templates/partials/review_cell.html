@@ -1,5 +1,6 @@
 {% load recording_extras %}
 <td class="border px-2 text-center">
+    {% if row.result_id %}
     <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
             hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
             hx-target="closest td" hx-swap="outerHTML">
@@ -20,4 +21,7 @@
         <i class="fas fa-file-alt"></i>
         {% endif %}
     </span>
+    {% else %}
+    <span>-</span>
+    {% endif %}
 </td>
