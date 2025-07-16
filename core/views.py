@@ -564,6 +564,9 @@ def _build_row_data(
             has_gap = True
             manual_review_required = True
             break
+    has_notes = bool(
+        result_obj and (result_obj.gap_summary or result_obj.gap_notiz)
+    )
     return {
         "name": display_name,
         "doc_result": answers.get(lookup_key, {}),
@@ -575,6 +578,7 @@ def _build_row_data(
         "gap_summary_widget": gap_widget,
         "gap_notiz_widget": note_widget,
         "gap_notiz": result_obj.gap_notiz if result_obj else "",
+        "has_gap_notes": has_notes,
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,
@@ -3677,6 +3681,47 @@ def hx_toggle_negotiable(request, result_id: int):
         "row": {"result_id": result.id},
     }
     return render(request, "partials/negotiable_cell.html", context)
+
+
+@login_required
+def edit_gap_notes(request, result_id: int):
+    """Bearbeitet die Gap-Notizen für ein Ergebnis."""
+
+    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    if not _user_can_edit_project(request.user, result.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    if request.method == "POST":
+        extern = request.POST.get("gap_summary", "").strip()
+        intern = request.POST.get("gap_notiz", "").strip()
+        result.gap_summary = extern
+        result.gap_notiz = intern
+        result.save(update_fields=["gap_summary", "gap_notiz"])
+        messages.success(request, "Notizen gespeichert")
+        file_obj = BVProjectFile.objects.filter(
+            projekt=result.projekt, anlage_nr=2
+        ).first()
+        if file_obj:
+            return redirect("projekt_file_edit_json", pk=file_obj.pk)
+        return redirect("projekt_detail", pk=result.projekt.pk)
+
+    file_obj = BVProjectFile.objects.filter(projekt=result.projekt, anlage_nr=2).first()
+    func_name = result.funktion.name
+    sub_id = None
+    if isinstance(result.raw_json, dict):
+        sub_id = result.raw_json.get("subquestion_id")
+    if sub_id:
+        try:
+            sub = Anlage2SubQuestion.objects.get(pk=sub_id)
+            func_name = sub.frage_text
+        except Anlage2SubQuestion.DoesNotExist:
+            pass
+    context = {
+        "result": result,
+        "anlage": file_obj,
+        "function_name": func_name,
+    }
+    return render(request, "gap_notes_form.html", context)
 
 
 @login_required
