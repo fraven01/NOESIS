@@ -525,7 +525,9 @@ def _build_row_data(
 
     result_obj = result_map.get(lookup_key)
     is_negotiable = result_obj.negotiable if result_obj else False
-    override_val = result_obj.is_negotiable_override if result_obj else None
+    override_val = (
+        result_obj.is_negotiable_manual_override if result_obj else None
+    )
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
@@ -556,7 +558,7 @@ def _build_row_data(
         "initial": disp["values"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
-        "negotiable_override": override_val,
+        "negotiable_manual_override": override_val,
         "gap_summary_widget": gap_widget,
         "gap_notiz_widget": note_widget,
         "gap_notiz": result_obj.gap_notiz if result_obj else "",
@@ -3485,13 +3487,24 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             res.manual_result = manual
             update_fields.extend([attr, "raw_json", "manual_result", "source"])
 
+        auto_val = res.is_negotiable
         if field_name == "technisch_vorhanden" and sub_id is None:
+            doc_val = None
+            if isinstance(res.doc_result, dict):
+                doc_entry = res.doc_result.get("technisch_verfuegbar")
+                if isinstance(doc_entry, dict):
+                    doc_val = doc_entry.get("value")
             ai_val = None
             if isinstance(res.ai_result, dict):
                 ai_val = res.ai_result.get("technisch_verfuegbar")
-            res.is_negotiable = (
-                ai_val is not None and status is not None and ai_val == status
-            )
+            auto_val = False
+            if doc_val is not None:
+                if (ai_val is not None and ai_val == doc_val) or (
+                    status is not None and status == doc_val
+                ):
+                    auto_val = True
+            if res.is_negotiable_manual_override is None:
+                res.is_negotiable = auto_val
             update_fields.append("is_negotiable")
 
         if set_neg != "__missing__":
@@ -3501,8 +3514,15 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                 override_val = False
             else:
                 override_val = None
-            res.is_negotiable_override = override_val
-            update_fields.append("is_negotiable_override")
+            res.is_negotiable_manual_override = override_val
+            if override_val is not None:
+                res.is_negotiable = override_val
+            else:
+                res.is_negotiable = auto_val
+            update_fields.extend([
+                "is_negotiable_manual_override",
+                "is_negotiable",
+            ])
 
         res.save(update_fields=update_fields)
 
@@ -3541,7 +3561,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             "status": "success",
             "gap_summary": gap_text,
             "is_negotiable": res.negotiable,
-            "is_negotiable_override": res.is_negotiable_override,
+            "is_negotiable_manual_override": res.is_negotiable_manual_override,
         })
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
         logger.error(
@@ -3569,7 +3589,7 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         ai_result=None,
         manual_result=None,
         is_negotiable=False,
-        is_negotiable_override=None,
+        is_negotiable_manual_override=None,
     )
     project_file.verification_json = {}
     project_file.manual_analysis_json = None
@@ -3619,7 +3639,7 @@ def projekt_file_delete_result(request, pk: int):
         project_file.verification_json = {}
         Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
             is_negotiable=False,
-            is_negotiable_override=None
+            is_negotiable_manual_override=None
         )
 
     project_file.analysis_json = None
