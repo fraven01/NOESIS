@@ -8,6 +8,7 @@ from django.http import (
     HttpResponseBadRequest,
     Http404,
     HttpResponse,
+    HttpResponseForbidden,
 )
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -146,6 +147,18 @@ def _get_whisper_model():
 def get_user_tiles(user, bereich: str) -> list[Tile]:
     """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
     return list(Tile.objects.filter(areas__slug=bereich, users=user))
+
+
+def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
+    """Prüft, ob ``user`` das angegebene ``projekt`` bearbeiten darf."""
+
+    if user.is_superuser or user.is_staff:
+        return True
+    if hasattr(projekt, "user") and projekt.user_id == user.id:
+        return True
+    if hasattr(projekt, "team_members") and projekt.team_members.filter(pk=user.pk).exists():
+        return True
+    return False
 
 
 FIELD_RENAME = {
@@ -3580,6 +3593,9 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 def hx_update_review_cell(request, result_id: int, field_name: str):
     """Aktualisiert eine Bewertungszelle via htmx."""
     result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
     sub_id = request.POST.get("sub_id")
 
     manual = result.manual_result or {}
@@ -3632,6 +3648,9 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 def hx_toggle_negotiable(request, result_id: int):
     """Schaltet den Verhandlungsstatus um."""
     result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
 
     current = result.is_negotiable_manual_override
     if current is True:
