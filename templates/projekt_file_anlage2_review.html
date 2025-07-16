@@ -204,24 +204,30 @@ function updateRowAppearance(row) {
         }
     });
     const techIcon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+    let techState = null;
     if (techIcon && !row.classList.contains('subquestion-row')) {
-        const state = textToState(techIcon.textContent);
-        toggleSubRows(row.dataset.funcId, state === true);
+        techState = textToState(techIcon.textContent);
+        toggleSubRows(row.dataset.funcId, techState === true);
         const aiVal = ai.technisch_vorhanden;
         const gapCell = row.querySelector('[id^="gap-cell-"]');
         if (gapCell) {
-            if (aiVal !== undefined && state !== null && aiVal !== state) gapCell.classList.add('has-gap');
+            if (aiVal !== undefined && techState !== null && aiVal !== techState) gapCell.classList.add('has-gap');
             else gapCell.classList.remove('has-gap');
         }
     }
     const negCell = row.querySelector('.negotiable-cell');
     if (negCell) {
-        const val = row.dataset.negotiable === 'true';
-        const ovRaw = row.dataset.manualOverride;
-        let ov = null;
-        if (ovRaw === 'true') ov = true; else if (ovRaw === 'false') ov = false;
-        updateNegotiableCell(negCell, val, ov);
-        row.classList.toggle('negotiated-row', val);
+        let cellVal = negCell.textContent.trim().startsWith('✅');
+        const hasUser = negCell.textContent.includes('👤');
+        let override = null;
+        if (hasUser) override = cellVal;
+        row.dataset.manualOverride = override !== null ? String(override) : '';
+        if (override === null && techState !== null) {
+            cellVal = techState;
+        }
+        row.dataset.negotiable = cellVal ? 'true' : 'false';
+        updateNegotiableCell(negCell, cellVal, override);
+        row.classList.toggle('negotiated-row', cellVal);
     }
     row.dataset.requiresReview = needsReview ? 'true' : 'false';
     const indicator = row.querySelector('.text-danger.text-sm');
