@@ -944,7 +944,7 @@ class LLMTasksTests(NoesisTestCase):
         run_anlage2_analysis(pf)
 
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        self.assertFalse(res.is_negotiable)
+        self.assertFalse(res.negotiable)
 
     def test_parser_manager_fallback(self):
         class FailParser(AbstractParser):
@@ -2680,7 +2680,7 @@ class FeatureVerificationTests(NoesisTestCase):
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertFalse(res.is_negotiable)
+        self.assertFalse(res.negotiable)
 
     def test_negotiable_not_set_on_mismatch(self):
         Anlage2FunctionResult.objects.create(
@@ -2694,7 +2694,7 @@ class FeatureVerificationTests(NoesisTestCase):
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertFalse(res.is_negotiable)
+        self.assertFalse(res.negotiable)
 
 
 class InitialCheckTests(NoesisTestCase):
@@ -3114,7 +3114,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.is_negotiable)
+        self.assertTrue(res.negotiable)
 
     def test_save_einsatz_telefonica(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3174,5 +3174,38 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertTrue(res.manual_result["technisch_vorhanden"])
         self.assertFalse(res.manual_result["ki_beteiligung"])
+
+    def test_set_negotiable_override(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            ai_result={"technisch_verfuegbar": True},
+        )
+        url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "set_negotiable": True,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertTrue(res.negotiable)
+        self.assertTrue(res.is_negotiable_override)
+
+        self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "set_negotiable": None,
+            }),
+            content_type="application/json",
+        )
+        res.refresh_from_db()
+        self.assertIsNone(res.is_negotiable_override)
 
 

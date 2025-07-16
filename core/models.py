@@ -848,6 +848,7 @@ class Anlage2FunctionResult(models.Model):
     gap_summary = models.TextField(blank=True)
     gap_notiz = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
+    is_negotiable_override = models.BooleanField(null=True, blank=True)
     source = models.CharField(max_length=10, default="llm")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -857,6 +858,13 @@ class Anlage2FunctionResult(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.projekt} - {self.funktion}"
+
+    @property
+    def negotiable(self) -> bool:
+        """Endgültiger Verhandlungsstatus unter Berücksichtigung des Overrides."""
+        if self.is_negotiable_override is not None:
+            return self.is_negotiable_override
+        return self.is_negotiable
 
     def get_lookup_key(self) -> str:
         """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
