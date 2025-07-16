@@ -29,16 +29,6 @@
 .status-unbekannt {
     background-color: #6c757d;
 }
-.status-ok {
-    background-color: #28a745;
-}
-.status-konflikt {
-    background-color: #dc3545;
-}
-.status-manuell-abweichung {
-    background-color: #ffc107;
-    color: black;
-}
 
 /* Einfaches Collapse-Verhalten für Tabellenzeilen */
 .collapse:not(.show) {
