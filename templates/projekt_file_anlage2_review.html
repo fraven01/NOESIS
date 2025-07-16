@@ -205,8 +205,14 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
     row.querySelectorAll('.tri-state-icon').forEach(icon => {
         const key = icon.dataset.fieldName;
-        const aiVal = ai[key] ? ai[key].value : undefined;
-        const docVal = doc[key] ? doc[key].value : undefined;
+        let aiVal = ai.hasOwnProperty(key) ? ai[key] : undefined;
+        if (aiVal !== undefined && aiVal !== null && typeof aiVal === 'object' && 'value' in aiVal) {
+            aiVal = aiVal.value;
+        }
+        let docVal = doc.hasOwnProperty(key) ? doc[key] : undefined;
+        if (docVal !== undefined && docVal !== null && typeof docVal === 'object' && 'value' in docVal) {
+            docVal = docVal.value;
+        }
         if (aiVal !== undefined || docVal !== undefined) {
             const txt = `Dok: ${docVal} / KI: ${aiVal}`;
             icon.setAttribute('data-bs-toggle', 'tooltip');
@@ -268,8 +274,14 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
         try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
         const key = icon.dataset.fieldName;
-        const aiVal = ai[key] ? ai[key].value : undefined;
-        const docVal = doc[key] ? doc[key].value : undefined;
+        let aiVal = ai.hasOwnProperty(key) ? ai[key] : undefined;
+        if (aiVal !== undefined && aiVal !== null && typeof aiVal === 'object' && 'value' in aiVal) {
+            aiVal = aiVal.value;
+        }
+        let docVal = doc.hasOwnProperty(key) ? doc[key] : undefined;
+        if (docVal !== undefined && docVal !== null && typeof docVal === 'object' && 'value' in docVal) {
+            docVal = docVal.value;
+        }
         const st = input.dataset.state;
         const manVal = st === 'true' ? true : st === 'false' ? false : null;
         const txt = `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manVal}`;
