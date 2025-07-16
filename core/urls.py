@@ -258,11 +258,6 @@ urlpatterns = [
         name="hx_toggle_negotiable",
     ),
     path(
-        "work/anlage2/notizen/<int:result_id>/",
-        views.edit_gap_notes,
-        name="edit_gap_notes",
-    ),
-    path(
         "ajax/start-gutachten/<int:project_id>/",
         views.ajax_start_gutachten_generation,
         name="ajax_start_gutachten_generation",
