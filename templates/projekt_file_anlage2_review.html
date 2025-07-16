@@ -160,6 +160,8 @@ function initAnlage2Review() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
+    const filterCheckbox = document.getElementById("show-relevant-only-filter");
+    const conflictCheckbox = document.getElementById("show-conflicts-only");
 
     // Logik f\u00fcr individuelle Schalter
     individualToggleButtons.forEach(button => {
@@ -579,8 +581,6 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         }
     });
 
-    const filterCheckbox = document.getElementById('show-relevant-only-filter');
-    const conflictCheckbox = document.getElementById('show-conflicts-only');
 
     function applyFilters() {
         const showOnlyAvailable = filterCheckbox && filterCheckbox.checked;
