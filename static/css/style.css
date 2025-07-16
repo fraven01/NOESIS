@@ -188,3 +188,13 @@ input[type="submit"]:hover {
 .negotiated-row {
     opacity: 0.4;
 }
+
+/* Icon für Popover-Editor */
+.gap-note-icon {
+    cursor: pointer;
+}
+
+/* Breiteres Layout im Popover */
+.gap-popover textarea {
+    width: 100%;
+}
