@@ -3437,8 +3437,9 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         pf_id = data.get("project_file_id")
         func_id = data.get("function_id")
         sub_id = data.get("subquestion_id")
-        field_name = data.get("field_name")
+        field_name = data.get("field_name") or "technisch_vorhanden"
         gap_notiz = data.get("gap_notiz")
+        gap_summary = data.get("gap_summary")
         set_neg = data.get("set_negotiable", "__missing__")
 
         status_val = data.get("status")
@@ -3490,6 +3491,9 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         if gap_notiz is not None:
             res.gap_notiz = gap_notiz
             update_fields.append("gap_notiz")
+        if gap_summary is not None:
+            res.gap_summary = gap_summary
+            update_fields.append("gap_summary")
 
         if field_name:
             attr = field_map.get(field_name, "technisch_verfuegbar")
