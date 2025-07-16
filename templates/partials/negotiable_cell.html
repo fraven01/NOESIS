@@ -1,3 +1,4 @@
+{% if row.result_id %}
 <td class="border px-2 text-center negotiable-cell"
     hx-post="{% url 'hx_toggle_negotiable' result_id=row.result_id %}"
     hx-target="closest td" hx-swap="outerHTML">
@@ -10,3 +11,6 @@
     <span class="ms-1">👤</span>
     {% endif %}
 </td>
+{% else %}
+<td></td>
+{% endif %}
