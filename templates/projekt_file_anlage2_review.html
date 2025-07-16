@@ -68,9 +68,15 @@
                     </a>
                     {% endif %}
                     {% if row.source_text and row.source_text != 'N/A' %}
-                    <span class="text-muted small source-indicator">(Quelle: {{ row.source_text }})</span>
+                    <span class="text-muted small source-indicator" title="{{ row.source_text }}">
+                        {% if row.source_text == 'Manuell' %}
+                        <i class="fas fa-user"></i>
+                        {% else %}
+                        <i class="fas fa-file-alt"></i>
+                        {% endif %}
+                    </span>
                     {% elif row.source_text == 'N/A' %}
-                    <span class="text-muted small source-indicator">(keine Quelle)</span>
+                    <span class="text-muted small source-indicator"><i class="fas fa-question"></i></span>
                     {% endif %}
                 </td>
                 <td class="border px-2 text-center">
@@ -78,6 +84,9 @@
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"
                         {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
+                    <button type="button" class="btn btn-sm btn-light accept-suggestion-btn text-green-600 ml-1"
+                        title="Vorschlag übernehmen" data-project-file-id="{{ anlage.pk }}"
+                        data-function-id="{{ row.func_id }}"{% if row.sub %} data-subquestion-id="{{ row.sub_id }}"{% endif %}>✓</button>
                 </td>
                 {% for field in fields %}
                 {% if field == 'ki_beteiligung' %}
@@ -104,11 +113,15 @@
                 <td class="border px-2 text-center">
                     <span class="tri-state-icon" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
-                    {% if f.source and f.source != 'N/A' %}
-                    <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
-                    {% elif f.source == 'N/A' %}
-                    <span class="text-xs text-gray-500">(keine Quelle)</span>
-                    {% endif %}
+                    <span class="source-icon" data-field-name="{{ field }}" title="{{ f.source }}">
+                        {% if f.source == 'Manuell' %}
+                        <i class="fas fa-user"></i>
+                        {% elif f.source == 'Dokumenten-Analyse' %}
+                        <i class="fas fa-file-alt"></i>
+                        {% else %}
+                        <i class="fas fa-question"></i>
+                        {% endif %}
+                    </span>
                 </td>
                 {% endwith %}
                 {% elif field in no_ai_fields %}
@@ -116,11 +129,15 @@
                 <td class="border px-2 text-center">
                     <span class="tri-state-icon" data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
                     {{ f.widget }}
-                    {% if f.source and f.source != 'N/A' %}
-                    <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
-                    {% elif f.source == 'N/A' %}
-                    <span class="text-xs text-gray-500">(keine Quelle)</span>
-                    {% endif %}
+                    <span class="source-icon" data-field-name="{{ field }}" title="{{ f.source }}">
+                        {% if f.source == 'Manuell' %}
+                        <i class="fas fa-user"></i>
+                        {% elif f.source == 'Dokumenten-Analyse' %}
+                        <i class="fas fa-file-alt"></i>
+                        {% else %}
+                        <i class="fas fa-question"></i>
+                        {% endif %}
+                    </span>
                 </td>
                 {% endwith %}
                 {% else %}
@@ -146,11 +163,15 @@
                     {% if field == 'technisch_vorhanden' %}
                         {% if f.origin == 'ai' %}<span title="KI bestätigt">✅</span>{% elif f.origin == 'manual' %}<span title="Manuell geändert">✏️</span>{% endif %}
                     {% endif %}
-                    {% if f.source and f.source != 'N/A' %}
-                    <span class="text-xs text-gray-500">(Quelle: {{ f.source }})</span>
-                    {% elif f.source == 'N/A' %}
-                    <span class="text-xs text-gray-500">(keine Quelle)</span>
-                    {% endif %}
+                    <span class="source-icon" data-field-name="{{ field }}" title="{{ f.source }}">
+                        {% if f.source == 'Manuell' %}
+                        <i class="fas fa-user"></i>
+                        {% elif f.source == 'Dokumenten-Analyse' %}
+                        <i class="fas fa-file-alt"></i>
+                        {% else %}
+                        <i class="fas fa-question"></i>
+                        {% endif %}
+                    </span>
                 </td>
                 {% endif %}
                 {% endwith %}
@@ -453,6 +474,10 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                             '<span class="text-gray-400">–</span>';
                     }
                 }
+                const srcIcon = row.querySelector(`.source-icon[data-field-name="${fieldName}"]`);
+                if (srcIcon) {
+                    srcIcon.innerHTML = '<i class="fas fa-user"></i>';
+                }
                 setTimeout(() => indicator.textContent = '', 1500);
             })
             .catch(() => { indicator.textContent = '⚠️'; });
@@ -599,6 +624,31 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 clickedButton.textContent = '⚠️';
                 clickedButton.disabled = false;
             });
+        });
+    });
+
+    // Event-Listener für "Vorschlag übernehmen"
+    document.querySelectorAll('.accept-suggestion-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            if (!row) return;
+            let ai = {};
+            try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+            const val = ai.technisch_vorhanden;
+            const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+            if (!icon) return;
+            const input = document.getElementById(icon.dataset.inputId);
+            if (!input) return;
+            let st = 'unknown';
+            if (val === true) st = 'true';
+            else if (val === false) st = 'false';
+            input.dataset.state = st;
+            if (input.type === 'checkbox') { input.checked = st === 'true'; }
+            else { input.value = st === 'unknown' ? '' : st; }
+            updateTriState(icon, input);
+            const srcIcon = row.querySelector('.source-icon[data-field-name="technisch_vorhanden"]');
+            if (srcIcon) { srcIcon.innerHTML = '<i class="fas fa-user"></i>'; }
+            autoSave({ target: input });
         });
     });
 
