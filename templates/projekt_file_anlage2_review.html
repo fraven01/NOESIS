@@ -15,6 +15,10 @@
             <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
+        <label class="ms-4">
+            <input type="checkbox" id="show-conflicts-filter" class="form-check-input mr-2">
+            Nur Konflikte anzeigen
+        </label>
         <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
         <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
     </div>
@@ -195,18 +199,11 @@ function initAnlage2Review() {
     }
 
 document.querySelectorAll('tr[data-ai]').forEach(row => {
-    let ai = {};
-    let doc = {};
-    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
     row.querySelectorAll('.tri-state-icon').forEach(icon => {
-        const key = icon.dataset.fieldName;
-        const aiVal = ai[key] ? ai[key].value : undefined;
-        const docVal = doc[key] ? doc[key].value : undefined;
-        if (aiVal !== undefined || docVal !== undefined) {
-            const txt = `Dok: ${docVal} / KI: ${aiVal}`;
-            icon.setAttribute('data-bs-toggle', 'tooltip');
-            icon.setAttribute('title', txt);
+        const input = document.getElementById(icon.dataset.inputId);
+        if (input) {
+            updateStatusTooltip(icon, input);
+            applyStatusColor(icon, input);
         }
     });
 });
@@ -229,6 +226,56 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             icon.textContent = '? Unbekannt';
             icon.classList.add('status-badge', 'status-unbekannt');
         }
+        applyStatusColor(icon, input);
+        updateStatusTooltip(icon, input);
+    }
+
+    function updateStatusTooltip(icon, input) {
+        const row = icon.closest('tr');
+        if (!row) return;
+        let ai = {};
+        let doc = {};
+        try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+        try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+        const key = icon.dataset.fieldName;
+        const aiVal = ai[key] ? ai[key].value : undefined;
+        const docVal = doc[key] ? doc[key].value : undefined;
+        const manualVal = input.dataset.state;
+        const txt = `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manualVal}`;
+        icon.setAttribute('title', txt);
+        icon.setAttribute('data-bs-toggle', 'tooltip');
+        const ttip = bootstrap.Tooltip.getInstance(icon);
+        if (ttip) { ttip.dispose(); }
+        new bootstrap.Tooltip(icon);
+    }
+
+    function applyStatusColor(icon, input) {
+        const row = icon.closest('tr');
+        if (!row) return;
+        let ai = {};
+        let doc = {};
+        try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+        try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+        const key = icon.dataset.fieldName;
+        const aiVal = ai[key] ? ai[key].value : null;
+        const docVal = doc[key] ? doc[key].value : null;
+        let manualVal;
+        if (input.dataset.state === 'true') manualVal = true;
+        else if (input.dataset.state === 'false') manualVal = false;
+        else manualVal = null;
+        const origin = input.dataset.origin;
+        let cls = 'status-unbekannt';
+        if (origin === 'manual') {
+            cls = docVal === manualVal ? 'status-ok' : 'status-manuell-abweichung';
+        } else if (docVal === null && aiVal === null) {
+            cls = 'status-unbekannt';
+        } else if (docVal === aiVal) {
+            cls = 'status-ok';
+        } else if (aiVal !== null && docVal !== aiVal) {
+            cls = 'status-konflikt';
+        }
+        icon.classList.remove('status-ok', 'status-konflikt', 'status-manuell-abweichung', 'status-unbekannt');
+        icon.classList.add(cls);
     }
 
     function toggleSubRows(funcId, enabled) {
@@ -276,6 +323,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 } else {
                     input.value = st === 'unknown' ? '' : st;
                 }
+                input.dataset.origin = 'manual';
                 updateTriState(triIcon, input);
                 const row = triIcon.closest('tr');
                 if (row && !row.classList.contains('subquestion-row')) {
@@ -415,6 +463,14 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 if (srcIcon) {
                     srcIcon.innerHTML = '<i class="fas fa-user"></i>';
                 }
+                if (fieldName === 'technisch_vorhanden') {
+                    el.dataset.origin = 'manual';
+                    const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+                    if (icon) {
+                        applyStatusColor(icon, el);
+                        updateStatusTooltip(icon, el);
+                    }
+                }
                 setTimeout(() => indicator.textContent = '', 1500);
             })
             .catch(() => { indicator.textContent = '⚠️'; });
@@ -466,27 +522,28 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     });
 
     const filterCheckbox = document.getElementById('show-relevant-only-filter');
+    const conflictCheckbox = document.getElementById('show-conflicts-filter');
+
+    function applyFilters() {
+        const showOnly = filterCheckbox && filterCheckbox.checked;
+        const onlyConflicts = conflictCheckbox && conflictCheckbox.checked;
+        const rows = document.querySelectorAll('tbody tr[data-parsed-status]');
+        rows.forEach(row => {
+            const isAvailable = row.dataset.parsedStatus === 'True';
+            const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+            const hasConflict = icon && (icon.classList.contains('status-konflikt') || icon.classList.contains('status-manuell-abweichung'));
+            let hide = false;
+            if (showOnly && !isAvailable) hide = true;
+            if (onlyConflicts && !hasConflict) hide = true;
+            row.classList.toggle('filter-hidden', hide);
+        });
+    }
 
     if (filterCheckbox) {
-        filterCheckbox.addEventListener('change', function() {
-            const showOnlyAvailable = this.checked;
-            // Wähle alle Zeilen aus, die gefiltert werden können
-            const allRows = document.querySelectorAll('tbody tr[data-parsed-status]');
-
-            allRows.forEach(row => {
-                const isAvailable = row.dataset.parsedStatus === 'True';
-
-                if (showOnlyAvailable) {
-                    if (isAvailable) {
-                        row.classList.remove('filter-hidden');
-                    } else {
-                        row.classList.add('filter-hidden');
-                    }
-                } else {
-                    row.classList.remove('filter-hidden');
-                }
-            });
-        });
+        filterCheckbox.addEventListener('change', applyFilters);
+    }
+    if (conflictCheckbox) {
+        conflictCheckbox.addEventListener('change', applyFilters);
     }
 
     const verifyAllBtn = document.getElementById('btn-verify-all');
@@ -585,6 +642,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             input.dataset.state = st;
             if (input.type === 'checkbox') { input.checked = st === 'true'; }
             else { input.value = st === 'unknown' ? '' : st; }
+            input.dataset.origin = 'manual';
             updateTriState(icon, input);
             const srcIcon = row.querySelector('.source-icon[data-field-name="technisch_vorhanden"]');
             if (srcIcon) { srcIcon.innerHTML = '<i class="fas fa-user"></i>'; }
