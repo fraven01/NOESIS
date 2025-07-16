@@ -523,7 +523,8 @@ def _build_row_data(
         }
 
     result_obj = result_map.get(lookup_key)
-    is_negotiable = result_obj.is_negotiable if result_obj else False
+    is_negotiable = result_obj.negotiable if result_obj else False
+    override_val = result_obj.is_negotiable_override if result_obj else None
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
@@ -554,6 +555,7 @@ def _build_row_data(
         "initial": disp["values"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
+        "negotiable_override": override_val,
         "gap_summary_widget": gap_widget,
         "gap_notiz_widget": note_widget,
         "gap_notiz": result_obj.gap_notiz if result_obj else "",
@@ -3420,6 +3422,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         sub_id = data.get("subquestion_id")
         field_name = data.get("field_name")
         gap_notiz = data.get("gap_notiz")
+        set_neg = data.get("set_negotiable", "__missing__")
 
         status_val = data.get("status")
         if status_val in (True, "True", "true", "1", 1):
@@ -3490,6 +3493,16 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             )
             update_fields.append("is_negotiable")
 
+        if set_neg != "__missing__":
+            if set_neg in (True, "True", "true", "1", 1):
+                override_val = True
+            elif set_neg in (False, "False", "false", "0", 0):
+                override_val = False
+            else:
+                override_val = None
+            res.is_negotiable_override = override_val
+            update_fields.append("is_negotiable_override")
+
         res.save(update_fields=update_fields)
 
         gap_text = res.gap_summary
@@ -3526,7 +3539,8 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         return JsonResponse({
             "status": "success",
             "gap_summary": gap_text,
-            "is_negotiable": res.is_negotiable,
+            "is_negotiable": res.negotiable,
+            "is_negotiable_override": res.is_negotiable_override,
         })
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
         logger.error(
@@ -3554,6 +3568,7 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         ai_result=None,
         manual_result=None,
         is_negotiable=False,
+        is_negotiable_override=None,
     )
     project_file.verification_json = {}
     project_file.manual_analysis_json = None
@@ -3602,7 +3617,8 @@ def projekt_file_delete_result(request, pk: int):
         ).exclude(source="parser").delete()
         project_file.verification_json = {}
         Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
-            is_negotiable=False
+            is_negotiable=False,
+            is_negotiable_override=None
         )
 
     project_file.analysis_json = None
