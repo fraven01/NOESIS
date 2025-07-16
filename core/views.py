@@ -575,6 +575,8 @@ def _build_row_data(
         "gap_summary_widget": gap_widget,
         "gap_notiz_widget": note_widget,
         "gap_notiz": result_obj.gap_notiz if result_obj else "",
+        "gap_summary": result_obj.gap_summary if result_obj else "",
+        "has_notes": bool(result_obj and (result_obj.gap_notiz or result_obj.gap_summary)),
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,
@@ -3677,6 +3679,29 @@ def hx_toggle_negotiable(request, result_id: int):
         "row": {"result_id": result.id},
     }
     return render(request, "partials/negotiable_cell.html", context)
+
+
+@login_required
+def edit_gap_notes(request, result_id: int):
+    """Bearbeitet die Gap-Notizen für ein Ergebnis."""
+
+    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    if request.method == "POST":
+        result.gap_summary = request.POST.get("gap_summary", "")
+        result.gap_notiz = request.POST.get("gap_notiz", "")
+        result.save(update_fields=["gap_summary", "gap_notiz"])
+        pf = result.projekt.anlagen.filter(anlage_nr=2).first()
+        if pf:
+            return redirect("projekt_file_edit_json", pk=pf.pk)
+        return redirect("projekt_detail", pk=result.projekt.pk)
+
+    pf = result.projekt.anlagen.filter(anlage_nr=2).first()
+    context = {"result": result, "project_file": pf}
+    return render(request, "gap_notes_form.html", context)
 
 
 @login_required

@@ -189,12 +189,10 @@ input[type="submit"]:hover {
     opacity: 0.4;
 }
 
-/* Icon für Popover-Editor */
+/* Icon für Notiz-Bearbeitung */
 .gap-note-icon {
     cursor: pointer;
 }
-
-/* Breiteres Layout im Popover */
-.gap-popover textarea {
-    width: 100%;
+.gap-note-icon.filled {
+    color: #2563eb;
 }
