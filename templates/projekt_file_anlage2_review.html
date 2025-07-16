@@ -149,14 +149,10 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
 const csrftoken = getCookie('csrftoken');
 
 function initAnlage2Review() {
-    try {
-        document.querySelectorAll('textarea').forEach(el => new EasyMDE({ element: el }));
-    } catch (e) {}
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
