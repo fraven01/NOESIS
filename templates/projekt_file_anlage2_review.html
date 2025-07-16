@@ -15,6 +15,10 @@
             <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
+        <label class="ml-4">
+            <input type="checkbox" id="show-conflicts-only" class="form-check-input mr-2">
+            Nur Konflikte anzeigen
+        </label>
         <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
         <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
     </div>
@@ -89,7 +93,7 @@
                 {% with doc=row.doc_result|raw_item:field ai_val=row.ai_result|get_item:field note=doc|get_item:'note' f=row.form_fields|get_item:field %}
                 <td class="border px-2 text-center">
                     <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
-                          data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}"></span>
+                          data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}" data-origin="{{ f.origin }}"></span>
                     {{ f.widget }}
                     <span class="source-icon" data-field-name="{{ field }}" title="{{ f.source }}">
                         {% if f.source == 'Manuell' %}
@@ -203,8 +207,14 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         const key = icon.dataset.fieldName;
         const aiVal = ai[key] ? ai[key].value : undefined;
         const docVal = doc[key] ? doc[key].value : undefined;
+        const input = document.getElementById(icon.dataset.inputId);
+        let manualVal = undefined;
+        if (input) {
+            const st = input.dataset.state;
+            manualVal = st === 'true' ? true : st === 'false' ? false : null;
+        }
         if (aiVal !== undefined || docVal !== undefined) {
-            const txt = `Dok: ${docVal} / KI: ${aiVal}`;
+            const txt = `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manualVal}`;
             icon.setAttribute('data-bs-toggle', 'tooltip');
             icon.setAttribute('title', txt);
         }
@@ -216,18 +226,56 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
     const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
 
+    const STATUS_CLASSES = ['status-ok', 'status-konflikt', 'status-manuell-abweichung', 'status-unbekannt'];
+
+    function determineStatus(docVal, aiVal, manualVal, manualSet) {
+        if (manualSet && manualVal !== docVal) {
+            return 'status-manuell-abweichung';
+        }
+        if (!manualSet && docVal !== undefined && aiVal !== undefined && docVal !== aiVal) {
+            return 'status-konflikt';
+        }
+        if ((manualSet && manualVal === docVal) || (!manualSet && docVal !== undefined && aiVal !== undefined && docVal === aiVal)) {
+            return 'status-ok';
+        }
+        return 'status-unbekannt';
+    }
+
     function updateTriState(icon, input) {
         const state = input.dataset.state;
-        icon.classList.remove('status-ja', 'status-nein', 'status-unbekannt');
+        icon.classList.remove('status-ja', 'status-nein', 'status-unbekannt', ...STATUS_CLASSES, 'status-badge');
         if (state === 'true') {
             icon.textContent = '✓ Vorhanden';
-            icon.classList.add('status-badge', 'status-ja');
         } else if (state === 'false') {
             icon.textContent = '✗ Nicht vorhanden';
-            icon.classList.add('status-badge', 'status-nein');
         } else {
             icon.textContent = '? Unbekannt';
-            icon.classList.add('status-badge', 'status-unbekannt');
+        }
+        icon.classList.add('status-badge');
+
+        if (icon.dataset.fieldName === 'technisch_vorhanden') {
+            const row = icon.closest('tr');
+            let ai = {};
+            let doc = {};
+            try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+            try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+            const docVal = doc.technisch_vorhanden ? doc.technisch_vorhanden.value : undefined;
+            const aiVal = ai.technisch_vorhanden;
+            const manualVal = state === 'true' ? true : state === 'false' ? false : null;
+            const manualSet = icon.dataset.origin === 'manual';
+            const cls = determineStatus(docVal, aiVal, manualVal, manualSet);
+            STATUS_CLASSES.forEach(c => icon.classList.remove(c));
+            STATUS_CLASSES.forEach(c => row.classList.remove(c));
+            icon.classList.add(cls);
+            row.classList.add(cls);
+        } else {
+            if (state === 'true') {
+                icon.classList.add('status-ja');
+            } else if (state === 'false') {
+                icon.classList.add('status-nein');
+            } else {
+                icon.classList.add('status-unbekannt');
+            }
         }
     }
 
@@ -243,6 +291,9 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             if (!input) return;
             if (icon.dataset.fieldName) {
                 input.dataset.fieldName = icon.dataset.fieldName;
+            }
+            if (!icon.dataset.origin) {
+                icon.dataset.origin = 'none';
             }
             input.dataset.tristate = 'true';
             input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
@@ -271,6 +322,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 let st = input.dataset.state;
                 st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
                 input.dataset.state = st;
+                triIcon.dataset.origin = 'manual';
                 if (input.type === 'checkbox') {
                     input.checked = st === 'true';
                 } else {
@@ -489,6 +541,23 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         });
     }
 
+    const conflictFilter = document.getElementById('show-conflicts-only');
+    if (conflictFilter) {
+        conflictFilter.addEventListener('change', function() {
+            const onlyConflicts = this.checked;
+            document.querySelectorAll('tbody tr').forEach(row => {
+                const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+                if (!icon) return;
+                const hasConflict = icon.classList.contains('status-konflikt') || icon.classList.contains('status-manuell-abweichung');
+                if (onlyConflicts) {
+                    row.classList.toggle('filter-hidden', !hasConflict);
+                } else {
+                    row.classList.remove('filter-hidden');
+                }
+            });
+        });
+    }
+
     const verifyAllBtn = document.getElementById('btn-verify-all');
     if (verifyAllBtn) {
         verifyAllBtn.addEventListener('click', function() {
@@ -583,6 +652,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
             if (val === true) st = 'true';
             else if (val === false) st = 'false';
             input.dataset.state = st;
+            icon.dataset.origin = 'manual';
             if (input.type === 'checkbox') { input.checked = st === 'true'; }
             else { input.value = st === 'unknown' ? '' : st; }
             updateTriState(icon, input);
