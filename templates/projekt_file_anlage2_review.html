@@ -55,6 +55,7 @@
                 data-doc="{{ row.doc_result|tojson|escapejs }}"
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
                 data-manual-override="{{ row.negotiable_override|yesno:'true,false,' }}"
+                data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
@@ -295,29 +296,79 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
         });
     }
 
-    function initTriStateIcons() {
-        document.querySelectorAll('.tri-state-icon').forEach(icon => {
+    function updateRowAppearance(rowElement) {
+        if (!rowElement) return;
+
+        rowElement.querySelectorAll('.tri-state-icon').forEach(icon => {
             const input = document.getElementById(icon.dataset.inputId);
             if (!input) return;
             if (icon.dataset.fieldName) {
                 input.dataset.fieldName = icon.dataset.fieldName;
             }
             input.dataset.tristate = 'true';
-            input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
+            if (!input.dataset.state) {
+                input.dataset.state = input.dataset.initialState || (input.checked ? 'true' : 'unknown');
+            }
             if (input.type === 'checkbox') {
                 input.checked = input.dataset.state === 'true';
             } else {
                 input.value = input.dataset.state === 'unknown' ? '' : input.dataset.state;
             }
             updateTriState(icon, input);
-            const row = icon.closest('tr');
-            if (row && !row.classList.contains('subquestion-row')) {
-                toggleSubRows(row.dataset.funcId, input.dataset.state === 'true');
-            }
         });
+
+        const techIcon = rowElement.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+        if (techIcon && !rowElement.classList.contains('subquestion-row')) {
+            const inp = document.getElementById(techIcon.dataset.inputId);
+            if (inp) {
+                toggleSubRows(rowElement.dataset.funcId, inp.dataset.state === 'true');
+                const st = inp.dataset.state;
+                const reviewVal = st === 'true' ? true : st === 'false' ? false : null;
+                updateGapHighlight(rowElement, reviewVal);
+            }
+        } else {
+            updateGapHighlight(rowElement);
+        }
+
+        const negCell = rowElement.querySelector('.negotiable-cell');
+        if (negCell) {
+            const val = rowElement.dataset.negotiable === 'true';
+            const overrideRaw = rowElement.dataset.manualOverride;
+            let override = null;
+            if (overrideRaw === 'true') override = true;
+            else if (overrideRaw === 'false') override = false;
+            updateNegotiableCell(negCell, val, override);
+            rowElement.classList.toggle('negotiated-row', val);
+        }
+        let needsReview = false;
+        try {
+            const ai = JSON.parse(rowElement.dataset.ai || '{}');
+            const doc = JSON.parse(rowElement.dataset.doc || '{}');
+            ['technisch_vorhanden', 'einsatz_bei_telefonica', 'zur_lv_kontrolle', 'ki_beteiligung'].forEach(field => {
+                if (needsReview) return;
+                const docVal = doc[field];
+                const aiVal = ai[field];
+                const icon = rowElement.querySelector(`.tri-state-icon[data-field-name="${field}"]`);
+                const inp = icon ? document.getElementById(icon.dataset.inputId) : null;
+                let manVal = null;
+                if (inp) {
+                    const st = inp.dataset.state;
+                    manVal = st === 'true' ? true : st === 'false' ? false : null;
+                }
+                if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manVal === null) {
+                    needsReview = true;
+                }
+            });
+        } catch (e) { /* ignore */ }
+        rowElement.dataset.requiresReview = needsReview ? 'true' : 'false';
+        const reviewIndicator = rowElement.querySelector('.text-danger.text-sm');
+        if (reviewIndicator) {
+            reviewIndicator.style.display = needsReview ? '' : 'none';
+        }
     }
 
-    initTriStateIcons();
+    document.querySelectorAll('tbody tr[data-parsed-status]').forEach(row => updateRowAppearance(row));
+
     applyFilters();
 
     const tableBody = document.getElementById('anlage2-table-body');
@@ -476,6 +527,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                     srcIcon.innerHTML = '<i class="fas fa-user"></i>';
                 }
                 setTimeout(() => indicator.textContent = '', 1500);
+                updateRowAppearance(row);
             })
             .catch(() => { indicator.textContent = '⚠️'; });
 
@@ -604,13 +656,19 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 } else if (data.status === 'queued' && data.task_id) {
                     const tmpl = "{% url 'ajax_check_task_status' 'TASKID' %}";
                     const pollUrl = tmpl.replace('TASKID', data.task_id);
+                    const row = clickedButton.closest('tr');
                     const iv = setInterval(() => {
                         fetch(pollUrl)
                             .then(r => r.json())
                             .then(d => {
                                 if (d.status === 'SUCCESS' || d.status === 'FAIL') {
                                     clearInterval(iv);
-                                    window.location.reload();
+                                    hideSpinner(clickedButton);
+                                    clickedButton.disabled = false;
+                                    if (d.status === 'SUCCESS' && row) {
+                                        row.dataset.ai = JSON.stringify(d.result || {});
+                                        updateRowAppearance(row);
+                                    }
                                 }
                             });
                     }, 3000);
