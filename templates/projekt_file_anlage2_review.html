@@ -81,14 +81,12 @@
                     {% endif %}
                 </td>
                 <td class="border px-2 text-center">
-                    <button type="button" class="btn btn-sm btn-light verify-single-feature-btn"
+                    <button type="button" class="btn btn-sm btn-light review-cycle-btn"
+                        data-state="robot" title="KI-Prüfung starten" data-bs-toggle="tooltip"
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"
+                        data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
                         {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
-                    <button type="button" class="btn btn-sm btn-light accept-suggestion-btn text-green-600 ml-1"
-                        title="Parser-Vorschlag übernehmen" data-bs-toggle="tooltip"
-                        data-project-file-id="{{ anlage.pk }}"
-                        data-function-id="{{ row.func_id }}"{% if row.sub %} data-subquestion-id="{{ row.sub_id }}"{% endif %}>✓</button>
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
@@ -247,25 +245,70 @@ function updateRowAppearance(row) {
     const verifyAllBtn = document.getElementById('btn-verify-all');
     if (verifyAllBtn) {
         verifyAllBtn.addEventListener('click', () => {
-            const buttons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
+            const buttons = document.querySelectorAll('.review-cycle-btn[data-state="robot"]:not(:disabled)');
             if (buttons.length && confirm(`M\u00f6chten Sie wirklich ${buttons.length} KI-Pr\u00fcfungen starten?`)) {
                 buttons.forEach(b => b.click());
             }
         });
     }
 
-    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+    function startVerification(btn) {
+        showSpinner(btn, '');
+        const { projectFileId, functionId, subquestionId } = btn.dataset;
+        const url = `/work/anlage/${projectFileId}/verify-feature/`;
+        const body = new FormData();
+        if (functionId) body.append('function_id', functionId);
+        if (subquestionId) body.append('subquestion_id', subquestionId);
+        fetch(url, { method: 'POST', body, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+            .then(() => {
+                hideSpinner(btn);
+                btn.dataset.state = 'accept';
+                btn.textContent = '✓';
+                const row = btn.closest('tr');
+                if (row) updateRowAppearance(row);
+            })
+            .catch(() => {
+                btn.textContent = '⚠️';
+                btn.disabled = false;
+            });
+    }
+
+    function acceptSuggestion(btn) {
+        const row = btn.closest('tr[data-parsed-status]');
+        if (!row) return;
+        let doc = {};
+        try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+        const fields = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
+        const { projectFileId, functionId, subquestionId } = btn.dataset;
+        const requests = fields.map(f => {
+            if (doc[f] === undefined) return Promise.resolve();
+            const payload = { project_file_id: projectFileId, function_id: functionId, field_name: f, status: doc[f] };
+            if (subquestionId) payload.subquestion_id = subquestionId;
+            return fetch("{% url 'ajax_save_anlage2_review' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        });
+        Promise.all(requests).then(() => {
+            btn.dataset.state = 'edit';
+            btn.textContent = '✎';
+            if (row) updateRowAppearance(row);
+        }).catch(() => { btn.textContent = '⚠️'; });
+    }
+
+    document.querySelectorAll('.review-cycle-btn').forEach(button => {
         button.addEventListener('click', function() {
-            const clickedButton = this;
-            showSpinner(clickedButton, '');
-            const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
-            const url = `/work/anlage/${projectFileId}/verify-feature/`;
-            const body = new FormData();
-            if (functionId) body.append('function_id', functionId);
-            if (subquestionId) body.append('subquestion_id', subquestionId);
-            fetch(url, { method: 'POST', body, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-                .then(() => { hideSpinner(clickedButton); clickedButton.disabled = false; const row = clickedButton.closest("tr"); if (row) updateRowAppearance(row); })
-                .catch(() => { clickedButton.textContent = '⚠️'; clickedButton.disabled = false; });
+            const state = this.dataset.state;
+            if (state === 'robot') {
+                startVerification(this);
+            } else if (state === 'accept') {
+                acceptSuggestion(this);
+            } else if (state === 'edit') {
+                if (this.dataset.justificationUrl) {
+                    window.location.href = this.dataset.justificationUrl;
+                }
+            }
         });
     });
 
