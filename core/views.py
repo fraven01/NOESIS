@@ -499,23 +499,24 @@ def _build_row_data(
             if initial_value is True
             else "false" if initial_value is False else "unknown"
         )
-        attrs = {
-            "data-tristate": "true",
-            "data-initial-state": state,
-            "style": "display: none;",
-        }
-        if field == "technisch_vorhanden" and sub_id is not None:
-            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
-        bf.field.widget.attrs.update(attrs)
+        origin_val = "none"
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
             ai_val = verification_lookup.get(lookup_key, {}).get(field)
             if man_val is not None:
-                rev_origin[field] = "manual"
+                origin_val = "manual"
             elif ai_val is not None:
-                rev_origin[field] = "ai"
-            else:
-                rev_origin[field] = "none"
+                origin_val = "ai"
+        rev_origin[field] = origin_val
+        attrs = {
+            "data-tristate": "true",
+            "data-initial-state": state,
+            "style": "display: none;",
+            "data-origin": origin_val,
+        }
+        if field == "technisch_vorhanden" and sub_id is not None:
+            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
+        bf.field.widget.attrs.update(attrs)
         form_fields_map[field] = {
             "widget": bf,
             "source": disp["sources"][field],
