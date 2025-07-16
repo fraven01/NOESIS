@@ -944,7 +944,7 @@ class LLMTasksTests(NoesisTestCase):
         run_anlage2_analysis(pf)
 
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        self.assertTrue(res.negotiable)
+        self.assertFalse(res.negotiable)
 
     def test_parser_manager_fallback(self):
         class FailParser(AbstractParser):
@@ -2680,7 +2680,7 @@ class FeatureVerificationTests(NoesisTestCase):
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.negotiable)
+        self.assertFalse(res.negotiable)
 
     def test_negotiable_not_set_on_mismatch(self):
         Anlage2FunctionResult.objects.create(
@@ -3114,7 +3114,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertFalse(res.negotiable)
+        self.assertTrue(res.negotiable)
 
     def test_save_einsatz_telefonica(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3194,7 +3194,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertTrue(res.negotiable)
-        self.assertTrue(res.is_negotiable_manual_override)
+        self.assertTrue(res.is_negotiable_override)
 
         self.client.post(
             url,
@@ -3206,6 +3206,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         res.refresh_from_db()
-        self.assertIsNone(res.is_negotiable_manual_override)
+        self.assertIsNone(res.is_negotiable_override)
 
 
