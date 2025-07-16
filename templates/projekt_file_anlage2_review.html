@@ -54,7 +54,7 @@
                 data-ai="{{ row.ai_result|tojson|escapejs }}"
                 data-doc="{{ row.doc_result|tojson|escapejs }}"
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
-                data-negotiable-override="{{ row.negotiable_override|yesno:'true,false,' }}"
+                data-manual-override="{{ row.negotiable_override|yesno:'true,false,' }}"
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
@@ -113,9 +113,9 @@
                 {% endfor %}
                 <td class="border px-2 text-center negotiable-cell" data-field-name="is_negotiable" data-override="{{ row.negotiable_override|yesno:'true,false,' }}">
                     {% if row.is_negotiable %}
-                    <span class="text-green-600">✓</span>
+                    <span class="text-green-600">✅</span>
                     {% else %}
-                    <span class="text-gray-400">–</span>
+                    <span class="text-red-600">❌</span>
                     {% endif %}
                     {% if row.negotiable_override is not none %}
                     <span class="ms-1">👤</span>
@@ -353,7 +353,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 }).then(r => r.json()).then(data => {
                     updateNegotiableCell(negCell, data.is_negotiable, data.is_negotiable_override);
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
-                    row.dataset.negotiableOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
+                    row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
                     row.classList.toggle('negotiated-row', data.is_negotiable);
                 });
             }
@@ -403,8 +403,8 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
     function updateNegotiableCell(cell, value, override) {
         if (!cell) return;
         cell.innerHTML = value ?
-            '<span class="text-green-600">✓</span>' :
-            '<span class="text-gray-400">–</span>';
+            '<span class="text-green-600">✅</span>' :
+            '<span class="text-red-600">❌</span>';
         if (override !== null && override !== undefined) {
             cell.innerHTML += '<span class="ms-1">👤</span>';
         }
@@ -452,11 +452,11 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 }
                 if (data.is_negotiable !== undefined) {
                     const cell = row.querySelector('.negotiable-cell');
-                    if (cell) {
+                    if (cell && !row.dataset.manualOverride) {
                         updateNegotiableCell(cell, data.is_negotiable, data.is_negotiable_override);
                     }
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
-                    row.dataset.negotiableOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
+                    row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
                     row.classList.toggle('negotiated-row', data.is_negotiable);
                 }
                 const srcIcon = row.querySelector(`.source-icon[data-field-name="${fieldName}"]`);

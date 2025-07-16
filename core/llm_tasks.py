@@ -1576,10 +1576,22 @@ def worker_verify_feature(
     if isinstance(res.manual_result, dict):
         manual_val = res.manual_result.get("technisch_vorhanden")
 
+    doc_val = None
+    if isinstance(res.doc_result, dict):
+        doc_val = res.doc_result.get("technisch_verfuegbar")
+
     ai_val = verification_result.get("technisch_verfuegbar")
-    res.is_negotiable = (
-        manual_val is not None and ai_val is not None and manual_val == ai_val
+
+    auto_val = (
+        (ai_val is not None and doc_val is not None and ai_val == doc_val)
+        or (
+            manual_val is not None and doc_val is not None and manual_val == doc_val
+        )
     )
+
+    if res.is_negotiable_manual_override is None:
+        res.is_negotiable = auto_val
+
     res.save(update_fields=["ai_result", "is_negotiable"])
 
     if object_type == "function":
