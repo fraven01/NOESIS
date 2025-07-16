@@ -180,10 +180,11 @@ input[type="submit"]:hover {
 
 /* Unterfragen leicht hervorheben */
 .subquestion-row td {
-    background-color: #f8f9fa;
+    /* Gut sichtbarer Hintergrund für Unterfragen */
+    background-color: #fffae6;
 }
 
-/* Bereits verhandelte Zeilen ausgrauen */
+/* Bereits verhandelte Zeilen deutlich ausgrauen */
 .negotiated-row {
-    opacity: 0.7;
+    opacity: 0.4;
 }
