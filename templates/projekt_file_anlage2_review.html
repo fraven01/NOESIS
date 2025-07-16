@@ -96,38 +96,15 @@
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_override %}
                 <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
                     class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
-                    <span id="gap-note-icon-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
-                          class="gap-note-icon" role="button" tabindex="0"
-                          data-bs-toggle="popover"
-                          data-bs-content-selector="#gap-popover-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">🗒️</span>
+                    {% if row.result_id %}
+                    <a href="{% url 'edit_gap_notes' row.result_id %}"
+                       class="gap-note-icon {% if row.has_notes %}text-blue-600{% endif %}">🗒️</a>
+                    {% else %}
+                    <span class="gap-note-icon">🗒️</span>
+                    {% endif %}
                     {% if row.requires_manual_review %}
                     <div class="text-danger text-sm">Manueller Review erforderlich</div>
                     {% endif %}
-                    <div id="gap-popover-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="d-none">
-                        <ul class="nav nav-tabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" data-bs-toggle="tab"
-                                        data-bs-target="#intern-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
-                                        type="button" role="tab">Intern</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab"
-                                        data-bs-target="#extern-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
-                                        type="button" role="tab">Extern</button>
-                            </li>
-                        </ul>
-                        <div class="tab-content mt-2 gap-popover">
-                            <div class="tab-pane fade show active" id="intern-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" role="tabpanel">
-                                {{ row.gap_notiz_widget }}
-                            </div>
-                            <div class="tab-pane fade" id="extern-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" role="tabpanel">
-                                {{ row.gap_summary_widget }}
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-primary btn-save-gap mt-2"
-                                data-function-id="{{ row.func_id }}"{% if row.sub %} data-sub-id="{{ row.sub_id }}"{% endif %}
-                                data-trigger-id="gap-note-icon-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">Speichern</button>
-                    </div>
                 </td>
             </tr>
         {% endfor %}
@@ -339,32 +316,6 @@ function updateRowAppearance(row) {
         });
     });
 
-    document.querySelectorAll('.btn-save-gap').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const pop = this.closest('.popover');
-            const textareas = pop ? pop.querySelectorAll('textarea') : [];
-            const intern = textareas[0] ? textareas[0].value : '';
-            const extern = textareas[1] ? textareas[1].value : '';
-            const payload = {
-                project_file_id: document.querySelector('form[data-anlage-id]').dataset.anlageId,
-                function_id: this.dataset.functionId,
-                gap_notiz: intern,
-                gap_summary: extern
-            };
-            if (this.dataset.subId) payload.subquestion_id = this.dataset.subId;
-            fetch("{% url 'ajax_save_anlage2_review' %}", {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                const trigger = document.getElementById(this.dataset.triggerId);
-                if (trigger) {
-                    const inst = bootstrap.Popover.getInstance(trigger);
-                    if (inst) inst.hide();
-                }
-            });
-        });
-    });
     document.body.addEventListener('htmx:afterSwap', e => {
         const r = e.target.closest("tr[data-parsed-status]");
         if (r) updateRowAppearance(r);
@@ -375,16 +326,6 @@ function updateRowAppearance(row) {
 function initDynamicElements(container) {
     if (!container) return;
     container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-    container.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
-        const sel = el.dataset.bsContentSelector;
-        const opts = {html: true};
-        if (sel) {
-            const cont = document.querySelector(sel);
-            opts.content = cont ? cont.innerHTML : '';
-            opts.sanitize = false;
-        }
-        new bootstrap.Popover(el, opts);
-    });
 }
 
 document.body.addEventListener('htmx:afterSwap', function(event) {

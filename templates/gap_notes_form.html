@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Notizen bearbeiten{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Notizen für {{ result.funktion.name }} bearbeiten</h1>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-4">
+        <label for="id_gap_summary" class="block font-semibold">(Extern) Anmerkungen für den Fachbereich</label>
+        <textarea id="id_gap_summary" name="gap_summary" rows="6" class="border rounded w-full p-2">{{ result.gap_summary }}</textarea>
+    </div>
+    <div class="mb-4">
+        <label for="id_gap_notiz" class="block font-semibold">Interne Arbeitsanmerkung (Gap-Analyse)</label>
+        <textarea id="id_gap_notiz" name="gap_notiz" rows="6" class="border rounded w-full p-2">{{ result.gap_notiz }}</textarea>
+    </div>
+    <div class="space-x-2">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+        {% if project_file %}
+        <a href="{% url 'projekt_file_edit_json' project_file.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+        {% else %}
+        <a href="{% url 'projekt_detail' result.projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    new EasyMDE({ element: document.getElementById('id_gap_summary') });
+    new EasyMDE({ element: document.getElementById('id_gap_notiz') });
+  });
+</script>
+{% endblock %}
