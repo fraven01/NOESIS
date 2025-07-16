@@ -91,37 +91,11 @@
                         data-function-id="{{ row.func_id }}"{% if row.sub %} data-subquestion-id="{{ row.sub_id }}"{% endif %}>✓</button>
                 </td>
                 {% for field in fields %}
-                {% with doc=row.doc_result|raw_item:field ai_val=row.ai_result|get_item:field note=doc|get_item:'note' f=row.form_fields|get_item:field %}
-                <td class="border px-2 text-center">
-                    <span class="tri-state-icon{% if field == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
-                          data-input-id="{{ f.widget.auto_id }}" data-field-name="{{ field }}" data-origin="{{ f.origin }}"></span>
-                    {{ f.widget }}
-                    <span class="source-icon" data-field-name="{{ field }}" title="{{ f.source }}">
-                        {% if f.source == 'Manuell' %}
-                        <i class="fas fa-user"></i>
-                        {% elif f.source == 'KI-Check' %}
-                        <i class="fas fa-robot"></i>
-                        {% else %}
-                        <i class="fas fa-file-alt"></i>
-                        {% endif %}
-                    </span>
-                    {% if field == 'ki_beteiligung' and row.ki_beteiligt_begruendung %}
-                    <i class="fas fa-info-circle text-muted ms-1" data-bs-toggle="popover" data-bs-trigger="focus"
-                       tabindex="0" title="Informationsquelle" data-bs-content="{{ row.ki_beteiligt_begruendung }}"></i>
-                    {% endif %}
-                </td>
+                {% with f=row.form_fields|get_item:field %}
+                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source %}
                 {% endwith %}
                 {% endfor %}
-                <td class="border px-2 text-center negotiable-cell" data-field-name="is_negotiable" data-override="{{ row.negotiable_override|yesno:'true,false,' }}">
-                    {% if row.is_negotiable %}
-                    <span class="text-green-600">✅</span>
-                    {% else %}
-                    <span class="text-red-600">❌</span>
-                    {% endif %}
-                    {% if row.negotiable_override is not none %}
-                    <span class="ms-1">👤</span>
-                    {% endif %}
-                </td>
+                {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_override %}
                 <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
                     class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
                     <span class="gap-note-icon" data-target="#gap-note-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}">
@@ -150,560 +124,103 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-const csrftoken = getCookie('csrftoken');
-
 function initAnlage2Review() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
-    const filterCheckbox = document.getElementById("show-relevant-only-filter");
-    const conflictCheckbox = document.getElementById("show-conflicts-only");
+    const filterCheckbox = document.getElementById('show-relevant-only-filter');
+    const conflictCheckbox = document.getElementById('show-conflicts-only');
 
-    // Logik f\u00fcr individuelle Schalter
-    individualToggleButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetClass = this.dataset.targetClass;
-            if (!targetClass) return;
-
-            const subquestionRows = document.querySelectorAll('.' + targetClass);
-
-            const wasCollapsed = Array.from(subquestionRows).every(row => row.classList.contains('hidden-row'));
-
-            subquestionRows.forEach(row => {
-                row.classList.toggle('hidden-row');
-            });
-
-            this.textContent = wasCollapsed ? '-' : '+';
+    individualToggleButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.targetClass;
+            if (!target) return;
+            const rows = document.querySelectorAll('.' + target);
+            const collapsed = Array.from(rows).every(r => r.classList.contains('hidden-row'));
+            rows.forEach(r => r.classList.toggle('hidden-row'));
+            btn.textContent = collapsed ? '-' : '+';
         });
     });
 
-    // Logik f\u00fcr "Alles aufklappen"
     if (expandAllBtn) {
-        expandAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.subquestion-row').forEach(row => {
-                row.classList.remove('hidden-row');
-            });
-            individualToggleButtons.forEach(btn => btn.textContent = '-');
+        expandAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.subquestion-row').forEach(r => r.classList.remove('hidden-row'));
+            individualToggleButtons.forEach(b => b.textContent = '-');
         });
     }
-
-    // Logik f\u00fcr "Alles einklappen"
     if (collapseAllBtn) {
-        collapseAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.subquestion-row').forEach(row => {
-                row.classList.add('hidden-row');
-            });
-            individualToggleButtons.forEach(btn => btn.textContent = '+');
+        collapseAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.subquestion-row').forEach(r => r.classList.add('hidden-row'));
+            individualToggleButtons.forEach(b => b.textContent = '+');
         });
     }
 
-function refreshRowData(row) {
-    try { row.aiData = JSON.parse(row.dataset.ai || '{}'); } catch (e) { row.aiData = {}; }
-    try { row.docData = JSON.parse(row.dataset.doc || '{}'); } catch (e) { row.docData = {}; }
-    row.negotiableVal = row.dataset.negotiable === 'true';
-    const ov = row.dataset.manualOverride;
-    if (ov === 'true') row.negotiableOverride = true;
-    else if (ov === 'false') row.negotiableOverride = false;
-    else row.negotiableOverride = null;
-}
-
-document.querySelectorAll('tr[data-ai]').forEach(row => {
-    refreshRowData(row);
-});
-
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
-    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
-    const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
-
-    function updateTriState(icon, input) {
-        const state = input.dataset.state;
-        icon.classList.remove('status-ja', 'status-nein', 'status-unbekannt');
-        if (state === 'true') {
-            icon.textContent = '✓ Vorhanden';
-            icon.classList.add('status-badge', 'status-ja');
-        } else if (state === 'false') {
-            icon.textContent = '✗ Nicht vorhanden';
-            icon.classList.add('status-badge', 'status-nein');
-        } else {
-            icon.textContent = '? Unbekannt';
-            icon.classList.add('status-badge', 'status-unbekannt');
-        }
-        applyStatusColor(icon, input);
-        updateTooltip(icon, input);
-    }
-
-    function applyStatusColor(icon, input) {
-        if (icon.dataset.fieldName !== 'technisch_vorhanden') return;
-        const row = icon.closest('tr');
-        const parserRaw = row.dataset.parsedStatus;
-        const parserVal = parserRaw === 'True' ? true : parserRaw === 'False' ? false : null;
-        const aiValRaw = row.aiData ? row.aiData.technisch_vorhanden : undefined;
-        let aiVal = aiValRaw;
-        if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        const state = input.dataset.state;
-        const manualVal = state === 'true' ? true : state === 'false' ? false : null;
-        const manualExists = input.dataset.origin === 'manual';
-        icon.classList.remove('status-ok', 'status-konflikt', 'status-manuell-abweichung', 'status-unbekannt');
-        let cls = 'status-unbekannt';
-        if (manualExists) {
-            cls = manualVal === parserVal ? 'status-ok' : 'status-manuell-abweichung';
-        } else if (parserVal !== null && aiVal !== undefined) {
-            cls = parserVal === aiVal ? 'status-ok' : 'status-konflikt';
-        } else if (parserVal === null && aiVal === undefined) {
-            cls = 'status-unbekannt';
-        }
-        icon.classList.add(cls);
-    }
-
-    function updateTooltip(icon, input) {
-        const row = icon.closest('tr');
-        const ai = row.aiData || {};
-        const doc = row.docData || {};
-        const key = icon.dataset.fieldName;
-        let aiVal = ai.hasOwnProperty(key) ? ai[key] : undefined;
-        if (aiVal !== undefined && aiVal !== null && typeof aiVal === 'object' && 'value' in aiVal) {
-            aiVal = aiVal.value;
-        }
-        let docVal = doc.hasOwnProperty(key) ? doc[key] : undefined;
-        if (docVal !== undefined && docVal !== null && typeof docVal === 'object' && 'value' in docVal) {
-            docVal = docVal.value;
-        }
-        const st = input.dataset.state;
-        const manVal = st === 'true' ? true : st === 'false' ? false : null;
-        const txt = `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manVal}`;
-        icon.setAttribute('data-bs-toggle', 'tooltip');
-        icon.setAttribute('title', txt);
-    }
-
-    function toggleSubRows(funcId, enabled) {
-        document.querySelectorAll(`.subquestions-for-${funcId} input, .subquestions-for-${funcId} button`).forEach(el => {
-            el.disabled = !enabled;
+    function applyFilters() {
+        const showAvailable = filterCheckbox && filterCheckbox.checked;
+        const showConflicts = conflictCheckbox && conflictCheckbox.checked;
+        document.querySelectorAll('tbody tr[data-parsed-status]').forEach(row => {
+            const isAvailable = row.dataset.parsedStatus === 'True';
+            const hasConflict = row.dataset.requiresReview === 'true';
+            let hide = false;
+            if (showAvailable && !isAvailable) hide = true;
+            if (showConflicts && !hasConflict) hide = true;
+            row.classList.toggle('filter-hidden', hide);
         });
     }
+    if (filterCheckbox) filterCheckbox.addEventListener('change', applyFilters);
+    if (conflictCheckbox) conflictCheckbox.addEventListener('change', applyFilters);
 
-    function updateSourceIcon(row, input) {
-        const icon = row.querySelector(`.source-icon[data-field-name="${input.dataset.fieldName}"]`);
-        if (!icon) return;
-        let html = '<i class="fas fa-file-alt"></i>';
-        if (input.dataset.origin === 'manual') html = '<i class="fas fa-user"></i>';
-        else if (input.dataset.origin === 'ai') html = '<i class="fas fa-robot"></i>';
-        icon.innerHTML = html;
-    }
-
-    function updateReviewFlag(row) {
-        let needsReview = false;
-        try {
-            const ai = row.aiData || {};
-            const doc = row.docData || {};
-            ['technisch_vorhanden', 'einsatz_bei_telefonica', 'zur_lv_kontrolle', 'ki_beteiligung'].forEach(field => {
-                if (needsReview) return;
-                const docVal = doc[field];
-                const aiVal = ai[field];
-                const icon = row.querySelector(`.tri-state-icon[data-field-name="${field}"]`);
-                const inp = icon ? document.getElementById(icon.dataset.inputId) : null;
-                let manVal = null;
-                if (inp) {
-                    const st = inp.dataset.state;
-                    manVal = st === 'true' ? true : st === 'false' ? false : null;
-                }
-                if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manVal === null) {
-                    needsReview = true;
-                }
-            });
-        } catch (e) { /* ignore */ }
-        row.dataset.requiresReview = needsReview ? 'true' : 'false';
-        const indicator = row.querySelector('.text-danger.text-sm');
-        if (indicator) indicator.style.display = needsReview ? '' : 'none';
-    }
-
-    function updateRowAppearance(rowElement) {
-        if (!rowElement) return;
-        refreshRowData(rowElement);
-
-        rowElement.querySelectorAll('.tri-state-icon').forEach(icon => {
-            const input = document.getElementById(icon.dataset.inputId);
-            if (!input) return;
-            if (icon.dataset.fieldName) input.dataset.fieldName = icon.dataset.fieldName;
-            input.dataset.tristate = 'true';
-            const state = input.dataset.state || input.dataset.initialState || (input.checked ? 'true' : 'unknown');
-            input.dataset.state = state;
-            if (input.type === 'checkbox') {
-                input.checked = state === 'true';
-            } else {
-                input.value = state === 'unknown' ? '' : state;
-            }
-            updateTriState(icon, input);
-            updateSourceIcon(rowElement, input);
-        });
-
-        const techIcon = rowElement.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
-        if (techIcon && !rowElement.classList.contains('subquestion-row')) {
-            const inp = document.getElementById(techIcon.dataset.inputId);
-            if (inp) {
-                toggleSubRows(rowElement.dataset.funcId, inp.dataset.state === 'true');
-                const st = inp.dataset.state;
-                const reviewVal = st === 'true' ? true : st === 'false' ? false : null;
-                updateGapHighlight(rowElement, reviewVal);
-            }
-        } else {
-            updateGapHighlight(rowElement);
-        }
-
-        const negCell = rowElement.querySelector('.negotiable-cell');
-        if (negCell) {
-            const val = rowElement.negotiableVal;
-            const override = rowElement.negotiableOverride;
-            updateNegotiableCell(negCell, val, override);
-            rowElement.classList.toggle('negotiated-row', val);
-        }
-
-        updateReviewFlag(rowElement);
-    }
-
-    document.querySelectorAll('tbody tr[data-parsed-status]').forEach(row => updateRowAppearance(row));
-
-    applyFilters();
-
-    const tableBody = document.getElementById('anlage2-table-body');
-    if (tableBody) {
-        tableBody.addEventListener('click', function(event) {
-            const triIcon = event.target.closest('.tri-state-icon');
-            if (triIcon && !triIcon.classList.contains('disabled-field')) {
-                const input = document.getElementById(triIcon.dataset.inputId);
-                if (!input) return;
-                let st = input.dataset.state;
-                st = st === 'true' ? 'false' : (st === 'false' ? 'unknown' : 'true');
-                input.dataset.state = st;
-                input.dataset.origin = 'manual';
-                const row = triIcon.closest('tr');
-                updateRowAppearance(row);
-                autoSave({ target: input });
-                return;
-            }
-
-            const negCell = event.target.closest('.negotiable-cell');
-            if (negCell) {
-                const row = negCell.closest('tr');
-                if (!row || !formElem) return;
-                const funcId = row.dataset.funcId;
-                const subId = row.dataset.subId;
-                let override = negCell.dataset.override;
-                let next;
-                if (override === 'true') next = false;
-                else if (override === 'false') next = null;
-                else next = true;
-                const payload = { project_file_id: formElem.dataset.anlageId, function_id: funcId, set_negotiable: next };
-                if (subId) payload.subquestion_id = subId;
-                fetch(saveUrl, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }).then(r => r.json()).then(data => {
-                    row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
-                    row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
-                    updateRowAppearance(row);
-                });
+    const verifyAllBtn = document.getElementById('btn-verify-all');
+    if (verifyAllBtn) {
+        verifyAllBtn.addEventListener('click', () => {
+            const buttons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
+            if (buttons.length && confirm(`M\u00f6chten Sie wirklich ${buttons.length} KI-Pr\u00fcfungen starten?`)) {
+                buttons.forEach(b => b.click());
             }
         });
     }
 
-    const formElem = document.querySelector('form[data-anlage-id]');
-    const saveUrl = "{% url 'ajax_save_anlage2_review' %}";
-
-    function showStatus(input, text) {
-        let span = input.parentElement.querySelector('.autosave-status');
-        if (!span) {
-            span = document.createElement('span');
-            span.className = 'autosave-status text-muted ms-1';
-            input.parentElement.appendChild(span);
-        }
-        span.textContent = text;
-        return span;
-    }
-
-    function getFieldName(name) {
-        let m = name.match(/^func\d+_(.+)$/);
-        if (m) { return m[1]; }
-        m = name.match(/^sub\d+_(.+)$/);
-        if (m) { return m[1]; }
-        return name;
-    }
-
-    function updateGapHighlight(row, reviewVal) {
-        const aiValRaw = row.aiData ? row.aiData.technisch_vorhanden : undefined;
-        let aiVal = aiValRaw;
-        const cell = row.querySelector('[id^="gap-cell-"]');
-        if (!cell) return;
-        if (aiVal !== undefined && reviewVal !== null && aiVal !== reviewVal) {
-            cell.classList.add('has-gap');
-        } else {
-            cell.classList.remove('has-gap');
-        }
-    }
-
-    function updateNegotiableCell(cell, value, override) {
-        if (!cell) return;
-        cell.innerHTML = value ?
-            '<span class="text-green-600">✅</span>' :
-            '<span class="text-red-600">❌</span>';
-        if (override !== null && override !== undefined) {
-            cell.innerHTML += '<span class="ms-1">👤</span>';
-        }
-        cell.dataset.override = override === null || override === undefined ? '' : String(override);
-    }
-
-    function autoSave(event) {
-        const el = event.target;
-        const row = el.closest('tr');
-        if (!row || !formElem) { return; }
-        const funcId = row.dataset.funcId;
-        const subId = row.dataset.subId;
-        const fieldName = el.dataset.fieldName || getFieldName(el.name || '');
-        let status;
-        if (el.dataset.tristate !== undefined) {
-            const st = el.dataset.state;
-            if (st === 'true') status = true; else if (st === 'false') status = false; else status = null;
-        } else {
-            status = el.type === 'checkbox' ? el.checked : el.value;
-        }
-        const payload = {
-            project_file_id: formElem.dataset.anlageId,
-            function_id: funcId,
-            status: status,
-            notes: '',
-            field_name: fieldName,
-        };
-        if (subId) { payload.subquestion_id = subId; }
-
-        const indicator = showStatus(el, 'Speichere...');
-        fetch(saveUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-            .then(r => r.json())
-            .then(data => {
-                indicator.textContent = '✓ Gespeichert';
-                if (data.gap_summary !== undefined) {
-                    const gapField = row.querySelector('textarea[name$="_gap_summary"]');
-                    if (gapField) { gapField.value = data.gap_summary; }
-                }
-                if (data.is_negotiable !== undefined) {
-                    row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
-                    row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
-                }
-                const srcIcon = row.querySelector(`.source-icon[data-field-name="${fieldName}"]`);
-                if (srcIcon) {
-                    srcIcon.innerHTML = '<i class="fas fa-user"></i>';
-                }
-                setTimeout(() => indicator.textContent = '', 1500);
-                updateRowAppearance(row);
-            })
-            .catch(() => { indicator.textContent = '⚠️'; });
-
-    }
-
-    if (formElem) {
-        formElem.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.addEventListener('change', autoSave));
-        formElem.querySelectorAll('input[data-tristate]').forEach(inp => inp.addEventListener('statechange', autoSave));
-        formElem.querySelectorAll('input[type="text"], textarea').forEach(inp => inp.addEventListener('blur', autoSave));
-    }
+    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const clickedButton = this;
+            showSpinner(clickedButton, '');
+            const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
+            const url = `/work/anlage/${projectFileId}/verify-feature/`;
+            const body = new FormData();
+            if (functionId) body.append('function_id', functionId);
+            if (subquestionId) body.append('subquestion_id', subquestionId);
+            fetch(url, { method: 'POST', body, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+                .then(() => { hideSpinner(clickedButton); clickedButton.disabled = false; })
+                .catch(() => { clickedButton.textContent = '⚠️'; clickedButton.disabled = false; });
+        });
+    });
 
     document.querySelectorAll('.gap-note-icon').forEach(icon => {
-        icon.addEventListener('click', function() {
-            const target = document.querySelector(this.dataset.target);
-            if (target) { target.style.display = 'block'; }
+        icon.addEventListener('click', () => {
+            const target = document.querySelector(icon.dataset.target);
+            if (target) target.style.display = 'block';
         });
     });
-
     document.querySelectorAll('.btn-save-gap').forEach(btn => {
         btn.addEventListener('click', function() {
             const container = this.closest('.gap-note-editor');
             const textarea = container ? container.querySelector('textarea') : null;
             if (!textarea) return;
-            const funcId = this.dataset.functionId;
-            const subId = this.dataset.subId;
             const payload = {
-                project_file_id: formElem.dataset.anlageId,
-                function_id: funcId,
+                project_file_id: document.querySelector('form[data-anlage-id]').dataset.anlageId,
+                function_id: this.dataset.functionId,
                 gap_notiz: textarea.value
             };
-            if (subId) payload.subquestion_id = subId;
-            fetch(saveUrl, {
+            if (this.dataset.subId) payload.subquestion_id = this.dataset.subId;
+            fetch("{% url 'ajax_save_anlage2_review' %}", {
                 method: 'POST',
-                headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }).then(r => r.json()).then(() => { container.style.display = 'none'; });
+            }).then(() => { container.style.display = 'none'; });
         });
     });
-
-    document.querySelectorAll('tr[data-ai]').forEach(row => {
-        updateRowAppearance(row);
-    });
-
-
-    function applyFilters() {
-        const showOnlyAvailable = filterCheckbox && filterCheckbox.checked;
-        const showConflictsOnly = conflictCheckbox && conflictCheckbox.checked;
-        const allRows = document.querySelectorAll('tbody tr[data-parsed-status]');
-        allRows.forEach(row => {
-            const isAvailable = row.dataset.parsedStatus === 'True';
-            const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
-            const hasConflict = icon && (icon.classList.contains('status-konflikt') || icon.classList.contains('status-manuell-abweichung'));
-            let hide = false;
-            if (showOnlyAvailable && !isAvailable) hide = true;
-            if (showConflictsOnly && !hasConflict) hide = true;
-            row.classList.toggle('filter-hidden', hide);
-        });
-    }
-
-    if (filterCheckbox) { filterCheckbox.addEventListener('change', applyFilters); }
-    if (conflictCheckbox) { conflictCheckbox.addEventListener('change', applyFilters); }
-
-    const verifyAllBtn = document.getElementById('btn-verify-all');
-    if (verifyAllBtn) {
-        verifyAllBtn.addEventListener('click', function() {
-            const singleVerifyButtons = document.querySelectorAll('.verify-single-feature-btn:not(:disabled)');
-            if (singleVerifyButtons.length > 0) {
-                if (confirm(`M\u00f6chten Sie wirklich ${singleVerifyButtons.length} KI-Pr\u00fcfungen starten?`)) {
-                    singleVerifyButtons.forEach(button => {
-                        button.click();
-                    });
-                }
-            } else {
-                alert('Keine ungepr\u00fcften Funktionen zum Starten vorhanden.');
-            }
-        });
-    }
-
-    // Event-Listener für alle individuellen Prüf-Knöpfe
-    document.querySelectorAll('.verify-single-feature-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const clickedButton = this;
-
-            // UI sofort auf Ladezustand setzen
-            showSpinner(clickedButton, '');
-
-            // Daten aus dem geklickten Button extrahieren
-            const { projectFileId, functionId, subquestionId } = clickedButton.dataset;
-            const url = `/work/anlage/${projectFileId}/verify-feature/`;
-
-            const body = new FormData();
-
-            // --- DIESER TEIL IST ENTSCHEIDEND ---
-            if (functionId) {
-                body.append('function_id', functionId);
-            }
-            if (subquestionId) {
-                body.append('subquestion_id', subquestionId);
-            }
-
-            // Fetch-Request an das Backend senden
-            fetch(url, {
-                method: 'POST',
-                body: body,
-                headers: { 'X-CSRFToken': csrftoken }
-            })
-            .then(response => {
-                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'skipped') {
-                    alert(data.message || 'Hauptfunktion ist nicht vorhanden');
-                    hideSpinner(clickedButton);
-                    clickedButton.disabled = false;
-                } else if (data.status === 'queued' && data.task_id) {
-                    const tmpl = "{% url 'ajax_check_task_status' 'TASKID' %}";
-                    const pollUrl = tmpl.replace('TASKID', data.task_id);
-                    const row = clickedButton.closest('tr');
-                    const iv = setInterval(() => {
-                        fetch(pollUrl)
-                            .then(r => r.json())
-                            .then(d => {
-                                if (d.status === 'SUCCESS' || d.status === 'FAIL') {
-                                    clearInterval(iv);
-                                    hideSpinner(clickedButton);
-                                    clickedButton.disabled = false;
-                                    if (d.status === 'SUCCESS' && row) {
-                                        row.dataset.ai = JSON.stringify(d.result || {});
-                                        updateRowAppearance(row);
-                                    }
-                                }
-                            });
-                    }, 3000);
-                } else {
-                    throw new Error('Task-Start vom Server nicht bestätigt.');
-                }
-            })
-            .catch(error => {
-                console.error('Fehler bei der KI-Prüfung:', error);
-                clickedButton.textContent = '⚠️';
-                clickedButton.disabled = false;
-            });
-        });
-    });
-
-    // Event-Listener für "Vorschlag übernehmen"
-    document.querySelectorAll('.accept-suggestion-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const row = this.closest('tr');
-            if (!row) return;
-            const ai = row.aiData || {};
-            const val = ai.technisch_vorhanden;
-            const icon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
-            if (!icon) return;
-            const input = document.getElementById(icon.dataset.inputId);
-            if (!input) return;
-            let st = 'unknown';
-            if (val === true) st = 'true';
-            else if (val === false) st = 'false';
-            input.dataset.state = st;
-            input.dataset.origin = 'manual';
-            updateRowAppearance(row);
-            autoSave({ target: input });
-        });
-    });
-
-    const resetButton = document.getElementById('btn-reset-all-reviews');
-
-    if (resetButton) {
-        resetButton.addEventListener('click', function() {
-            if (confirm('Sind Sie sicher, dass Sie alle manuellen und KI-Bewertungen f\u00fcr diese Anlage unwiderruflich l\u00f6schen und auf den Zustand der Dokumenten-Analyse zur\u00fccksetzen wollen?')) {
-
-                const url = "{% url 'ajax_reset_all_reviews' anlage.pk %}";
-                showSpinner(resetButton, 'Zur\u00fccksetzen...');
-
-                fetch(url, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrftoken }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        window.location.reload();
-                    } else {
-                        alert('Ein Fehler ist aufgetreten.');
-                        hideSpinner(resetButton);
-                    }
-                })
-                .catch(error => {
-                    alert('Ein Netzwerkfehler ist aufgetreten.');
-                    console.error("Reset error:", error);
-                    hideSpinner(resetButton);
-                });
-            }
-        });
-    }
-
-    // ... andere Skripte f\u00fcr diese Seite ...
+    applyFilters();
 }
-document.addEventListener('DOMContentLoaded', function() {
-    initAnlage2Review();
-});
+document.addEventListener('DOMContentLoaded', initAnlage2Review);
 </script>
 {% endblock %}

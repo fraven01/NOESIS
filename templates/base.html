@@ -9,6 +9,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-mK8e1zgS60F7uO3cu6UytzszbmWzxubUANe0yoyS9MhUlCT3ocOITkkpFmS6r30YIOCwRvDDDeZz7eGRIDcNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    })
+    </script>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen bg-white text-gray-900">
