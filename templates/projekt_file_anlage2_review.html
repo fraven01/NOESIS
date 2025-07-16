@@ -155,6 +155,80 @@ function initAnlage2Review() {
         });
     }
 
+ 
+function toggleSubRows(funcId, enabled) {
+    document.querySelectorAll(`.subquestions-for-${funcId}`).forEach(r => {
+        r.classList.toggle('hidden-row', !enabled);
+        r.querySelectorAll('button, input, textarea').forEach(el => {
+            el.disabled = !enabled;
+        });
+    });
+}
+
+function updateNegotiableCell(cell, value, override) {
+    if (!cell) return;
+    cell.innerHTML = value ? '<span class="text-green-600">✅</span>' : '<span class="text-red-600">❌</span>';
+    if (override !== null && override !== undefined) {
+        cell.innerHTML += '<span class="ms-1">👤</span>';
+    }
+}
+
+function updateRowAppearance(row) {
+    if (!row) return;
+    let ai = {};
+    let doc = {};
+    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+    const fieldOrder = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
+    let needsReview = false;
+    const textToState = txt => txt.trim().startsWith('✓') ? true : (txt.trim().startsWith('✗') ? false : null);
+    fieldOrder.forEach(f => {
+        const icon = row.querySelector(`.tri-state-icon[data-field-name="${f}"]`);
+        if (!icon) return;
+        const manual = textToState(icon.textContent);
+        const docVal = doc[f];
+        const aiVal = ai[f];
+        icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
+        if (manual === true) icon.classList.add('status-badge','status-ja');
+        else if (manual === false) icon.classList.add('status-badge','status-nein');
+        else icon.classList.add('status-badge','status-unbekannt');
+        let cls = 'status-unbekannt';
+        if (manual !== null) {
+            cls = manual === docVal ? 'status-ok' : 'status-manuell-abweichung';
+        } else if (docVal !== undefined && aiVal !== undefined) {
+            cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
+        }
+        icon.classList.add(cls);
+        icon.setAttribute('title', `Dok: ${docVal} / KI: ${aiVal} / Manuell: ${manual}`);
+        icon.dataset.bsToggle = 'tooltip';
+        if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
+            needsReview = true;
+        }
+    });
+    const techIcon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+    if (techIcon && !row.classList.contains('subquestion-row')) {
+        const state = textToState(techIcon.textContent);
+        toggleSubRows(row.dataset.funcId, state === true);
+        const aiVal = ai.technisch_vorhanden;
+        const gapCell = row.querySelector('[id^="gap-cell-"]');
+        if (gapCell) {
+            if (aiVal !== undefined && state !== null && aiVal !== state) gapCell.classList.add('has-gap');
+            else gapCell.classList.remove('has-gap');
+        }
+    }
+    const negCell = row.querySelector('.negotiable-cell');
+    if (negCell) {
+        const val = row.dataset.negotiable === 'true';
+        const ovRaw = row.dataset.manualOverride;
+        let ov = null;
+        if (ovRaw === 'true') ov = true; else if (ovRaw === 'false') ov = false;
+        updateNegotiableCell(negCell, val, ov);
+        row.classList.toggle('negotiated-row', val);
+    }
+    row.dataset.requiresReview = needsReview ? 'true' : 'false';
+    const indicator = row.querySelector('.text-danger.text-sm');
+    if (indicator) indicator.style.display = needsReview ? '' : 'none';
+}
     function applyFilters() {
         const showAvailable = filterCheckbox && filterCheckbox.checked;
         const showConflicts = conflictCheckbox && conflictCheckbox.checked;
@@ -190,7 +264,7 @@ function initAnlage2Review() {
             if (functionId) body.append('function_id', functionId);
             if (subquestionId) body.append('subquestion_id', subquestionId);
             fetch(url, { method: 'POST', body, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-                .then(() => { hideSpinner(clickedButton); clickedButton.disabled = false; })
+                .then(() => { hideSpinner(clickedButton); clickedButton.disabled = false; const row = clickedButton.closest("tr"); if (row) updateRowAppearance(row); })
                 .catch(() => { clickedButton.textContent = '⚠️'; clickedButton.disabled = false; });
         });
     });
@@ -219,6 +293,11 @@ function initAnlage2Review() {
             }).then(() => { container.style.display = 'none'; });
         });
     });
+    document.body.addEventListener('htmx:afterSwap', e => {
+        const r = e.target.closest("tr[data-parsed-status]");
+        if (r) updateRowAppearance(r);
+    });
+    document.querySelectorAll("tbody tr[data-parsed-status]").forEach(r => updateRowAppearance(r));
     applyFilters();
 }
 document.addEventListener('DOMContentLoaded', initAnlage2Review);
