@@ -319,7 +319,6 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
 
     function updateRowAppearance(rowElement) {
         if (!rowElement) return;
-        refreshRowData(rowElement);
 
         rowElement.querySelectorAll('.tri-state-icon').forEach(icon => {
             const input = document.getElementById(icon.dataset.inputId);
@@ -402,6 +401,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                 }).then(r => r.json()).then(data => {
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
                     row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
+                    refreshRowData(row);
                     updateRowAppearance(row);
                 });
             }
@@ -496,6 +496,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                     row.dataset.negotiable = data.is_negotiable ? 'true' : 'false';
                     row.dataset.manualOverride = data.is_negotiable_override === null ? '' : String(data.is_negotiable_override);
                 }
+                refreshRowData(row);
                 const srcIcon = row.querySelector(`.source-icon[data-field-name="${fieldName}"]`);
                 if (srcIcon) {
                     srcIcon.innerHTML = '<i class="fas fa-user"></i>';
@@ -631,6 +632,7 @@ document.querySelectorAll('tr[data-ai]').forEach(row => {
                                     clickedButton.disabled = false;
                                     if (d.status === 'SUCCESS' && row) {
                                         row.dataset.ai = JSON.stringify(d.result || {});
+                                        refreshRowData(row);
                                         updateRowAppearance(row);
                                     }
                                 }
