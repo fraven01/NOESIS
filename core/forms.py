@@ -21,6 +21,7 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
+    ZweckKategorieA,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -435,6 +436,30 @@ class Anlage4ReviewForm(forms.Form):
                 "note": self.cleaned_data.get(f"item{idx}_note", ""),
             }
         return out
+
+
+class Anlage5ReviewForm(forms.Form):
+    """Manuelle Bestätigung der Zwecke aus Anlage 5."""
+
+    purposes = forms.ModelMultipleChoiceField(
+        queryset=ZweckKategorieA.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "mr-2"}),
+        required=False,
+        label="Standardzwecke",
+    )
+    sonstige = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
+        label="Sonstige Zwecke",
+    )
+
+    def get_json(self) -> dict:
+        if not self.is_valid():
+            return {}
+        return {
+            "purposes": [p.pk for p in self.cleaned_data["purposes"]],
+            "sonstige": self.cleaned_data["sonstige"],
+        }
 
 
 class Anlage2FunctionForm(forms.ModelForm):

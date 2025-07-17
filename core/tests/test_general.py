@@ -31,6 +31,7 @@ from ..models import (
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
+    ZweckKategorieA,
 )
 from ..docx_utils import (
     extract_text,
@@ -76,6 +77,7 @@ from ..llm_tasks import (
     analyse_anlage4,
     analyse_anlage4_async,
     check_anlage3_vision,
+    check_anlage5,
     run_conditional_anlage2_check,
     worker_verify_feature,
     worker_generate_gutachten,
@@ -1759,6 +1761,43 @@ class PromptTests(NoesisTestCase):
             "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
         )
         self.assertEqual(p.text, expected)
+
+
+class CheckAnlage5Tests(NoesisTestCase):
+    def test_check_anlage5_sets_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=5,
+            upload=SimpleUploadedFile("a.docx", b""),
+            text_content="",
+        )
+        cat1 = ZweckKategorieA.objects.create(beschreibung="A")
+        cat2 = ZweckKategorieA.objects.create(beschreibung="B")
+        text = f"{cat1.beschreibung} {cat2.beschreibung}"
+        with patch("core.llm_tasks.extract_text", return_value=text):
+            data = check_anlage5(projekt.pk)
+        pf.refresh_from_db()
+        review = pf.anlage5review
+        self.assertEqual(set(data["purposes"]), {cat1.pk, cat2.pk})
+        self.assertTrue(pf.verhandlungsfaehig)
+        self.assertEqual(set(review.found_purposes.values_list("pk", flat=True)), {cat1.pk, cat2.pk})
+
+    def test_check_anlage5_detects_other_text(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=5,
+            upload=SimpleUploadedFile("a.docx", b""),
+            text_content="",
+        )
+        cat = ZweckKategorieA.objects.create(beschreibung="A")
+        text = f"{cat.beschreibung} Sonstige Zwecke zur Leistungs- oder und Verhaltenskontrolle Test"
+        with patch("core.llm_tasks.extract_text", return_value=text):
+            data = check_anlage5(projekt.pk)
+        pf.refresh_from_db()
+        self.assertFalse(pf.verhandlungsfaehig)
+        self.assertEqual(data["sonstige"], "Test")
 
 
 class PromptImportTests(NoesisTestCase):

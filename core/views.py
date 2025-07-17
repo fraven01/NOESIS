@@ -35,6 +35,7 @@ from .forms import (
     Anlage1ReviewForm,
     Anlage2ReviewForm,
     Anlage4ReviewForm,
+    Anlage5ReviewForm,
     get_anlage2_fields,
     Anlage2FunctionForm,
     Anlage2FunctionImportForm,
@@ -86,6 +87,8 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
+    ZweckKategorieA,
+    Anlage5Review,
 )
 from .docx_utils import extract_text
 from .llm_utils import query_llm
@@ -98,6 +101,7 @@ from .llm_tasks import (
     check_anlage3_vision,
     analyse_anlage4,
     analyse_anlage4_async,
+    check_anlage5,
     run_conditional_anlage2_check,
     run_anlage2_analysis,
     check_gutachten_functions,
@@ -2572,6 +2576,45 @@ def anlage4_review(request, pk):
 
 
 @login_required
+def anlage5_review(request, pk):
+    """Zeigt die erkannten Zwecke aus Anlage 5 zur Bestätigung."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 5:
+        raise Http404
+
+    try:
+        review = project_file.anlage5review
+    except Anlage5Review.DoesNotExist:
+        review = None
+
+    initial = {}
+    if review:
+        initial["purposes"] = review.found_purposes.all()
+        initial["sonstige"] = review.sonstige_zwecke
+
+    if request.method == "POST":
+        form = Anlage5ReviewForm(request.POST)
+        if form.is_valid():
+            if review is None:
+                review = Anlage5Review.objects.create(project_file=project_file)
+            review.sonstige_zwecke = form.cleaned_data["sonstige"]
+            review.save(update_fields=["sonstige_zwecke"])
+            review.found_purposes.set(form.cleaned_data["purposes"])
+            project_file.verhandlungsfaehig = (
+                review.found_purposes.count() == ZweckKategorieA.objects.count()
+                and not review.sonstige_zwecke
+            )
+            project_file.save(update_fields=["verhandlungsfaehig"])
+            return redirect("projekt_detail", pk=project_file.projekt.pk)
+    else:
+        form = Anlage5ReviewForm(initial=initial)
+
+    context = {"anlage": project_file, "form": form}
+    return render(request, "projekt_file_anlage5_review.html", context)
+
+
+@login_required
 def projekt_upload(request):
     if request.method == "POST":
         form = BVProjectUploadForm(request.POST, request.FILES)
@@ -2685,6 +2728,7 @@ def projekt_file_check(request, pk, nr):
         2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
+        5: check_anlage5,
     }
     func = funcs.get(nr_int)
     if not func:
@@ -2726,6 +2770,7 @@ def projekt_file_check_pk(request, pk):
         2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
+        5: check_anlage5,
     }
     func = funcs.get(anlage.anlage_nr)
     if not func:
@@ -2762,6 +2807,7 @@ def projekt_file_check_view(request, pk):
         2: check_anlage2 if use_llm else parse_only,
         3: check_anlage3_vision if use_llm else analyse_anlage3,
         4: analyse_anlage4,
+        5: check_anlage5,
     }
     func = funcs.get(anlage.anlage_nr)
     if not func:

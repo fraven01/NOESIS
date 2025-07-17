@@ -21,6 +21,7 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
     ZweckKategorieA,
+    Anlage5Review,
 )
 
 
@@ -246,6 +247,11 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
 @admin.register(ZweckKategorieA)
 class ZweckKategorieAAdmin(admin.ModelAdmin):
     list_display = ("beschreibung",)
+
+
+@admin.register(Anlage5Review)
+class Anlage5ReviewAdmin(admin.ModelAdmin):
+    list_display = ("project_file", "sonstige_zwecke")
 
 
 # Registrierung der Modelle

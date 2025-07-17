@@ -27,6 +27,8 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
+    ZweckKategorieA,
+    Anlage5Review,
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
@@ -36,6 +38,7 @@ from .text_parser import (
     apply_tokens,
     apply_rules,
     parse_anlage2_text,
+    fuzzy_match,
 )
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
@@ -1782,3 +1785,45 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     res.save(update_fields=["gap_summary"])
     logger.info("worker_generate_gap_summary beendet f\u00fcr Result %s", result_id)
     return reply.strip()
+
+
+def check_anlage5(projekt_id: int) -> dict:
+    """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke."""
+
+    projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=5)
+    except BVProjectFile.DoesNotExist as exc:
+        raise ValueError("Anlage 5 fehlt") from exc
+
+    path = Path(anlage.upload.path)
+    text = extract_text(path)
+
+    purposes = []
+    for cat in ZweckKategorieA.objects.order_by("id"):
+        if fuzzy_match(cat.beschreibung, text):
+            purposes.append(cat)
+
+    other_text = ""
+    m = re.search(
+        r"Sonstige Zwecke zur Leistungs- oder und Verhaltenskontrolle[:\s-]*([^\n]*)",
+        text,
+        flags=re.I,
+    )
+    if m:
+        other_text = m.group(1).strip()
+
+    review, _ = Anlage5Review.objects.get_or_create(project_file=anlage)
+    review.sonstige_zwecke = other_text
+    review.save(update_fields=["sonstige_zwecke"])
+    review.found_purposes.set(purposes)
+
+    all_found = len(purposes) == ZweckKategorieA.objects.count() and not other_text
+    anlage.verhandlungsfaehig = all_found
+    anlage.save(update_fields=["verhandlungsfaehig"])
+
+    return {
+        "task": "check_anlage5",
+        "purposes": [p.id for p in purposes],
+        "sonstige": other_text,
+    }

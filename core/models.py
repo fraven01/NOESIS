@@ -904,3 +904,20 @@ class ZweckKategorieA(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.beschreibung[:50]
+
+
+class Anlage5Review(models.Model):
+    """Ergebnis der automatischen Prüfung der Anlage 5."""
+
+    project_file = models.OneToOneField(
+        BVProjectFile, on_delete=models.CASCADE, related_name="anlage5review"
+    )
+    found_purposes = models.ManyToManyField(ZweckKategorieA, blank=True)
+    sonstige_zwecke = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Anlage 5 Review"
+        verbose_name_plural = "Anlage 5 Reviews"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"Review für {self.project_file}"

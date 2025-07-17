@@ -1,4 +1,6 @@
 from .test_general import *
+from ..forms import Anlage5ReviewForm
+from ..models import ZweckKategorieA
 
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
@@ -221,5 +223,15 @@ class KnowledgeDescriptionEditTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
         self.knowledge.refresh_from_db()
         self.assertEqual(self.knowledge.description, "Neu")
+
+
+class Anlage5ReviewFormTests(NoesisTestCase):
+    def test_get_json(self):
+        cat = ZweckKategorieA.objects.create(beschreibung="A")
+        form = Anlage5ReviewForm({"purposes": [cat.pk], "sonstige": "x"})
+        self.assertTrue(form.is_valid())
+        data = form.get_json()
+        self.assertEqual(data["purposes"], [cat.pk])
+        self.assertEqual(data["sonstige"], "x")
 
 
