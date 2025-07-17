@@ -196,3 +196,13 @@ input[type="submit"]:hover {
 .gap-note-icon.filled {
     color: #2563eb;
 }
+.status-popover {
+    position: absolute;
+    background: white;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    z-index: 1000;
+    display: none;
+}
