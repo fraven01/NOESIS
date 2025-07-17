@@ -90,7 +90,7 @@
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
-                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source %}
+                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field %}
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_override %}
@@ -194,12 +194,9 @@ function updateTooltip(icon, input) {
     let aiVal = ai[aiKey];
     if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
     let manualVal = null;
-    if (input && input.dataset && 'state' in input.dataset) {
+    if (icon.dataset.isManual === 'true' && input && input.dataset && 'state' in input.dataset) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
-    } else {
-        const txt = icon.textContent.trim();
-        manualVal = txt.startsWith('✓') ? true : (txt.startsWith('✗') ? false : null);
     }
     const txt = `Dokument: ${docVal}\nKI-Check: ${aiVal}\nManuell: ${manualVal}`;
     icon.setAttribute('title', txt);
@@ -223,6 +220,7 @@ function updateRowAppearance(row) {
         const icon = row.querySelector(`.tri-state-icon[data-field-name="${f}"]`);
         if (!icon) return;
         const manual = textToState(icon.textContent);
+        icon.dataset.isManual = manual !== null ? 'true' : 'false';
         const docKey = f === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         const aiKey = f === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         let docVal = doc[docKey];

@@ -727,6 +727,43 @@ class BuildRowDataTests(NoesisTestCase):
         )
         self.assertFalse(row["requires_manual_review"])
 
+    def test_manual_flags_propagated(self):
+        analysis = {}
+        verification = {}
+        manual = {"Testfunktion": {"technisch_vorhanden": True}}
+        row = _build_row_data(
+            "Testfunktion",
+            "Testfunktion",
+            self.func.id,
+            f"func{self.func.id}_",
+            self.form,
+            {},
+            {},
+            {},
+            analysis,
+            verification,
+            manual,
+            {},
+        )
+        self.assertTrue(row["manual_flags"]["technisch_vorhanden"])
+
+    def test_manual_flags_false_when_absent(self):
+        row = _build_row_data(
+            "Testfunktion",
+            "Testfunktion",
+            self.func.id,
+            f"func{self.func.id}_",
+            self.form,
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+        )
+        self.assertFalse(row["manual_flags"]["technisch_vorhanden"])
+
 
 class LLMTasksTests(NoesisTestCase):
     maxDiff = None

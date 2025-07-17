@@ -479,6 +479,7 @@ def _get_display_data(
 
     values: dict[str, bool] = {}
     sources: dict[str, str] = {}
+    manual_flags: dict[str, bool] = {}
 
     for field, _ in fields:
         man_val = m_data.get(field)
@@ -488,12 +489,14 @@ def _get_display_data(
         val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists)
         values[field] = val
         sources[field] = src
+        manual_flags[field] = manual_exists
 
     return {
         "values": values,
         "sources": sources,
         "status": values.get("technisch_vorhanden"),
         "source": sources.get("technisch_vorhanden"),
+        "manual_flags": manual_flags,
     }
 
 
@@ -589,6 +592,7 @@ def _build_row_data(
         "doc_result": _normalize_fields(answers.get(lookup_key, {})),
         "ai_result": _normalize_fields(verification_lookup.get(lookup_key, {})),
         "initial": disp["values"],
+        "manual_flags": disp["manual_flags"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
         "negotiable_manual_override": override_val,
@@ -3665,6 +3669,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
             "result_id": result.id,
             "sub_id": sub_id,
         },
+        "is_manual": True,
     }
     return render(request, "partials/review_cell.html", context)
 
