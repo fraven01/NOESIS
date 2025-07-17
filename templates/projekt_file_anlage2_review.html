@@ -2,6 +2,7 @@
 {% block extra_head %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+<link rel="stylesheet" href="{% static 'css/popover.css' %}">
 {% endblock %}
 {% load recording_extras %}
 {% block title %}Anlage 2 Review{% endblock %}
@@ -82,7 +83,7 @@
                 </td>
                 <td class="border px-2 text-center">
                     <button type="button" class="btn btn-sm btn-light review-cycle-btn"
-                        data-state="robot" title="KI-Prüfung starten" data-bs-toggle="tooltip"
+                        data-state="robot" title="KI-Prüfung starten"
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"
                         data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
@@ -119,6 +120,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+<script src="{% static 'js/popover.js' %}"></script>
 <script>
 function safeJsonParse(jsonString) {
     if (!jsonString || jsonString.trim() === "") {
@@ -181,7 +183,7 @@ function updateNegotiableCell(cell, value, override) {
     }
 }
 
-function updateTooltip(icon, input) {
+function updatePopoverContent(icon, input) {
     const row = icon.closest('tr');
     if (!row) return;
     const doc = safeJsonParse(row.dataset.doc);
@@ -198,15 +200,8 @@ function updateTooltip(icon, input) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
     }
-    const txt = `Dokument: ${docVal}\nKI-Check: ${aiVal}\nManuell: ${manualVal}`;
-    icon.setAttribute('title', txt);
-    icon.dataset.bsToggle = 'tooltip';
-    const inst = bootstrap.Tooltip.getInstance(icon);
-    if (inst) {
-        inst.setContent({ '.tooltip-inner': txt });
-    } else {
-        new bootstrap.Tooltip(icon);
-    }
+    const html = `Dokument: ${docVal}<br>KI-Check: ${aiVal}<br>Manuell: ${manualVal}`;
+    icon.dataset.popoverContent = html;
 }
 
 function updateRowAppearance(row) {
@@ -238,7 +233,7 @@ function updateRowAppearance(row) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
         }
         icon.classList.add(cls);
-        updateTooltip(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
+        updatePopoverContent(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
         if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
             needsReview = true;
         }
@@ -367,7 +362,7 @@ function updateRowAppearance(row) {
 }
 function initDynamicElements(container) {
     if (!container) return;
-    container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    initCustomPopovers(container);
 }
 
 document.body.addEventListener('htmx:afterSwap', function(event) {
