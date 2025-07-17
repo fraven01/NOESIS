@@ -198,6 +198,36 @@ def _normalize_fields(data: dict | str | None) -> dict:
     return {FIELD_RENAME.get(k, k): v for k, v in data.items()}
 
 
+def _extract_bool(value: object) -> bool | None:
+    """Extrahiert einen booleschen Wert aus ``value``.
+
+    Unterstützt auch verschachtelte Strukturen im Format
+    ``{"value": <bool>}``.
+    """
+    if isinstance(value, dict):
+        value = value.get("value")
+    if isinstance(value, bool):
+        return value
+    return None
+
+
+def _calc_auto_negotiable(doc: dict | None, ai: dict | None) -> bool:
+    """Berechnet den automatischen Verhandlungsstatus."""
+    doc_val = None
+    ai_val = None
+    if isinstance(doc, dict):
+        doc_val = doc.get("technisch_verfuegbar")
+        if doc_val is None:
+            doc_val = doc.get("technisch_vorhanden")
+        doc_val = _extract_bool(doc_val)
+    if isinstance(ai, dict):
+        ai_val = ai.get("technisch_verfuegbar")
+        if ai_val is None:
+            ai_val = ai.get("technisch_vorhanden")
+        ai_val = _extract_bool(ai_val)
+    return doc_val is not None and ai_val is not None and doc_val == ai_val
+
+
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat für ``Anlage1ReviewForm``."""
 
@@ -564,10 +594,13 @@ def _build_row_data(
     if result_obj is None and sub_id is not None:
         parent_key = lookup_key.split(":", 1)[0].strip()
         result_obj = result_map.get(parent_key)
-    is_negotiable = result_obj.negotiable if result_obj else False
-    override_val = (
-        result_obj.is_negotiable_manual_override if result_obj else None
+
+    override_val = result_obj.is_negotiable_manual_override if result_obj else None
+    auto_val = _calc_auto_negotiable(
+        analysis_lookup.get(lookup_key),
+        verification_lookup.get(lookup_key),
     )
+    is_negotiable = override_val if override_val is not None else auto_val
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
@@ -3579,26 +3612,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             res.manual_result = manual
             update_fields.extend([attr, "raw_json", "manual_result", "source"])
 
-        doc_val = None
-        ai_val = None
-        if isinstance(res.doc_result, dict):
-            doc_val = res.doc_result.get("technisch_verfuegbar")
-        if isinstance(res.ai_result, dict):
-            ai_val = res.ai_result.get("technisch_verfuegbar")
-        manual_val = None
-        if isinstance(res.manual_result, dict):
-            manual_val = res.manual_result.get("technisch_vorhanden")
-        if field_name == "technisch_vorhanden":
-            manual_val = status
-
-        auto_val = (
-            (ai_val is not None and doc_val is not None and ai_val == doc_val)
-            or (
-                manual_val is not None
-                and doc_val is not None
-                and manual_val == doc_val
-            )
-        )
+        auto_val = _calc_auto_negotiable(res.doc_result, res.ai_result)
 
         if set_neg != "__missing__":
             if set_neg in (True, "True", "true", "1", 1):
@@ -3743,7 +3757,7 @@ def hx_toggle_negotiable(request, result_id: int):
     if new_override is not None:
         result.is_negotiable = new_override
     else:
-        result.is_negotiable = bool(result.technisch_verfuegbar)
+        result.is_negotiable = _calc_auto_negotiable(result.doc_result, result.ai_result)
     result.save(update_fields=["is_negotiable", "is_negotiable_manual_override"])
 
     context = {

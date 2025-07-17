@@ -275,8 +275,13 @@ function updateRowAppearance(row) {
         let override = null;
         if (hasUser) override = cellVal;
         row.dataset.manualOverride = override !== null ? String(override) : '';
-        if (override === null && techState !== null) {
-            cellVal = techState;
+        const docValRaw = doc.hasOwnProperty('technisch_verfuegbar') ? doc.technisch_verfuegbar : doc.technisch_vorhanden;
+        const aiValRaw = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
+        let docVal2 = docValRaw && typeof docValRaw === 'object' && 'value' in docValRaw ? docValRaw.value : docValRaw;
+        let aiVal2 = aiValRaw && typeof aiValRaw === 'object' && 'value' in aiValRaw ? aiValRaw.value : aiValRaw;
+        const autoVal = (docVal2 !== undefined && docVal2 !== null && aiVal2 !== undefined && aiVal2 !== null && docVal2 === aiVal2);
+        if (override === null) {
+            cellVal = autoVal;
         }
         row.dataset.negotiable = cellVal ? 'true' : 'false';
         updateNegotiableCell(negCell, cellVal, override);
