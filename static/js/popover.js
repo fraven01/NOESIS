@@ -24,6 +24,7 @@
             }
         });
     }
+    window.attachCustomPopover = attach;
     window.initCustomPopovers = function(container=document){
         container.querySelectorAll('[data-popover-content]').forEach(el => {
             if(!el.dataset.popoverInit){
@@ -32,6 +33,4 @@
             }
         });
     };
-    document.addEventListener('DOMContentLoaded', () => initCustomPopovers());
-    document.body.addEventListener('htmx:afterSwap', e => initCustomPopovers(e.detail.target));
 })();
