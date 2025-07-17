@@ -289,20 +289,23 @@ Tabellenparser Vorrang.
 ### KI-Begründung per Tooltip
 
 Bei der LLM-Prüfung einzelner Funktionen ruft der Hintergrundtask zusätzlich den
-Prompt `anlage2_feature_justification` auf. Dieser fragt nach einer kurzen
-Begründung, warum die Funktion bei der angegebenen Software üblicherweise
-vorhanden ist. Das Ergebnis wird als `ki_begruendung` gespeichert und im
-Review-Formular neben dem Funktionsnamen als Info-Symbol angezeigt. Ein
-Mouseover blendet den Text als Tooltip ein.
+Prompt `anlage2_feature_justification` auf. Dieser ermittelt, warum die Software
+die Funktion üblicherweise besitzt und ob sich damit eine Leistungs- oder
+Verhaltenskontrolle nach §87 Abs. 1 Nr. 6 BetrVG durchführen lässt. Für
+Unterfragen nutzt das System den gesonderten Prompt
+`anlage2_subquestion_justification_check`. Das Ergebnis wird als
+`ki_begruendung` gespeichert und im Review-Formular neben dem Funktionsnamen als
+Info-Symbol angezeigt. Ein Mouseover blendet den Text als Tooltip ein.
 
 ### Zweistufige KI‑Beteiligungsprüfung
 
 In der Review-Ansicht von Anlage 2 lässt sich für jede Funktion eine
-"KI‑Prüfung starten". Der Prozess arbeitet nun in zwei Stufen. Zunächst wird
-geklärt, ob die Funktion technisch verfügbar ist. Nur wenn diese Prüfung
-bejaht wird, folgt Stufe 2 mit der Einschätzung, ob üblicherweise eine
-KI‑Beteiligung vorliegt. Beide Ergebnisse erscheinen anschließend direkt in der
-Tabelle, wobei die Begründung weiterhin über den Info‑Link abrufbar ist.
+"KI‑Prüfung starten". Der Prozess arbeitet in zwei Stufen. Zunächst wird mit
+einem spezifischen Prompt geklärt, ob die Funktion beziehungsweise Unterfrage
+technisch möglich ist. Nur bei einem positiven Ergebnis folgt Stufe 2 mit der
+Einschätzung, ob üblicherweise eine KI‑Beteiligung vorliegt. Beide Ergebnisse
+erscheinen anschließend direkt in der Tabelle, wobei die jeweilige Begründung
+über einen Info‑Link abrufbar ist.
 
 Die Antwort auf die KI-Frage wird unter `ki_beteiligt` gespeichert. Gibt das
 Modell "Ja" zurück, folgt zudem eine kurze Erläuterung, die im Feld
