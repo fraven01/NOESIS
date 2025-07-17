@@ -38,7 +38,6 @@ from .text_parser import (
     apply_tokens,
     apply_rules,
     parse_anlage2_text,
-    fuzzy_match,
 )
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
@@ -1832,30 +1831,30 @@ def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
     anlage5_logger.debug("Pfad der Anlage 5: %s", path)
 
     try:
-        text = extract_text(path)
-        anlage5_logger.debug("Textextraktion erfolgreich: %r", text[:200])
+        document_text = extract_text(path)
+        anlage5_logger.debug("Textextraktion erfolgreich: %r", document_text[:200])
     except Exception as exc:  # noqa: BLE001 - unerwarteter Fehler beim Parsen
         anlage5_logger.exception("Textextraktion fehlgeschlagen: %s", exc)
-        text = ""
+        document_text = ""
 
-    purposes: list[ZweckKategorieA] = []
+    found_purposes: list[ZweckKategorieA] = []
     anlage5_logger.debug("Starte Zweck-Analyse")
-    for cat in ZweckKategorieA.objects.order_by("id"):
-        score = fuzz.partial_ratio(cat.beschreibung.lower(), text.lower())
-        found = fuzzy_match(cat.beschreibung, text)
+    for zweck in ZweckKategorieA.objects.order_by("id"):
+        threshold = 95
+        score = fuzz.partial_ratio(zweck.beschreibung.lower(), document_text.lower())
         anlage5_logger.debug(
             "Zweck '%s' Score=%s -> %s",
-            cat.beschreibung,
+            zweck.beschreibung,
             score,
-            "gefunden" if found else "nicht gefunden",
+            "gefunden" if score >= threshold else "nicht gefunden",
         )
-        if found:
-            purposes.append(cat)
+        if score >= threshold:
+            found_purposes.append(zweck)
 
     other_text = ""
     m = re.search(
         r"Sonstige Zwecke zur Leistungs- oder und Verhaltenskontrolle[:\s-]*([^\n]*)",
-        text,
+        document_text,
         flags=re.I,
     )
     if m:
@@ -1872,17 +1871,17 @@ def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
     )
     review.sonstige_zwecke = other_text
     review.save(update_fields=["sonstige_zwecke"])
-    review.found_purposes.set(purposes)
+    review.found_purposes.set(found_purposes)
     anlage5_logger.debug(
         "Gespeicherte Zwecke: %s, Sonstige Zwecke Text: %r",
-        [p.id for p in purposes],
+        [p.id for p in found_purposes],
         other_text,
     )
 
-    all_found = len(purposes) == ZweckKategorieA.objects.count() and not other_text
+    all_found = len(found_purposes) == ZweckKategorieA.objects.count() and not other_text
     anlage5_logger.debug(
         "Alle Zwecke gefunden: %s, Sonstige Zwecke vorhanden: %s -> verhandlungsfaehig=%s",
-        len(purposes) == ZweckKategorieA.objects.count(),
+        len(found_purposes) == ZweckKategorieA.objects.count(),
         bool(other_text),
         all_found,
     )
@@ -1891,7 +1890,7 @@ def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
 
     result = {
         "task": "check_anlage5",
-        "purposes": [p.id for p in purposes],
+        "purposes": [p.id for p in found_purposes],
         "sonstige": other_text,
     }
     anlage5_logger.info("check_anlage5 beendet f\u00fcr Projekt %s mit %s", projekt_id, result)
