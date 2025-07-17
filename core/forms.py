@@ -765,6 +765,20 @@ class PromptForm(forms.ModelForm):
         self.fields["role"].choices = choices
 
 
+class ZweckKategorieAForm(forms.ModelForm):
+    """Formular für einen Zweck der Kategorie A."""
+
+    class Meta:
+        model = ZweckKategorieA
+        fields = ["beschreibung"]
+        labels = {"beschreibung": "Beschreibung"}
+        widgets = {
+            "beschreibung": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 3}
+            )
+        }
+
+
 class UserPermissionsForm(forms.Form):
     """Formular zur Bearbeitung von Benutzerrechten."""
 
