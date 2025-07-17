@@ -1,0 +1,15 @@
+{% extends 'admin_base.html' %}
+{% block title %}{% if object %}Zweck bearbeiten{% else %}Neuer Zweck{% endif %}{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">{% if object %}Zweck bearbeiten{% else %}Neuer Zweck{% endif %}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.beschreibung.label_tag }}<br>
+        {{ form.beschreibung }}
+        {{ form.beschreibung.errors }}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

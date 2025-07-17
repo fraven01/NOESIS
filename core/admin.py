@@ -20,7 +20,6 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
-    ZweckKategorieA,
     Anlage5Review,
 )
 
@@ -244,9 +243,6 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
 
 
 # Registrierung der Modelle
-@admin.register(ZweckKategorieA)
-class ZweckKategorieAAdmin(admin.ModelAdmin):
-    list_display = ("beschreibung",)
 
 
 @admin.register(Anlage5Review)

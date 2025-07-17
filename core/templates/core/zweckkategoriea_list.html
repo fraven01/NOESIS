@@ -1,0 +1,32 @@
+{% extends 'admin_base.html' %}
+{% block title %}Zwecke{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">Zwecke</h1>
+<a href="{% url 'zweckkategoriea_add' %}" class="inline-block mb-4 px-4 py-2 bg-blue-600 text-white rounded">Neuen Zweck hinzufügen</a>
+<div class="overflow-x-auto">
+<table class="min-w-full">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Beschreibung</th>
+            <th class="py-2 text-center">Bearbeiten</th>
+            <th class="py-2 text-center">Löschen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for z in object_list %}
+        <tr class="border-b text-sm">
+            <td class="py-1">{{ z.beschreibung }}</td>
+            <td class="py-1 text-center">
+                <a href="{% url 'zweckkategoriea_edit' z.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
+            </td>
+            <td class="py-1 text-center">
+                <a href="{% url 'zweckkategoriea_delete' z.id %}" class="px-2 py-1 bg-red-600 text-white rounded">Löschen</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3" class="py-2">Keine Zwecke vorhanden.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

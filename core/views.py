@@ -15,8 +15,10 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from typing import Any
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 import io
 import zipfile
 from django.db import transaction
@@ -58,6 +60,7 @@ from .forms import (
     UserImportForm,
     Anlage2ConfigImportForm,
     ProjectImportForm,
+    ZweckKategorieAForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
 
@@ -113,6 +116,13 @@ from .llm_tasks import (
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
 from django.forms import formset_factory, modelformset_factory
+
+
+class StaffRequiredMixin(UserPassesTestMixin):
+    """Mixin erlaubt Zugriff nur für Mitarbeiter."""
+
+    def test_func(self) -> bool:
+        return self.request.user.is_staff
 
 import logging
 import sys
@@ -3988,6 +3998,39 @@ def gutachten_download(request, pk):
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+
+
+class ZweckKategorieAListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
+    """Liste aller Zwecke der Kategorie A."""
+
+    model = ZweckKategorieA
+    template_name = "core/zweckkategoriea_list.html"
+
+
+class ZweckKategorieACreateView(LoginRequiredMixin, StaffRequiredMixin, CreateView):
+    """Erstellt einen neuen Zweck."""
+
+    model = ZweckKategorieA
+    form_class = ZweckKategorieAForm
+    template_name = "core/zweckkategoriea_form.html"
+    success_url = reverse_lazy("zweckkategoriea_list")
+
+
+class ZweckKategorieAUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
+    """Bearbeitet einen vorhandenen Zweck."""
+
+    model = ZweckKategorieA
+    form_class = ZweckKategorieAForm
+    template_name = "core/zweckkategoriea_form.html"
+    success_url = reverse_lazy("zweckkategoriea_list")
+
+
+class ZweckKategorieADeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+    """Löscht einen Zweck nach Bestätigung."""
+
+    model = ZweckKategorieA
+    template_name = "core/zweckkategoriea_confirm_delete.html"
+    success_url = reverse_lazy("zweckkategoriea_list")
 
 
 @login_required
