@@ -53,8 +53,8 @@
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
-                data-ai="{{ row.ai_result|tojson }}"
-                data-doc="{{ row.doc_result|tojson }}"
+                data-ai='{{ row.ai_result|tojson|escapejs }}'
+                data-doc='{{ row.doc_result|tojson|escapejs }}'
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
                 data-manual-override="{{ row.negotiable_override|yesno:'true,false,' }}"
                 data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
