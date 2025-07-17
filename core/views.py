@@ -2825,6 +2825,8 @@ def projekt_file_check_view(request, pk):
 
     if anlage.anlage_nr == 3:
         return redirect("anlage3_review", pk=anlage.projekt_id)
+    if anlage.anlage_nr == 5:
+        return redirect("anlage5_review", pk=anlage.pk)
 
     return redirect("projekt_file_edit_json", pk=pk)
 

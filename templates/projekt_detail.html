@@ -57,7 +57,7 @@
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
             <td class="px-2 py-1 text-center">
                 {% if a.anlage_nr == 5 %}
-                    <a href="{% url 'anlage5_dummy' %}"
+                    <a href="{% url 'projekt_file_check_view' a.pk %}"
                        class="bg-gray-500 text-white px-2 py-1 rounded">Prüfen</a>
                 {% elif a.anlage_nr == 6 %}
                     <a href="{% url 'anlage6_dummy' %}"
@@ -77,6 +77,9 @@
                     <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span></span>
                 {% elif a.anlage_nr == 4 %}
                     <a href="{% url 'anlage4_review' a.pk %}"
+                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                {% elif a.anlage_nr == 5 %}
+                    <a href="{% url 'anlage5_review' a.pk %}"
                        class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
                 {% else %}
                     <a href="{% url 'projekt_file_edit_json' a.pk %}"
