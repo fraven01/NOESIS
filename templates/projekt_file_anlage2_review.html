@@ -176,6 +176,17 @@ function toggleSubRows(funcId, enabled) {
     });
 }
 
+// Aktiviert oder deaktiviert Unterfragen, ohne den Sichtbarkeitszustand zu 
+// verändern. Dies wird genutzt, um Unterfragen beim Initialisieren korrekt zu
+// sperren, ohne sie einzublenden.
+function setSubRowsEnabled(funcId, enabled) {
+    document.querySelectorAll(`.subquestions-for-${funcId}`).forEach(r => {
+        r.querySelectorAll('button, input, textarea').forEach(el => {
+            el.disabled = !enabled;
+        });
+    });
+}
+
 function updateNegotiableCell(cell, value, override) {
     if (!cell) return;
     cell.innerHTML = value ? '<span class="text-green-600">✅</span>' : '<span class="text-red-600">❌</span>';
@@ -246,7 +257,9 @@ function updateRowAppearance(row) {
     let techState = null;
     if (techIcon && !row.classList.contains('subquestion-row')) {
         techState = textToState(techIcon.textContent);
-        toggleSubRows(row.dataset.funcId, techState === true);
+        // Unterfragen nur aktivieren/deaktivieren, nicht automatisch ein- oder
+        // ausblenden, damit sie initial eingeklappt bleiben.
+        setSubRowsEnabled(row.dataset.funcId, techState === true);
         let aiVal = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         const gapCell = row.querySelector('[id^="gap-cell-"]');
