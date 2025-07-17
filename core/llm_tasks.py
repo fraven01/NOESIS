@@ -1813,8 +1813,11 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     return reply.strip()
 
 
-def check_anlage5(projekt_id: int) -> dict:
-    """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke."""
+def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
+    """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke.
+
+    Das optionale Argument ``model_name`` ist derzeit ohne Funktion und dient
+    lediglich der Vereinheitlichung der API.\n    """
 
     anlage5_logger.info("check_anlage5 gestartet f\u00fcr Projekt %s", projekt_id)
 
