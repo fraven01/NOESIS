@@ -308,6 +308,11 @@ urlpatterns = [
         name="anlage4_review",
     ),
     path(
+        "work/anlage5/<int:pk>/review/",
+        views.anlage5_review,
+        name="anlage5_review",
+    ),
+    path(
         "work/anlage/<int:pk>/edit-json/",
         views.projekt_file_edit_json,
         name="projekt_file_edit_json",

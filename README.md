@@ -120,6 +120,18 @@ Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
 Für jede Frage lassen sich mehrere Varianten hinterlegen, die der Parser beim
 Extrahieren berücksichtigt.
 
+### Anlage 5 prüfen
+
+Mit
+
+```bash
+python manage.py check_anlage5 42
+```
+
+wird das hochgeladene Dokument der Anlage 5 nach allen Standardzwecken durchsucht.
+Enthält es alle Zwecke aus der Datenbank und keine sonstigen Zwecke,
+setzt das System die Anlage automatisch auf verhandlungsfähig.
+
 ### Anlage 2 analysieren
 
 Beim Hochladen einer Anlage 2 startet automatisch die KI‑Prüfung.
