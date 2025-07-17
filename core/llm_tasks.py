@@ -1775,18 +1775,37 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
 def check_anlage5(projekt_id: int) -> dict:
     """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke."""
 
+    anlage5_logger.info("check_anlage5 gestartet f\u00fcr Projekt %s", projekt_id)
+
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=5)
     except BVProjectFile.DoesNotExist as exc:
+        anlage5_logger.error("Anlage 5 fehlt f\u00fcr Projekt %s", projekt_id)
         raise ValueError("Anlage 5 fehlt") from exc
 
     path = Path(anlage.upload.path)
-    text = extract_text(path)
+    anlage5_logger.debug("Pfad der Anlage 5: %s", path)
 
-    purposes = []
+    try:
+        text = extract_text(path)
+        anlage5_logger.debug("Textextraktion erfolgreich: %r", text[:200])
+    except Exception as exc:  # noqa: BLE001 - unerwarteter Fehler beim Parsen
+        anlage5_logger.exception("Textextraktion fehlgeschlagen: %s", exc)
+        text = ""
+
+    purposes: list[ZweckKategorieA] = []
+    anlage5_logger.debug("Starte Zweck-Analyse")
     for cat in ZweckKategorieA.objects.order_by("id"):
-        if fuzzy_match(cat.beschreibung, text):
+        score = fuzz.partial_ratio(cat.beschreibung.lower(), text.lower())
+        found = fuzzy_match(cat.beschreibung, text)
+        anlage5_logger.debug(
+            "Zweck '%s' Score=%s -> %s",
+            cat.beschreibung,
+            score,
+            "gefunden" if found else "nicht gefunden",
+        )
+        if found:
             purposes.append(cat)
 
     other_text = ""
@@ -1797,18 +1816,39 @@ def check_anlage5(projekt_id: int) -> dict:
     )
     if m:
         other_text = m.group(1).strip()
+        anlage5_logger.debug("Sonstige Zwecke gefunden: %r", other_text)
+    else:
+        anlage5_logger.debug("Sonstige Zwecke nicht gefunden")
 
-    review, _ = Anlage5Review.objects.get_or_create(project_file=anlage)
+    review, created = Anlage5Review.objects.get_or_create(project_file=anlage)
+    anlage5_logger.debug(
+        "%s Anlage5Review Objekt mit ID %s",
+        "Erstelle" if created else "Aktualisiere",
+        review.pk,
+    )
     review.sonstige_zwecke = other_text
     review.save(update_fields=["sonstige_zwecke"])
     review.found_purposes.set(purposes)
+    anlage5_logger.debug(
+        "Gespeicherte Zwecke: %s, Sonstige Zwecke Text: %r",
+        [p.id for p in purposes],
+        other_text,
+    )
 
     all_found = len(purposes) == ZweckKategorieA.objects.count() and not other_text
+    anlage5_logger.debug(
+        "Alle Zwecke gefunden: %s, Sonstige Zwecke vorhanden: %s -> verhandlungsfaehig=%s",
+        len(purposes) == ZweckKategorieA.objects.count(),
+        bool(other_text),
+        all_found,
+    )
     anlage.verhandlungsfaehig = all_found
     anlage.save(update_fields=["verhandlungsfaehig"])
 
-    return {
+    result = {
         "task": "check_anlage5",
         "purposes": [p.id for p in purposes],
         "sonstige": other_text,
     }
+    anlage5_logger.info("check_anlage5 beendet f\u00fcr Projekt %s mit %s", projekt_id, result)
+    return result
