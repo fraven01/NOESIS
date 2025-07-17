@@ -3179,6 +3179,22 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             ai_result={"technisch_verfuegbar": True},
         )
         url = reverse("ajax_save_anlage2_review")
+        resp = self.client.post(
+            url,
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": False,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data.get("gap_summary"), "")
+        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        self.assertEqual(res.gap_summary, "")
+
+        gap_url = reverse("ajax_generate_gap_summary", args=[res.pk])
 
         def immediate(name, *args):
             self.assertEqual(name, "core.llm_tasks.worker_generate_gap_summary")
@@ -3188,19 +3204,9 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             return_value="Abweichung",
         ):
-            resp = self.client.post(
-                url,
-                data=json.dumps({
-                    "project_file_id": self.pf.pk,
-                    "function_id": self.func.pk,
-                    "status": False,
-                }),
-                content_type="application/json",
-            )
+            resp = self.client.post(gap_url)
         self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertEqual(data.get("gap_summary"), "Abweichung")
-        res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
+        res.refresh_from_db()
         self.assertEqual(res.gap_summary, "Abweichung")
 
     def test_manual_sets_negotiable(self):
