@@ -120,6 +120,18 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+function safeJsonParse(jsonString) {
+    if (!jsonString || jsonString.trim() === "") {
+        return {};
+    }
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.error("Fehler beim Parsen von JSON:", jsonString, e);
+        return {};
+    }
+}
+
 function initAnlage2Review() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
@@ -172,10 +184,8 @@ function updateNegotiableCell(cell, value, override) {
 function updateTooltip(icon, input) {
     const row = icon.closest('tr');
     if (!row) return;
-    let doc = {};
-    let ai = {};
-    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
-    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
+    const doc = safeJsonParse(row.dataset.doc);
+    const ai = safeJsonParse(row.dataset.ai);
     const field = icon.dataset.fieldName;
     const docKey = field === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
     const aiKey = field === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
@@ -204,10 +214,8 @@ function updateTooltip(icon, input) {
 
 function updateRowAppearance(row) {
     if (!row) return;
-    let ai = {};
-    let doc = {};
-    try { ai = JSON.parse(row.dataset.ai || '{}'); } catch (e) { ai = {}; }
-    try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+    const ai = safeJsonParse(row.dataset.ai);
+    const doc = safeJsonParse(row.dataset.doc);
     const fieldOrder = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
     let needsReview = false;
     const textToState = txt => txt.trim().startsWith('✓') ? true : (txt.trim().startsWith('✗') ? false : null);
@@ -317,8 +325,7 @@ function updateRowAppearance(row) {
     function acceptSuggestion(btn) {
         const row = btn.closest('tr[data-parsed-status]');
         if (!row) return;
-        let doc = {};
-        try { doc = JSON.parse(row.dataset.doc || '{}'); } catch (e) { doc = {}; }
+        const doc = safeJsonParse(row.dataset.doc);
         const fields = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
         const { projectFileId, functionId, subquestionId } = btn.dataset;
         const requests = fields.map(f => {
