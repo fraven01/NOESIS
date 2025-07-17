@@ -178,8 +178,17 @@ def _deep_update(base: dict, extra: dict) -> dict:
     return base
 
 
-def _normalize_fields(data: dict | None) -> dict:
-    """Passt die Feldernamen an ``FIELD_RENAME`` an."""
+def _normalize_fields(data: dict | str | None) -> dict:
+    """Passt die Feldernamen an ``FIELD_RENAME`` an.
+
+    Behandelt auch JSON-Strings robust."""
+    if data is None:
+        return {}
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except Exception:  # pragma: no cover - ungültiger JSON-Input
+            return {}
     if not isinstance(data, dict):
         return {}
     return {FIELD_RENAME.get(k, k): v for k, v in data.items()}

@@ -1,3 +1,15 @@
+function safeJsonParse(jsonString) {
+    if (!jsonString || jsonString.trim() === "") {
+        return {};
+    }
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.error("Fehler beim Parsen von JSON:", jsonString, e);
+        return {};
+    }
+}
+
 function showSpinner(buttonElement, spinnerText = 'Wird geladen...') {
     if (!buttonElement) return;
     buttonElement.dataset.originalHtml = buttonElement.innerHTML;
