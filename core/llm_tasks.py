@@ -1408,20 +1408,35 @@ def worker_verify_feature(
         raise ValueError("invalid object_type")
 
     try:
-        prompt_obj = Prompt.objects.get(name="anlage2_feature_verification")
-    except Prompt.DoesNotExist:
-        logger.error("Prompt '%s' nicht gefunden!", "anlage2_feature_verification")
-        prompt_obj = Prompt(
-            text=(
-                "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
-                "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
-                "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
-                'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
-                "Aussage: Besitzt die Software '{software_name}' typischerweise "
-                "die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}"
-            ),
-            use_system_role=False,
+        prompt_name = (
+            "anlage2_feature_verification"
+            if object_type == "function"
+            else "anlage2_subquestion_possibility_check"
         )
+        prompt_obj = Prompt.objects.get(name=prompt_name)
+    except Prompt.DoesNotExist:
+        logger.error("Prompt '%s' nicht gefunden!", prompt_name)
+        if object_type == "function":
+            prompt_obj = Prompt(
+                text=(
+                    "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
+                    "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
+                    "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
+                    'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
+                    "Aussage: Besitzt die Software '{software_name}' typischerweise "
+                    "die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}"
+                ),
+                use_system_role=False,
+            )
+        else:
+            prompt_obj = Prompt(
+                text=(
+                    "Im Kontext der Funktion '{function_name}' der Software '{software_name}': "
+                    "Ist die spezifische Anforderung '{subquestion_text}' technisch m\u00f6glich? "
+                    "Antworte nur mit 'Ja', 'Nein' oder 'Unsicher'."
+                ),
+                use_system_role=False,
+            )
 
     software_list = projekt.software_list
 
@@ -1466,15 +1481,36 @@ def worker_verify_feature(
     ai_reason = ""
     if result:
         try:
-            just_prompt_obj = Prompt.objects.get(name="anlage2_feature_justification")
-        except Prompt.DoesNotExist:
-            just_prompt_obj = Prompt(
-                text=(
-                    "Warum besitzt die Software '{software_name}' typischerweise die "
-                    "Funktion oder Eigenschaft '{function_name}'?"
-                ),
-                use_system_role=False,
+            just_prompt_name = (
+                "anlage2_feature_justification"
+                if object_type == "function"
+                else "anlage2_subquestion_justification_check"
             )
+            just_prompt_obj = Prompt.objects.get(name=just_prompt_name)
+        except Prompt.DoesNotExist:
+            if object_type == "function":
+                just_prompt_obj = Prompt(
+                    text=(
+                        "Warum besitzt die Software '{software_name}' typischerweise die "
+                        "Funktion oder Eigenschaft '{function_name}'?   Ist es m\u00f6glich "
+                        "mit der {function_name} eine Leistungskontrolle oder eine "
+                        "Verhaltenskontrolle im Sinne des \xa787 Abs. 1 Nr. 6 BetrVg durchzuf\u00fchren?  Wenn ja, wie?"
+                    ),
+                    use_system_role=False,
+                )
+            else:
+                just_prompt_obj = Prompt(
+                    text=(
+                        " [SYSTEM]\nDu bist Fachautor*in f\u00fcr IT-Mitbestimmung (\xa787 Abs. 1 Nr. 6 BetrVG).\n"
+                        "Antworte Unterfrage pr\u00e4gnant in **maximal zwei S\u00e4tzen** (insgesamt \u2264 65 W\u00f6rter) und erf\u00fclle folgende Regeln :\n\n"
+                        "1. Starte Teil A mit \u201eTypischer Zweck: \u2026\u201c  \n2. Starte Teil B mit \u201eKontrolle: Ja, \u2026\u201c oder \u201eKontrolle: Nein, \u2026\u201c.  \n"
+                        "3. Nenne exakt die \u00fcbergebene Funktion/Eigenschaft, erfinde nichts dazu.  \n"
+                        "4. Erkl\u00e4re knapp *warum* mit der Funktion die Unterfrage (oder warum nicht) eine Leistungs- oder Verhaltenskontrolle m\u00f6glich ist.  \n"
+                        "5. Verwende Alltagssprache, keine Marketing-Floskeln.\n\n"
+                        " [USER]\nSoftware: {{software_name}}  \nFunktion/Eigenschaft: {{function_name}}  \nUnterfrage: \"{{subquestion_text}}\""
+                    ),
+                    use_system_role=False,
+                )
         idx = individual_results.index(True) if True in individual_results else 0
         context["software_name"] = software_list[idx]
         justification = query_llm(
@@ -1518,20 +1554,25 @@ def worker_verify_feature(
 
         if ai_involved:
             try:
-                ai_just_obj = Prompt.objects.get(
-                    name="anlage2_ai_involvement_justification"
-                )
+                ai_just_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
             except Prompt.DoesNotExist:
                 ai_just_obj = Prompt(
                     text=(
                         "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
-                        "der Software '{software_name}' eine KI-Komponente beinhaltet."
+                        "(oder die Unterfrage '{subquestion_text}') der Software "
+                        "'{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, "
+                        "insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten "
+                        "oder nicht-deterministischer Ergebnisse."
                     ),
                     use_system_role=False,
                 )
             ai_reason = query_llm(
                 ai_just_obj,
-                {"software_name": context["software_name"], "function_name": name},
+                {
+                    "software_name": context["software_name"],
+                    "function_name": name,
+                    "subquestion_text": context.get("subquestion_text", ""),
+                },
                 model_name=model_name,
                 model_type="anlagen",
                 temperature=0.1,
