@@ -109,6 +109,7 @@
                     {% if row.result_id %}
                     <a href="{% url 'edit_gap_notes' row.result_id %}"
                        class="gap-note-icon {% if row.has_notes %}text-blue-600{% endif %}">🗒️</a>
+                    <button type="button" class="gap-summary-btn" data-result-id="{{ row.result_id }}" title="Gap-Zusammenfassung generieren">↻</button>
                     {% else %}
                     <span class="gap-note-icon">🗒️</span>
                     {% endif %}
@@ -368,6 +369,20 @@ function updateRowAppearance(row) {
         }).catch(() => { btn.textContent = '⚠️'; });
     }
 
+    function generateGapSummary(btn) {
+        showSpinner(btn, '');
+        const resultId = btn.dataset.resultId;
+        fetch(`/ajax/generate-gap-summary/${resultId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        }).then(() => {
+            hideSpinner(btn);
+        }).catch(() => {
+            btn.textContent = '⚠️';
+            btn.disabled = false;
+        });
+    }
+
     document.querySelectorAll('.review-cycle-btn').forEach(button => {
         button.addEventListener('click', function() {
             const state = this.dataset.state;
@@ -380,6 +395,12 @@ function updateRowAppearance(row) {
                     window.location.href = this.dataset.justificationUrl;
                 }
             }
+        });
+    });
+
+    document.querySelectorAll('.gap-summary-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            generateGapSummary(this);
         });
     });
 

@@ -3634,20 +3634,12 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 
         res.save(update_fields=update_fields)
 
-        gap_text = res.gap_summary
+        gap_text = res.gap_summary or ""
         ai_val = None
         if field_name == "technisch_vorhanden" and isinstance(res.ai_result, dict):
             ai_val = res.ai_result.get("technisch_verfuegbar")
-        if field_name == "technisch_vorhanden" and ai_val is not None and ai_val != status:
-            task_id = async_task(
-                "core.llm_tasks.worker_generate_gap_summary",
-                res.id,
-            )
-            anlage2_logger.debug("Gap-Summary Task gestartet: %s", task_id)
-            if task_id is None:
-                res.refresh_from_db()
-                gap_text = res.gap_summary
-        gap_text = gap_text or ""
+        # Die Generierung der Gap-Zusammenfassung erfolgt nun manuell über ein
+        # separates Endpoint und wird hier nicht mehr automatisch ausgelöst.
 
         if field_name:
             manual_data = anlage.manual_analysis_json or {"functions": {}}
@@ -3789,6 +3781,25 @@ def edit_gap_notes(request, result_id: int):
     pf = result.projekt.anlagen.filter(anlage_nr=2).first()
     context = {"result": result, "project_file": pf}
     return render(request, "gap_notes_form.html", context)
+
+
+@login_required
+@require_POST
+def ajax_generate_gap_summary(request, result_id: int) -> JsonResponse:
+    """Startet die Generierung einer Gap-Zusammenfassung."""
+
+    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    model = request.POST.get("model")
+    task_id = async_task(
+        "core.llm_tasks.worker_generate_gap_summary",
+        result.id,
+        model,
+    )
+    return JsonResponse({"status": "queued", "task_id": task_id})
 
 
 @login_required

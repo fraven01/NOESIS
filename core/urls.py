@@ -263,6 +263,11 @@ urlpatterns = [
         name="edit_gap_notes",
     ),
     path(
+        "ajax/generate-gap-summary/<int:result_id>/",
+        views.ajax_generate_gap_summary,
+        name="ajax_generate_gap_summary",
+    ),
+    path(
         "ajax/start-gutachten/<int:project_id>/",
         views.ajax_start_gutachten_generation,
         name="ajax_start_gutachten_generation",
