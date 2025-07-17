@@ -553,6 +553,10 @@ def _build_row_data(
         }
 
     result_obj = result_map.get(lookup_key)
+    # Fallback: Bei Unterfragen ggf. Ergebnis der Hauptfunktion verwenden
+    if result_obj is None and sub_id is not None:
+        parent_key = lookup_key.split(":", 1)[0].strip()
+        result_obj = result_map.get(parent_key)
     is_negotiable = result_obj.negotiable if result_obj else False
     override_val = (
         result_obj.is_negotiable_manual_override if result_obj else None
