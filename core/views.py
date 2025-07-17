@@ -1320,8 +1320,7 @@ def admin_project_cleanup(request, pk):
             return redirect("admin_project_cleanup", pk=projekt.pk)
         if action == "delete_gutachten":
             if projekt.gutachten_file:
-                path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
-                path.unlink(missing_ok=True)
+                projekt.gutachten_file.delete(save=False)
                 projekt.gutachten_file = ""
                 projekt.save(update_fields=["gutachten_file"])
             messages.success(request, "Gutachten gelöscht")
