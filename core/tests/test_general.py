@@ -2024,6 +2024,22 @@ class Anlage2ReviewTests(NoesisTestCase):
             rows[1]["verif_key"], f"{self.func.name}: {self.sub.frage_text}"
         )
 
+    def test_subquestion_justification_link(self):
+        self.file.verification_json = {
+            f"{self.func.name}: {self.sub.frage_text}": {
+                "ki_begruendung": "Text"
+            }
+        }
+        self.file.save()
+
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        link = reverse(
+            "justification_detail_edit",
+            args=[self.file.pk, f"{self.func.name}: {self.sub.frage_text}"],
+        )
+        self.assertContains(resp, link)
+
     def test_auto_analysis_runs_once_for_new_file(self):
         pf = BVProjectFile.objects.create(
             projekt=self.projekt,
