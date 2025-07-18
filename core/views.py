@@ -582,12 +582,12 @@ def _build_row_data(
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
 
-    if sub_id is not None:
+    if result_obj:
+        doc_data = _normalize_fields(result_obj.doc_result)
+        ai_data = _normalize_fields(result_obj.ai_result)
+    else:
         doc_data = analysis_lookup.get(lookup_key, {})
         ai_data = verification_lookup.get(lookup_key, {})
-    else:
-        doc_data = _normalize_fields(result_obj.doc_result) if result_obj else analysis_lookup.get(lookup_key, {})
-        ai_data = _normalize_fields(result_obj.ai_result) if result_obj else verification_lookup.get(lookup_key, {})
 
     auto_val = _calc_auto_negotiable(doc_data, ai_data)
     is_negotiable = override_val if override_val is not None else auto_val
