@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Anlage 6 Review{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 6 prüfen</h1>
+<p><a href="{{ anlage.upload.url }}" class="text-blue-700 underline">Download</a></p>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div>
+        {{ form.anlage6_note.label_tag }}<br>
+        {{ form.anlage6_note }}
+        {{ form.anlage6_note.errors }}
+    </div>
+    <div>
+        {{ form.manual_reviewed }} {{ form.manual_reviewed.label_tag }}
+        {{ form.manual_reviewed.errors }}
+    </div>
+    <div>
+        {{ form.verhandlungsfaehig }} {{ form.verhandlungsfaehig.label_tag }}
+        {{ form.verhandlungsfaehig.errors }}
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+{% endblock %}
