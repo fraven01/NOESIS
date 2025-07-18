@@ -93,7 +93,7 @@ from .models import (
     ZweckKategorieA,
     Anlage5Review,
 )
-from .docx_utils import extract_text
+from .docx_utils import extract_text, get_docx_page_count
 from .llm_utils import query_llm
 from .workflow import set_project_status
 from .reporting import generate_gap_analysis, generate_management_summary
@@ -2745,6 +2745,15 @@ def projekt_file_upload(request, pk):
             obj.projekt = projekt
             obj.text_content = content
             obj.save()
+
+            if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
+                try:
+                    pages = get_docx_page_count(Path(obj.upload.path))
+                    if pages == 1:
+                        obj.verhandlungsfaehig = True
+                        obj.save(update_fields=["verhandlungsfaehig"])
+                except Exception:
+                    logger.exception("Fehler beim Seitenzählen")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()
@@ -3272,7 +3281,10 @@ def projekt_file_edit_json(request, pk):
         if request.method == "POST":
             form = BVProjectFileJSONForm(request.POST, instance=anlage)
             if form.is_valid():
-                form.save()
+                obj = form.save()
+                if obj.anlage_nr == 3 and not obj.manual_reviewed:
+                    obj.manual_reviewed = True
+                    obj.save(update_fields=["manual_reviewed"])
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
             form = BVProjectFileJSONForm(instance=anlage)

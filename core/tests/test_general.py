@@ -646,6 +646,48 @@ class AutoApprovalTests(NoesisTestCase):
         self.assertEqual(self.projekt.status.key, "ENDGEPRUEFT")
 
 
+class Anlage3AutomationTests(NoesisTestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("auto3", password="pass")
+        self.client.login(username="auto3", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def _upload_docx(self, document: Document) -> BVProjectFile:
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        document.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("t.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        return BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=3)
+
+    def test_single_page_sets_negotiable(self):
+        doc = Document()
+        doc.add_paragraph("Seite 1")
+        pf = self._upload_docx(doc)
+        self.assertTrue(pf.verhandlungsfaehig)
+
+    def test_review_save_marks_checked(self):
+        pf = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("a.docx", b""),
+            text_content="",
+        )
+        url = reverse("projekt_file_edit_json", args=[pf.pk])
+        resp = self.client.post(url, {"analysis_json": "{}"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        pf.refresh_from_db()
+        self.assertTrue(pf.manual_reviewed)
+
+
 class BVProjectModelTests(NoesisTestCase):
     def test_title_auto_set_from_software(self):
         projekt = BVProject.objects.create(software_typen="A, B", beschreibung="x")
