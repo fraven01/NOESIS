@@ -581,10 +581,10 @@ def _build_row_data(
         result_obj = result_map.get(parent_key)
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
-    auto_val = _calc_auto_negotiable(
-        analysis_lookup.get(lookup_key),
-        verification_lookup.get(lookup_key),
-    )
+    doc_data = _normalize_fields(result_obj.doc_result) if result_obj else {}
+    ai_data = _normalize_fields(result_obj.ai_result) if result_obj else {}
+
+    auto_val = _calc_auto_negotiable(doc_data, ai_data)
     is_negotiable = override_val if override_val is not None else auto_val
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
@@ -597,8 +597,8 @@ def _build_row_data(
     # und kein manueller Wert hinterlegt ist
     manual_review_required = False
     for field, _ in fields_def:
-        doc_val = analysis_lookup.get(lookup_key, {}).get(field)
-        ai_val = verification_lookup.get(lookup_key, {}).get(field)
+        doc_val = doc_data.get(field)
+        ai_val = ai_data.get(field)
         manual_val = manual_lookup.get(lookup_key, {}).get(field)
         if (
             doc_val is not None
@@ -611,8 +611,8 @@ def _build_row_data(
             break
     return {
         "name": display_name,
-        "doc_result": _normalize_fields(answers.get(lookup_key, {})),
-        "ai_result": _normalize_fields(verification_lookup.get(lookup_key, {})),
+        "doc_result": doc_data,
+        "ai_result": ai_data,
         "initial": disp["values"],
         "manual_flags": disp["manual_flags"],
         "form_fields": form_fields_map,
