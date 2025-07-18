@@ -836,6 +836,75 @@ class BuildRowDataTests(NoesisTestCase):
         )
         self.assertFalse(row["manual_flags"]["technisch_vorhanden"])
 
+    def test_doc_ai_from_result_map_main(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        res = Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            doc_result={"technisch_verfuegbar": True},
+            ai_result={"technisch_verfuegbar": False},
+        )
+
+        analysis = {self.func.name: {"technisch_vorhanden": False}}
+        verification = {self.func.name: {"technisch_vorhanden": True}}
+        result_map = {res.get_lookup_key(): res}
+
+        row = _build_row_data(
+            self.func.name,
+            self.func.name,
+            self.func.id,
+            f"func{self.func.id}_",
+            self.form,
+            {},
+            {},
+            {},
+            analysis,
+            verification,
+            {},
+            result_map,
+        )
+
+        self.assertTrue(row["doc_result"]["technisch_vorhanden"])
+        self.assertFalse(row["ai_result"]["technisch_vorhanden"])
+
+    def test_doc_ai_from_result_map_subquestion(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        sub = Anlage2SubQuestion.objects.create(
+            funktion=self.func, frage_text="Unterfrage?"
+        )
+        form = Anlage2ReviewForm()  # Formular nach dem Erstellen der Unterfrage
+        res = Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            doc_result={"technisch_verfuegbar": False},
+            ai_result={"technisch_verfuegbar": True},
+            raw_json={"subquestion_id": sub.id},
+        )
+
+        lookup = res.get_lookup_key()
+        analysis = {lookup: {"technisch_vorhanden": True}}
+        verification = {lookup: {"technisch_vorhanden": False}}
+        result_map = {lookup: res}
+
+        row = _build_row_data(
+            sub.frage_text,
+            lookup,
+            self.func.id,
+            f"sub{sub.id}_",
+            form,
+            {},
+            {},
+            {},
+            analysis,
+            verification,
+            {},
+            result_map,
+            sub_id=sub.id,
+        )
+
+        self.assertFalse(row["doc_result"]["technisch_vorhanden"])
+        self.assertTrue(row["ai_result"]["technisch_vorhanden"])
+
 
 class LLMTasksTests(NoesisTestCase):
     maxDiff = None
