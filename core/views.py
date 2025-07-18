@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
+from django.core.paginator import Paginator
 from django.urls import reverse, reverse_lazy
 from typing import Any
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
@@ -2377,8 +2378,12 @@ def projekt_detail(request, pk):
 
         messages.success(request, "Projekt-Prompt gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
-    anh = projekt.anlagen.all()
-    reviewed = anh.filter(manual_reviewed=True).count()
+    all_files = projekt.anlagen.all()
+    anlage3_list = all_files.filter(anlage_nr=3)
+    other_anlagen = all_files.exclude(anlage_nr=3)
+    reviewed = all_files.filter(manual_reviewed=True).count()
+    page = request.GET.get("a3page")
+    anlage3_page = Paginator(anlage3_list, 10).get_page(page)
     is_admin = request.user.groups.filter(name="admin").exists()
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
@@ -2393,9 +2398,11 @@ def projekt_detail(request, pk):
         "projekt": projekt,
         "status_choices": ProjectStatus.objects.all(),
         "history": projekt.status_history.all(),
-        "num_attachments": anh.count(),
+        "num_attachments": all_files.count(),
         "num_reviewed": reviewed,
         "is_admin": is_admin,
+        "anlage3_page": anlage3_page,
+        "other_anlagen": other_anlagen,
 
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
