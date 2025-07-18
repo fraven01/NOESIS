@@ -14,8 +14,8 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
-from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods, require_POST
+from django.core.paginator import Paginator
 from django.urls import reverse, reverse_lazy
 from typing import Any
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
@@ -2378,10 +2378,12 @@ def projekt_detail(request, pk):
 
         messages.success(request, "Projekt-Prompt gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
-    anh = projekt.anlagen.all()
-    reviewed = anh.filter(manual_reviewed=True).count()
-    other_anlagen = anh.exclude(anlage_nr=3)
-    anlage3_count = anh.filter(anlage_nr=3).count()
+    all_files = projekt.anlagen.all()
+    anlage3_list = all_files.filter(anlage_nr=3)
+    other_anlagen = all_files.exclude(anlage_nr=3)
+    reviewed = all_files.filter(manual_reviewed=True).count()
+    page = request.GET.get("a3page")
+    anlage3_page = Paginator(anlage3_list, 10).get_page(page)
     is_admin = request.user.groups.filter(name="admin").exists()
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
@@ -2396,11 +2398,11 @@ def projekt_detail(request, pk):
         "projekt": projekt,
         "status_choices": ProjectStatus.objects.all(),
         "history": projekt.status_history.all(),
-        "num_attachments": anh.count(),
+        "num_attachments": all_files.count(),
         "num_reviewed": reviewed,
-        "other_anlagen": other_anlagen,
-        "anlage3_count": anlage3_count,
         "is_admin": is_admin,
+        "anlage3_page": anlage3_page,
+        "other_anlagen": other_anlagen,
 
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
@@ -2416,14 +2418,8 @@ def anlage3_review(request, pk):
     """Zeigt alle Dateien der Anlage 3 mit Review-Option."""
     logger.info("anlage3_review gestartet für Projekt %s", pk)
     projekt = get_object_or_404(BVProject, pk=pk)
-    anlage_list = projekt.anlagen.filter(anlage_nr=3).order_by("pk")
-    paginator = Paginator(anlage_list, 10)
-    page_obj = paginator.get_page(request.GET.get("page"))
-    context = {
-        "projekt": projekt,
-        "anlagen": page_obj.object_list,
-        "page_obj": page_obj,
-    }
+    anlagen = projekt.anlagen.filter(anlage_nr=3)
+    context = {"projekt": projekt, "anlagen": anlagen}
     logger.info("anlage3_review beendet für Projekt %s", pk)
     return render(request, "anlage3_review.html", context)
 

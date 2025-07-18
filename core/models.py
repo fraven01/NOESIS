@@ -148,6 +148,11 @@ class BVProject(models.Model):
     def software_typen(self) -> str:  # pragma: no cover - kompatibel
         return self.software_string
 
+    @property
+    def anlage3_files(self):
+        """Gibt alle Dateien der Anlage 3 zurück."""
+        return self.anlagen.filter(anlage_nr=3)
+
 
 class BVSoftware(models.Model):
     """Software-Eintrag innerhalb eines Projekts."""
