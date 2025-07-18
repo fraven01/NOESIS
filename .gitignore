@@ -203,5 +203,6 @@ media/
 .env
 debug.txt
 debug.log
+anlage2-ergebnis.log
 .vscode/launch.json
 .vscode/
