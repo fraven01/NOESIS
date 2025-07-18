@@ -28,14 +28,6 @@ from .parser_manager import parser_manager
 from .llm_tasks import ANLAGE1_QUESTIONS
 
 
-# Auswahloptionen für die Bewertung einer Frage in Anlage 1
-REVIEW_STATUS_CHOICES = [
-    ("ok", "ok"),
-    ("unklar", "unklar"),
-    ("unvollständig", "unvollständig"),
-]
-
-
 def get_anlage1_numbers() -> list[int]:
     """Gibt die vorhandenen Fragen-Nummern zurück."""
     qs = list(Anlage1Question.objects.order_by("num"))
@@ -270,33 +262,20 @@ class Anlage1ReviewForm(forms.Form):
         for i in get_anlage1_numbers():
             self.fields[f"q{i}_ok"] = forms.BooleanField(
                 required=False,
-                label=f"Frage {i} geprüft und in Ordnung",
+                label=f"Frage {i} verhandlungsfähig",
                 widget=forms.CheckboxInput(attrs={"class": "mr-2"}),
-            )
-            self.fields[f"q{i}_note"] = forms.CharField(
-                required=False,
-                label=f"Frage {i} Kommentar intern",
-                widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
-            )
-            self.fields[f"q{i}_status"] = forms.ChoiceField(
-                required=False,
-                choices=REVIEW_STATUS_CHOICES,
-                label=f"Frage {i} Status",
-                widget=forms.Select(attrs={"class": "border rounded p-2"}),
             )
             self.fields[f"q{i}_hinweis"] = forms.CharField(
                 required=False,
-                label=f"Frage {i} Hinweise PMO",
+                label=f"Frage {i} Interne Arbeitsanmerkung (Gap-Analyse)",
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.fields[f"q{i}_vorschlag"] = forms.CharField(
                 required=False,
-                label=f"Frage {i} Vorschlag an Fachbereich",
+                label=f"Frage {i} (Extern) Anmerkungen für den Fachbereich",
                 widget=forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
             )
             self.initial[f"q{i}_ok"] = data.get(str(i), {}).get("ok", False)
-            self.initial[f"q{i}_note"] = data.get(str(i), {}).get("note", "")
-            self.initial[f"q{i}_status"] = data.get(str(i), {}).get("status", "")
             self.initial[f"q{i}_hinweis"] = data.get(str(i), {}).get("hinweis", "")
             self.initial[f"q{i}_vorschlag"] = data.get(str(i), {}).get("vorschlag", "")
 
@@ -307,14 +286,11 @@ class Anlage1ReviewForm(forms.Form):
         for i in get_anlage1_numbers():
             key = str(i)
             q_data: dict[str, object] = {
-                "status": self.cleaned_data.get(f"q{i}_status", ""),
                 "hinweis": self.cleaned_data.get(f"q{i}_hinweis", ""),
                 "vorschlag": self.cleaned_data.get(f"q{i}_vorschlag", ""),
             }
             if f"q{i}_ok" in self.cleaned_data:
                 q_data["ok"] = self.cleaned_data.get(f"q{i}_ok", False)
-            if f"q{i}_note" in self.cleaned_data:
-                q_data["note"] = self.cleaned_data.get(f"q{i}_note", "")
             out[key] = q_data
         return out
 

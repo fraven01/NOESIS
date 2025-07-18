@@ -230,7 +230,6 @@ def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
         if not isinstance(q, dict):
             continue
         out[str(num)] = {
-            "status": q.get("status", ""),
             "hinweis": q.get("hinweis", ""),
             "vorschlag": q.get("vorschlag", ""),
         }
@@ -2943,11 +2942,9 @@ def projekt_file_edit_json(request, pk):
                 i,
                 questions.get(i, ""),
                 answers.get(str(i), ""),
-                form[f"q{i}_status"],
                 form[f"q{i}_hinweis"],
                 form[f"q{i}_vorschlag"],
                 form[f"q{i}_ok"],
-                form[f"q{i}_note"],
             )
             for i in numbers
         ]
@@ -3289,45 +3286,6 @@ def projekt_file_edit_json(request, pk):
     return render(request, template, context)
 
 
-@login_required
-@require_http_methods(["POST"])
-def anlage1_generate_email(request, pk):
-    """Erstellt einen E-Mail-Text aus den Vorschlägen."""
-    try:
-        anlage = BVProjectFile.objects.get(pk=pk)
-    except BVProjectFile.DoesNotExist:
-        return JsonResponse({"error": "not found"}, status=404)
-    if anlage.anlage_nr != 1:
-        return JsonResponse({"error": "invalid"}, status=400)
-
-    review = anlage.question_review or {}
-    suggestions: list[str] = []
-    for i in get_anlage1_numbers():
-        text = review.get(str(i), {}).get("vorschlag")
-        if text:
-            suggestions.append(text)
-
-    prefix = get_prompt(
-        "anlage1_email",
-        "Formuliere eine freundliche E-Mail an den Fachbereich. Bitte fasse die folgenden Vorschläge zusammen:\n\n",
-    )
-    prompt_text = prefix + "\n".join(f"- {s}" for s in suggestions)
-    base_obj = Prompt.objects.filter(name="anlage1_email").first()
-    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
-    try:
-        text = query_llm(
-            prompt_obj,
-            {},
-            model_type="default",
-            project_prompt=anlage.projekt.project_prompt,
-        )
-    except RuntimeError:
-        return JsonResponse({"error": "llm"}, status=500)
-    except Exception:
-        logger.exception("LLM Fehler")
-        return JsonResponse({"error": "llm"}, status=502)
-
-    return JsonResponse({"text": text})
 
 
 def _validate_llm_output(text: str) -> tuple[bool, str]:

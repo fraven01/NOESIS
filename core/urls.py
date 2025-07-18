@@ -342,11 +342,6 @@ urlpatterns = [
         name="project_file_toggle_flag",
     ),
     path(
-        "work/anlage/<int:pk>/email/",
-        views.anlage1_generate_email,
-        name="anlage1_generate_email",
-    ),
-    path(
         "work/projekte/<int:pk>/gap-analysis/",
         views.projekt_gap_analysis,
         name="projekt_gap_analysis",
