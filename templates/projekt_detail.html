@@ -51,7 +51,7 @@
         </tr>
     </thead>
     <tbody>
-    {% for a in projekt.anlagen.all %}
+    {% for a in other_anlagen %}
         <tr class="border-t">
             <td class="px-2 py-1">{{ a.anlage_nr }}</td>
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
@@ -102,6 +102,64 @@
     </tbody>
 </table>
 </div>
+<details class="mt-4">
+<summary class="cursor-pointer font-semibold">Anlage 3 Dateien ({{ anlage3_page.paginator.count }})</summary>
+<div class="overflow-x-auto mt-2">
+<table class="mb-2 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">Prüfen</th>
+            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
+            <th class="px-2 py-1 text-center">Geprüft</th>
+            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in anlage3_page %}
+        <tr class="border-t">
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1 text-center">{% include "partials/check_button.html" with file=a %}</td>
+            <td class="px-2 py-1 text-center">
+                {% if a.analysis_json %}
+                    <a href="{% url 'projekt_file_edit_json' a.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.verhandlungsfaehig %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.verhandlungsfaehig %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+<div class="flex justify-between items-center">
+    {% if anlage3_page.has_previous %}
+        <a href="?a3page={{ anlage3_page.previous_page_number }}" class="px-2 py-1 bg-gray-300 rounded">«</a>
+    {% endif %}
+    <span>Seite {{ anlage3_page.number }} / {{ anlage3_page.paginator.num_pages }}</span>
+    {% if anlage3_page.has_next %}
+        <a href="?a3page={{ anlage3_page.next_page_number }}" class="px-2 py-1 bg-gray-300 rounded">»</a>
+    {% endif %}
+</div>
+</div>
+</details>
 <a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Anlage hochladen</a>
 </div>
 
