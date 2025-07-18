@@ -38,6 +38,9 @@
 
 <div class="bg-white rounded-lg shadow p-4">
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
+<div class="mb-2">
+    <a href="{% url 'anlage3_review' projekt.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded">Anlage 3 Dateien ({{ anlage3_count }})</a>
+</div>
 <div class="overflow-x-auto">
 <table class="mb-4 w-full text-left">
     <thead>
@@ -51,7 +54,7 @@
         </tr>
     </thead>
     <tbody>
-    {% for a in projekt.anlagen.all %}
+    {% for a in other_anlagen %}
         <tr class="border-t">
             <td class="px-2 py-1">{{ a.anlage_nr }}</td>
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>

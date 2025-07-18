@@ -58,5 +58,24 @@
     {% endfor %}
     </tbody>
 </table>
+{% if page_obj.has_other_pages %}
+<nav class="mb-4">
+    <ul class="inline-flex space-x-1">
+        {% if page_obj.has_previous %}
+        <li><a href="?page={{ page_obj.previous_page_number }}" class="btn-action">&laquo;</a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li>
+            <a href="?page={{ num }}" class="btn-action {% if page_obj.number == num %}font-bold{% endif %}">
+                {{ num }}
+            </a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li><a href="?page={{ page_obj.next_page_number }}" class="btn-action">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 <a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
 {% endblock %}
