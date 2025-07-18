@@ -581,8 +581,13 @@ def _build_row_data(
         result_obj = result_map.get(parent_key)
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
-    doc_data = _normalize_fields(result_obj.doc_result) if result_obj else {}
-    ai_data = _normalize_fields(result_obj.ai_result) if result_obj else {}
+
+    if sub_id is not None:
+        doc_data = analysis_lookup.get(lookup_key, {})
+        ai_data = verification_lookup.get(lookup_key, {})
+    else:
+        doc_data = _normalize_fields(result_obj.doc_result) if result_obj else analysis_lookup.get(lookup_key, {})
+        ai_data = _normalize_fields(result_obj.ai_result) if result_obj else verification_lookup.get(lookup_key, {})
 
     auto_val = _calc_auto_negotiable(doc_data, ai_data)
     is_negotiable = override_val if override_val is not None else auto_val
