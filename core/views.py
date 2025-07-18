@@ -412,6 +412,10 @@ def _build_row_data(
         ai_data = {}
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
+    manual_data = manual_lookup.get(lookup_key, {})
+    doc_json = json.dumps(doc_data, ensure_ascii=False)
+    ai_json = json.dumps(ai_data, ensure_ascii=False)
+    manual_json = json.dumps(manual_data, ensure_ascii=False)
 
     disp = _get_display_data(
         lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
@@ -480,7 +484,11 @@ def _build_row_data(
     return {
         "name": display_name,
         "doc_result": doc_data,
+        "doc_json": doc_json,
         "ai_result": ai_data,
+        "ai_json": ai_json,
+        "manual_result": manual_data,
+        "manual_json": manual_json,
         "initial": disp["values"],
         "manual_flags": disp["manual_flags"],
         "form_fields": form_fields_map,
