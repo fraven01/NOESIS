@@ -239,194 +239,59 @@ def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
 
 
 def _analysis_to_initial(anlage: BVProjectFile) -> dict:
-    """Wandelt ``analysis_json`` in das Initialformat für ``Anlage2ReviewForm``."""
-    data = anlage.analysis_json or {}
-    debug_logger.debug("Eingabe analysis_json: %r", data)
+    """Ermittelt die Dokumentergebnisse aus der Datenbank."""
     initial = {"functions": {}}
-    if not isinstance(data, dict):
-        debug_logger.debug("analysis_json ist kein Dict: %r", type(data))
-        return initial
 
-    name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
-    sub_name_map = {
-        (s.funktion.name, s.frage_text): str(s.id)
-        for s in Anlage2SubQuestion.objects.select_related("funktion")
-    }
-    rev_map = {v: k for k, v in FIELD_RENAME.items()}
+    results = Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
 
-    items = data.get("functions")
-    if isinstance(items, dict) and "value" in items:
-        items = items["value"]
-    if items is None:
-        table_funcs = data.get("table_functions")
-        if isinstance(table_funcs, dict):
-            items = []
-            for k, v in table_funcs.items():
-                if isinstance(v, dict):
-                    items.append({"name": k, **v})
-                else:
-                    logger.warning(
-                        "Unerwarteter Typ in table_functions f\xc3\xbcr %s: %s",
-                        k,
-                        type(v),
-                    )
-        else:
-            items = []
-    for item in items:
-        name = item.get("funktion") or item.get("name")
-        if not name:
-            continue
-
-        # Unterfrage im Format "Funktion: Frage"?
-        if ": " in name:
-            func_name, sub_text = name.split(": ", 1)
-            func_id = name_map.get(func_name)
-            sub_id = sub_name_map.get((func_name, sub_text))
-            if not func_id or not sub_id:
-                continue
-
-            s_entry: dict[str, object] = {}
-            for field, _ in get_anlage2_fields():
-                val = item.get(field)
-                debug_logger.debug("Subfrage %s Feld %s: %r", sub_text, field, val)
-                if isinstance(val, dict) and "value" in val:
-                    val = val["value"]
-                    debug_logger.debug("Subfeld %s normalisiert: %r", field, val)
-                if val is None:
-                    alt = rev_map.get(field)
-                    if alt:
-                        alt_val = item.get(alt)
-                        debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
-                        if isinstance(alt_val, dict) and "value" in alt_val:
-                            alt_val = alt_val["value"]
-                            debug_logger.debug(
-                                "Alternativfeld %s normalisiert: %r", alt, alt_val
-                            )
-                        val = alt_val
-                if isinstance(val, bool):
-                    s_entry[field] = val
-                    debug_logger.debug("Gesetzter Subwert f\u00fcr %s: %r", field, val)
-
-            if s_entry:
-                (
-                    initial["functions"]
-                    .setdefault(func_id, {})
-                    .setdefault("subquestions", {})
-                )[sub_id] = s_entry
-            continue
-
-        func_id = name_map.get(name)
-        if not func_id:
-            continue
-        entry: dict[str, object] = {}
-        for field, _ in get_anlage2_fields():
-            val = item.get(field)
-            debug_logger.debug("Funktion %s Feld %s: %r", name, field, val)
-            if isinstance(val, dict) and "value" in val:
-                val = val["value"]
-                debug_logger.debug("Feld %s normalisiert: %r", field, val)
-            if val is None:
-                alt = rev_map.get(field)
-                if alt:
-                    alt_val = item.get(alt)
-                    debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
-                    if isinstance(alt_val, dict) and "value" in alt_val:
-                        alt_val = alt_val["value"]
-                        debug_logger.debug(
-                            "Alternativfeld %s normalisiert: %r", alt, alt_val
-                        )
-                    val = alt_val
-            if isinstance(val, bool):
-                entry[field] = val
-                debug_logger.debug("Gesetzter Wert f\u00fcr %s: %r", field, val)
-        sub_map: dict[str, dict] = {}
-        for sub in Anlage2SubQuestion.objects.filter(funktion_id=func_id).order_by(
-            "id"
-        ):
-            match = next(
-                (
-                    s
-                    for s in item.get("subquestions", [])
-                    if s.get("frage_text") == sub.frage_text
-                ),
-                None,
+    for res in results:
+        func_id = str(res.funktion_id)
+        target = initial["functions"].setdefault(func_id, {})
+        dest = target
+        if res.subquestion_id:
+            dest = target.setdefault("subquestions", {}).setdefault(
+                str(res.subquestion_id), {}
             )
-            if not match:
-                continue
-            s_entry: dict[str, object] = {}
-            for field, _ in get_anlage2_fields():
-                s_val = match.get(field)
-                debug_logger.debug(
-                    "Subfrage %s Feld %s: %r", sub.frage_text, field, s_val
-                )
-                if isinstance(s_val, dict) and "value" in s_val:
-                    s_val = s_val["value"]
-                    debug_logger.debug("Subfeld %s normalisiert: %r", field, s_val)
-                if s_val is None:
-                    alt = rev_map.get(field)
-                    if alt:
-                        alt_val = match.get(alt)
-                        debug_logger.debug("Nutze Alternativfeld %s: %r", alt, alt_val)
-                        if isinstance(alt_val, dict) and "value" in alt_val:
-                            alt_val = alt_val["value"]
-                            debug_logger.debug(
-                                "Alternativfeld %s normalisiert: %r", alt, alt_val
-                            )
-                        s_val = alt_val
-                if isinstance(s_val, bool):
-                    s_entry[field] = s_val
-                    debug_logger.debug(
-                        "Gesetzter Subwert f\u00fcr %s: %r", field, s_val
-                    )
-            if s_entry:
-                sub_map[str(sub.id)] = s_entry
-        if sub_map:
-            entry["subquestions"] = sub_map
-        initial["functions"][func_id] = entry
+        doc = res.doc_result if isinstance(res.doc_result, dict) else {}
+        for field, _ in get_anlage2_fields():
+            val = doc.get(field)
+            if isinstance(val, dict):
+                val = val.get("value")
+            if isinstance(val, bool):
+                dest[field] = val
+        if res.gap_summary:
+            dest["gap_summary"] = res.gap_summary
+        if res.gap_notiz:
+            dest["gap_notiz"] = res.gap_notiz
+
     debug_logger.debug("Ergebnis initial: %r", initial)
     return initial
 
 
-def _verification_to_initial(data: dict | None) -> dict:
-    """Wandelt ``verification_json`` in das Initialformat."""
+def _verification_to_initial(_data: dict | None) -> dict:
+    """Liest KI-Prüfergebnisse aus der Datenbank."""
     initial = {"functions": {}}
-    if not isinstance(data, dict):
-        return initial
 
-    name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
-    sub_map = {}
-    for sub in Anlage2SubQuestion.objects.select_related("funktion"):  # type: ignore[misc]
-        sub_map[(sub.funktion.name, sub.frage_text)] = str(sub.id)
+    results = Anlage2FunctionResult.objects.filter(projekt=_data.projekt) if isinstance(_data, BVProjectFile) else []
+    if isinstance(_data, BVProjectFile):
+        results = Anlage2FunctionResult.objects.filter(projekt=_data.projekt)
 
-    for key, val in data.items():
-        if not isinstance(val, dict):
-            continue
-        if ": " in key:
-            func_name, sub_text = key.split(": ", 1)
-            func_id = name_map.get(func_name)
-            sub_id = sub_map.get((func_name, sub_text))
-            if not func_id or not sub_id:
-                continue
-            entry = (
-                initial["functions"]
-                .setdefault(func_id, {})
-                .setdefault(
-                    "subquestions",
-                    {},
-                )
-                .setdefault(sub_id, {})
+    for res in results:
+        func_id = str(res.funktion_id)
+        target = initial["functions"].setdefault(func_id, {})
+        dest = target
+        if res.subquestion_id:
+            dest = target.setdefault("subquestions", {}).setdefault(
+                str(res.subquestion_id), {}
             )
-        else:
-            func_id = name_map.get(key)
-            if not func_id:
-                continue
-            entry = initial["functions"].setdefault(func_id, {})
-        if "technisch_verfuegbar" in val:
-            entry["technisch_vorhanden"] = val["technisch_verfuegbar"]
-        if "ki_beteiligt" in val:
-            entry["ki_beteiligt"] = val["ki_beteiligt"]
-        if "ki_beteiligt_begruendung" in val:
-            entry["ki_beteiligt_begruendung"] = val["ki_beteiligt_begruendung"]
+        ai = res.ai_result if isinstance(res.ai_result, dict) else {}
+        if "technisch_verfuegbar" in ai:
+            dest["technisch_vorhanden"] = ai.get("technisch_verfuegbar")
+        if "ki_beteiligt" in ai:
+            dest["ki_beteiligt"] = ai.get("ki_beteiligt")
+        if "ki_beteiligt_begruendung" in ai:
+            dest["ki_beteiligt_begruendung"] = ai.get("ki_beteiligt_begruendung")
+
     return initial
 
 
@@ -528,16 +393,29 @@ def _build_row_data(
     answers: dict[str, dict],
     ki_map: dict[tuple[str, str | None], str],
     beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]],
-    analysis_lookup: dict[str, dict],
-    verification_lookup: dict[str, dict],
     manual_lookup: dict[str, dict],
     result_map: dict[str, Anlage2FunctionResult],
     sub_id: int | None = None,
 ) -> dict:
     """Erzeugt die Darstellungsdaten für eine Funktion oder Unterfrage."""
 
+    result_obj = result_map.get(lookup_key)
+    # Fallback: Bei Unterfragen ggf. Ergebnis der Hauptfunktion verwenden
+    if result_obj is None and sub_id is not None:
+        parent_key = lookup_key.split(":", 1)[0].strip()
+        result_obj = result_map.get(parent_key)
+
+    if result_obj:
+        doc_data = _normalize_fields(result_obj.doc_result)
+        ai_data = _normalize_fields(result_obj.ai_result)
+    else:
+        doc_data = {}
+        ai_data = {}
+
+    override_val = result_obj.is_negotiable_manual_override if result_obj else None
+
     disp = _get_display_data(
-        lookup_key, analysis_lookup, verification_lookup, manual_lookup
+        lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
     )
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
@@ -553,7 +431,7 @@ def _build_row_data(
         origin_val = "none"
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
-            ai_val = verification_lookup.get(lookup_key, {}).get(field)
+            ai_val = ai_data.get(field)
             if man_val is not None:
                 origin_val = "manual"
             elif ai_val is not None:
@@ -574,20 +452,6 @@ def _build_row_data(
             "origin": rev_origin.get(field),
         }
 
-    result_obj = result_map.get(lookup_key)
-    # Fallback: Bei Unterfragen ggf. Ergebnis der Hauptfunktion verwenden
-    if result_obj is None and sub_id is not None:
-        parent_key = lookup_key.split(":", 1)[0].strip()
-        result_obj = result_map.get(parent_key)
-
-    override_val = result_obj.is_negotiable_manual_override if result_obj else None
-
-    if result_obj:
-        doc_data = _normalize_fields(result_obj.doc_result)
-        ai_data = _normalize_fields(result_obj.ai_result)
-    else:
-        doc_data = analysis_lookup.get(lookup_key, {})
-        ai_data = verification_lookup.get(lookup_key, {})
 
     auto_val = _calc_auto_negotiable(doc_data, ai_data)
     is_negotiable = override_val if override_val is not None else auto_val
@@ -2990,37 +2854,20 @@ def projekt_file_edit_json(request, pk):
 
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
         else:
-            verif_init = _verification_to_initial(anlage.verification_json)
-            verif_raw = anlage.verification_json or {}
-
-            name_map = {f.name: str(f.id) for f in Anlage2Function.objects.all()}
-            sub_map = {
-                (s.funktion.name, s.frage_text): str(s.id)
-                for s in Anlage2SubQuestion.objects.select_related("funktion")
-            }
+            verif_init = _verification_to_initial(anlage)
             ki_map: dict[tuple[str, str | None], str] = {}
             beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
-            if isinstance(verif_raw, dict):
-                for key, val in verif_raw.items():
-                    if not isinstance(val, dict):
-                        continue
-                    begr = val.get("ki_begruendung")
-                    beteiligt = val.get("ki_beteiligt")
-                    beteiligt_begr = val.get("ki_beteiligt_begruendung", "")
-                    if ": " in key:
-                        func_name, sub_text = key.split(": ", 1)
-                        fid = name_map.get(func_name)
-                        sid = sub_map.get((func_name, sub_text))
-                        if fid:
-                            if begr:
-                                ki_map[(fid, sid)] = begr
-                            beteilig_map[(fid, sid)] = (beteiligt, beteiligt_begr)
-                    else:
-                        fid = name_map.get(key)
-                        if fid:
-                            if begr:
-                                ki_map[(fid, None)] = begr
-                            beteilig_map[(fid, None)] = (beteiligt, beteiligt_begr)
+            for res in Anlage2FunctionResult.objects.filter(projekt=anlage.projekt):
+                fid = str(res.funktion_id)
+                sid = str(res.subquestion_id) if res.subquestion_id else None
+                ai = res.ai_result if isinstance(res.ai_result, dict) else {}
+                begr = ai.get("ki_begruendung")
+                beteiligt = ai.get("ki_beteiligt")
+                beteiligt_begr = ai.get("ki_beteiligt_begruendung", "")
+                if begr:
+                    ki_map[(fid, sid)] = begr
+                if beteiligt is not None:
+                    beteilig_map[(fid, sid)] = (beteiligt, beteiligt_begr)
 
             fields_def = [f[0] for f in get_anlage2_fields()]
             field_map = {
@@ -3195,8 +3042,6 @@ def projekt_file_edit_json(request, pk):
                     answers,
                     ki_map,
                     beteilig_map,
-                    analysis_lookup,
-                    verification_lookup,
                     manual_lookup,
                     result_map,
                 )
@@ -3223,8 +3068,6 @@ def projekt_file_edit_json(request, pk):
                         answers,
                         ki_map,
                         beteilig_map,
-                        analysis_lookup,
-                        verification_lookup,
                         manual_lookup,
                         result_map,
                         sub_id=sub.id,
@@ -3822,9 +3665,8 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         is_negotiable=False,
         is_negotiable_manual_override=None,
     )
-    project_file.verification_json = {}
     project_file.manual_analysis_json = None
-    project_file.save(update_fields=["verification_json", "manual_analysis_json"])
+    project_file.save(update_fields=["manual_analysis_json"])
 
     return JsonResponse({"status": "success"})
 
@@ -3867,7 +3709,6 @@ def projekt_file_delete_result(request, pk: int):
         Anlage2FunctionResult.objects.filter(
             projekt=project_file.projekt
         ).exclude(source="parser").delete()
-        project_file.verification_json = {}
         Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
             is_negotiable=False,
             is_negotiable_manual_override=None
@@ -3883,8 +3724,6 @@ def projekt_file_delete_result(request, pk: int):
             "manual_analysis_json",
             "manual_reviewed",
             "verhandlungsfaehig",
-            "verification_json",
-            
         ]
     )
 
@@ -4092,14 +3931,19 @@ def edit_ki_justification(request, pk):
     else:
         return HttpResponseBadRequest("invalid")
 
-    verif = anlage.verification_json or {}
-    data = verif.get(key, {})
+    res_qs = Anlage2FunctionResult.objects.filter(
+        projekt=anlage.projekt,
+        funktion=obj if obj_type == "function" else obj.funktion,
+        subquestion=obj if obj_type == "subquestion" else None,
+    )
+    res = res_qs.first()
+    data = res.ai_result if res and isinstance(res.ai_result, dict) else {}
     if request.method == "POST":
         text = request.POST.get("ki_begruendung", "").strip()
         data["ki_begruendung"] = text
-        verif[key] = data
-        anlage.verification_json = verif
-        anlage.save(update_fields=["verification_json"])
+        if res:
+            res.ai_result = data
+            res.save(update_fields=["ai_result"])
         messages.success(request, "Begründung gespeichert")
         return redirect("projekt_file_edit_json", pk=anlage.pk)
 
@@ -4120,15 +3964,19 @@ def justification_detail_edit(request, file_id, function_key):
     if anlage.anlage_nr != 2:
         raise Http404
 
-    verif = anlage.verification_json or {}
-    data = verif.get(function_key, {})
+    res = Anlage2FunctionResult.objects.filter(
+        projekt=anlage.projekt,
+        funktion__name=function_key,
+        subquestion__isnull=True,
+    ).first()
+    data = res.ai_result if res and isinstance(res.ai_result, dict) else {}
     if request.method == "POST":
         form = JustificationForm(request.POST)
         if form.is_valid():
             data["ki_begruendung"] = form.cleaned_data["justification"]
-            verif[function_key] = data
-            anlage.verification_json = verif
-            anlage.save(update_fields=["verification_json"])
+            if res:
+                res.ai_result = data
+                res.save(update_fields=["ai_result"])
             messages.success(request, "Begründung gespeichert")
             return redirect("projekt_file_edit_json", pk=anlage.pk)
     else:
@@ -4152,16 +4000,17 @@ def justification_delete(request, file_id, function_key):
     if anlage.anlage_nr != 2:
         raise Http404
 
-    verif = anlage.verification_json or {}
-    entry = verif.get(function_key, {})
-    if isinstance(entry, dict) and "ki_begruendung" in entry:
+    res = Anlage2FunctionResult.objects.filter(
+        projekt=anlage.projekt,
+        funktion__name=function_key,
+        subquestion__isnull=True,
+    ).first()
+    entry = res.ai_result if res and isinstance(res.ai_result, dict) else {}
+    if "ki_begruendung" in entry:
         entry.pop("ki_begruendung")
-        if entry:
-            verif[function_key] = entry
-        else:
-            verif.pop(function_key, None)
-        anlage.verification_json = verif
-        anlage.save(update_fields=["verification_json"])
+        if res:
+            res.ai_result = entry
+            res.save(update_fields=["ai_result"])
         messages.success(request, "Begründung gelöscht")
 
     return redirect("projekt_file_edit_json", pk=anlage.pk)

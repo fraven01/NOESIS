@@ -838,6 +838,12 @@ class Anlage2FunctionResult(models.Model):
 
     projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
+    subquestion = models.ForeignKey(
+        "Anlage2SubQuestion",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
     technisch_verfuegbar = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     einsatz_bei_telefonica = models.BooleanField(null=True)
@@ -854,7 +860,7 @@ class Anlage2FunctionResult(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("projekt", "funktion")]
+        unique_together = [("projekt", "funktion", "subquestion")]
         ordering = ["funktion__name"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
@@ -867,12 +873,11 @@ class Anlage2FunctionResult(models.Model):
 
     def get_lookup_key(self) -> str:
         """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
-        sub_id = None
-        if isinstance(self.raw_json, dict):
-            sub_id = self.raw_json.get("subquestion_id")
-        if sub_id:
+        if self.subquestion:
+            return f"{self.funktion.name}: {self.subquestion.frage_text}"
+        if isinstance(self.raw_json, dict) and self.raw_json.get("subquestion_id"):
             try:
-                sub = Anlage2SubQuestion.objects.get(pk=sub_id)
+                sub = Anlage2SubQuestion.objects.get(pk=self.raw_json["subquestion_id"])
                 return f"{self.funktion.name}: {sub.frage_text}"
             except Anlage2SubQuestion.DoesNotExist:
                 pass

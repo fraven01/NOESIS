@@ -455,27 +455,34 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 sub_entry["not_found"] = True
             results.append(sub_entry)
 
-    project_file.analysis_json = {"functions": results}
-    project_file.save(update_fields=["analysis_json"])
-
     for row in results:
-        if row.get("subquestion_id"):
+        sub_id = row.get("subquestion_id")
+        func_name = row.get("funktion")
+        if not func_name:
             continue
-        name = row.get("funktion")
-        if not name:
-            continue
-        try:
-            func = Anlage2Function.objects.get(name=name)
-        except Anlage2Function.DoesNotExist:
-            continue
+        if sub_id:
+            try:
+                sub = Anlage2SubQuestion.objects.get(pk=sub_id)
+            except Anlage2SubQuestion.DoesNotExist:
+                continue
+            func = sub.funktion
+        else:
+            try:
+                func = Anlage2Function.objects.get(name=func_name)
+            except Anlage2Function.DoesNotExist:
+                continue
+            sub = None
+
         res, _ = Anlage2FunctionResult.objects.update_or_create(
             projekt=project_file.projekt,
             funktion=func,
-            defaults={"doc_result": row},
+            subquestion=sub,
+            defaults={"doc_result": row, "raw_json": row},
         )
 
         res.doc_result = row
-        res.save(update_fields=["doc_result"])
+        res.raw_json = row
+        res.save(update_fields=["doc_result", "raw_json"])
 
     return results
 
@@ -1372,10 +1379,21 @@ def run_conditional_anlage2_check(
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"
     ).order_by("name"):
-        result = worker_verify_feature(
+        worker_verify_feature(
             projekt_id, "function", func.id, model_name
         )
-        if result.get("technisch_verfuegbar") is True:
+        res = Anlage2FunctionResult.objects.filter(
+            projekt_id=projekt_id,
+            funktion=func,
+            subquestion__isnull=True,
+        ).first()
+        doc_ok = False
+        if res and isinstance(res.doc_result, dict):
+            val = res.doc_result.get("technisch_vorhanden") or res.doc_result.get("technisch_verfuegbar")
+            if isinstance(val, dict):
+                val = val.get("value")
+            doc_ok = val is True
+        if doc_ok:
             for sub in func.anlage2subquestion_set.all():
                 worker_verify_feature(
                     projekt_id, "subquestion", sub.id, model_name
@@ -1620,26 +1638,14 @@ def worker_verify_feature(
         json.dumps(verification_result, ensure_ascii=False),
     )
 
-    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
-    if not pf:
-        logger.info(
-            "worker_verify_feature beendet für Projekt %s Objekt %s %s",
-            project_id,
-            object_type,
-            object_id,
-        )
-        return verification_result
-
-    verif = pf.verification_json or {}
-    if lookup_key:
-        verif[lookup_key] = verification_result
-    pf.verification_json = verif
-    pf.save(update_fields=["verification_json"])
-
     func_id = obj_to_check.id if object_type == "function" else obj_to_check.funktion_id
+    sub_obj = None
+    if object_type == "subquestion":
+        sub_obj = obj_to_check
     res, _ = Anlage2FunctionResult.objects.update_or_create(
         projekt_id=project_id,
         funktion_id=func_id,
+        subquestion=sub_obj,
         defaults={"ai_result": verification_result},
     )
 
