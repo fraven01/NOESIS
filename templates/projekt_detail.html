@@ -56,20 +56,7 @@
             <td class="px-2 py-1">{{ a.anlage_nr }}</td>
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
             <td class="px-2 py-1 text-center">
-                {% if a.anlage_nr == 5 %}
-                    <a href="{% url 'projekt_file_check_view' a.pk %}"
-                       class="{% if a.anlage5review %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
-                {% elif a.anlage_nr == 6 %}
-                    <a href="{% url 'anlage6_review' a.pk %}"
-                       class="{% if a.anlage6_note or a.manual_reviewed %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
-                {% else %}
-                    {% if a.anlage_nr == 2 and a.is_verification_running %}
-                        <span class="bg-gray-400 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Läuft...</span>
-                    {% else %}
-                        <a href="{% url 'projekt_file_check_view' a.pk %}"
-                           class="{% if a.analysis_json %}bg-green-600{% else %}bg-red-600{% endif %} text-white px-2 py-1 rounded">Prüfen</a>
-                    {% endif %}
-                {% endif %}
+                {% include "partials/check_button.html" with file=a %}
             </td>
             <td class="px-2 py-1 text-center">
             {% if a.analysis_json or a.anlage_nr == 5 and a.anlage5review %}

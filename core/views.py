@@ -3605,6 +3605,18 @@ def hx_toggle_negotiable(request, result_id: int):
 
 
 @login_required
+def hx_project_file_status(request, pf_id: int):
+    """Liefert den HTML-Status des Prüfbuttons für eine Anlage."""
+    pf = get_object_or_404(BVProjectFile, pk=pf_id)
+
+    if not _user_can_edit_project(request.user, pf.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    context = {"file": pf}
+    return render(request, "partials/check_button.html", context)
+
+
+@login_required
 def edit_gap_notes(request, result_id: int):
     """Bearbeitet die Gap-Notizen für ein Ergebnis."""
 

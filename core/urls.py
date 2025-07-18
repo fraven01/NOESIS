@@ -262,6 +262,11 @@ urlpatterns = [
         name="hx_toggle_negotiable",
     ),
     path(
+        "projects/anlagen/<int:pf_id>/status/",
+        views.hx_project_file_status,
+        name="hx_project_file_status",
+    ),
+    path(
         "anlage2/notizen/<int:result_id>/",
         views.edit_gap_notes,
         name="edit_gap_notes",

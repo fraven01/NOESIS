@@ -480,6 +480,38 @@ class BVProjectFileTests(NoesisTestCase):
             resp = self.client.get(url)
         self.assertContains(resp, "disabled-btn")
 
+    def test_hx_project_file_status_running(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            verification_task_id="tid",
+        )
+        self.client.login(username=self.user.username, password="pass")
+        with patch("core.models.fetch") as mock_fetch:
+            mock_fetch.return_value = SimpleNamespace(success=None)
+            url = reverse("hx_project_file_status", args=[pf.pk])
+            resp = self.client.get(url)
+        self.assertContains(resp, "hx-trigger")
+        self.assertContains(resp, "spinner")
+
+    def test_hx_project_file_status_ready(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            verification_task_id="tid",
+        )
+        self.client.login(username=self.user.username, password="pass")
+        with patch("core.models.fetch") as mock_fetch:
+            mock_fetch.return_value = SimpleNamespace(success=True)
+            url = reverse("hx_project_file_status", args=[pf.pk])
+            resp = self.client.get(url)
+        self.assertNotContains(resp, "hx-trigger")
+        self.assertContains(resp, "Prüfen")
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
