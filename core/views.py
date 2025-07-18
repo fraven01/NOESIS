@@ -144,6 +144,7 @@ admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
+anlage2_ergebnis_logger = logging.getLogger("anlage2_ergebnis")
 
 
 _WHISPER_MODEL = None
@@ -2822,6 +2823,21 @@ def projekt_file_edit_json(request, pk):
         ]
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
+        if request.method == "GET":
+            results = (
+                Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+                .select_related("funktion", "subquestion")
+            )
+            for res in results:
+                name = res.funktion.name
+                if res.subquestion:
+                    name = f"{name}: {res.subquestion.frage_text}"
+                anlage2_ergebnis_logger.info(
+                    "Funktion '%s' -> doc_result: %s, ai_result: %s",
+                    name,
+                    json.dumps(res.doc_result, ensure_ascii=False),
+                    json.dumps(res.ai_result, ensure_ascii=False),
+                )
         if request.method == "POST":
             if "run_parser" in request.POST:
                 run_anlage2_analysis(anlage)
