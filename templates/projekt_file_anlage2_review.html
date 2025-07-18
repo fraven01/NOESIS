@@ -53,8 +53,9 @@
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
-                data-ai='{{ row.ai_result|tojson|escapejs }}'
-                data-doc='{{ row.doc_result|tojson|escapejs }}'
+                data-ai='{{ row.ai_json|escapejs }}'
+                data-doc='{{ row.doc_json|escapejs }}'
+                data-manual='{{ row.manual_json|escapejs }}'
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
                 data-manual-override="{{ row.negotiable_override|yesno:'true,false,' }}"
                 data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
@@ -209,19 +210,35 @@ function updatePopoverContent(icon, input) {
     if (!row) return;
     const doc = safeJsonParse(row.dataset.doc);
     const ai = safeJsonParse(row.dataset.ai);
+    const manual = safeJsonParse(row.dataset.manual);
     const field = icon.dataset.fieldName;
     const docKey = field === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
     const aiKey = field === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
-    let docVal = doc[docKey];
-    if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
-    let aiVal = ai[aiKey];
-    if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
+    let docEntry = doc[docKey];
+    let docVal = docEntry;
+    let docNote = '';
+    if (docEntry && typeof docEntry === 'object') {
+        if ('value' in docEntry) docVal = docEntry.value;
+        docNote = docEntry.note || docEntry.text || '';
+    }
+    let aiEntry = ai[aiKey];
+    let aiVal = aiEntry;
+    let aiNote = '';
+    if (aiEntry && typeof aiEntry === 'object') {
+        if ('value' in aiEntry) aiVal = aiEntry.value;
+        aiNote = aiEntry.note || aiEntry.text || '';
+    }
     let manualVal = null;
-    if (icon.dataset.isManual === 'true' && input && input.dataset && 'state' in input.dataset) {
+    let manualEntry = manual[aiKey];
+    if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
+    else if (manualEntry !== undefined) manualVal = manualEntry;
+    if (manualVal === null && icon.dataset.isManual === 'true' && input && input.dataset && 'state' in input.dataset) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
     }
-    const html = `Dokument: ${docVal}<br>KI-Check: ${aiVal}<br>Manuell: ${manualVal}`;
+    const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
+                 `KI-Check: ${aiVal}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
+                 `Manuell: ${manualVal}`;
     icon.dataset.popoverContent = html;
     if (window.attachCustomPopover) {
         window.attachCustomPopover(icon);
