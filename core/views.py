@@ -143,6 +143,7 @@ logger = logging.getLogger(__name__)
 debug_logger = logging.getLogger("parser_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
+ergebnis_logger = logging.getLogger("anlage2_ergebnis")
 anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
 
@@ -2773,6 +2774,17 @@ def projekt_file_edit_json(request, pk):
     ):
         run_anlage2_analysis(anlage)
         anlage.refresh_from_db()
+
+    if request.method == "GET" and anlage.anlage_nr == 2:
+        results = (
+            Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+            .select_related("funktion", "subquestion")
+        )
+        for res in results:
+            name = res.get_lookup_key()
+            doc_str = json.dumps(res.doc_result, ensure_ascii=False, indent=2)
+            ai_str = json.dumps(res.ai_result, ensure_ascii=False, indent=2)
+            ergebnis_logger.info("%s\nDOC: %s\nAI: %s", name, doc_str, ai_str)
 
 
 
