@@ -104,6 +104,34 @@ def _add_editable_flags(data: dict) -> dict:
     return data
 
 
+def _extract_bool(value: object) -> bool | None:
+    """Extrahiert einen booleschen Wert aus ``value``."""
+
+    if isinstance(value, dict):
+        value = value.get("value")
+    if isinstance(value, bool):
+        return value
+    return None
+
+
+def _calc_auto_negotiable(doc: dict | None, ai: dict | None) -> bool:
+    """Berechnet den automatischen Verhandlungsstatus."""
+
+    doc_val = None
+    ai_val = None
+    if isinstance(doc, dict):
+        doc_val = doc.get("technisch_verfuegbar")
+        if doc_val is None:
+            doc_val = doc.get("technisch_vorhanden")
+        doc_val = _extract_bool(doc_val)
+    if isinstance(ai, dict):
+        ai_val = ai.get("technisch_verfuegbar")
+        if ai_val is None:
+            ai_val = ai.get("technisch_vorhanden")
+        ai_val = _extract_bool(ai_val)
+    return doc_val is not None and ai_val is not None and doc_val == ai_val
+
+
 def get_prompt(name: str, default: str) -> str:
     """Lade einen Prompt-Text aus der Datenbank."""
     try:
