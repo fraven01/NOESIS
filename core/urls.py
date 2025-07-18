@@ -307,9 +307,9 @@ urlpatterns = [
         name="anlage5_dummy",
     ),
     path(
-        "work/anlage6/dummy/",
-        views.anlage6_dummy,
-        name="anlage6_dummy",
+        "work/anlage6/<int:pk>/review/",
+        views.anlage6_review,
+        name="anlage6_review",
     ),
     path(
         "work/anlage4/<int:pk>/review/",

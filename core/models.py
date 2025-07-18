@@ -220,6 +220,7 @@ class BVProjectFile(models.Model):
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
     manual_comment = models.TextField("Kommentar", blank=True)
+    anlage6_note = models.TextField("Pr\u00fcfnotiz", blank=True)
     question_review = models.JSONField(blank=True, null=True)
     verification_json = models.JSONField(
         blank=True,

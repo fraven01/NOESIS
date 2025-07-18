@@ -38,6 +38,7 @@ from .forms import (
     Anlage2ReviewForm,
     Anlage4ReviewForm,
     Anlage5ReviewForm,
+    Anlage6ReviewForm,
     get_anlage2_fields,
     Anlage2FunctionForm,
     Anlage2FunctionImportForm,
@@ -4290,6 +4291,20 @@ def anlage5_dummy(request):
 
 
 @login_required
-def anlage6_dummy(request):
-    """Zeigt einen Platzhalter f\xFCr Anlage 6."""
-    return render(request, "anlage6_dummy.html")
+def anlage6_review(request, pk):
+    """Erm\u00f6glicht die manuelle Sichtpr\u00fcfung von Anlage 6."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 6:
+        raise Http404
+
+    if request.method == "POST":
+        form = Anlage6ReviewForm(request.POST, instance=project_file)
+        if form.is_valid():
+            form.save()
+            return redirect("projekt_detail", pk=project_file.projekt.pk)
+    else:
+        form = Anlage6ReviewForm(instance=project_file)
+
+    context = {"anlage": project_file, "form": form}
+    return render(request, "projekt_file_anlage6_review.html", context)

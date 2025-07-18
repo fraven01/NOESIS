@@ -462,6 +462,26 @@ class Anlage5ReviewForm(forms.Form):
         }
 
 
+class Anlage6ReviewForm(forms.ModelForm):
+    """Formular f\u00fcr die manuelle Sichtpr\u00fcfung von Anlage 6."""
+
+    class Meta:
+        model = BVProjectFile
+        fields = ["anlage6_note", "manual_reviewed", "verhandlungsfaehig"]
+        labels = {
+            "anlage6_note": "Pr\u00fcfnotiz",
+            "manual_reviewed": "Gepr\u00fcft",
+            "verhandlungsfaehig": "Verhandlungsf\u00e4hig",
+        }
+        widgets = {
+            "anlage6_note": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 4}
+            ),
+            "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
+        }
+
+
 class Anlage2FunctionForm(forms.ModelForm):
     """Formular für eine Funktion aus Anlage 2."""
 
