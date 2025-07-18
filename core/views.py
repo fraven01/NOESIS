@@ -112,6 +112,8 @@ from .llm_tasks import (
     generate_gutachten,
     get_prompt,
     ANLAGE1_QUESTIONS,
+    _calc_auto_negotiable,
+    _extract_bool,
 )
 
 from .decorators import admin_required, tile_required
@@ -209,34 +211,6 @@ def _normalize_fields(data: dict | str | None) -> dict:
     return {FIELD_RENAME.get(k, k): v for k, v in data.items()}
 
 
-def _extract_bool(value: object) -> bool | None:
-    """Extrahiert einen booleschen Wert aus ``value``.
-
-    Unterstützt auch verschachtelte Strukturen im Format
-    ``{"value": <bool>}``.
-    """
-    if isinstance(value, dict):
-        value = value.get("value")
-    if isinstance(value, bool):
-        return value
-    return None
-
-
-def _calc_auto_negotiable(doc: dict | None, ai: dict | None) -> bool:
-    """Berechnet den automatischen Verhandlungsstatus."""
-    doc_val = None
-    ai_val = None
-    if isinstance(doc, dict):
-        doc_val = doc.get("technisch_verfuegbar")
-        if doc_val is None:
-            doc_val = doc.get("technisch_vorhanden")
-        doc_val = _extract_bool(doc_val)
-    if isinstance(ai, dict):
-        ai_val = ai.get("technisch_verfuegbar")
-        if ai_val is None:
-            ai_val = ai.get("technisch_vorhanden")
-        ai_val = _extract_bool(ai_val)
-    return doc_val is not None and ai_val is not None and doc_val == ai_val
 
 
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
