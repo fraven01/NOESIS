@@ -22,6 +22,7 @@ from .models import (
     Anlage4Config,
     Anlage4ParserConfig,
     ZweckKategorieA,
+    Anlage3Metadata,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -435,6 +436,23 @@ class Anlage5ReviewForm(forms.Form):
         return {
             "purposes": [p.pk for p in self.cleaned_data["purposes"]],
             "sonstige": self.cleaned_data["sonstige"],
+        }
+
+
+class Anlage3MetadataForm(forms.ModelForm):
+    """Formular f\u00fcr die extrahierten Metadaten der Anlage 3."""
+
+    class Meta:
+        model = Anlage3Metadata
+        fields = ["name", "beschreibung", "zeitraum", "art"]
+        labels = {
+            "name": "Name der Auswertung",
+            "beschreibung": "Beschreibung",
+            "zeitraum": "Zeitraum",
+            "art": "Art der Auswertung",
+        }
+        widgets = {
+            "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
         }
 
 

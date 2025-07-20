@@ -927,3 +927,47 @@ class Anlage5Review(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"Review für {self.project_file}"
+
+
+class Anlage3Metadata(models.Model):
+    """Speichert erkannte Metadaten einer Anlage 3."""
+
+    project_file = models.OneToOneField(
+        BVProjectFile,
+        on_delete=models.CASCADE,
+        related_name="anlage3meta",
+    )
+    name = models.CharField(max_length=200, blank=True)
+    beschreibung = models.TextField(blank=True)
+    zeitraum = models.CharField(max_length=100, blank=True)
+    art = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        verbose_name = "Anlage 3 Metadaten"
+        verbose_name_plural = "Anlage 3 Metadaten"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name or f"Metadaten für {self.project_file}"
+
+
+class Anlage3ParserRule(models.Model):
+    """Regel für die Erkennung von Feldern in Anlage 3."""
+
+    FIELD_CHOICES = [
+        ("name", "Name der Auswertung"),
+        ("beschreibung", "Beschreibung"),
+        ("zeitraum", "Zeitraum"),
+        ("art", "Art der Auswertung"),
+    ]
+
+    field_name = models.CharField(max_length=50, choices=FIELD_CHOICES)
+    aliases = models.JSONField(default=list, blank=True)
+    ordering = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordering", "id"]
+        verbose_name = "Anlage 3 Parser Regel"
+        verbose_name_plural = "Anlage 3 Parser Regeln"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.field_name

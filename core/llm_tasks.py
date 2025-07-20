@@ -32,6 +32,7 @@ from .models import (
     ProjectStatus,
     SoftwareKnowledge,
     Gutachten,
+    Anlage3Metadata,
 )
 from .text_parser import (
     build_token_map,
@@ -51,6 +52,7 @@ from .docx_utils import (
 from thefuzz import fuzz
 from .parser_manager import parser_manager
 from .anlage4_parser import parse_anlage4, parse_anlage4_dual
+from .anlage3_parser import parse_anlage3
 from docx import Document
 
 logger = logging.getLogger(__name__)
@@ -652,6 +654,14 @@ def analyse_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
             pages = get_pdf_page_count(path)
         else:
             pages = get_docx_page_count(path)
+            try:
+                meta = parse_anlage3(anlage)
+                if meta:
+                    Anlage3Metadata.objects.update_or_create(
+                        project_file=anlage, defaults=meta
+                    )
+            except Exception:
+                anlage3_logger.exception("Parser Fehler")
         anlage3_logger.debug("Seitenzahl der Datei: %s", pages)
 
         if pages <= 1:
