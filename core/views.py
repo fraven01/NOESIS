@@ -38,6 +38,7 @@ from .forms import (
     Anlage1ReviewForm,
     Anlage2ReviewForm,
     Anlage4ReviewForm,
+    Anlage3MetadataForm,
     Anlage5ReviewForm,
     Anlage6ReviewForm,
     get_anlage2_fields,
@@ -95,6 +96,7 @@ from .models import (
     Anlage4ParserConfig,
     ZweckKategorieA,
     Anlage5Review,
+    Anlage3Metadata,
 )
 from .docx_utils import extract_text, get_docx_page_count
 from .llm_utils import query_llm
@@ -2471,6 +2473,30 @@ def anlage3_review(request, pk):
 
 
 @login_required
+def anlage3_file_review(request, pk):
+    """Zeigt erkannte Metadaten der Anlage 3 zur Best\u00e4tigung."""
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 3:
+        raise Http404
+
+    try:
+        meta = project_file.anlage3meta
+    except Anlage3Metadata.DoesNotExist:
+        meta = Anlage3Metadata(project_file=project_file)
+
+    if request.method == "POST":
+        form = Anlage3MetadataForm(request.POST, instance=meta)
+        if form.is_valid():
+            form.save()
+            return redirect("projekt_detail", pk=project_file.projekt.pk)
+    else:
+        form = Anlage3MetadataForm(instance=meta)
+
+    context = {"anlage": project_file, "form": form}
+    return render(request, "projekt_file_anlage3_review.html", context)
+
+
+@login_required
 def anlage4_review(request, pk):
     """Zeigt die Auswertungen aus Anlage 4 und ermöglicht die manuelle Bewertung."""
     project_file = get_object_or_404(BVProjectFile, pk=pk)
@@ -2649,6 +2675,17 @@ def projekt_file_upload(request, pk):
             obj.projekt = projekt
             obj.text_content = content
             obj.save()
+
+            if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
+                try:
+                    from .anlage3_parser import parse_anlage3
+                    meta = parse_anlage3(obj)
+                    if meta:
+                        Anlage3Metadata.objects.update_or_create(
+                            project_file=obj, defaults=meta
+                        )
+                except Exception:
+                    logger.exception("Fehler beim Anlage3 Parser")
 
             if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
                 try:

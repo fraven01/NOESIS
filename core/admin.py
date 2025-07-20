@@ -20,6 +20,8 @@ from .models import (
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
+    Anlage3ParserRule,
+    Anlage3Metadata,
     Anlage5Review,
 )
 
@@ -212,6 +214,12 @@ class FormatBParserRuleAdmin(admin.ModelAdmin):
     list_editable = ("target_field", "ordering")
 
 
+@admin.register(Anlage3ParserRule)
+class Anlage3ParserRuleAdmin(admin.ModelAdmin):
+    list_display = ("field_name", "ordering")
+    list_editable = ("ordering",)
+
+
 @admin.register(AntwortErkennungsRegel)
 class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_display = (
@@ -248,6 +256,11 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
 @admin.register(Anlage5Review)
 class Anlage5ReviewAdmin(admin.ModelAdmin):
     list_display = ("project_file", "sonstige_zwecke")
+
+
+@admin.register(Anlage3Metadata)
+class Anlage3MetadataAdmin(admin.ModelAdmin):
+    list_display = ("project_file", "name", "zeitraum")
 
 
 # Registrierung der Modelle
