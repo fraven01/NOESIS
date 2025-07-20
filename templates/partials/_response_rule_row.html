@@ -7,6 +7,7 @@
     <td class="py-1">{{ form.ziel_feld }}</td>
     <td class="py-1">{{ form.regel_anwendungsbereich }}</td>
     <td class="py-1 text-center">{{ form.wert }}</td>
+    <td class="py-1">{{ form.actions_json }}</td>
     <td class="py-1 text-center">
         {% if form.instance.pk %}
         <button type="button" hx-delete="{% url 'anlage2_rule_delete' form.instance.pk %}" hx-target="closest tr" hx-swap="delete" hx-on:afterRequest="updateTotals()" class="text-red-600">

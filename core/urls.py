@@ -149,6 +149,26 @@ urlpatterns = [
         name="anlage2_rule_delete",
     ),
     path(
+        "projects-admin/parser-rules/",
+        views.AntwortErkennungsRegelListView.as_view(),
+        name="parser_rule_list",
+    ),
+    path(
+        "projects-admin/parser-rules/add/",
+        views.AntwortErkennungsRegelCreateView.as_view(),
+        name="parser_rule_add",
+    ),
+    path(
+        "projects-admin/parser-rules/<int:pk>/edit/",
+        views.AntwortErkennungsRegelUpdateView.as_view(),
+        name="parser_rule_edit",
+    ),
+    path(
+        "projects-admin/parser-rules/<int:pk>/delete/",
+        views.AntwortErkennungsRegelDeleteView.as_view(),
+        name="parser_rule_delete",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",

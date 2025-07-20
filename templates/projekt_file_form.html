@@ -15,6 +15,18 @@
         {{ form.upload }}
         {{ form.upload.errors }}
     </div>
+    {% if form.parser_mode %}
+    <div>
+        {{ form.parser_mode.label_tag }}<br>
+        {{ form.parser_mode }}
+        {{ form.parser_mode.errors }}
+    </div>
+    <div>
+        {{ form.parser_order.label_tag }}<br>
+        {{ form.parser_order }}
+        {{ form.parser_order.errors }}
+    </div>
+    {% endif %}
     <div>
         {{ form.manual_comment.label_tag }}<br>
         {{ form.manual_comment }}
