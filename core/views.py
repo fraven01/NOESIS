@@ -67,6 +67,7 @@ from .forms import (
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
     ParserSettingsForm,
+    ActionForm,
 
 )
 from .text_parser import PHRASE_TYPE_CHOICES
