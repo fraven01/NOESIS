@@ -15,8 +15,17 @@
         {{ form.regel_anwendungsbereich.errors }}
     </td>
     <td class="py-1">
-        {{ form.actions_json }}
-        {{ form.actions_json.errors }}
+        {% with af=action_formset %}
+            {{ af.management_form }}
+            {% for aform in af %}
+                <div class="flex items-center space-x-2">
+                    {{ aform.field }} {{ aform.value }}
+                </div>
+            {% endfor %}
+            {{ af.non_form_errors }}
+            <button type="submit" name="action" value="add_action_row" class="px-2 py-1 bg-gray-300 rounded">+</button>
+            <input type="hidden" name="action_prefix" value="{{ af.prefix }}">
+        {% endwith %}
     </td>
     <td class="py-1 font-mono text-xs whitespace-pre">
         {{ raw_actions|raw_item:form.instance.pk|tojson }}

@@ -1979,6 +1979,7 @@ def anlage2_config(request):
         can_order=True,
         extra=1,
     )
+    ActionFormSet = formset_factory(ActionForm, can_delete=True, extra=1)
     active_tab = request.POST.get("active_tab") or request.GET.get("tab") or "table"
 
     if request.method == "POST":
@@ -2025,10 +2026,21 @@ def anlage2_config(request):
                 return render(request, "partials/_response_rules_table.html", context)
             return redirect(f"{reverse('anlage2_config')}?tab=rules")
 
-        if action == "save_rules_fb":
-            admin_a2_logger.debug("Speichere Antwortregeln (Fallback)")
-            formset = RuleFormSetFB(request.POST, queryset=rules_qs, prefix="rules_fb")
-            if formset.is_valid():
+        if action in ["save_rules_fb", "add_action_row"]:
+            admin_a2_logger.debug("Speichere/erweitere Antwortregeln (Fallback)")
+            data = request.POST.copy()
+            if action == "add_action_row":
+                target_prefix = data.get("action_prefix")
+                if target_prefix:
+                    key = f"{target_prefix}-TOTAL_FORMS"
+                    data[key] = str(int(data.get(key, 0)) + 1)
+            formset = RuleFormSetFB(data, queryset=rules_qs, prefix="rules_fb")
+            action_formsets = {}
+            for f in formset.forms:
+                a_prefix = f"{f.prefix}-actions"
+                action_formsets[f.prefix] = ActionFormSet(data, prefix=a_prefix)
+
+            if action == "save_rules_fb" and formset.is_valid() and all(fs.is_valid() for fs in action_formsets.values()):
                 ordered = formset.ordered_forms
                 for idx, form in enumerate(ordered):
                     if form.cleaned_data.get("DELETE"):
@@ -2037,14 +2049,24 @@ def anlage2_config(request):
                         continue
                     obj = form.save(commit=False)
                     obj.prioritaet = idx
+                    afs = action_formsets[form.prefix]
+                    actions = []
+                    for ad in afs.cleaned_data:
+                        if ad.get("DELETE"):
+                            continue
+                        actions.append({"field": ad.get("field"), "value": ad.get("value")})
+                    obj.actions_json = actions
                     obj.save()
                 for form in formset.deleted_forms:
                     form.instance.delete()
                 messages.success(request, "Antwortregeln gespeichert")
                 return redirect(f"{reverse('anlage2_config')}?tab=rules2")
-            messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
-            rule_formset_fb = formset
-            active_tab = "rules2"
+            else:
+                if action == "save_rules_fb":
+                    messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
+                rule_formset_fb = formset
+                rule_action_formsets = action_formsets
+                active_tab = "rules2"
 
         if action == "save_general":
             admin_a2_logger.debug("Speichere Allgemeine Einstellungen")
@@ -2092,6 +2114,17 @@ def anlage2_config(request):
             f.instance.pk,
             f.initial.get("actions_json"),
         )
+    rule_action_formsets = (
+        rule_action_formsets
+        if "rule_action_formsets" in locals()
+        else {
+            f.prefix: ActionFormSet(
+                prefix=f"{f.prefix}-actions",
+                initial=raw_actions.get(f.instance.pk, []),
+            )
+            for f in rule_formset_fb.forms
+        }
+    )
     a4_parser_form = (
         a4_parser_form
         if "a4_parser_form" in locals()
@@ -2103,6 +2136,7 @@ def anlage2_config(request):
         "aliases": aliases,
         "rule_formset": rule_formset,
         "rule_formset_fb": rule_formset_fb,
+        "action_formsets": rule_action_formsets,
         "raw_actions": raw_actions,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
