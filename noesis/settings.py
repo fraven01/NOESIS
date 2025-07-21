@@ -189,7 +189,6 @@ LOGGING = {
             "level": "INFO",  # Zeigt nur Informationen und Fehler in der Konsole an
             "class": "logging.StreamHandler",
             "formatter": "simple",
-            "encoding": "utf-8",
         },
         "file": {
             "level": "DEBUG",
@@ -335,6 +334,9 @@ LOGGING = {
         },
     },
 }
+
+if sys.version_info >= (3, 12):
+    LOGGING["handlers"]["console"]["encoding"] = "utf-8"
 
 # Django-Q Konfiguration
 Q_CLUSTER = {
