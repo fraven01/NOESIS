@@ -18,18 +18,8 @@
         {{ form.regel_anwendungsbereich }}{{ form.regel_anwendungsbereich.errors }}
     </div>
     <div>
-        {{ form.ziel_feld.label_tag }}<br>
-        {{ form.ziel_feld }}{{ form.ziel_feld.errors }}
-    </div>
-    <div>
-        {{ form.wert.label_tag }}<br>
-        {{ form.wert }}{{ form.wert.errors }}
-    </div>
-    <div>
-        <label>Aktionen</label>
-        <div id="actions-container"></div>
+        {{ form.actions_json.label_tag }}<br>
         {{ form.actions_json }}{{ form.actions_json.errors }}
-        <button type="button" id="add-action" class="btn btn-sm btn-secondary mt-1">+ Aktion</button>
     </div>
     <div>
         {{ form.prioritaet.label_tag }}<br>
@@ -37,29 +27,5 @@
     </div>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
 </form>
-<script>
-const ruleChoices = {{ rule_choices|safe }};
-function createRow(field='', val=false){
-  const row=document.createElement('div');
-  row.className='flex items-center mb-2 action-row';
-  const sel=document.createElement('select');
-  sel.className='border rounded p-1 mr-2 flex-grow';
-  ruleChoices.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===field) o.selected=true;sel.appendChild(o);});
-  const cb=document.createElement('input');cb.type='checkbox';cb.className='mr-2';cb.checked=val;
-  const del=document.createElement('button');del.type='button';del.textContent='x';del.className='ml-2';del.addEventListener('click',()=>{row.remove();update();});
-  sel.addEventListener('change',update);cb.addEventListener('change',update);
-  row.appendChild(sel);row.appendChild(cb);row.appendChild(del);document.getElementById('actions-container').appendChild(row);
-}
-function update(){
-  const data={};document.querySelectorAll('.action-row').forEach(r=>{const f=r.querySelector('select').value;const v=r.querySelector('input').checked;if(f) data[f]=v;});
-  document.getElementById('id_actions_json').value=JSON.stringify(data);
-}
-function init(){
-  const hidden=document.getElementById('id_actions_json');hidden.type='hidden';
-  try{const data=JSON.parse(hidden.value||'{}');Object.entries(data).forEach(([k,v])=>createRow(k,v));}catch(e){createRow();}
-  update();
-}
-document.getElementById('add-action').addEventListener('click',()=>{createRow();update();});
-document.addEventListener('DOMContentLoaded',init);
-</script>
+
 {% endblock %}

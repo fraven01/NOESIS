@@ -261,8 +261,7 @@ bearbeitbaren Bereiche:
   "answer_rules": [{
     "regel_name": "Standard",
     "erkennungs_phrase": "ja",
-    "ziel_feld": "technisch_verfuegbar",
-    "wert": true
+    "actions": {"technisch_verfuegbar": true}
   }],
   "a4_parser": {"delimiter_phrase": "Name der"}
 }

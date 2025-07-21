@@ -711,11 +711,6 @@ class AntwortErkennungsRegel(models.Model):
 
     regel_name = models.CharField(max_length=100)
     erkennungs_phrase = models.CharField(max_length=200)
-    ziel_feld = models.CharField(
-        max_length=50,
-        choices=FormatBParserRule.FIELD_CHOICES,
-    )
-    wert = models.BooleanField()
     actions_json = models.JSONField(
         default=dict,
         blank=True,

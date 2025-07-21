@@ -26,6 +26,22 @@ from .models import (
     PARSER_MODE_CHOICES,
     Anlage3Metadata,
 )
+
+
+class ActionsJSONWidget(forms.Widget):
+    """Widget für die Eingabe von Aktionen als dynamische Liste."""
+
+    template_name = "widgets/actions_json_widget.html"
+
+    def __init__(self, choices: list[tuple[str, str]], attrs: dict | None = None) -> None:
+        super().__init__(attrs)
+        self.choices = choices
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context["widget"]["value"] = json.dumps(value or {})
+        context["choices"] = self.choices
+        return context
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
 from .llm_tasks import ANLAGE1_QUESTIONS
@@ -1006,10 +1022,10 @@ class Anlage4ParserConfigForm(forms.ModelForm):
 class AntwortErkennungsRegelForm(forms.ModelForm):
     """Formular für eine Parser-Antwortregel."""
 
-    actions_json = forms.CharField(
+    actions_json = forms.JSONField(
         required=False,
-        widget=forms.Textarea(attrs={"rows": 2, "class": "border rounded p-2 w-full"}),
-        label="Aktionen (JSON)",
+        widget=ActionsJSONWidget(choices=FormatBParserRule.FIELD_CHOICES),
+        label="Aktionen",
     )
 
     class Meta:
@@ -1017,9 +1033,7 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
         fields = [
             "regel_name",
             "erkennungs_phrase",
-            "ziel_feld",
             "regel_anwendungsbereich",
-            "wert",
             "actions_json",
             "prioritaet",
         ]
@@ -1030,32 +1044,11 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
             "erkennungs_phrase": forms.TextInput(
                 attrs={"class": "border rounded p-2 w-full"}
             ),
-            "ziel_feld": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "regel_anwendungsbereich": forms.Select(
                 attrs={"class": "border rounded p-2 w-full"}
             ),
-            "wert": forms.CheckboxInput(attrs={"class": "mx-auto"}),
             "prioritaet": forms.NumberInput(attrs={"class": "border rounded p-2"}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.actions_json:
-            self.initial["actions_json"] = json.dumps(
-                self.instance.actions_json, ensure_ascii=False
-            )
-
-    def clean_actions_json(self) -> dict:
-        raw = self.cleaned_data.get("actions_json")
-        if not raw:
-            return {}
-        try:
-            data = json.loads(raw)
-        except Exception:
-            raise forms.ValidationError("Ungültiges JSON")
-        if not isinstance(data, dict):
-            raise forms.ValidationError("JSON muss ein Objekt sein")
-        return data
 
     def save(self, commit: bool = True) -> AntwortErkennungsRegel:
         self.instance.actions_json = self.cleaned_data.get("actions_json", {})
