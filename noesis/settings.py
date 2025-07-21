@@ -259,6 +259,13 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
+        "parse_exact_anlage2_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "parse_exact_anlage2.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
         "workflow_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
@@ -325,6 +332,11 @@ LOGGING = {
         },
         "anlage2_admin_debug": {
             "handlers": ["anlage2_admin_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "parse_exact_anlage2_log": {
+            "handlers": ["parse_exact_anlage2_file"],
             "level": "DEBUG",
             "propagate": False,
         },
