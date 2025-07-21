@@ -40,7 +40,7 @@ class ActionsJSONWidget(forms.Widget):
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
         context["widget"]["value"] = json.dumps(value or {})
-        context["choices"] = self.choices
+        context["choices"] = json.dumps(self.choices)
         return context
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
