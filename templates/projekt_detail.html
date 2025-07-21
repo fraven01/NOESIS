@@ -59,25 +59,28 @@
                 {% include "partials/check_button.html" with file=a %}
             </td>
             <td class="px-2 py-1 text-center">
-            {% if a.analysis_json or a.anlage_nr == 5 and a.anlage5review %}
-                {% if a.anlage_nr == 2 and a.is_verification_running %}
+            {% if a.anlage_nr == 2 %}
+                {% if a.is_verification_running %}
                     <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span></span>
-                {% elif a.anlage_nr == 4 %}
-                    <a href="{% url 'anlage4_review' a.pk %}"
-                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% elif a.anlage_nr == 3 %}
-                    <a href="{% url 'anlage3_file_review' a.pk %}"
-                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% elif a.anlage_nr == 5 %}
-                    <a href="{% url 'anlage5_review' a.pk %}"
-                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% elif a.anlage_nr == 6 %}
-                    <a href="{% url 'anlage6_review' a.pk %}"
-                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% else %}
+                {% elif a.analysis_json %}
                     <a href="{% url 'projekt_file_edit_json' a.pk %}"
                        class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
                 {% endif %}
+            {% elif a.anlage_nr == 3 and a.analysis_json %}
+                <a href="{% url 'anlage3_file_review' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+            {% elif a.anlage_nr == 4 and a.analysis_json %}
+                <a href="{% url 'anlage4_review' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+            {% elif a.anlage_nr == 5 and a.anlage5review %}
+                <a href="{% url 'anlage5_review' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+            {% elif a.anlage_nr == 6 and a.analysis_json %}
+                <a href="{% url 'anlage6_review' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+            {% elif a.analysis_json %}
+                <a href="{% url 'projekt_file_edit_json' a.pk %}"
+                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
             {% endif %}
             </td>
             <td class="px-2 py-1 text-center">
