@@ -2904,11 +2904,11 @@ class FeatureVerificationTests(NoesisTestCase):
     def test_mixed_returns_none(self):
         with patch(
             "core.llm_tasks.query_llm",
-            side_effect=["Unsicher", "Nein"],
+            side_effect=["Unsicher", "Nein", "Begruendung"],
         ):
             result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
         self.assertIsNone(result["technisch_verfuegbar"])
-        self.assertEqual(result["ki_begruendung"], "")
+        self.assertEqual(result["ki_begruendung"], "Begruendung")
         self.assertIsNone(result["ki_beteiligt"])
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
 
