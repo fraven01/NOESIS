@@ -149,6 +149,7 @@ anlage2_logger = logging.getLogger("anlage2_debug")
 ergebnis_logger = logging.getLogger("anlage2_ergebnis")
 anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
+parse_exact_logger = logging.getLogger("parse_exact_anlage2_log")
 
 
 _WHISPER_MODEL = None
@@ -1958,6 +1959,9 @@ def anlage2_config(request):
     cfg = Anlage2Config.get_instance()
     aliases = list(cfg.headers.all())
     rules_qs = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
+    raw_actions = {r.pk: r.actions_json for r in rules_qs}
+    for r in rules_qs:
+        parse_exact_logger.debug("Lade Regel %s actions_json=%r", r.pk, r.actions_json)
     a4_parser_cfg = (
         Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
     )
@@ -2071,11 +2075,23 @@ def anlage2_config(request):
 
     cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
+    for f in rule_formset:
+        parse_exact_logger.debug(
+            "Formset Rule PK=%s initial actions_json=%r",
+            f.instance.pk,
+            f.initial.get("actions_json"),
+        )
     rule_formset_fb = (
         rule_formset_fb
         if "rule_formset_fb" in locals()
         else RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
     )
+    for f in rule_formset_fb:
+        parse_exact_logger.debug(
+            "Formset FB Rule PK=%s initial actions_json=%r",
+            f.instance.pk,
+            f.initial.get("actions_json"),
+        )
     a4_parser_form = (
         a4_parser_form
         if "a4_parser_form" in locals()
@@ -2087,6 +2103,7 @@ def anlage2_config(request):
         "aliases": aliases,
         "rule_formset": rule_formset,
         "rule_formset_fb": rule_formset_fb,
+        "raw_actions": raw_actions,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
         "active_tab": active_tab,

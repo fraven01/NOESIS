@@ -94,7 +94,7 @@
     <div id="tab-rules2" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln (Fallback)</h2>
         <div class="overflow-x-auto">
-            {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb %}
+            {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb raw_actions=raw_actions %}
         </div>
         <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
     </div>
