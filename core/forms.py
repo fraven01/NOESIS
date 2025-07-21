@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import Textarea, modelformset_factory
 import json
+import logging
 from pathlib import Path
 from .models import (
     Recording,
@@ -26,6 +27,8 @@ from .models import (
     PARSER_MODE_CHOICES,
     Anlage3Metadata,
 )
+
+parse_exact_logger = logging.getLogger("parse_exact_anlage2_log")
 
 
 class ActionsJSONWidget(forms.Widget):
@@ -1052,26 +1055,21 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
             "prioritaet": forms.NumberInput(attrs={"class": "border rounded p-2"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        parse_exact_logger.debug(
+            "Init RegelForm PK=%s actions_json=%r",
+            getattr(self.instance, "pk", None),
+            self.initial.get("actions_json"),
+        )
+
     def save(self, commit: bool = True) -> AntwortErkennungsRegel:
-        actions = self.cleaned_data.get("actions_json", []) or []
-        if isinstance(actions, dict):
-            actions = [
-                {"field": k, "value": False if v in ("", None) else v == "on" or bool(v)}
-                for k, v in actions.items()
-            ]
-        else:
-            new_list = []
-            for act in actions:
-                if not isinstance(act, dict):
-                    continue
-                val = act.get("value")
-                if val == "on":
-                    val = True
-                elif val in ("", None):
-                    val = False
-                new_list.append({"field": act.get("field"), "value": bool(val)})
-            actions = new_list
-        self.instance.actions_json = actions
+        self.instance.actions_json = self.cleaned_data.get("actions_json")
+        parse_exact_logger.debug(
+            "Speichere Regel PK=%s actions_json=%r",
+            getattr(self.instance, "pk", None),
+            self.instance.actions_json,
+        )
         return super().save(commit=commit)
 
 

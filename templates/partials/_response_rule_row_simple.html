@@ -18,5 +18,8 @@
         {{ form.actions_json }}
         {{ form.actions_json.errors }}
     </td>
+    <td class="py-1 font-mono text-xs whitespace-pre">
+        {{ raw_actions|raw_item:form.instance.pk|tojson }}
+    </td>
     <td class="py-1 text-center">{{ form.DELETE }}</td>
 </tr>
