@@ -1837,9 +1837,8 @@ def admin_anlage2_config_export(request):
         {
             "regel_name": r.regel_name,
             "erkennungs_phrase": r.erkennungs_phrase,
-            "ziel_feld": r.ziel_feld,
             "regel_anwendungsbereich": r.regel_anwendungsbereich,
-            "wert": r.wert,
+            "actions": r.actions_json,
             "prioritaet": r.prioritaet,
         }
         for r in rules
@@ -1914,12 +1913,11 @@ def admin_anlage2_config_import(request):
                 regel_name=r.get("regel_name"),
                 defaults={
                     "erkennungs_phrase": r.get("erkennungs_phrase", ""),
-                    "ziel_feld": r.get("ziel_feld", ""),
                     "regel_anwendungsbereich": r.get(
                         "regel_anwendungsbereich",
                         "Hauptfunktion",
                     ),
-                    "wert": r.get("wert", False),
+                    "actions_json": r.get("actions", {}),
                     "prioritaet": r.get("prioritaet", 0),
                 },
             )
@@ -2019,7 +2017,7 @@ def anlage2_config(request):
 
             if request.headers.get("HX-Request"):
                 formset = RuleFormSet(queryset=rules_qs, prefix="rules")
-                context = {"rule_formset": formset, "rule_choices": FormatBParserRule.FIELD_CHOICES}
+                context = {"rule_formset": formset}
                 return render(request, "partials/_response_rules_table.html", context)
             return redirect(f"{reverse('anlage2_config')}?tab=rules")
 
@@ -2090,7 +2088,6 @@ def anlage2_config(request):
         "rule_formset": rule_formset,
         "rule_formset_fb": rule_formset_fb,
         "choices": Anlage2ColumnHeading.FIELD_CHOICES,
-        "rule_choices": FormatBParserRule.FIELD_CHOICES,
         "parser_choices": get_parser_choices(),
         "active_tab": active_tab,
         "a4_parser_form": a4_parser_form,
@@ -2116,7 +2113,7 @@ def anlage2_rule_add(request):
     formset = RuleFormSet(queryset=AntwortErkennungsRegel.objects.none(), prefix="rules")
     form = formset.empty_form
     form.prefix = f"rules-{index}"
-    context = {"form": form, "rule_choices": FormatBParserRule.FIELD_CHOICES}
+    context = {"form": form}
     return render(request, "partials/_response_rule_row.html", context)
 
 
@@ -2353,9 +2350,7 @@ class AntwortErkennungsRegelCreateView(LoginRequiredMixin, StaffRequiredMixin, C
     success_url = reverse_lazy("parser_rule_list")
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["rule_choices"] = FormatBParserRule.FIELD_CHOICES
-        return ctx
+        return super().get_context_data(**kwargs)
 
 
 class AntwortErkennungsRegelUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
@@ -2367,9 +2362,7 @@ class AntwortErkennungsRegelUpdateView(LoginRequiredMixin, StaffRequiredMixin, U
     success_url = reverse_lazy("parser_rule_list")
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["rule_choices"] = FormatBParserRule.FIELD_CHOICES
-        return ctx
+        return super().get_context_data(**kwargs)
 
 
 class AntwortErkennungsRegelDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):

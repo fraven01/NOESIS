@@ -574,8 +574,7 @@ class DocxExtractTests(NoesisTestCase):
         AntwortErkennungsRegel.objects.create(
             regel_name="aktiv",
             erkennungs_phrase="aktivv",
-            ziel_feld="einsatz_telefonica",
-            wert=True,
+            actions_json={"einsatz_telefonica": True},
         )
         data = parse_anlage2_text("Lgin: aktivv")
         self.assertEqual(
@@ -593,15 +592,13 @@ class DocxExtractTests(NoesisTestCase):
         AntwortErkennungsRegel.objects.create(
             regel_name="a",
             erkennungs_phrase="foo",
-            ziel_feld="technisch_verfuegbar",
-            wert=True,
+            actions_json={"technisch_verfuegbar": True},
             prioritaet=2,
         )
         AntwortErkennungsRegel.objects.create(
             regel_name="b",
             erkennungs_phrase="bar",
-            ziel_feld="einsatz_telefonica",
-            wert=False,
+            actions_json={"einsatz_telefonica": False},
             prioritaet=1,
         )
         data = parse_anlage2_text("Login: foo bar rest")

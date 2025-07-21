@@ -224,12 +224,11 @@ class Anlage3ParserRuleAdmin(admin.ModelAdmin):
 class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_display = (
         "regel_name",
-        "ziel_feld",
         "regel_anwendungsbereich",
-        "wert",
         "prioritaet",
+        "actions_json",
     )
-    list_editable = ("ziel_feld", "regel_anwendungsbereich", "wert", "prioritaet")
+    list_editable = ("regel_anwendungsbereich", "prioritaet")
 
 
 @admin.register(Anlage4ParserConfig)

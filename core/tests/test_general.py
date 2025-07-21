@@ -3154,8 +3154,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         AntwortErkennungsRegel.objects.create(
             regel_name="R1",
             erkennungs_phrase="ja",
-            ziel_feld="technisch_verfuegbar",
-            wert=True,
+            actions_json={"technisch_verfuegbar": True},
             prioritaet=0,
         )
         a4 = Anlage4ParserConfig.objects.create(delimiter_phrase="X")
@@ -3189,8 +3188,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                     {
                         "regel_name": "R2",
                         "erkennungs_phrase": "nein",
-                        "ziel_feld": "technisch_verfuegbar",
-                        "wert": False,
+                        "actions": {"technisch_verfuegbar": False},
                         "prioritaet": 1
                     }
                 ],

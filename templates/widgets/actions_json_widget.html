@@ -1,0 +1,35 @@
+<div id="{{ widget.attrs.id }}_container"></div>
+<input type="hidden" name="{{ widget.name }}" id="{{ widget.attrs.id }}" value="{{ widget.value }}">
+<button type="button" class="btn btn-sm btn-secondary mt-1" id="{{ widget.attrs.id }}_add">+ Aktion</button>
+<script>
+(function(){
+  const container=document.getElementById('{{ widget.attrs.id }}_container');
+  const hidden=document.getElementById('{{ widget.attrs.id }}');
+  const addBtn=document.getElementById('{{ widget.attrs.id }}_add');
+  const choices={{ choices|safe }};
+  function update(){
+    const data={};
+    container.querySelectorAll('.action-row').forEach(r=>{
+      const f=r.querySelector('select').value;
+      const v=r.querySelector('input[type="checkbox"]').checked;
+      if(f){data[f]=v;}
+    });
+    hidden.value=JSON.stringify(data);
+  }
+  function addRow(field='', val=false){
+    const row=document.createElement('div');
+    row.className='flex items-center mb-2 action-row';
+    const sel=document.createElement('select');
+    sel.className='border rounded p-1 mr-2 flex-grow';
+    choices.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===field)o.selected=true;sel.appendChild(o);});
+    const cb=document.createElement('input');cb.type='checkbox';cb.className='mr-2';cb.checked=val;
+    const del=document.createElement('button');del.type='button';del.textContent='x';del.className='ml-2';del.addEventListener('click',()=>{row.remove();update();});
+    sel.addEventListener('change',update);cb.addEventListener('change',update);
+    row.appendChild(sel);row.appendChild(cb);row.appendChild(del);
+    container.appendChild(row);
+  }
+  addBtn.addEventListener('click',()=>{addRow();update();});
+  try{const data=JSON.parse(hidden.value||'{}');Object.entries(data).forEach(([k,v])=>addRow(k,v));}catch(e){addRow();}
+  update();
+})();
+</script>

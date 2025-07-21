@@ -199,20 +199,22 @@ def apply_rules(
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
         if fuzzy_match(rule.erkennungs_phrase, text_part, threshold):
-            current = found_rules.get(rule.ziel_feld)
-            if current is None or rule.prioritaet < current[1]:
-                found_rules[rule.ziel_feld] = (
-                    rule.wert,
-                    rule.prioritaet,
-                    rule.erkennungs_phrase,
-                )
-                parser_logger.debug(
-                    "Regel '%s' (%s) setzt %s=%s",
-                    rule.regel_name,
-                    rule.erkennungs_phrase,
-                    rule.ziel_feld,
-                    rule.wert,
-                )
+            actions = rule.actions_json or {}
+            for field, val in actions.items():
+                current = found_rules.get(field)
+                if current is None or rule.prioritaet < current[1]:
+                    found_rules[field] = (
+                        bool(val),
+                        rule.prioritaet,
+                        rule.erkennungs_phrase,
+                    )
+                    parser_logger.debug(
+                        "Regel '%s' (%s) setzt %s=%s",
+                        rule.regel_name,
+                        rule.erkennungs_phrase,
+                        field,
+                        val,
+                    )
 
     if not found_rules:
         return
