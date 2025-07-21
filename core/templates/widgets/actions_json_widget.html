@@ -8,11 +8,11 @@
   const addBtn=document.getElementById('{{ widget.attrs.id }}_add');
   const choices={{ choices|safe }};
   function update(){
-    const data={};
+    const data=[];
     container.querySelectorAll('.action-row').forEach(r=>{
       const f=r.querySelector('select').value;
       const v=r.querySelector('input[type="checkbox"]').checked;
-      if(f){data[f]=v;}
+      if(f){data.push({field:f,value:v});}
     });
     hidden.value=JSON.stringify(data);
   }
@@ -31,8 +31,12 @@
   addBtn.addEventListener('click',()=>{addRow();update();});
   container.innerHTML='';
   try{
-    const data=JSON.parse(hidden.value||'{}');
-    Object.entries(data).forEach(([k,v])=>addRow(k,v));
+    const data=JSON.parse(hidden.value||'[]');
+    if(Array.isArray(data)){
+      data.forEach(obj=>addRow(obj.field||'',obj.value||false));
+    }else{
+      Object.entries(data).forEach(([k,v])=>addRow(k,v));
+    }
   }catch(e){
     addRow();
   }

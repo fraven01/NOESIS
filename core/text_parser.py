@@ -199,8 +199,16 @@ def apply_rules(
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
         if fuzzy_match(rule.erkennungs_phrase, text_part, threshold):
-            actions = rule.actions_json or {}
-            for field, val in actions.items():
+            actions = rule.actions_json or []
+            if isinstance(actions, dict):
+                actions = [
+                    {"field": k, "value": v} for k, v in actions.items()
+                ]
+            for act in actions:
+                field = act.get("field")
+                if not field:
+                    continue
+                val = act.get("value")
                 current = found_rules.get(field)
                 if current is None or rule.prioritaet < current[1]:
                     found_rules[field] = (
