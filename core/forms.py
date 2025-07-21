@@ -1051,7 +1051,14 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
         }
 
     def save(self, commit: bool = True) -> AntwortErkennungsRegel:
-        self.instance.actions_json = self.cleaned_data.get("actions_json", {})
+        actions = self.cleaned_data.get("actions_json", {}) or {}
+        if isinstance(actions, dict):
+            for key, val in list(actions.items()):
+                if val == "on":
+                    actions[key] = True
+                elif val in ("", None):
+                    actions[key] = False
+        self.instance.actions_json = actions
         return super().save(commit=commit)
 
 
