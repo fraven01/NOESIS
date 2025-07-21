@@ -3541,7 +3541,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertEqual(results.count(), 1)
         self.assertTrue(results[0].ai_result["technisch_verfuegbar"])
 
-    def test_ajax_reset_all_reviews_deletes_everything(self):
+    def test_ajax_reset_all_reviews_resets_manual_fields(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -3549,17 +3549,22 @@ class Anlage2ResetTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
         func = Anlage2Function.objects.create(name="Login")
-        Anlage2FunctionResult.objects.create(
+        res = Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
             doc_result={"technisch_verfuegbar": True},
             ai_result={"technisch_verfuegbar": True},
             manual_result={"technisch_vorhanden": True},
+            is_negotiable_manual_override=True,
         )
         self.client.login(username=self.user.username, password="pw")
         url = reverse("ajax_reset_all_reviews", args=[pf.pk])
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
-        self.assertFalse(Anlage2FunctionResult.objects.exists())
+        res.refresh_from_db()
+        self.assertIsNone(res.manual_result)
+        self.assertIsNone(res.is_negotiable_manual_override)
+        self.assertTrue(res.doc_result["technisch_verfuegbar"])
+        self.assertTrue(res.ai_result["technisch_verfuegbar"])
 
 
