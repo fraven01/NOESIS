@@ -1,19 +1,4 @@
 {% load recording_extras %}
-{% if field_name == 'einsatz_bei_telefonica' or field_name == 'zur_lv_kontrolle' %}
-<td class="border px-2 text-center">
-    {% if row.result_id %}
-        {% with val=row.doc_result|get_item:field_name %}
-            {% if val %}
-                Vorhanden
-            {% else %}
-                Nicht vorhanden
-            {% endif %}
-        {% endwith %}
-    {% else %}
-        <span>-</span>
-    {% endif %}
-</td>
-{% else %}
 <td class="border px-2 text-center">
     {% if row.result_id %}
     <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
@@ -42,4 +27,3 @@
     <span>-</span>
     {% endif %}
 </td>
-{% endif %}
