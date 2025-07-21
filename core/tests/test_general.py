@@ -3480,3 +3480,86 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertIsNone(res.manual_result)
 
 
+class Anlage2ResetTests(NoesisTestCase):
+    """Tests zum Zurücksetzen von Anlage-2-Ergebnissen."""
+
+    def setUp(self):
+        self.user = User.objects.create_user("reset", password="pw")
+        self.client.login(username="reset", password="pw")
+
+    def test_run_anlage2_analysis_resets_results(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("old.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=func,
+            doc_result={"funktion": "Alt"},
+        )
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("new.txt", b"x"),
+        )
+        with patch("core.llm_tasks.parse_anlage2_table", return_value=[{"funktion": "Login"}]), patch(
+            "core.llm_tasks.parse_anlage2_text", return_value=[]
+        ):
+            run_anlage2_analysis(pf)
+        results = Anlage2FunctionResult.objects.filter(projekt=projekt)
+        self.assertEqual(results.count(), 1)
+        self.assertEqual(results[0].doc_result["funktion"], "Login")
+
+    def test_conditional_check_resets_results(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("old.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=func,
+            ai_result={"technisch_verfuegbar": False},
+        )
+
+        def fake(_pid, _typ, fid, _model=None):
+            Anlage2FunctionResult.objects.update_or_create(
+                projekt=projekt,
+                funktion_id=fid,
+                defaults={"ai_result": {"technisch_verfuegbar": True}},
+            )
+            return {}
+
+        with patch("core.llm_tasks.worker_verify_feature", side_effect=fake):
+            run_conditional_anlage2_check(projekt.pk)
+        results = Anlage2FunctionResult.objects.filter(projekt=projekt)
+        self.assertEqual(results.count(), 1)
+        self.assertTrue(results[0].ai_result["technisch_verfuegbar"])
+
+    def test_ajax_reset_all_reviews_deletes_everything(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2FunctionResult.objects.create(
+            projekt=projekt,
+            funktion=func,
+            doc_result={"technisch_verfuegbar": True},
+            ai_result={"technisch_verfuegbar": True},
+            manual_result={"technisch_vorhanden": True},
+        )
+        self.client.login(username=self.user.username, password="pw")
+        url = reverse("ajax_reset_all_reviews", args=[pf.pk])
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Anlage2FunctionResult.objects.exists())
+
+
