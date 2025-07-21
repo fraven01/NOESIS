@@ -714,9 +714,9 @@ class AntwortErkennungsRegel(models.Model):
     regel_name = models.CharField(max_length=100)
     erkennungs_phrase = models.CharField(max_length=200)
     actions_json = models.JSONField(
-        default=dict,
+        default=list,
         blank=True,
-        help_text="Feld-Wert-Paare für den exakten Parser.",
+        help_text="Aktionen als Liste von Objekten.",
     )
     REGEL_ANWENDUNGSBEREICH_CHOICES = [
         ("Hauptfunktion", "Hauptfunktion"),
