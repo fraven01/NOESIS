@@ -189,6 +189,7 @@ LOGGING = {
             "level": "INFO",  # Zeigt nur Informationen und Fehler in der Konsole an
             "class": "logging.StreamHandler",
             "formatter": "simple",
+            "encoding": "utf-8",
         },
         "file": {
             "level": "DEBUG",
