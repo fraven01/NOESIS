@@ -258,7 +258,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
-        doc = res.doc_result if isinstance(res.doc_result, dict) else {}
+        doc = _normalize_fields(res.doc_result)
         for field, _ in get_anlage2_fields():
             val = doc.get(field)
             if isinstance(val, dict):
