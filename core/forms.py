@@ -1105,3 +1105,14 @@ class ParserSettingsForm(forms.ModelForm):
             obj.save(update_fields=["parser_mode", "parser_order"])
         return obj
 
+
+class ActionForm(forms.Form):
+    """Formular für eine einzelne Regel-Aktion."""
+
+    field = forms.ChoiceField(
+        choices=FormatBParserRule.FIELD_CHOICES,
+        label="Feld",
+    )
+    value = forms.BooleanField(label="Wert", required=False)
+
+
