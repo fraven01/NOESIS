@@ -3728,14 +3728,17 @@ def ajax_generate_gap_summary(request, result_id: int) -> JsonResponse:
 @login_required
 @require_POST
 def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
-    """L\u00f6scht alle manuellen und KI-Bewertungen f\u00fcr eine Anlage."""
+    """Setzt alle manuellen Bewertungen für Anlage 2 zurück."""
 
     project_file = get_object_or_404(BVProjectFile, pk=pk)
     if project_file.anlage_nr != 2:
         return JsonResponse({"error": "invalid"}, status=400)
 
-    # Vollständiger Reset aller bisher gespeicherten Ergebnisse
-    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).delete()
+    # Nur manuelle Änderungen entfernen, automatische Ergebnisse beibehalten
+    Anlage2FunctionResult.objects.filter(
+        projekt=project_file.projekt
+    ).update(manual_result=None, is_negotiable_manual_override=None)
+
     project_file.manual_analysis_json = None
     project_file.save(update_fields=["manual_analysis_json"])
 
