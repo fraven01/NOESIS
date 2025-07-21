@@ -29,7 +29,13 @@
     container.appendChild(row);
   }
   addBtn.addEventListener('click',()=>{addRow();update();});
-  try{const data=JSON.parse(hidden.value||'{}');Object.entries(data).forEach(([k,v])=>addRow(k,v));}catch(e){addRow();}
+  container.innerHTML='';
+  try{
+    const data=JSON.parse(hidden.value||'{}');
+    Object.entries(data).forEach(([k,v])=>addRow(k,v));
+  }catch(e){
+    addRow();
+  }
   update();
 })();
 </script>
