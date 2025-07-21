@@ -72,7 +72,7 @@
                 data-doc='{{ row.doc_result|tojson }}'
                 data-manual='{{ row.manual_result|tojson }}'
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
-                data-manual-override="{{ row.negotiable_override|yesno:'true,false,' }}"
+                data-manual-override="{{ row.negotiable_manual_override|yesno:'true,false,' }}"
                 data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
@@ -119,7 +119,7 @@
                 {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field %}
                 {% endwith %}
                 {% endfor %}
-                {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_override %}
+                {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
                 <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
                     class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
                     {% if row.result_id %}
