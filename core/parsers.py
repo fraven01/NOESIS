@@ -47,9 +47,16 @@ class ExactParser(AbstractParser):
         text = (project_file.text_content or "").lower()
         for rule in AntwortErkennungsRegel.objects.all().order_by("prioritaet"):
             if rule.erkennungs_phrase.lower() in text:
-                actions = rule.actions_json or {}
+                actions = rule.actions_json or []
+                if isinstance(actions, dict):
+                    actions = [
+                        {"field": k, "value": v} for k, v in actions.items()
+                    ]
                 for entry in results:
-                    for field, val in actions.items():
-                        entry[field] = {"value": bool(val), "note": None}
+                    for act in actions:
+                        field = act.get("field")
+                        if not field:
+                            continue
+                        entry[field] = {"value": bool(act.get("value")), "note": None}
         return results
 
