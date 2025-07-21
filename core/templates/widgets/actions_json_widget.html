@@ -7,12 +7,17 @@
   const hidden=document.getElementById('{{ widget.attrs.id }}');
   const addBtn=document.getElementById('{{ widget.attrs.id }}_add');
   const choices={{ choices|safe }};
+  const form=hidden.form;
   function update(){
+    const seen=new Set();
     const data=[];
     container.querySelectorAll('.action-row').forEach(r=>{
       const f=r.querySelector('select').value;
       const v=r.querySelector('input[type="checkbox"]').checked;
-      if(f){data.push({field:f,value:v});}
+      if(f && !seen.has(f)){
+        seen.add(f);
+        data.push({field:f,value:v});
+      }
     });
     hidden.value=JSON.stringify(data);
   }
@@ -21,6 +26,10 @@
     row.className='flex items-center mb-2 action-row';
     const sel=document.createElement('select');
     sel.className='border rounded p-1 mr-2 flex-grow';
+    const blank=document.createElement('option');
+    blank.value='';
+    blank.textContent='-';
+    sel.appendChild(blank);
     choices.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===field)o.selected=true;sel.appendChild(o);});
     const cb=document.createElement('input');cb.type='checkbox';cb.className='mr-2';cb.checked=val;
     const del=document.createElement('button');del.type='button';del.textContent='x';del.className='ml-2';del.addEventListener('click',()=>{row.remove();update();});
@@ -29,6 +38,9 @@
     container.appendChild(row);
   }
   addBtn.addEventListener('click',()=>{addRow();update();});
+  if(form){
+    form.addEventListener('submit',update);
+  }
   container.innerHTML='';
   try{
     const data=JSON.parse(hidden.value||'[]');
