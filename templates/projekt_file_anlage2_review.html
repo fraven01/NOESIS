@@ -36,7 +36,7 @@
             <input type="checkbox" id="show-conflicts-only" class="form-check-input mr-2">
             Nur Konflikte anzeigen
         </label>
-        <button type="button" id="btn-verify-all" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
+        <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
         <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
     </div>
     <div class="mb-3">
@@ -350,10 +350,22 @@ function updateRowAppearance(row) {
     const verifyAllBtn = document.getElementById('btn-verify-all');
     if (verifyAllBtn) {
         verifyAllBtn.addEventListener('click', () => {
-            const buttons = document.querySelectorAll('.review-cycle-btn[data-state="robot"]:not(:disabled)');
-            if (buttons.length && confirm(`M\u00f6chten Sie wirklich ${buttons.length} KI-Pr\u00fcfungen starten?`)) {
-                buttons.forEach(b => b.click());
-            }
+            const projectId = verifyAllBtn.dataset.projectId;
+            if (!projectId) return;
+            if (!confirm('M\u00f6chten Sie wirklich alle Funktionen neu pr\u00fcfen?')) return;
+            showSpinner(verifyAllBtn, 'Starte...');
+            fetch(`/work/projekte/${projectId}/functions-check/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(r => {
+                if (!r.ok) throw new Error();
+                return r.json();
+            }).then(() => {
+                window.location.reload();
+            }).catch(() => {
+                alert('Fehler beim Starten');
+                hideSpinner(verifyAllBtn);
+            });
         });
     }
 
