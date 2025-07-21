@@ -2973,35 +2973,18 @@ def projekt_file_edit_json(request, pk):
                 if beteiligt is not None:
                     beteilig_map[(fid, sid)] = (beteiligt, beteiligt_begr)
 
-            fields_def = [f[0] for f in get_anlage2_fields()]
-            field_map = {
-                "technisch_vorhanden": "technisch_verfuegbar",
-                "ki_beteiligung": "ki_beteiligung",
-                "einsatz_bei_telefonica": "einsatz_bei_telefonica",
-                "zur_lv_kontrolle": "zur_lv_kontrolle",
-            }
             manual_results_map = {}
             for r in Anlage2FunctionResult.objects.filter(
                 projekt=anlage.projekt, source="manual"
             ):
-                entry = {}
-                for f in fields_def:
-                    val = None
-                    has_field = False
-                    if isinstance(r.manual_result, dict) and f in r.manual_result:
-                        val = r.manual_result.get(f)
-                        has_field = True
-                    if not has_field:
-                        attr = field_map.get(f)
-                        if attr:
-                            attr_val = getattr(r, attr, None)
-                            if attr_val is not None:
-                                val = attr_val
-                                has_field = True
-                    if has_field:
-                        entry[f] = val
-                if entry:
-                    manual_results_map[r.get_lookup_key()] = entry
+                if isinstance(r.manual_result, dict):
+                    entry = {
+                        name: r.manual_result.get(name)
+                        for name, _ in get_anlage2_fields()
+                        if name in r.manual_result
+                    }
+                    if entry:
+                        manual_results_map[r.get_lookup_key()] = entry
 
             result_map = {
                 r.get_lookup_key(): r
