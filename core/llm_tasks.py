@@ -1525,16 +1525,25 @@ def worker_verify_feature(
         else:
             individual_results.append(None)
 
-    result = False
-    if True in individual_results:
+    has_true = True in individual_results
+    has_false = False in individual_results
+    has_none = None in individual_results
+
+    if has_true:
         result = True
-    elif None in individual_results:
+    elif not has_false and has_none:
         result = None
+    elif has_false and not has_none:
+        result = False
+    elif has_false and has_none:
+        result = None
+    else:
+        result = False
 
     justification = ""
     ai_involved: bool | None = None
     ai_reason = ""
-    if result:
+    if result is True or result is None:
         try:
             just_prompt_name = (
                 "anlage2_feature_justification"
@@ -1566,7 +1575,11 @@ def worker_verify_feature(
                     ),
                     use_system_role=False,
                 )
-        idx = individual_results.index(True) if True in individual_results else 0
+        idx = 0
+        if result is True and True in individual_results:
+            idx = individual_results.index(True)
+        elif result is None and None in individual_results:
+            idx = individual_results.index(None)
         context["software_name"] = software_list[idx]
         justification = query_llm(
             just_prompt_obj,
@@ -1577,62 +1590,63 @@ def worker_verify_feature(
             project_prompt=projekt.project_prompt,
         ).strip()
 
-        try:
-            ai_check_obj = Prompt.objects.get(name="anlage2_ai_involvement_check")
-        except Prompt.DoesNotExist:
-            ai_check_obj = Prompt(
-                text=(
-                    "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die "
-                    "Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente?"
-                ),
-                use_system_role=False,
-            )
-        context["software_name"] = software_list[idx]
-        ai_reply = (
-            query_llm(
-                ai_check_obj,
-                {"software_name": context["software_name"], "function_name": name},
-                model_name=model_name,
-                model_type="anlagen",
-                temperature=0.1,
-                project_prompt=projekt.project_prompt,
-            )
-            .strip()
-            .lower()
-        )
-        if ai_reply.startswith("ja"):
-            ai_involved = True
-        elif ai_reply.startswith("nein"):
-            ai_involved = False
-        else:
-            ai_involved = None
-
-        if ai_involved:
+        if result is True:
             try:
-                ai_just_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
+                ai_check_obj = Prompt.objects.get(name="anlage2_ai_involvement_check")
             except Prompt.DoesNotExist:
-                ai_just_obj = Prompt(
+                ai_check_obj = Prompt(
                     text=(
-                        "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
-                        "(oder die Unterfrage '{subquestion_text}') der Software "
-                        "'{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, "
-                        "insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten "
-                        "oder nicht-deterministischer Ergebnisse."
+                        "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die "
+                        "Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente?"
                     ),
                     use_system_role=False,
                 )
-            ai_reason = query_llm(
-                ai_just_obj,
-                {
-                    "software_name": context["software_name"],
-                    "function_name": name,
-                    "subquestion_text": context.get("subquestion_text", ""),
-                },
-                model_name=model_name,
-                model_type="anlagen",
-                temperature=0.1,
-                project_prompt=projekt.project_prompt,
-            ).strip()
+            context["software_name"] = software_list[idx]
+            ai_reply = (
+                query_llm(
+                    ai_check_obj,
+                    {"software_name": context["software_name"], "function_name": name},
+                    model_name=model_name,
+                    model_type="anlagen",
+                    temperature=0.1,
+                    project_prompt=projekt.project_prompt,
+                )
+                .strip()
+                .lower()
+            )
+            if ai_reply.startswith("ja"):
+                ai_involved = True
+            elif ai_reply.startswith("nein"):
+                ai_involved = False
+            else:
+                ai_involved = None
+
+            if ai_involved:
+                try:
+                    ai_just_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
+                except Prompt.DoesNotExist:
+                    ai_just_obj = Prompt(
+                        text=(
+                            "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+                            "(oder die Unterfrage '{subquestion_text}') der Software "
+                            "'{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, "
+                            "insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten "
+                            "oder nicht-deterministischer Ergebnisse."
+                        ),
+                        use_system_role=False,
+                    )
+                ai_reason = query_llm(
+                    ai_just_obj,
+                    {
+                        "software_name": context["software_name"],
+                        "function_name": name,
+                        "subquestion_text": context.get("subquestion_text", ""),
+                    },
+                    model_name=model_name,
+                    model_type="anlagen",
+                    temperature=0.1,
+                    project_prompt=projekt.project_prompt,
+                ).strip()
 
     # Ergebnisdictionary für Datenbank und Rückgabewert
     verification_result = {
