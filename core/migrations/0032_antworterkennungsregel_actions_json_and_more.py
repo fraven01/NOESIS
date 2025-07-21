@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("core", "0029_add_subquestion_to_result"),
+        ("core", "0031_anlage3_parser_rule"),
     ]
 
     operations = [
