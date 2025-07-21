@@ -4,6 +4,8 @@
 <script>
 (function(){
   const container=document.getElementById('{{ widget.attrs.id }}_container');
+  if(!container||container.dataset.init){return;} // Mehrfachausführung verhindern
+  container.dataset.init='1';
   const hidden=document.getElementById('{{ widget.attrs.id }}');
   const addBtn=document.getElementById('{{ widget.attrs.id }}_add');
   const choices={{ choices|safe }};
