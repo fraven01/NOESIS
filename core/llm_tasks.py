@@ -344,6 +344,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         project_file.projekt_id,
     )
 
+    # Alte Ergebnisse entfernen, um sie an die aktuelle Datei zu binden
+    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).delete()
+
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
     rules = list(AntwortErkennungsRegel.objects.all())
@@ -1385,6 +1388,9 @@ def run_conditional_anlage2_check(
     """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
 
     projekt = BVProject.objects.get(pk=projekt_id)
+
+    # Alle bisherigen Prüfergebnisse entfernen
+    Anlage2FunctionResult.objects.filter(projekt=projekt).delete()
 
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"

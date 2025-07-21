@@ -277,6 +277,8 @@ class BVProjectFile(models.Model):
                 self.parser_order = cfg.parser_order
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
+            # Alte Ergebnisse für dieses Projekt entfernen
+            Anlage2FunctionResult.objects.filter(projekt=self.projekt).delete()
             funcs = list(
                 Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
             )
