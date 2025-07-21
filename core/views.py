@@ -1917,7 +1917,7 @@ def admin_anlage2_config_import(request):
                         "regel_anwendungsbereich",
                         "Hauptfunktion",
                     ),
-                    "actions_json": r.get("actions", {}),
+                    "actions_json": r.get("actions", []),
                     "prioritaet": r.get("prioritaet", 0),
                 },
             )

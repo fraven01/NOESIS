@@ -39,7 +39,9 @@ class ActionsJSONWidget(forms.Widget):
 
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
-        context["widget"]["value"] = json.dumps(value or {})
+        if isinstance(value, dict):
+            value = [{"field": k, "value": v} for k, v in value.items()]
+        context["widget"]["value"] = json.dumps(value or [])
         context["choices"] = json.dumps(self.choices)
         return context
 from django.contrib.auth.models import Group
@@ -1051,13 +1053,24 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
         }
 
     def save(self, commit: bool = True) -> AntwortErkennungsRegel:
-        actions = self.cleaned_data.get("actions_json", {}) or {}
+        actions = self.cleaned_data.get("actions_json", []) or []
         if isinstance(actions, dict):
-            for key, val in list(actions.items()):
+            actions = [
+                {"field": k, "value": False if v in ("", None) else v == "on" or bool(v)}
+                for k, v in actions.items()
+            ]
+        else:
+            new_list = []
+            for act in actions:
+                if not isinstance(act, dict):
+                    continue
+                val = act.get("value")
                 if val == "on":
-                    actions[key] = True
+                    val = True
                 elif val in ("", None):
-                    actions[key] = False
+                    val = False
+                new_list.append({"field": act.get("field"), "value": bool(val)})
+            actions = new_list
         self.instance.actions_json = actions
         return super().save(commit=commit)
 
