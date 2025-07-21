@@ -1,0 +1,37 @@
+{% extends 'admin_base.html' %}
+{% block title %}Exakter Parser Regeln{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">Regeln für Exakten Parser</h1>
+<div class="mb-4 space-x-2">
+    <a href="{% url 'parser_rule_add' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Neue Regel</a>
+</div>
+<table class="min-w-full">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Name</th>
+            <th class="py-2">Phrase</th>
+            <th class="py-2 text-center">Bearbeiten</th>
+            <th class="py-2 text-center">Löschen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in rules %}
+        <tr class="border-b text-sm">
+            <td class="py-1">{{ r.regel_name }}</td>
+            <td class="py-1">{{ r.erkennungs_phrase }}</td>
+            <td class="py-1 text-center">
+                <a href="{% url 'parser_rule_edit' r.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
+            </td>
+            <td class="py-1 text-center">
+                <form method="post" action="{% url 'parser_rule_delete' r.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Regel wirklich löschen?');">Löschen</button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="4" class="py-2">Keine Regeln vorhanden.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

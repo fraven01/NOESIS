@@ -8,6 +8,14 @@ import logging
 
 workflow_logger = logging.getLogger("workflow_debug")
 
+# Parser-Modi für Anlage 2
+PARSER_MODE_CHOICES = [
+    ("auto", "Automatisch"),
+    ("table_only", "Nur Tabellen"),
+    ("text_only", "Nur Text"),
+    ("exact_only", "Nur Exakt"),
+]
+
 
 class BVProjectManager(models.Manager):
     """Manager mit Unterstützung für das alte ``software_typen``-Feld."""
@@ -221,6 +229,18 @@ class BVProjectFile(models.Model):
     anlage4_parser_config = models.ForeignKey(
         "Anlage4ParserConfig", on_delete=models.SET_NULL, null=True, blank=True
     )
+    parser_mode = models.CharField(
+        max_length=20,
+        choices=PARSER_MODE_CHOICES,
+        blank=True,
+        default="",
+        help_text="Spezifischer Parser-Modus für diese Anlage.",
+    )
+    parser_order = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Reihenfolge der Parser für diese Anlage.",
+    )
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
@@ -249,6 +269,12 @@ class BVProjectFile(models.Model):
     def save(self, *args, **kwargs):
         """Speichert die Datei und startet ggf. die Funktionsprüfung."""
         is_new = self._state.adding
+        if is_new and self.anlage_nr == 2:
+            cfg = Anlage2Config.get_instance()
+            if not self.parser_mode:
+                self.parser_mode = cfg.parser_mode
+            if not self.parser_order:
+                self.parser_order = cfg.parser_order
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
             funcs = list(
@@ -569,6 +595,7 @@ class Anlage2Config(models.Model):
         ("auto", "Automatisch"),
         ("table_only", "Nur Tabellen"),
         ("text_only", "Nur Text"),
+        ("exact_only", "Nur Exakt"),
     ]
 
     parser_mode = models.CharField(
@@ -689,6 +716,11 @@ class AntwortErkennungsRegel(models.Model):
         choices=FormatBParserRule.FIELD_CHOICES,
     )
     wert = models.BooleanField()
+    actions_json = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Feld-Wert-Paare für den exakten Parser.",
+    )
     REGEL_ANWENDUNGSBEREICH_CHOICES = [
         ("Hauptfunktion", "Hauptfunktion"),
         ("Unterfrage", "Unterfrage"),
@@ -932,3 +964,47 @@ class Anlage5Review(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"Review für {self.project_file}"
+
+
+class Anlage3Metadata(models.Model):
+    """Speichert erkannte Metadaten einer Anlage 3."""
+
+    project_file = models.OneToOneField(
+        BVProjectFile,
+        on_delete=models.CASCADE,
+        related_name="anlage3meta",
+    )
+    name = models.CharField(max_length=200, blank=True)
+    beschreibung = models.TextField(blank=True)
+    zeitraum = models.CharField(max_length=100, blank=True)
+    art = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        verbose_name = "Anlage 3 Metadaten"
+        verbose_name_plural = "Anlage 3 Metadaten"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.name or f"Metadaten für {self.project_file}"
+
+
+class Anlage3ParserRule(models.Model):
+    """Regel für die Erkennung von Feldern in Anlage 3."""
+
+    FIELD_CHOICES = [
+        ("name", "Name der Auswertung"),
+        ("beschreibung", "Beschreibung"),
+        ("zeitraum", "Zeitraum"),
+        ("art", "Art der Auswertung"),
+    ]
+
+    field_name = models.CharField(max_length=50, choices=FIELD_CHOICES)
+    aliases = models.JSONField(default=list, blank=True)
+    ordering = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordering", "id"]
+        verbose_name = "Anlage 3 Parser Regel"
+        verbose_name_plural = "Anlage 3 Parser Regeln"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.field_name

@@ -38,6 +38,7 @@ from .forms import (
     Anlage1ReviewForm,
     Anlage2ReviewForm,
     Anlage4ReviewForm,
+    Anlage3MetadataForm,
     Anlage5ReviewForm,
     Anlage6ReviewForm,
     get_anlage2_fields,
@@ -65,6 +66,7 @@ from .forms import (
     ZweckKategorieAForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
+    ParserSettingsForm,
 
 )
 from .text_parser import PHRASE_TYPE_CHOICES
@@ -94,6 +96,7 @@ from .models import (
     Anlage4ParserConfig,
     ZweckKategorieA,
     Anlage5Review,
+    Anlage3Metadata,
 )
 from .docx_utils import extract_text, get_docx_page_count
 from .llm_utils import query_llm
@@ -2333,6 +2336,50 @@ def anlage2_subquestion_delete(request, pk):
     return redirect("anlage2_function_edit", func_pk)
 
 
+class AntwortErkennungsRegelListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
+    """Listet alle Regeln für den exakten Parser auf."""
+
+    model = AntwortErkennungsRegel
+    template_name = "parser_rules/rule_list.html"
+    context_object_name = "rules"
+
+
+class AntwortErkennungsRegelCreateView(LoginRequiredMixin, StaffRequiredMixin, CreateView):
+    """Erstellt eine neue Antwortregel."""
+
+    model = AntwortErkennungsRegel
+    form_class = AntwortErkennungsRegelForm
+    template_name = "parser_rules/rule_form.html"
+    success_url = reverse_lazy("parser_rule_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["rule_choices"] = FormatBParserRule.FIELD_CHOICES
+        return ctx
+
+
+class AntwortErkennungsRegelUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
+    """Bearbeitet eine bestehende Antwortregel."""
+
+    model = AntwortErkennungsRegel
+    form_class = AntwortErkennungsRegelForm
+    template_name = "parser_rules/rule_form.html"
+    success_url = reverse_lazy("parser_rule_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["rule_choices"] = FormatBParserRule.FIELD_CHOICES
+        return ctx
+
+
+class AntwortErkennungsRegelDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+    """Löscht eine Antwortregel."""
+
+    model = AntwortErkennungsRegel
+    template_name = "parser_rules/rule_confirm_delete.html"
+    success_url = reverse_lazy("parser_rule_list")
+
+
 @login_required
 @tile_required("projektverwaltung")
 def projekt_list(request):
@@ -2423,6 +2470,30 @@ def anlage3_review(request, pk):
     context = {"projekt": projekt, "anlagen": anlagen}
     logger.info("anlage3_review beendet für Projekt %s", pk)
     return render(request, "anlage3_review.html", context)
+
+
+@login_required
+def anlage3_file_review(request, pk):
+    """Zeigt erkannte Metadaten der Anlage 3 zur Best\u00e4tigung."""
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 3:
+        raise Http404
+
+    try:
+        meta = project_file.anlage3meta
+    except Anlage3Metadata.DoesNotExist:
+        meta = Anlage3Metadata(project_file=project_file)
+
+    if request.method == "POST":
+        form = Anlage3MetadataForm(request.POST, instance=meta)
+        if form.is_valid():
+            form.save()
+            return redirect("projekt_detail", pk=project_file.projekt.pk)
+    else:
+        form = Anlage3MetadataForm(instance=meta)
+
+    context = {"anlage": project_file, "form": form}
+    return render(request, "projekt_file_anlage3_review.html", context)
 
 
 @login_required
@@ -2604,6 +2675,17 @@ def projekt_file_upload(request, pk):
             obj.projekt = projekt
             obj.text_content = content
             obj.save()
+
+            if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
+                try:
+                    from .anlage3_parser import parse_anlage3
+                    meta = parse_anlage3(obj)
+                    if meta:
+                        Anlage3Metadata.objects.update_or_create(
+                            project_file=obj, defaults=meta
+                        )
+                except Exception:
+                    logger.exception("Fehler beim Anlage3 Parser")
 
             if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
                 try:
@@ -2841,21 +2923,32 @@ def projekt_file_edit_json(request, pk):
         ]
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
+        parser_form = ParserSettingsForm(
+            request.POST if request.method == "POST" and "save_parser_settings" in request.POST else None,
+            instance=anlage,
+        )
         if request.method == "POST":
-            if "run_parser" in request.POST:
+            if "save_parser_settings" in request.POST:
+                form = Anlage2ReviewForm(initial=analysis_init)
+                if parser_form.is_valid():
+                    parser_form.save()
+                    messages.success(request, "Parser-Einstellungen gespeichert")
+                    return redirect("projekt_file_edit_json", pk=pk)
+            elif "run_parser" in request.POST:
                 run_anlage2_analysis(anlage)
                 anlage.refresh_from_db()
                 return redirect("projekt_file_edit_json", pk=pk)
-            form = Anlage2ReviewForm(request.POST)
-            if form.is_valid():
-                cfg_rule = Anlage2Config.get_instance()
-                functions_to_override: set[int] = set()
-                if cfg_rule.enforce_subquestion_override:
-                    for func in Anlage2Function.objects.order_by("name"):
-                        for sub in func.anlage2subquestion_set.all().order_by("id"):
-                            field_name = f"sub{sub.id}_technisch_vorhanden"
-                            if form.cleaned_data.get(field_name):
-                                functions_to_override.add(func.id)
+            else:
+                form = Anlage2ReviewForm(request.POST)
+                if form.is_valid():
+                    cfg_rule = Anlage2Config.get_instance()
+                    functions_to_override: set[int] = set()
+                    if cfg_rule.enforce_subquestion_override:
+                        for func in Anlage2Function.objects.order_by("name"):
+                            for sub in func.anlage2subquestion_set.all().order_by("id"):
+                                field_name = f"sub{sub.id}_technisch_vorhanden"
+                                if form.cleaned_data.get(field_name):
+                                    functions_to_override.add(func.id)
 
                 data = form.get_json()
                 anlage.manual_analysis_json = data
@@ -3148,6 +3241,7 @@ def projekt_file_edit_json(request, pk):
                 "labels": [f[1] for f in fields_def],
                 "field_pairs": fields_def,
                 "no_ai_fields": ["einsatz_bei_telefonica", "zur_lv_kontrolle"],
+                "parser_form": parser_form,
             }
         )
     elif anlage.anlage_nr == 4:

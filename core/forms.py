@@ -22,6 +22,9 @@ from .models import (
     Anlage4Config,
     Anlage4ParserConfig,
     ZweckKategorieA,
+
+    PARSER_MODE_CHOICES,
+    Anlage3Metadata,
 )
 from django.contrib.auth.models import Group
 from .parser_manager import parser_manager
@@ -167,11 +170,20 @@ class BVProjectUploadForm(DocxValidationMixin, forms.Form):
 
 
 class BVProjectFileForm(forms.ModelForm):
+    parser_order = forms.MultipleChoiceField(
+        choices=get_parser_choices(), required=False
+    )
+
+    parser_mode = forms.ChoiceField(
+        choices=PARSER_MODE_CHOICES, required=False
+    )
     class Meta:
         model = BVProjectFile
         fields = [
             "anlage_nr",
             "upload",
+            "parser_mode",
+            "parser_order",
             "manual_comment",
             "manual_analysis_json",
             "manual_reviewed",
@@ -180,6 +192,8 @@ class BVProjectFileForm(forms.ModelForm):
         labels = {
             "anlage_nr": "Anlage Nr",
             "upload": "Datei",
+            "parser_mode": "Parser-Modus",
+            "parser_order": "Parser-Reihenfolge",
             "manual_comment": "Kommentar",
             "manual_analysis_json": "Manuelle Analyse (JSON)",
             "manual_reviewed": "Manuell geprüft",
@@ -199,7 +213,22 @@ class BVProjectFileForm(forms.ModelForm):
             ),
             "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "parser_order": forms.SelectMultiple(
+                attrs={"class": "border rounded p-2"}
+            ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        nr = self.data.get("anlage_nr") or self.initial.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
+        if str(nr) != "2":
+            self.fields.pop("parser_mode", None)
+            self.fields.pop("parser_order", None)
+        else:
+            self.fields["parser_order"].choices = get_parser_choices()
+            if not self.is_bound:
+                self.initial["parser_order"] = self.instance.parser_order
 
     def clean_upload(self):
         """Prüft die Dateiendung abhängig von der Anlagen-Nummer."""
@@ -217,6 +246,16 @@ class BVProjectFileForm(forms.ModelForm):
             if ext != ".docx":
                 raise forms.ValidationError("Nur .docx Dateien erlaubt")
         return f
+
+    def save(self, commit: bool = True) -> BVProjectFile:
+        obj = super().save(commit=False)
+        if "parser_mode" in self.cleaned_data:
+            obj.parser_mode = self.cleaned_data.get("parser_mode") or ""
+        if "parser_order" in self.cleaned_data:
+            obj.parser_order = self.cleaned_data.get("parser_order") or []
+        if commit:
+            obj.save()
+        return obj
 
 
 class BVProjectFileJSONForm(forms.ModelForm):
@@ -435,6 +474,23 @@ class Anlage5ReviewForm(forms.Form):
         return {
             "purposes": [p.pk for p in self.cleaned_data["purposes"]],
             "sonstige": self.cleaned_data["sonstige"],
+        }
+
+
+class Anlage3MetadataForm(forms.ModelForm):
+    """Formular f\u00fcr die extrahierten Metadaten der Anlage 3."""
+
+    class Meta:
+        model = Anlage3Metadata
+        fields = ["name", "beschreibung", "zeitraum", "art"]
+        labels = {
+            "name": "Name der Auswertung",
+            "beschreibung": "Beschreibung",
+            "zeitraum": "Zeitraum",
+            "art": "Art der Auswertung",
+        }
+        widgets = {
+            "beschreibung": forms.Textarea(attrs={"class": "border rounded p-2", "rows": 2}),
         }
 
 
@@ -950,6 +1006,12 @@ class Anlage4ParserConfigForm(forms.ModelForm):
 class AntwortErkennungsRegelForm(forms.ModelForm):
     """Formular für eine Parser-Antwortregel."""
 
+    actions_json = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 2, "class": "border rounded p-2 w-full"}),
+        label="Aktionen (JSON)",
+    )
+
     class Meta:
         model = AntwortErkennungsRegel
         fields = [
@@ -958,6 +1020,8 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
             "ziel_feld",
             "regel_anwendungsbereich",
             "wert",
+            "actions_json",
+            "prioritaet",
         ]
         widgets = {
             "regel_name": forms.TextInput(
@@ -971,5 +1035,62 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
                 attrs={"class": "border rounded p-2 w-full"}
             ),
             "wert": forms.CheckboxInput(attrs={"class": "mx-auto"}),
+            "prioritaet": forms.NumberInput(attrs={"class": "border rounded p-2"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.actions_json:
+            self.initial["actions_json"] = json.dumps(
+                self.instance.actions_json, ensure_ascii=False
+            )
+
+    def clean_actions_json(self) -> dict:
+        raw = self.cleaned_data.get("actions_json")
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+        except Exception:
+            raise forms.ValidationError("Ungültiges JSON")
+        if not isinstance(data, dict):
+            raise forms.ValidationError("JSON muss ein Objekt sein")
+        return data
+
+    def save(self, commit: bool = True) -> AntwortErkennungsRegel:
+        self.instance.actions_json = self.cleaned_data.get("actions_json", {})
+        return super().save(commit=commit)
+
+
+class ParserSettingsForm(forms.ModelForm):
+    """Formular für parserbezogene Einstellungen einer Anlage."""
+
+    parser_order = forms.MultipleChoiceField(
+        choices=get_parser_choices(), required=False
+    )
+    parser_mode = forms.ChoiceField(
+        choices=PARSER_MODE_CHOICES, required=False
+    )
+
+    class Meta:
+        model = BVProjectFile
+        fields = ["parser_mode", "parser_order"]
+        widgets = {
+            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
+            "parser_order": forms.SelectMultiple(attrs={"class": "border rounded p-2"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["parser_order"].choices = get_parser_choices()
+        if self.instance and not self.is_bound:
+            self.initial["parser_order"] = self.instance.parser_order
+
+    def save(self, commit: bool = True) -> BVProjectFile:
+        obj = super().save(commit=False)
+        obj.parser_mode = self.cleaned_data.get("parser_mode") or ""
+        obj.parser_order = self.cleaned_data.get("parser_order") or []
+        if commit:
+            obj.save(update_fields=["parser_mode", "parser_order"])
+        return obj
 

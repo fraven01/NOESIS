@@ -1,0 +1,11 @@
+{% extends 'admin_base.html' %}
+{% block title %}Regel löschen{% endblock %}
+{% block admin_content %}
+<h1 class="text-xl font-semibold mb-4">Regel löschen</h1>
+<p>Möchten Sie die Regel "{{ object.regel_name }}" wirklich löschen?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">Löschen</button>
+    <a href="{% url 'parser_rule_list' %}" class="ml-2 px-4 py-2 bg-gray-300 rounded">Abbrechen</a>
+</form>
+{% endblock %}

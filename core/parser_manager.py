@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Type
 
 from .models import BVProjectFile, Anlage2Config
-from .parsers import AbstractParser, TableParser
+from .parsers import AbstractParser, TableParser, ExactParser
 from .text_parser import FuzzyTextParser
 
 logger = logging.getLogger(__name__)
@@ -28,46 +28,53 @@ class ParserManager:
         return list(self._parsers.keys())
 
     def parse_anlage2(self, project_file: BVProjectFile) -> list[dict[str, object]]:
+        """Führt die Parser gemäß Konfiguration aus."""
+
         cfg = Anlage2Config.get_instance()
-        parser_order = cfg.parser_order or ["table"]
-        best_result: list[dict[str, object]] = []
-        best_count = -1
-        for name in parser_order:
+        mode = project_file.parser_mode or cfg.parser_mode
+        order = project_file.parser_order or cfg.parser_order or ["table"]
+
+        if mode == "table_only":
+            return self._run_single("table", project_file)
+        if mode == "exact_only":
+            return self._run_single("exact", project_file)
+        if mode == "text_only":
+            candidates = [n for n in order if n in {"text", "exact"}]
+            if not candidates:
+                candidates = [n for n in ("text", "exact") if n in self._parsers]
+        else:  # auto
+            candidates = order
+
+        for name in candidates:
             parser = self.get(name)
             if parser is None:
                 logger.warning("Unbekannter Parser: %s", name)
                 continue
             try:
                 result = parser.parse(project_file)
-                count = _count_technisch_true(result)
             except Exception as exc:  # pragma: no cover - Fehlkonfiguration
                 logger.error("Parser '%s' Fehler: %s", name, exc)
                 result = []
-                count = -1
-            if count > best_count or (
-                count == best_count and len(result) > len(best_result)
-            ):
-                best_result = result
-                best_count = count
-        return best_result
+            if result:
+                return result
+        return []
 
+    def _run_single(self, name: str, project_file: BVProjectFile) -> list[dict[str, object]]:
+        """Hilfsfunktion, führt einen einzelnen Parser aus."""
 
-def _count_technisch_true(data: list[dict[str, object]]) -> int:
-    """Zählt Einträge mit technisch vorhandener Funktion."""
-    count = 0
-    for item in data:
-        val = item.get("technisch_verfuegbar")
-        if isinstance(val, dict):
-            if val.get("value") is True:
-                count += 1
-        elif isinstance(val, str):
-            if val.lower() == "ja":
-                count += 1
-        elif val is True:
-            count += 1
-    return count
+        parser = self.get(name)
+        if parser is None:
+            logger.warning("Unbekannter Parser: %s", name)
+            return []
+        try:
+            return parser.parse(project_file)
+        except Exception as exc:  # pragma: no cover - Fehlkonfiguration
+            logger.error("Parser '%s' Fehler: %s", name, exc)
+            return []
 
 
 parser_manager = ParserManager()
 parser_manager.register(TableParser)
 parser_manager.register(FuzzyTextParser)
+parser_manager.register(ExactParser)
+

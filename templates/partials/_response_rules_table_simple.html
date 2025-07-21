@@ -8,6 +8,7 @@
             <th class="py-2">Ziel-Feld</th>
             <th class="py-2">Anwendungsbereich</th>
             <th class="py-2">Wert</th>
+            <th class="py-2">Aktionen</th>
             <th class="py-2 text-center">Entfernen</th>
         </tr>
     </thead>
@@ -15,7 +16,7 @@
         {% for form in formset %}
             {% include 'partials/_response_rule_row_simple.html' with form=form %}
         {% empty %}
-        <tr><td colspan="6">Keine Regeln</td></tr>
+        <tr><td colspan="7">Keine Regeln</td></tr>
         {% endfor %}
     </tbody>
 </table>
