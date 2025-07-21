@@ -3456,4 +3456,27 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         res.refresh_from_db()
         self.assertIsNone(res.is_negotiable_manual_override)
 
+    def test_negotiable_does_not_set_manual_value(self):
+        Anlage2FunctionResult.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            ai_result={"technisch_verfuegbar": True},
+        )
+        url = reverse("ajax_save_anlage2_review")
+        self.client.post(
+            url,
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "set_negotiable": True,
+                }
+            ),
+            content_type="application/json",
+        )
+        res = Anlage2FunctionResult.objects.get(
+            projekt=self.projekt, funktion=self.func
+        )
+        self.assertIsNone(res.manual_result)
+
 

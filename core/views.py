@@ -3454,18 +3454,19 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         pf_id = data.get("project_file_id")
         func_id = data.get("function_id")
         sub_id = data.get("subquestion_id")
-        field_name = data.get("field_name") or "technisch_vorhanden"
+        field_name = data.get("field_name")
+        status_provided = "status" in data
         gap_notiz = data.get("gap_notiz")
         gap_summary = data.get("gap_summary")
         set_neg = data.get("set_negotiable", "__missing__")
 
-        status_val = data.get("status")
-        if status_val in (True, "True", "true", "1", 1):
-            status = True
-        elif status_val in (False, "False", "false", "0", 0):
-            status = False
-        else:
-            status = None
+        status = None
+        if status_provided:
+            status_val = data.get("status")
+            if status_val in (True, "True", "true", "1", 1):
+                status = True
+            elif status_val in (False, "False", "false", "0", 0):
+                status = False
 
         notes = data.get("notes", "")
 
@@ -3512,7 +3513,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             res.gap_summary = gap_summary
             update_fields.append("gap_summary")
 
-        if field_name:
+        if field_name is not None and status_provided:
             attr = field_map.get(field_name, "technisch_verfuegbar")
             setattr(res, attr, status)
             res.raw_json = {"notes": notes, "subquestion_id": sub_id}
@@ -3537,7 +3538,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             else:
                 res.is_negotiable = auto_val
             update_fields.extend(["is_negotiable_manual_override", "is_negotiable"])
-        elif field_name == "technisch_vorhanden" and sub_id is None:
+        elif field_name == "technisch_vorhanden" and status_provided and sub_id is None:
             if res.is_negotiable_manual_override is None:
                 res.is_negotiable = auto_val
             update_fields.append("is_negotiable")
@@ -3551,7 +3552,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         # Die Generierung der Gap-Zusammenfassung erfolgt nun manuell über ein
         # separates Endpoint und wird hier nicht mehr automatisch ausgelöst.
 
-        if field_name:
+        if field_name is not None and status_provided:
             manual_data = anlage.manual_analysis_json or {"functions": {}}
             func_entry = manual_data.setdefault("functions", {}).setdefault(
                 str(func_id), {}
