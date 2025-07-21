@@ -2183,7 +2183,7 @@ class Anlage2ReviewTests(NoesisTestCase):
         )
         self.assertContains(resp, link)
 
-    def test_auto_analysis_runs_once_for_new_file(self):
+    def test_no_auto_analysis_on_get(self):
         pf = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=2,
@@ -2200,7 +2200,7 @@ class Anlage2ReviewTests(NoesisTestCase):
         with patch("core.views.run_anlage2_analysis", side_effect=_fake) as mock_func:
             self.client.get(url)
             self.client.get(url)
-        self.assertEqual(mock_func.call_count, 1)
+        self.assertEqual(mock_func.call_count, 0)
 
 
 class WorkerGenerateGutachtenTests(NoesisTestCase):

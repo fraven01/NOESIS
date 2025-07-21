@@ -2844,12 +2844,6 @@ def projekt_file_edit_json(request, pk):
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
         raise Http404
-    if (
-        request.method == "GET" and anlage.anlage_nr == 2 and not anlage.analysis_json
-    ):
-        run_anlage2_analysis(anlage)
-        anlage.refresh_from_db()
-
     if request.method == "GET" and anlage.anlage_nr == 2:
         results = (
             Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
