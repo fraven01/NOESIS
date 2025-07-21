@@ -13,7 +13,9 @@
     </thead>
     <tbody>
         {% for form in formset %}
-            {% include 'partials/_response_rule_row_simple.html' with form=form raw_actions=raw_actions %}
+            {% with af=action_formsets|get_item:form.prefix %}
+                {% include 'partials/_response_rule_row_simple.html' with form=form action_formset=af raw_actions=raw_actions %}
+            {% endwith %}
         {% empty %}
         <tr><td colspan="7">Keine Regeln</td></tr>
         {% endfor %}
