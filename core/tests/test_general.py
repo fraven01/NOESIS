@@ -754,7 +754,6 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
-            source="manual",
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -950,7 +949,7 @@ class BuildRowDataTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=self.func,
-            raw_json={"subquestion_id": sub.id},
+            subquestion=sub,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -1034,7 +1033,11 @@ class LLMTasksTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf, funktion=func
         )
-        self.assertEqual(res.source, "llm")
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="llm"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertTrue(fe.technisch_verfuegbar)
 
     def test_check_anlage2_functions_stores_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1051,7 +1054,11 @@ class LLMTasksTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf, funktion=func
         )
-        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="ki"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertTrue(fe.technisch_verfuegbar)
 
 
     def test_check_anlage2_llm_receives_text(self):
@@ -1180,7 +1187,11 @@ class LLMTasksTests(NoesisTestCase):
             anlage_datei=pf,
             funktion=func,
         )
-        self.assertTrue(res.doc_result["technisch_verfuegbar"]["value"])
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="parser"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertTrue(fe.technisch_verfuegbar)
 
         self.assertEqual(result, expected)
         self.assertEqual(pf.analysis_json["functions"], expected)
@@ -1444,11 +1455,11 @@ class LLMTasksTests(NoesisTestCase):
             anlage_datei=pf,
             funktion=func,
         )
-        if isinstance(res.doc_result, dict):
-            self.assertIn("not_found", res.doc_result)
-
-        else:
-            self.assertIsNone(fe.technisch_verfuegbar)
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="parser"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertIsNone(fe.technisch_verfuegbar)
 
     def test_run_anlage2_analysis_includes_missing_subquestions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2932,7 +2943,11 @@ class FeatureVerificationTests(NoesisTestCase):
             anlage_datei=pf,
             funktion=self.func,
         )
-        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=self.func, quelle="ki"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertTrue(fe.technisch_verfuegbar)
 
 
     def test_all_no_returns_false(self):
@@ -2956,7 +2971,11 @@ class FeatureVerificationTests(NoesisTestCase):
             anlage_datei=pf,
             funktion=self.func,
         )
-        self.assertFalse(res.ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=self.func, subquestion=self.sub, quelle="ki"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertFalse(fe.technisch_verfuegbar)
 
 
     def test_subquestion_context_contains_question(self):
