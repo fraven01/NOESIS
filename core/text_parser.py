@@ -235,3 +235,10 @@ def apply_rules(
         entry[best_field]["note"] = remaining
 
 
+def parse_anlage2_text(text: str) -> List[dict[str, object]]:
+    """Platzhalter für die Textparser-Logik."""
+
+    parser_logger.info("parse_anlage2_text gestartet")
+    return []
+
+
