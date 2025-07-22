@@ -203,6 +203,12 @@ Beispiel: Die Regel "nicht im Einsatz" mit Ziel `einsatz_telefonica` und Wert `F
 Erkennungsphrasen werden einfach zeilenweise eingegeben.
 JSON-Strukturen sind nicht mehr erforderlich; jede Zeile steht f\u00fcr eine Phrase.
 
+Alle vorhandenen Regeln lassen sich im Admin-Menü unter
+`/projects-admin/parser-rules/` übersichtlich verwalten. Für ein Backup
+oder den Umzug auf ein anderes System können die Regeln zudem über den
+Konfigurations-Export gesammelt heruntergeladen und wieder importiert
+werden.
+
 
 ### Format-B Textparser
 
@@ -256,9 +262,14 @@ nach und nach in `analysis_json` ergänzt.
 
 ### Anlage‑2‑Konfiguration importieren/exportieren
 
-Unter `/projects-admin/anlage2/config/` lässt sich zusätzlich die gesamte
-Konfiguration sichern. Die exportierte JSON-Datei enthält nun alle
-bearbeitbaren Bereiche:
+Im Admin-Bereich steht unter `/projects-admin/anlage2/config/` ein eigener
+Dialog bereit, um die gesamte Konfiguration zu speichern oder wieder
+einzulesen. Die Links **Exportieren** und **Importieren** verweisen auf
+`/projects-admin/anlage2-config/export/` beziehungsweise
+`/projects-admin/anlage2-config/import/`.
+
+Die exportierte JSON-Datei enthält alle bearbeitbaren Bereiche, darunter auch
+die definierten Parserregeln:
 
 ```json
 {
@@ -267,11 +278,17 @@ bearbeitbaren Bereiche:
   "answer_rules": [{
     "regel_name": "Standard",
     "erkennungs_phrase": "ja",
-    "actions": {"technisch_verfuegbar": true}
+    "actions": {"technisch_verfuegbar": true},
+    "prioritaet": 0
   }],
   "a4_parser": {"delimiter_phrase": "Name der"}
 }
 ```
+
+Jede Antwortregel besitzt die Schlüssel `regel_name`, `erkennungs_phrase`,
+`actions` und `prioritaet`. Beim Import wird die Liste nach der angegebenen
+Priorität sortiert und die Einträge werden entsprechend neu angelegt oder
+aktualisiert.
 
 Beim Import wird dieselbe Struktur erwartet. Fehlen einzelne Bereiche, werden
 lediglich die vorhandenen Daten eingelesen.
