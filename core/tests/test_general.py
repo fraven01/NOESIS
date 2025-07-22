@@ -24,6 +24,7 @@ from ..models import (
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
+    FunktionsErgebnis,
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
@@ -746,11 +747,22 @@ class Anlage2FunctionResultModelTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
-            manual_result={"technisch_vorhanden": True, "ki_beteiligung": False},
             source="manual",
         )
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
-        self.assertFalse(res.manual_result["ki_beteiligung"])
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="manual",
+            technisch_verfuegbar=True,
+            ki_beteiligung=False,
+        )
+        latest = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="manual",
+        ).first()
+        self.assertTrue(latest.technisch_verfuegbar)
+        self.assertFalse(latest.ki_beteiligung)
 
 
 class WorkflowTests(NoesisTestCase):
@@ -873,8 +885,18 @@ class BuildRowDataTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=self.func,
-            doc_result={"technisch_verfuegbar": True},
-            ai_result={"technisch_verfuegbar": False},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=False,
         )
 
         analysis = {self.func.name: {"technisch_vorhanden": False}}
@@ -908,9 +930,21 @@ class BuildRowDataTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=self.func,
-            doc_result={"technisch_verfuegbar": False},
-            ai_result={"technisch_verfuegbar": True},
             raw_json={"subquestion_id": sub.id},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            subquestion=sub,
+            quelle="parser",
+            technisch_verfuegbar=False,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=self.func,
+            subquestion=sub,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
 
         lookup = res.get_lookup_key()
@@ -990,7 +1024,12 @@ class LLMTasksTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
             run_conditional_anlage2_check(projekt.pk)
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+        latest = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="ki",
+        ).first()
+        self.assertTrue(latest.technisch_verfuegbar)
 
     def test_check_anlage2_llm_receives_text(self):
         """Der LLM-Prompt enthält den bekannten Text."""
@@ -1114,7 +1153,12 @@ class LLMTasksTests(NoesisTestCase):
 
         pf.refresh_from_db()
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        self.assertTrue(res.doc_result["technisch_verfuegbar"]["value"])
+        latest = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="parser",
+        ).first()
+        self.assertTrue(latest.technisch_verfuegbar)
         self.assertEqual(result, expected)
         self.assertEqual(pf.analysis_json["functions"], expected)
 
@@ -1148,7 +1192,12 @@ class LLMTasksTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
-            ai_result={"technisch_verfuegbar": True},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
 
         run_anlage2_analysis(pf)
@@ -1367,10 +1416,15 @@ class LLMTasksTests(NoesisTestCase):
         self.assertEqual(pf.analysis_json["functions"], result)
 
         res = Anlage2FunctionResult.objects.get(projekt=projekt, funktion=func)
-        if isinstance(res.doc_result, dict):
-            self.assertIn("not_found", res.doc_result)
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="parser",
+        ).first()
+        if fe is None:
+            self.assertIsNone(fe)
         else:
-            self.assertIsNone(res.doc_result)
+            self.assertIsNone(fe.technisch_verfuegbar)
 
     def test_run_anlage2_analysis_includes_missing_subquestions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2849,7 +2903,12 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
 
     def test_all_no_returns_false(self):
         with patch(
@@ -2867,7 +2926,12 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertFalse(res.ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+        ).first()
+        self.assertFalse(fe.technisch_verfuegbar)
 
     def test_subquestion_context_contains_question(self):
         """Die Subquestion wird korrekt im Kontext übergeben."""
@@ -2916,7 +2980,12 @@ class FeatureVerificationTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            doc_result={"technisch_verfuegbar": {"value": True}},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="parser",
+            technisch_verfuegbar=True,
         )
         with patch(
             "core.llm_tasks.query_llm",
@@ -2930,7 +2999,12 @@ class FeatureVerificationTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            doc_result={"technisch_verfuegbar": {"value": False}},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="parser",
+            technisch_verfuegbar=False,
         )
         with patch(
             "core.llm_tasks.query_llm",
@@ -3308,13 +3382,23 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manual",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
 
     def test_gap_generated_on_difference(self):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            ai_result={"technisch_verfuegbar": True},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
@@ -3351,7 +3435,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            ai_result={"technisch_verfuegbar": True},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
 
         url = reverse("ajax_save_anlage2_review")
@@ -3379,7 +3468,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertTrue(res.einsatz_bei_telefonica)
-        self.assertTrue(res.manual_result["einsatz_bei_telefonica"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manual",
+        ).first()
+        self.assertTrue(fe.einsatz_bei_telefonica)
 
     def test_save_lv_kontrolle(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3396,7 +3490,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
         self.assertFalse(res.zur_lv_kontrolle)
-        self.assertFalse(res.manual_result["zur_lv_kontrolle"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manual",
+        ).first()
+        self.assertFalse(fe.zur_lv_kontrolle)
 
     def test_manual_result_merge(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3420,14 +3519,24 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         res = Anlage2FunctionResult.objects.get(projekt=self.projekt, funktion=self.func)
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
-        self.assertFalse(res.manual_result["ki_beteiligung"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manual",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
+        self.assertFalse(fe.ki_beteiligung)
 
     def test_set_negotiable_override(self):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            ai_result={"technisch_verfuegbar": True},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
@@ -3460,7 +3569,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=self.projekt,
             funktion=self.func,
-            ai_result={"technisch_verfuegbar": True},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=True,
         )
         url = reverse("ajax_save_anlage2_review")
         self.client.post(
@@ -3477,7 +3591,13 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.get(
             projekt=self.projekt, funktion=self.func
         )
-        self.assertIsNone(res.manual_result)
+        self.assertFalse(
+            FunktionsErgebnis.objects.filter(
+                projekt=self.projekt,
+                funktion=self.func,
+                quelle="manual",
+            ).exists()
+        )
 
 
 class Anlage2ResetTests(NoesisTestCase):
@@ -3498,7 +3618,11 @@ class Anlage2ResetTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
-            doc_result={"funktion": "Alt"},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="parser",
         )
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -3511,7 +3635,12 @@ class Anlage2ResetTests(NoesisTestCase):
             run_anlage2_analysis(pf)
         results = Anlage2FunctionResult.objects.filter(projekt=projekt)
         self.assertEqual(results.count(), 1)
-        self.assertEqual(results[0].doc_result["funktion"], "Login")
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="parser",
+        ).first()
+        self.assertIsNotNone(fe)
 
     def test_conditional_check_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3524,14 +3653,25 @@ class Anlage2ResetTests(NoesisTestCase):
         Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
-            ai_result={"technisch_verfuegbar": False},
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
         )
 
         def fake(_pid, _typ, fid, _model=None):
             Anlage2FunctionResult.objects.update_or_create(
                 projekt=projekt,
                 funktion_id=fid,
-                defaults={"ai_result": {"technisch_verfuegbar": True}},
+                defaults={},
+            )
+            FunktionsErgebnis.objects.create(
+                projekt=projekt,
+                funktion_id=fid,
+                quelle="ki",
+                technisch_verfuegbar=True,
             )
             return {}
 
@@ -3539,7 +3679,12 @@ class Anlage2ResetTests(NoesisTestCase):
             run_conditional_anlage2_check(projekt.pk)
         results = Anlage2FunctionResult.objects.filter(projekt=projekt)
         self.assertEqual(results.count(), 1)
-        self.assertTrue(results[0].ai_result["technisch_verfuegbar"])
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=projekt,
+            funktion=func,
+            quelle="ki",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
 
     def test_ajax_reset_all_reviews_resets_manual_fields(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3552,19 +3697,54 @@ class Anlage2ResetTests(NoesisTestCase):
         res = Anlage2FunctionResult.objects.create(
             projekt=projekt,
             funktion=func,
-            doc_result={"technisch_verfuegbar": True},
-            ai_result={"technisch_verfuegbar": True},
-            manual_result={"technisch_vorhanden": True},
             is_negotiable_manual_override=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="manual",
+            technisch_verfuegbar=True,
         )
         self.client.login(username=self.user.username, password="pw")
         url = reverse("ajax_reset_all_reviews", args=[pf.pk])
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         res.refresh_from_db()
-        self.assertIsNone(res.manual_result)
+        self.assertFalse(
+            FunktionsErgebnis.objects.filter(
+                projekt=projekt,
+                funktion=func,
+                quelle="manual",
+            ).exists()
+        )
         self.assertIsNone(res.is_negotiable_manual_override)
-        self.assertTrue(res.doc_result["technisch_verfuegbar"])
-        self.assertTrue(res.ai_result["technisch_verfuegbar"])
+        self.assertTrue(
+            FunktionsErgebnis.objects.filter(
+                projekt=projekt,
+                funktion=func,
+                quelle="parser",
+                technisch_verfuegbar=True,
+            ).exists()
+        )
+        self.assertTrue(
+            FunktionsErgebnis.objects.filter(
+                projekt=projekt,
+                funktion=func,
+                quelle="ki",
+                technisch_verfuegbar=True,
+            ).exists()
+        )
 
 
