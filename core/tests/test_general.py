@@ -745,13 +745,19 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
     def test_manual_result_field(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         func = Anlage2Function.objects.create(name="Login")
-        res = AnlagenFunktionsMetadaten.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
             funktion=func,
             source="manual",
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             quelle="manual",
             technisch_verfuegbar=True,
@@ -883,18 +889,25 @@ class BuildRowDataTests(NoesisTestCase):
 
     def test_doc_ai_from_result_map_main(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        res = AnlagenFunktionsMetadaten.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=False,
@@ -928,13 +941,19 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func, frage_text="Unterfrage?"
         )
         form = Anlage2ReviewForm()  # Formular nach dem Erstellen der Unterfrage
-        res = AnlagenFunktionsMetadaten.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
             funktion=self.func,
             raw_json={"subquestion_id": sub.id},
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
             quelle="parser",
@@ -942,6 +961,7 @@ class BuildRowDataTests(NoesisTestCase):
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
             quelle="ki",
@@ -996,7 +1016,7 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_check_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
@@ -1010,12 +1030,14 @@ class LLMTasksTests(NoesisTestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(data["functions"][0]["technisch_verfuegbar"])
         self.assertEqual(data["functions"][0]["source"], "llm")
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=projekt, funktion=func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf, funktion=func
+        )
         self.assertEqual(res.source, "llm")
 
     def test_check_anlage2_functions_stores_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
@@ -1025,7 +1047,9 @@ class LLMTasksTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
             run_conditional_anlage2_check(projekt.pk)
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=projekt, funktion=func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf, funktion=func
+        )
         self.assertTrue(res.ai_result["technisch_verfuegbar"])
 
 
@@ -1151,7 +1175,10 @@ class LLMTasksTests(NoesisTestCase):
 
         pf.refresh_from_db()
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=projekt, funktion=func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=func,
+        )
         self.assertTrue(res.doc_result["technisch_verfuegbar"]["value"])
 
         self.assertEqual(result, expected)
@@ -1185,11 +1212,12 @@ class LLMTasksTests(NoesisTestCase):
         )
         func = Anlage2Function.objects.create(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             quelle="ki",
             technisch_verfuegbar=True,
@@ -1197,7 +1225,7 @@ class LLMTasksTests(NoesisTestCase):
 
         run_anlage2_analysis(pf)
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=projekt, funktion=func)
+        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
         self.assertFalse(res.negotiable)
 
     def test_parser_manager_fallback(self):
@@ -1411,7 +1439,10 @@ class LLMTasksTests(NoesisTestCase):
         self.assertEqual(pf.analysis_json["functions"], result)
 
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=projekt, funktion=func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=func,
+        )
         if isinstance(res.doc_result, dict):
             self.assertIn("not_found", res.doc_result)
 
@@ -2857,7 +2888,7 @@ class FeatureVerificationTests(NoesisTestCase):
             software_typen="Word, Excel",
             beschreibung="x",
         )
-        BVProjectFile.objects.create(
+        self.pf = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
@@ -2895,7 +2926,11 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.ai_result["technisch_verfuegbar"])
 
 
@@ -2915,7 +2950,11 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
         self.assertFalse(res.ai_result["technisch_verfuegbar"])
 
 
@@ -2963,12 +3002,14 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
 
     def test_negotiable_set_on_match(self):
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
@@ -2978,16 +3019,21 @@ class FeatureVerificationTests(NoesisTestCase):
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.negotiable)
 
     def test_negotiable_not_set_on_mismatch(self):
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=False,
@@ -2997,7 +3043,10 @@ class FeatureVerificationTests(NoesisTestCase):
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
         self.assertFalse(res.negotiable)
 
 
@@ -3404,17 +3453,21 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.manual_result["technisch_vorhanden"])
 
 
     def test_gap_generated_on_difference(self):
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=True,
@@ -3432,7 +3485,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data.get("gap_summary"), "")
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertEqual(res.gap_summary, "")
 
         gap_url = reverse("ajax_generate_gap_summary", args=[res.pk])
@@ -3452,11 +3508,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
 
     def test_manual_sets_negotiable(self):
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=True,
@@ -3469,7 +3526,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertFalse(res.negotiable)
 
     def test_save_einsatz_telefonica(self):
@@ -3485,7 +3545,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.einsatz_bei_telefonica)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
@@ -3507,7 +3570,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertFalse(res.zur_lv_kontrolle)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
@@ -3538,18 +3604,22 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
 
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.manual_result["technisch_vorhanden"])
         self.assertFalse(res.manual_result["ki_beteiligung"])
 
 
     def test_set_negotiable_override(self):
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=True,
@@ -3565,7 +3635,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(projekt=self.projekt, funktion=self.func)
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
+        )
         self.assertTrue(res.negotiable)
         self.assertTrue(res.is_negotiable_manual_override)
 
@@ -3583,11 +3656,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
 
     def test_negotiable_does_not_set_manual_value(self):
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             projekt=self.projekt,
+            anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=True,
@@ -3605,7 +3679,8 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         res = AnlagenFunktionsMetadaten.objects.get(
-            projekt=self.projekt, funktion=self.func
+            anlage_datei=self.pf,
+            funktion=self.func,
         )
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
@@ -3649,7 +3724,9 @@ class Anlage2ResetTests(NoesisTestCase):
             "core.llm_tasks.parse_anlage2_text", return_value=[]
         ):
             run_anlage2_analysis(pf)
-        results = AnlagenFunktionsMetadaten.objects.filter(projekt=projekt)
+        results = AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei__projekt=projekt
+        )
         self.assertEqual(results.count(), 1)
         fe = FunktionsErgebnis.objects.filter(
             projekt=projekt,
@@ -3678,13 +3755,17 @@ class Anlage2ResetTests(NoesisTestCase):
         )
 
         def fake(_pid, _typ, fid, _model=None):
+            pf_latest = BVProjectFile.objects.filter(
+                projekt=projekt, anlage_nr=2
+            ).first()
             AnlagenFunktionsMetadaten.objects.update_or_create(
-                projekt=projekt,
+                anlage_datei=pf_latest,
                 funktion_id=fid,
                 defaults={},
             )
             FunktionsErgebnis.objects.create(
                 projekt=projekt,
+                anlage_datei=pf_latest,
                 funktion_id=fid,
                 quelle="ki",
                 technisch_verfuegbar=True,
@@ -3693,7 +3774,9 @@ class Anlage2ResetTests(NoesisTestCase):
 
         with patch("core.llm_tasks.worker_verify_feature", side_effect=fake):
             run_conditional_anlage2_check(projekt.pk)
-        results = AnlagenFunktionsMetadaten.objects.filter(projekt=projekt)
+        results = AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei__projekt=projekt
+        )
         self.assertEqual(results.count(), 1)
         fe = FunktionsErgebnis.objects.filter(
             projekt=projekt,
@@ -3711,24 +3794,27 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         func = Anlage2Function.objects.create(name="Login")
         res = AnlagenFunktionsMetadaten.objects.create(
-            projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             is_negotiable_manual_override=True,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             quelle="ki",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
             quelle="manual",
             technisch_verfuegbar=True,
@@ -3741,6 +3827,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
                 projekt=projekt,
+                anlage_datei=pf,
                 funktion=func,
                 quelle="manual",
             ).exists()
@@ -3749,6 +3836,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
                 projekt=projekt,
+                anlage_datei=pf,
                 funktion=func,
                 quelle="parser",
                 technisch_verfuegbar=True,
@@ -3757,6 +3845,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
                 projekt=projekt,
+                anlage_datei=pf,
                 funktion=func,
                 quelle="ki",
                 technisch_verfuegbar=True,
