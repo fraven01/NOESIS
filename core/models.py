@@ -277,8 +277,8 @@ class BVProjectFile(models.Model):
                 self.parser_order = cfg.parser_order
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
-            # Alte Ergebnisse für dieses Projekt entfernen
-            Anlage2FunctionResult.objects.filter(projekt=self.projekt).delete()
+            # Alte Ergebnisse für diese Datei entfernen
+            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=self).delete()
             funcs = list(
                 Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
             )
@@ -867,10 +867,10 @@ class Anlage2Function(models.Model):
         return self.name
 
 
-class Anlage2FunctionResult(models.Model):
-    """Speichert das Prüfergebnis einer Anlage-2-Funktion."""
+class AnlagenFunktionsMetadaten(models.Model):
+    """Speichert Metadaten einer Anlage-2-Funktion."""
 
-    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    anlage_datei = models.ForeignKey(BVProjectFile, on_delete=models.CASCADE)
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     subquestion = models.ForeignKey(
         "Anlage2SubQuestion",
@@ -878,23 +878,17 @@ class Anlage2FunctionResult(models.Model):
         null=True,
         blank=True,
     )
-    technisch_verfuegbar = models.BooleanField(null=True)
-    ki_beteiligung = models.BooleanField(null=True)
-    einsatz_bei_telefonica = models.BooleanField(null=True)
-    zur_lv_kontrolle = models.BooleanField(null=True)
     gap_summary = models.TextField(blank=True)
     gap_notiz = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
     is_negotiable_manual_override = models.BooleanField(null=True, blank=True)
-    source = models.CharField(max_length=10, default="llm")
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("projekt", "funktion", "subquestion")]
+        unique_together = [("anlage_datei", "funktion", "subquestion")]
         ordering = ["funktion__name"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
-        return f"{self.projekt} - {self.funktion}"
+        return f"{self.anlage_datei} - {self.funktion}"
 
     @property
     def negotiable(self) -> bool:

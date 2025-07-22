@@ -21,7 +21,7 @@ from .models import (
     Anlage1Question,
     Anlage2Function,
     Anlage2SubQuestion,
-    Anlage2FunctionResult,
+    AnlagenFunktionsMetadaten,
     FunktionsErgebnis,
     Anlage2Config,
     FormatBParserRule,
@@ -336,7 +336,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     )
 
     # Alte Ergebnisse entfernen, um sie an die aktuelle Datei zu binden
-    Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).delete()
+    AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).delete()
 
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
@@ -475,17 +475,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         eins = _extract_bool(row.get("einsatz_bei_telefonica"))
         lv = _extract_bool(row.get("zur_lv_kontrolle"))
         ki = _extract_bool(row.get("ki_beteiligung"))
-        res, _ = Anlage2FunctionResult.objects.update_or_create(
-            projekt=project_file.projekt,
+        AnlagenFunktionsMetadaten.objects.update_or_create(
+            anlage_datei=project_file,
             funktion=func,
             subquestion=sub,
-            defaults={
-                "technisch_verfuegbar": tv,
-                "einsatz_bei_telefonica": eins,
-                "zur_lv_kontrolle": lv,
-                "ki_beteiligung": ki,
-                "source": "parser",
-            },
+            defaults={},
         )
         FunktionsErgebnis.objects.create(
             projekt=project_file.projekt,
@@ -1061,7 +1055,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 "ki_beteiligung": raw.get("ki_beteiligung"),
             }
             source = "llm"
-        Anlage2FunctionResult.objects.update_or_create(
+        AnlagenFunktionsMetadaten.objects.update_or_create(
             projekt=projekt,
             funktion=func,
             defaults={
@@ -1372,7 +1366,7 @@ def check_anlage2_functions(
             "technisch_verfuegbar": data.get("technisch_verfuegbar"),
             "ki_beteiligung": data.get("ki_beteiligung"),
         }
-        Anlage2FunctionResult.objects.update_or_create(
+        AnlagenFunktionsMetadaten.objects.update_or_create(
             projekt=projekt,
             funktion=func,
             defaults={
@@ -1399,7 +1393,7 @@ def run_conditional_anlage2_check(
     projekt = BVProject.objects.get(pk=projekt_id)
 
     # Alle bisherigen Prüfergebnisse entfernen
-    Anlage2FunctionResult.objects.filter(projekt=projekt).delete()
+    AnlagenFunktionsMetadaten.objects.filter(anlage_datei__projekt=projekt).delete()
 
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"
@@ -1407,17 +1401,12 @@ def run_conditional_anlage2_check(
         worker_verify_feature(
             projekt_id, "function", func.id, model_name
         )
-        res = Anlage2FunctionResult.objects.filter(
-            projekt_id=projekt_id,
+        res = AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei__projekt_id=projekt_id,
             funktion=func,
             subquestion__isnull=True,
         ).first()
         doc_ok = False
-        if res and isinstance(res.doc_result, dict):
-            val = res.doc_result.get("technisch_vorhanden") or res.doc_result.get("technisch_verfuegbar")
-            if isinstance(val, dict):
-                val = val.get("value")
-            doc_ok = val is True
         if doc_ok:
             for sub in func.anlage2subquestion_set.all():
                 worker_verify_feature(
@@ -1452,6 +1441,7 @@ def worker_verify_feature(
     )
 
     projekt = BVProject.objects.get(pk=project_id)
+    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
 
     gutachten_text = ""
     if projekt.gutachten_file:
@@ -1683,15 +1673,11 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
-    res, _ = Anlage2FunctionResult.objects.update_or_create(
-        projekt_id=project_id,
+    res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
+        anlage_datei=pf,
         funktion_id=func_id,
         subquestion=sub_obj,
-        defaults={
-            "technisch_verfuegbar": tv,
-            "ki_beteiligung": ki_bet,
-            "source": "ki",
-        },
+        defaults={},
     )
 
     auto_val = _calc_auto_negotiable(tv, ki_bet)
@@ -1699,7 +1685,7 @@ def worker_verify_feature(
     if res.is_negotiable_manual_override is None:
         res.is_negotiable = auto_val
 
-    res.save(update_fields=["technisch_verfuegbar", "ki_beteiligung", "is_negotiable", "source"])
+    res.save(update_fields=["is_negotiable"])
 
     FunktionsErgebnis.objects.create(
         projekt_id=project_id,
@@ -1842,19 +1828,12 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     """Erzeugt eine Gap-Zusammenfassung f\u00fcr ein Review-Ergebnis."""
 
     logger.info("worker_generate_gap_summary gestartet f\u00fcr Result %s", result_id)
-    res = Anlage2FunctionResult.objects.select_related("projekt", "funktion").get(pk=result_id)
+    res = AnlagenFunktionsMetadaten.objects.select_related("anlage_datei", "funktion").get(pk=result_id)
 
-    ai_val = None
-    if isinstance(res.ai_result, dict):
-        ai_val = res.ai_result.get("technisch_verfuegbar")
-    manual_val = None
-    if isinstance(res.manual_result, dict):
-        manual_val = res.manual_result.get("technisch_vorhanden")
-
-    conflict = f"KI-Check: {ai_val} / Review: {manual_val}"
+    conflict = ""
 
     gut_text = ""
-    projekt = res.projekt
+    projekt = res.anlage_datei.projekt
     if projekt.gutachten_file:
         path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
         try:
