@@ -3470,7 +3470,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({"project_file_id": self.pf.pk, "function_id": self.func.pk, "status": True}),
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": True,
+                "field_name": "technisch_vorhanden",
+            }),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3549,7 +3554,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({"project_file_id": self.pf.pk, "function_id": self.func.pk, "status": True}),
+            data=json.dumps({
+                "project_file_id": self.pf.pk,
+                "function_id": self.func.pk,
+                "status": True,
+                "field_name": "technisch_vorhanden",
+            }),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3625,6 +3635,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
                 "project_file_id": self.pf.pk,
                 "function_id": self.func.pk,
                 "status": True,
+                "field_name": "technisch_vorhanden",
             }),
             content_type="application/json",
         )
