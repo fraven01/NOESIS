@@ -1442,6 +1442,7 @@ def worker_verify_feature(
     )
 
     projekt = BVProject.objects.get(pk=project_id)
+    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
 
     pf = (
         BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2)

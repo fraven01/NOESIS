@@ -308,6 +308,7 @@ def _verification_to_initial(_data: dict | None) -> dict:
         latest = (
             FunktionsErgebnis.objects.filter(
 
+
                 anlage_datei=pf,
 
                 funktion_id=res.funktion_id,
@@ -441,7 +442,9 @@ def _build_row_data(
         parser_entry = (
             FunktionsErgebnis.objects.filter(
 
+
                 anlage_datei=pf,
+
 
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
@@ -452,6 +455,7 @@ def _build_row_data(
         )
         ai_entry = (
             FunktionsErgebnis.objects.filter(
+
 
                 anlage_datei=pf,
 
@@ -3737,8 +3741,10 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     )
     FunktionsErgebnis.objects.create(
 
+
         projekt=result.projekt,
         anlage_datei=pf,
+
 
         funktion=result.funktion,
         subquestion_id=sub_id,
