@@ -45,9 +45,7 @@ from ..docx_utils import (
 
 from .. import text_parser
 
-# from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
-from core.text_parser import parse_anlage2_text
-from core.text_parser import PHRASE_TYPE_CHOICES
+from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
 
 from ..anlage4_parser import parse_anlage4
 
@@ -1430,7 +1428,7 @@ class LLMTasksTests(NoesisTestCase):
         )
         cfg = Anlage2Config.get_instance()
         cfg.parser_mode = "auto"
-        cfg.parser_order = ["table", "exact"]
+        cfg.parser_order = ["exact", "text"]
         cfg.save()
         with (
             patch("core.parsers.parse_anlage2_table", return_value=[]),
@@ -1438,8 +1436,15 @@ class LLMTasksTests(NoesisTestCase):
                 "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
             ) as m_exact,
         ):
+        with patch(
+            "core.parsers.ExactParser.parse", return_value=[]
+        ) as m_exact, patch(
+            "core.text_parser.parse_anlage2_text",
+            return_value=[{"funktion": "Login"}],
+        ) as m_text:
             result = parser_manager.parse_anlage2(pf)
         m_exact.assert_called_once()
+        m_text.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
@@ -3431,16 +3436,23 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         self.client.login(username="cfguser", password="pass")
         self.cfg = Anlage2Config.get_instance()
 
+    def _build_general_data(self, **extra) -> dict:
+        """Erstellt Grunddaten für das Anlage2Config-Formular."""
+        data = {name: "" for name in Anlage2ConfigForm.OPTIONAL_JSON_FIELDS}
+        data.update(extra)
+        return data
+
+
     def test_update_parser_mode(self):
         url = reverse("anlage2_config")
         resp = self.client.post(
             url,
-            {
-                "parser_mode": "text_only",
-                "parser_order": ["text"],
-                "action": "save_general",
-                "active_tab": "general",
-            },
+            self._build_general_data(
+                parser_mode="text_only",
+                parser_order=["text"],
+                action="save_general",
+                active_tab="general",
+            ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
@@ -3450,12 +3462,12 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         url = reverse("anlage2_config")
         resp = self.client.post(
             url,
-            {
-                "parser_mode": self.cfg.parser_mode,
-                "parser_order": ["text"],
-                "action": "save_general",
-                "active_tab": "general",
-            },
+            self._build_general_data(
+                parser_mode=self.cfg.parser_mode,
+                parser_order=["text"],
+                action="save_general",
+                active_tab="general",
+            ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
@@ -3479,13 +3491,13 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         url = reverse("anlage2_config")
         resp = self.client.post(
             url,
-            {
-                "text_technisch_verfuegbar_true": "ja\nokay\n",
-                "parser_mode": self.cfg.parser_mode,
-                "parser_order": self.cfg.parser_order,
-                "action": "save_general",
-                "active_tab": "general",
-            },
+            self._build_general_data(
+                text_technisch_verfuegbar_true="ja\nokay\n",
+                parser_mode=self.cfg.parser_mode,
+                parser_order=self.cfg.parser_order,
+                action="save_general",
+                active_tab="general",
+            ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
