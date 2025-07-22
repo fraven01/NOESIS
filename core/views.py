@@ -280,6 +280,54 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         if res.gap_notiz:
             dest["gap_notiz"] = res.gap_notiz
 
+    # Fallback: Falls keine Daten existieren, analysis_json verwenden
+    if not initial["functions"] and isinstance(anlage.analysis_json, dict):
+        funcs = anlage.analysis_json.get("functions")
+        if isinstance(funcs, dict) and "value" in funcs:
+            funcs = funcs["value"]
+        if funcs is None:
+            table = anlage.analysis_json.get("table_functions")
+            if isinstance(table, dict):
+                funcs = [
+                    {"name": k, **v} for k, v in table.items() if isinstance(v, dict)
+                ]
+        if not isinstance(funcs, list):
+            funcs = []
+        field_names = [f[0] for f in get_anlage2_fields()]
+        for item in funcs:
+            name = item.get("funktion") or item.get("name")
+            func = Anlage2Function.objects.filter(name=name).first()
+            if not func:
+                continue
+            fid = str(func.id)
+            target = initial["functions"].setdefault(fid, {})
+            norm_item = _normalize_fields(item)
+            for f in field_names:
+                val = norm_item.get(f)
+                if isinstance(val, dict) and "value" in val:
+                    target[f] = val["value"]
+                else:
+                    target[f] = val
+            subs = item.get("subquestions", [])
+            for sub in subs:
+                text = sub.get("frage_text")
+                if not text:
+                    continue
+                sub_obj = Anlage2SubQuestion.objects.filter(
+                    funktion=func, frage_text=text
+                ).first()
+                if not sub_obj:
+                    continue
+                sid = str(sub_obj.id)
+                sub_target = target.setdefault("subquestions", {}).setdefault(sid, {})
+                nsub = _normalize_fields(sub)
+                for f in field_names:
+                    val = nsub.get(f)
+                    if isinstance(val, dict) and "value" in val:
+                        sub_target[f] = val["value"]
+                    else:
+                        sub_target[f] = val
+
     debug_logger.debug("Ergebnis initial: %r", initial)
     return initial
 

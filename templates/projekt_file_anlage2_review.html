@@ -116,7 +116,7 @@
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
-                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field %}
+                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
