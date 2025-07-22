@@ -2557,6 +2557,7 @@ def projekt_detail(request, pk):
         "history": projekt.status_history.all(),
         "num_attachments": all_files.count(),
         "num_reviewed": reviewed,
+        "is_verhandlungsfaehig": projekt.is_verhandlungsfaehig,
         "is_admin": is_admin,
         "anlage3_page": anlage3_page,
         "other_anlagen": other_anlagen,
