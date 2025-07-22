@@ -35,15 +35,10 @@ class ExactParser(AbstractParser):
 
     name = "exact"
 
-    def __init__(self) -> None:
-        from .text_parser import FuzzyTextParser
-
-        self._fallback = FuzzyTextParser()
-
     def parse(self, project_file: BVProjectFile) -> list[dict[str, object]]:
         """Parst das Dokument anhand exakter Regeln."""
 
-        results = self._fallback.parse(project_file)
+        results: list[dict[str, object]] = []
         text = (project_file.text_content or "").lower()
         for rule in AntwortErkennungsRegel.objects.all().order_by("prioritaet"):
             if rule.erkennungs_phrase.lower() in text:
@@ -52,11 +47,12 @@ class ExactParser(AbstractParser):
                     actions = [
                         {"field": k, "value": v} for k, v in actions.items()
                     ]
-                for entry in results:
-                    for act in actions:
-                        field = act.get("field")
-                        if not field:
-                            continue
-                        entry[field] = {"value": bool(act.get("value")), "note": None}
+                entry: dict[str, object] = {"funktion": rule.regel_name}
+                for act in actions:
+                    field = act.get("field")
+                    if not field:
+                        continue
+                    entry[field] = {"value": bool(act.get("value")), "note": None}
+                results.append(entry)
         return results
 

@@ -122,6 +122,7 @@ from .llm_tasks import (
     _calc_auto_negotiable,
     _extract_bool,
 )
+from .parser_manager import parser_manager
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
@@ -3045,7 +3046,9 @@ def projekt_file_parse_anlage2(request, pk):
     anlage = get_object_or_404(BVProjectFile, pk=pk)
     if anlage.anlage_nr != 2:
         raise Http404
-    run_anlage2_analysis(anlage)
+    table_data = parser_manager._run_single("table", anlage)
+    anlage.analysis_json = {"table_functions": table_data}
+    anlage.save(update_fields=["analysis_json"])
     return redirect("projekt_file_edit_json", pk=pk)
 
 
