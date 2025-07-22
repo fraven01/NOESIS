@@ -231,6 +231,13 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
+        "anlage2_sergebnis_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "anlage2-sergebnis.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
         "anlage3_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
@@ -313,6 +320,11 @@ LOGGING = {
         "anlage2_ergebnis": {
             "handlers": ["anlage2_ergebnis_file"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "anlage2_sergebnis": {
+            "handlers": ["anlage2_sergebnis_file"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "anlage3_debug": {
