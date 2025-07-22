@@ -25,6 +25,7 @@ from ..models import (
     Anlage2SubQuestion,
 
     AnlagenFunktionsMetadaten,
+    FunktionsErgebnis,
 
     SoftwareKnowledge,
     BVSoftware,
@@ -475,7 +476,7 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
         )
-        self.client.login(username=self.user.username, password="pass")
+        self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
@@ -490,7 +491,7 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
         )
-        self.client.login(username=self.user.username, password="pass")
+        self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("hx_project_file_status", args=[pf.pk])
@@ -3400,7 +3401,9 @@ class Anlage2ConfigViewTests(NoesisTestCase):
 class ParserRuleImportExportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
-        self.user = User.objects.create_user("ruleadmin", password="pass")
+        self.user = User.objects.create_user(
+            "ruleadmin", password="pass", is_staff=True
+        )
         self.user.groups.add(admin_group)
         self.client.login(username="ruleadmin", password="pass")
 
