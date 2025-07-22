@@ -45,13 +45,16 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
+            manual_analysis_json={},
             analysis_json={"old": {"value": True, "editable": True}},
+            verification_json={},
         )
         self.anlage1 = BVProjectFile.objects.create(
             projekt=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",
+            manual_analysis_json={},
             analysis_json={
                 "questions": {
                     "1": {
@@ -62,6 +65,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
                     }
                 }
             },
+            verification_json={},
         )
 
     def test_edit_json_updates_and_reports(self):

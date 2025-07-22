@@ -1207,6 +1207,8 @@ class Anlage4ReviewViewTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             analysis_json={"items": [{"text": "A"}, {"text": "B"}]},
+            manual_analysis_json={},
+            verification_json={},
         )
 
     def test_post_saves_manual_review(self):
@@ -1236,6 +1238,9 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zwecke",
+            manual_analysis_json={},
+            analysis_json={},
+            verification_json={},
         )
 
     def test_get_runs_analysis_and_redirects(self):

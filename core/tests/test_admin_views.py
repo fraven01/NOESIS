@@ -43,6 +43,9 @@ class AdminProjectCleanupTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
+            manual_analysis_json={},
+            analysis_json={},
+            verification_json={},
         )
 
     def test_delete_file(self):
