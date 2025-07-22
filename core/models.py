@@ -161,6 +161,11 @@ class BVProject(models.Model):
         """Gibt alle Dateien der Anlage 3 zurück."""
         return self.anlagen.filter(anlage_nr=3)
 
+    @property
+    def is_verhandlungsfaehig(self) -> bool:
+        """Gibt zurück, ob alle Anlagen verhandlungsfähig sind."""
+        return all(f.verhandlungsfaehig for f in self.anlagen.all())
+
 
 class BVSoftware(models.Model):
     """Software-Eintrag innerhalb eines Projekts."""
@@ -920,6 +925,11 @@ class FunktionsErgebnis(models.Model):
     """Speichert ein einzelnes Ergebnis einer Funktionsprüfung."""
 
     projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    anlage_datei = models.ForeignKey(
+        BVProjectFile,
+        on_delete=models.CASCADE,
+        related_name="funktions_ergebnisse",
+    )
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     subquestion = models.ForeignKey(
         Anlage2SubQuestion, on_delete=models.CASCADE, null=True, blank=True
@@ -929,6 +939,7 @@ class FunktionsErgebnis(models.Model):
     einsatz_bei_telefonica = models.BooleanField(null=True)
     zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
+    begruendung = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

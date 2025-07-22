@@ -260,7 +260,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             )
         latest = (
             FunktionsErgebnis.objects.filter(
-                projekt=anlage.projekt,
+                anlage_datei=anlage,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="parser",
@@ -300,9 +300,17 @@ def _verification_to_initial(_data: dict | None) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
+        pf = (
+            _data
+            if isinstance(_data, BVProjectFile)
+            else res.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+        )
         latest = (
             FunktionsErgebnis.objects.filter(
-                projekt=res.anlage_datei.projekt,
+
+
+                anlage_datei=pf,
+
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",
@@ -428,9 +436,16 @@ def _build_row_data(
         result_obj = result_map.get(parent_key)
 
     if result_obj:
+        pf = (
+            result_obj.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+        )
         parser_entry = (
             FunktionsErgebnis.objects.filter(
-                projekt=result_obj.anlage_datei.projekt,
+
+
+                anlage_datei=pf,
+
+
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="parser",
@@ -440,7 +455,10 @@ def _build_row_data(
         )
         ai_entry = (
             FunktionsErgebnis.objects.filter(
-                projekt=result_obj.anlage_datei.projekt,
+
+
+                anlage_datei=pf,
+
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="ki",
@@ -2543,6 +2561,7 @@ def projekt_detail(request, pk):
         "history": projekt.status_history.all(),
         "num_attachments": all_files.count(),
         "num_reviewed": reviewed,
+        "is_verhandlungsfaehig": projekt.is_verhandlungsfaehig,
         "is_admin": is_admin,
         "anlage3_page": anlage3_page,
         "other_anlagen": other_anlagen,
@@ -2954,13 +2973,13 @@ def projekt_file_edit_json(request, pk):
         for res in results:
             name = res.get_lookup_key()
             parser_res = FunktionsErgebnis.objects.filter(
-                projekt=anlage.projekt,
+                anlage_datei=anlage,
                 funktion=res.funktion,
                 subquestion=res.subquestion,
                 quelle="parser",
             ).order_by("-created_at").first()
             ki_res = FunktionsErgebnis.objects.filter(
-                projekt=anlage.projekt,
+                anlage_datei=anlage,
                 funktion=res.funktion,
                 subquestion=res.subquestion,
                 quelle="ki",
@@ -3076,7 +3095,7 @@ def projekt_file_edit_json(request, pk):
             ki_map: dict[tuple[str, str | None], str] = {}
             beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
             for res in FunktionsErgebnis.objects.filter(
-                projekt=anlage.projekt, quelle="ki"
+                anlage_datei=anlage, quelle="ki"
             ):
                 fid = str(res.funktion_id)
                 sid = str(res.subquestion_id) if res.subquestion_id else None
@@ -3086,7 +3105,7 @@ def projekt_file_edit_json(request, pk):
 
             manual_results_map = {}
             for r in FunktionsErgebnis.objects.filter(
-                projekt=anlage.projekt, quelle="manuell"
+                anlage_datei=anlage, quelle="manuell"
             ):
                 key = (
                     f"{r.funktion.name}: {r.subquestion.frage_text}"
@@ -3537,6 +3556,7 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
     )
     FunktionsErgebnis.objects.create(
         projekt=anlage.projekt,
+        anlage_datei=anlage,
         funktion=funktion,
         subquestion_id=sub_id,
         quelle="manuell",
@@ -3623,6 +3643,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             update_fields.extend([attr, "source"])
             FunktionsErgebnis.objects.create(
                 projekt=anlage.projekt,
+                anlage_datei=anlage,
                 funktion=funktion,
                 subquestion_id=sub_id,
                 quelle="manuell",
@@ -3715,8 +3736,16 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     }
 
 
+    pf = (
+        result.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    )
     FunktionsErgebnis.objects.create(
-        projekt=result.anlage_datei.projekt,
+
+
+        projekt=result.projekt,
+        anlage_datei=pf,
+
+
         funktion=result.funktion,
         subquestion_id=sub_id,
         quelle="manuell",
@@ -3837,7 +3866,7 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         anlage_datei=project_file
     ).update(is_negotiable_manual_override=None)
     FunktionsErgebnis.objects.filter(
-        projekt=project_file.projekt, quelle="manuell"
+        anlage_datei=project_file, quelle="manuell"
     ).delete()
 
     project_file.manual_analysis_json = None
