@@ -17,6 +17,7 @@ from .models import (
     BVProjectFile,
     Anlage2Function,
     Anlage2FunctionResult,
+    FunktionsErgebnis,
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
@@ -191,9 +192,21 @@ class Anlage2FunctionResultAdmin(admin.ModelAdmin):
         "funktion",
         "technisch_verfuegbar",
         "ki_beteiligung",
-        "doc_result",
-        "ai_result",
-        "manual_result",
+    )
+
+
+@admin.register(FunktionsErgebnis)
+class FunktionsErgebnisAdmin(admin.ModelAdmin):
+    list_display = (
+        "projekt",
+        "funktion",
+        "subquestion",
+        "quelle",
+        "technisch_verfuegbar",
+        "ki_beteiligung",
+        "einsatz_bei_telefonica",
+        "zur_lv_kontrolle",
+        "created_at",
     )
 
 

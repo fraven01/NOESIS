@@ -258,13 +258,21 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
-        doc = _normalize_fields(res.doc_result)
-        for field, _ in get_anlage2_fields():
-            val = doc.get(field)
-            if isinstance(val, dict):
-                val = val.get("value")
-            if isinstance(val, bool):
-                dest[field] = val
+        latest = (
+            FunktionsErgebnis.objects.filter(
+                projekt=anlage.projekt,
+                funktion_id=res.funktion_id,
+                subquestion_id=res.subquestion_id,
+                quelle="parser",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if latest:
+            dest["technisch_vorhanden"] = latest.technisch_verfuegbar
+            dest["einsatz_bei_telefonica"] = latest.einsatz_bei_telefonica
+            dest["zur_lv_kontrolle"] = latest.zur_lv_kontrolle
+            dest["ki_beteiligung"] = latest.ki_beteiligung
         if res.gap_summary:
             dest["gap_summary"] = res.gap_summary
         if res.gap_notiz:
@@ -290,13 +298,19 @@ def _verification_to_initial(_data: dict | None) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
-        ai = res.ai_result if isinstance(res.ai_result, dict) else {}
-        if "technisch_verfuegbar" in ai:
-            dest["technisch_vorhanden"] = ai.get("technisch_verfuegbar")
-        if "ki_beteiligt" in ai:
-            dest["ki_beteiligt"] = ai.get("ki_beteiligt")
-        if "ki_beteiligt_begruendung" in ai:
-            dest["ki_beteiligt_begruendung"] = ai.get("ki_beteiligt_begruendung")
+        latest = (
+            FunktionsErgebnis.objects.filter(
+                projekt=res.projekt,
+                funktion_id=res.funktion_id,
+                subquestion_id=res.subquestion_id,
+                quelle="ki",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if latest:
+            dest["technisch_vorhanden"] = latest.technisch_verfuegbar
+            dest["ki_beteiligt"] = latest.ki_beteiligung
 
     return initial
 
@@ -412,8 +426,40 @@ def _build_row_data(
         result_obj = result_map.get(parent_key)
 
     if result_obj:
-        doc_data = _normalize_fields(result_obj.doc_result)
-        ai_data = _normalize_fields(result_obj.ai_result)
+        parser_entry = (
+            FunktionsErgebnis.objects.filter(
+                projekt=result_obj.projekt,
+                funktion=result_obj.funktion,
+                subquestion=result_obj.subquestion,
+                quelle="parser",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        ai_entry = (
+            FunktionsErgebnis.objects.filter(
+                projekt=result_obj.projekt,
+                funktion=result_obj.funktion,
+                subquestion=result_obj.subquestion,
+                quelle="ki",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        doc_data = {
+            "technisch_vorhanden": parser_entry.technisch_verfuegbar
+            if parser_entry
+            else None,
+            "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica
+            if parser_entry
+            else None,
+            "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
+            "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
+        }
+        ai_data = {
+            "technisch_vorhanden": ai_entry.technisch_verfuegbar if ai_entry else None,
+            "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
+        }
     else:
         doc_data = {}
         ai_data = {}
@@ -463,7 +509,9 @@ def _build_row_data(
         }
 
 
-    auto_val = _calc_auto_negotiable(doc_data, ai_data)
+    auto_val = _calc_auto_negotiable(
+        doc_data.get("technisch_vorhanden"), ai_data.get("technisch_vorhanden")
+    )
     is_negotiable = override_val if override_val is not None else auto_val
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
@@ -2903,8 +2951,20 @@ def projekt_file_edit_json(request, pk):
         )
         for res in results:
             name = res.get_lookup_key()
-            doc_str = json.dumps(res.doc_result, ensure_ascii=False, indent=2)
-            ai_str = json.dumps(res.ai_result, ensure_ascii=False, indent=2)
+            parser_res = FunktionsErgebnis.objects.filter(
+                projekt=anlage.projekt,
+                funktion=res.funktion,
+                subquestion=res.subquestion,
+                quelle="parser",
+            ).order_by("-created_at").first()
+            ki_res = FunktionsErgebnis.objects.filter(
+                projekt=anlage.projekt,
+                funktion=res.funktion,
+                subquestion=res.subquestion,
+                quelle="ki",
+            ).order_by("-created_at").first()
+            doc_str = json.dumps(parser_res.technisch_verfuegbar if parser_res else None, ensure_ascii=False)
+            ai_str = json.dumps(ki_res.technisch_verfuegbar if ki_res else None, ensure_ascii=False)
             ergebnis_logger.info("%s\nDOC: %s\nAI: %s", name, doc_str, ai_str)
 
 
@@ -3013,30 +3073,35 @@ def projekt_file_edit_json(request, pk):
             verif_init = _verification_to_initial(anlage)
             ki_map: dict[tuple[str, str | None], str] = {}
             beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
-            for res in Anlage2FunctionResult.objects.filter(projekt=anlage.projekt):
+            for res in FunktionsErgebnis.objects.filter(
+                projekt=anlage.projekt, quelle="ki"
+            ):
                 fid = str(res.funktion_id)
                 sid = str(res.subquestion_id) if res.subquestion_id else None
-                ai = res.ai_result if isinstance(res.ai_result, dict) else {}
-                begr = ai.get("ki_begruendung")
-                beteiligt = ai.get("ki_beteiligt")
-                beteiligt_begr = ai.get("ki_beteiligt_begruendung", "")
-                if begr:
-                    ki_map[(fid, sid)] = begr
+                beteiligt = res.ki_beteiligung
                 if beteiligt is not None:
-                    beteilig_map[(fid, sid)] = (beteiligt, beteiligt_begr)
+                    beteilig_map[(fid, sid)] = (beteiligt, "")
 
             manual_results_map = {}
-            for r in Anlage2FunctionResult.objects.filter(
-                projekt=anlage.projekt, source="manual"
+            for r in FunktionsErgebnis.objects.filter(
+                projekt=anlage.projekt, quelle="manuell"
             ):
-                if isinstance(r.manual_result, dict):
-                    entry = {
-                        name: r.manual_result.get(name)
-                        for name, _ in get_anlage2_fields()
-                        if name in r.manual_result
-                    }
-                    if entry:
-                        manual_results_map[r.get_lookup_key()] = entry
+                key = (
+                    f"{r.funktion.name}: {r.subquestion.frage_text}"
+                    if r.subquestion
+                    else r.funktion.name
+                )
+                entry = {}
+                if r.technisch_verfuegbar is not None:
+                    entry["technisch_vorhanden"] = r.technisch_verfuegbar
+                if r.ki_beteiligung is not None:
+                    entry["ki_beteiligung"] = r.ki_beteiligung
+                if r.einsatz_bei_telefonica is not None:
+                    entry["einsatz_bei_telefonica"] = r.einsatz_bei_telefonica
+                if r.zur_lv_kontrolle is not None:
+                    entry["zur_lv_kontrolle"] = r.zur_lv_kontrolle
+                if entry:
+                    manual_results_map[key] = entry
 
             result_map = {
                 r.get_lookup_key(): r
@@ -3469,11 +3534,18 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
     Anlage2FunctionResult.objects.update_or_create(
         projekt=anlage.projekt,
         funktion=funktion,
+        subquestion_id=sub_id,
         defaults={
             "technisch_verfuegbar": status,
-            "raw_json": {"notes": notes, "subquestion_id": sub_id},
             "source": "manual",
         },
+    )
+    FunktionsErgebnis.objects.create(
+        projekt=anlage.projekt,
+        funktion=funktion,
+        subquestion_id=sub_id,
+        quelle="manuell",
+        technisch_verfuegbar=status,
     )
 
     return JsonResponse({"status": "success"})
@@ -3536,6 +3608,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         res, _created = Anlage2FunctionResult.objects.get_or_create(
             projekt=anlage.projekt,
             funktion=funktion,
+            subquestion_id=sub_id,
             defaults={"source": "manual"},
         )
 
@@ -3551,14 +3624,17 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         if field_name is not None and status_provided:
             attr = field_map.get(field_name, "technisch_verfuegbar")
             setattr(res, attr, status)
-            res.raw_json = {"notes": notes, "subquestion_id": sub_id}
             res.source = "manual"
-            manual = res.manual_result or {}
-            manual[field_name] = status
-            res.manual_result = manual
-            update_fields.extend([attr, "raw_json", "manual_result", "source"])
+            update_fields.extend([attr, "source"])
+            FunktionsErgebnis.objects.create(
+                projekt=anlage.projekt,
+                funktion=funktion,
+                subquestion_id=sub_id,
+                quelle="manuell",
+                **{attr: status},
+            )
 
-        auto_val = _calc_auto_negotiable(res.doc_result, res.ai_result)
+        auto_val = _calc_auto_negotiable(res.technisch_verfuegbar, res.ki_beteiligung)
 
         if set_neg != "__missing__":
             if set_neg in (True, "True", "true", "1", 1):
@@ -3582,8 +3658,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 
         gap_text = res.gap_summary or ""
         ai_val = None
-        if field_name == "technisch_vorhanden" and isinstance(res.ai_result, dict):
-            ai_val = res.ai_result.get("technisch_verfuegbar")
         # Die Generierung der Gap-Zusammenfassung erfolgt nun manuell über ein
         # separates Endpoint und wird hier nicht mehr automatisch ausgelöst.
 
@@ -3628,12 +3702,14 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         return HttpResponseForbidden("Nicht berechtigt")
     sub_id = request.POST.get("sub_id")
 
-    manual = result.manual_result or {}
-    if sub_id:
-        sub_map = manual.setdefault("subquestions", {}).setdefault(str(sub_id), {})
-        cur = sub_map.get(field_name)
-    else:
-        cur = manual.get(field_name)
+    field_map = {
+        "technisch_vorhanden": "technisch_verfuegbar",
+        "ki_beteiligung": "ki_beteiligung",
+        "einsatz_bei_telefonica": "einsatz_bei_telefonica",
+        "zur_lv_kontrolle": "zur_lv_kontrolle",
+    }
+    attr = field_map.get(field_name, "technisch_verfuegbar")
+    cur = getattr(result, attr)
 
     if cur is True:
         new_state = False
@@ -3641,12 +3717,6 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         new_state = None
     else:
         new_state = True
-
-    if sub_id:
-        manual.setdefault("subquestions", {}).setdefault(str(sub_id), {})[field_name] = new_state
-    else:
-        manual[field_name] = new_state
-    result.manual_result = manual
 
     field_map = {
         "technisch_vorhanden": "technisch_verfuegbar",
@@ -3658,7 +3728,15 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     setattr(result, attr, new_state)
     result.source = "manual"
 
-    result.save(update_fields=[attr, "manual_result", "source"])
+    result.save(update_fields=[attr, "source"])
+
+    FunktionsErgebnis.objects.create(
+        projekt=result.projekt,
+        funktion=result.funktion,
+        subquestion_id=sub_id,
+        quelle="manuell",
+        **{attr: new_state},
+    )
 
     context = {
         "state": new_state,
@@ -3695,7 +3773,9 @@ def hx_toggle_negotiable(request, result_id: int):
     if new_override is not None:
         result.is_negotiable = new_override
     else:
-        result.is_negotiable = _calc_auto_negotiable(result.doc_result, result.ai_result)
+        result.is_negotiable = _calc_auto_negotiable(
+            result.technisch_verfuegbar, result.ki_beteiligung
+        )
     result.save(update_fields=["is_negotiable", "is_negotiable_manual_override"])
 
     context = {
@@ -3772,7 +3852,10 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
     # Nur manuelle Änderungen entfernen, automatische Ergebnisse beibehalten
     Anlage2FunctionResult.objects.filter(
         projekt=project_file.projekt
-    ).update(manual_result=None, is_negotiable_manual_override=None)
+    ).update(is_negotiable_manual_override=None)
+    FunktionsErgebnis.objects.filter(
+        projekt=project_file.projekt, quelle="manuell"
+    ).delete()
 
     project_file.manual_analysis_json = None
     project_file.save(update_fields=["manual_analysis_json"])
@@ -4046,13 +4129,8 @@ def edit_ki_justification(request, pk):
         subquestion=obj if obj_type == "subquestion" else None,
     )
     res = res_qs.first()
-    data = res.ai_result if res and isinstance(res.ai_result, dict) else {}
+    data = {}
     if request.method == "POST":
-        text = request.POST.get("ki_begruendung", "").strip()
-        data["ki_begruendung"] = text
-        if res:
-            res.ai_result = data
-            res.save(update_fields=["ai_result"])
         messages.success(request, "Begründung gespeichert")
         return redirect("projekt_file_edit_json", pk=anlage.pk)
 
@@ -4078,20 +4156,18 @@ def justification_detail_edit(request, file_id, function_key):
         funktion__name=function_key,
         subquestion__isnull=True,
     ).first()
-    data = res.ai_result if res and isinstance(res.ai_result, dict) else {}
+    data = {}
     if request.method == "POST":
         form = JustificationForm(request.POST)
         if form.is_valid():
-            data["ki_begruendung"] = form.cleaned_data["justification"]
             if res:
-                res.ai_result = data
-                res.save(update_fields=["ai_result"])
+                pass
             messages.success(request, "Begründung gespeichert")
             return redirect("projekt_file_edit_json", pk=anlage.pk)
     else:
         form = JustificationForm(initial={"justification": data.get("ki_begruendung", "")})
 
-    justification_html = markdownify(data.get("ki_begruendung")) if data.get("ki_begruendung") else ""
+    justification_html = ""
     context = {
         "project_file": anlage,
         "function_name": function_key,
@@ -4114,13 +4190,7 @@ def justification_delete(request, file_id, function_key):
         funktion__name=function_key,
         subquestion__isnull=True,
     ).first()
-    entry = res.ai_result if res and isinstance(res.ai_result, dict) else {}
-    if "ki_begruendung" in entry:
-        entry.pop("ki_begruendung")
-        if res:
-            res.ai_result = entry
-            res.save(update_fields=["ai_result"])
-        messages.success(request, "Begründung gelöscht")
+    messages.success(request, "Begründung gelöscht")
 
     return redirect("projekt_file_edit_json", pk=anlage.pk)
 

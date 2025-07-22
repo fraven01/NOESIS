@@ -882,10 +882,6 @@ class Anlage2FunctionResult(models.Model):
     ki_beteiligung = models.BooleanField(null=True)
     einsatz_bei_telefonica = models.BooleanField(null=True)
     zur_lv_kontrolle = models.BooleanField(null=True)
-    doc_result = models.JSONField(null=True, blank=True)
-    ai_result = models.JSONField(null=True, blank=True)
-    manual_result = models.JSONField(null=True, blank=True)
-    raw_json = models.JSONField(null=True, blank=True)
     gap_summary = models.TextField(blank=True)
     gap_notiz = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
@@ -909,12 +905,6 @@ class Anlage2FunctionResult(models.Model):
         """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
         if self.subquestion:
             return f"{self.funktion.name}: {self.subquestion.frage_text}"
-        if isinstance(self.raw_json, dict) and self.raw_json.get("subquestion_id"):
-            try:
-                sub = Anlage2SubQuestion.objects.get(pk=self.raw_json["subquestion_id"])
-                return f"{self.funktion.name}: {sub.frage_text}"
-            except Anlage2SubQuestion.DoesNotExist:
-                pass
         return self.funktion.name
 
 
@@ -930,6 +920,28 @@ class Anlage2SubQuestion(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.frage_text
+
+
+class FunktionsErgebnis(models.Model):
+    """Speichert ein einzelnes Ergebnis einer Funktionsprüfung."""
+
+    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
+    subquestion = models.ForeignKey(
+        Anlage2SubQuestion, on_delete=models.CASCADE, null=True, blank=True
+    )
+    quelle = models.CharField(max_length=20)
+    technisch_verfuegbar = models.BooleanField(null=True)
+    einsatz_bei_telefonica = models.BooleanField(null=True)
+    zur_lv_kontrolle = models.BooleanField(null=True)
+    ki_beteiligung = models.BooleanField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.quelle
 
 
 class ZweckKategorieA(models.Model):
