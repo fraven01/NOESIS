@@ -1064,6 +1064,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=anlage,
             funktion=func,
             quelle=source,
             technisch_verfuegbar=_val(vals, "technisch_verfuegbar"),
@@ -1382,6 +1383,7 @@ def check_anlage2_functions(
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=anlage,
             funktion=func,
             quelle="llm",
             technisch_verfuegbar=vals.get("technisch_verfuegbar"),
