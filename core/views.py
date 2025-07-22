@@ -85,6 +85,7 @@ from .models import (
     Anlage2Config,
     Anlage2ColumnHeading,
     AnlagenFunktionsMetadaten,
+    FunktionsErgebnis,
     SoftwareKnowledge,
     Gutachten,
     Tile,
