@@ -3799,6 +3799,40 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             ).exists()
         )
 
+    def test_manual_yes_triggers_subquestion_checks(self):
+        sub = Anlage2SubQuestion.objects.create(
+            funktion=self.func,
+            frage_text="S?",
+        )
+        url = reverse("ajax_save_anlage2_review")
+        with patch("core.views.async_task") as mock_task:
+            resp = self.client.post(
+                url,
+                data=json.dumps(
+                    {
+                        "project_file_id": self.pf.pk,
+                        "function_id": self.func.pk,
+                        "status": True,
+                        "field_name": "technisch_vorhanden",
+                    }
+                ),
+                content_type="application/json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(mock_task.call_count, 2)
+        mock_task.assert_any_call(
+            "core.llm_tasks.worker_verify_feature",
+            self.projekt.pk,
+            "function",
+            self.func.pk,
+        )
+        mock_task.assert_any_call(
+            "core.llm_tasks.worker_verify_feature",
+            self.projekt.pk,
+            "subquestion",
+            sub.pk,
+        )
+
 
 class Anlage2ResetTests(NoesisTestCase):
     """Tests zum Zurücksetzen von Anlage-2-Ergebnissen."""
