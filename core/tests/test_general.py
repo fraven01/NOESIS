@@ -3572,16 +3572,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        fe = (
-            FunktionsErgebnis.objects.filter(
-                projekt=self.projekt,
-                funktion=self.func,
-                quelle="manuell",
-            )
-            .order_by("-created_at")
-            .first()
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
         )
-
         self.assertTrue(res.einsatz_bei_telefonica)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
@@ -3607,16 +3601,10 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        fe = (
-            FunktionsErgebnis.objects.filter(
-                projekt=self.projekt,
-                funktion=self.func,
-                quelle="manuell",
-            )
-            .order_by("-created_at")
-            .first()
+        res = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=self.pf,
+            funktion=self.func,
         )
-
         self.assertFalse(res.zur_lv_kontrolle)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
