@@ -19,7 +19,7 @@ from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
-result_logger = logging.getLogger("anlage2_sergebnis")
+result_logger = logging.getLogger("anlage2_ergebnis")
 
 # Standard-Schwelle für Fuzzy-Vergleiche
 FUZZY_THRESHOLD = 80

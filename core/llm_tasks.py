@@ -62,6 +62,7 @@ anlage2_logger = logging.getLogger("anlage2_debug")
 anlage3_logger = logging.getLogger("anlage3_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
+result_logger = logging.getLogger("anlage2_ergebnis")
 
 # Standard-Prompt für die Prüfung von Anlage 4
 _DEFAULT_A4_PROMPT = (
@@ -343,6 +344,15 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
     rules = list(AntwortErkennungsRegel.objects.all())
+    if rules:
+        result_logger.debug("Geladene AntwortErkennungsRegeln:")
+        for r in rules:
+            result_logger.debug(
+                "- %s | %s | Prio %s",
+                r.regel_name,
+                r.erkennungs_phrase,
+                r.prioritaet,
+            )
 
     functions = list(
         Anlage2Function.objects.prefetch_related("anlage2subquestion_set").all()
@@ -376,6 +386,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             project_file.projekt_id,
             func.name,
         )
+        result_logger.debug("Starte Verarbeitung Funktion '%s'", func.name)
 
         aliases = [func.name]
         if func.detection_phrases:
@@ -398,6 +409,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 entry[f] = None
             entry["not_found"] = False
             for part in matches:
+                result_logger.debug(
+                    "Funktion '%s' - verarbeite Text: %s",
+                    func.name,
+                    part,
+                )
                 line_entry: dict[str, object] = {}
                 apply_tokens(line_entry, part, token_map)
                 apply_rules(line_entry, part, rules)
@@ -430,6 +446,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                     if score >= 80:
                         sub_matches.append(after)
                         break
+            result_logger.debug(
+                "Starte Verarbeitung Subfrage '%s'", sub.frage_text
+            )
             sub_entry = {
                 "funktion": f"{func.name}: {sub.frage_text}",
                 "subquestion_id": sub.id,
@@ -439,6 +458,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                     sub_entry[f] = None
                 sub_entry["not_found"] = False
                 for part in sub_matches:
+                    result_logger.debug(
+                        "Subfrage '%s' - verarbeite Text: %s",
+                        sub.frage_text,
+                        part,
+                    )
                     line_entry: dict[str, object] = {}
                     apply_tokens(line_entry, part, token_map)
                     apply_rules(line_entry, part, rules)
