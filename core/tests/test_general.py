@@ -1266,8 +1266,15 @@ class LLMTasksTests(NoesisTestCase):
 
         run_anlage2_analysis(pf)
 
-        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
-        self.assertFalse(res.negotiable)
+        parser_fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="parser"
+        ).first()
+        ai_fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="ki"
+        ).first()
+
+        self.assertTrue(parser_fe.technisch_verfuegbar)
+        self.assertTrue(ai_fe.technisch_verfuegbar)
 
     def test_parser_manager_fallback(self):
         class FailParser(AbstractParser):
@@ -3083,11 +3090,18 @@ class FeatureVerificationTests(NoesisTestCase):
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
-        res = AnlagenFunktionsMetadaten.objects.get(
+        parser_fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
             funktion=self.func,
-        )
-        self.assertTrue(res.negotiable)
+            quelle="parser",
+        ).first()
+        ai_fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="ki",
+        ).first()
+        self.assertTrue(parser_fe.technisch_verfuegbar)
+        self.assertTrue(ai_fe.technisch_verfuegbar)
 
     def test_negotiable_not_set_on_mismatch(self):
         pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
@@ -3107,11 +3121,18 @@ class FeatureVerificationTests(NoesisTestCase):
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
             worker_verify_feature(self.projekt.pk, "function", self.func.pk)
-        res = AnlagenFunktionsMetadaten.objects.get(
+        parser_fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
             funktion=self.func,
-        )
-        self.assertFalse(res.negotiable)
+            quelle="parser",
+        ).first()
+        ai_fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="ki",
+        ).first()
+        self.assertFalse(parser_fe.technisch_verfuegbar)
+        self.assertTrue(ai_fe.technisch_verfuegbar)
 
 
 class InitialCheckTests(NoesisTestCase):
@@ -3615,11 +3636,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
             funktion=self.func,
-        )
-        self.assertFalse(res.negotiable)
+            quelle="manuell",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
 
     def test_save_einsatz_telefonica(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3634,17 +3656,11 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
-            funktion=self.func,
-        )
-        self.assertTrue(res.einsatz_bei_telefonica)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
-
         self.assertTrue(fe.einsatz_bei_telefonica)
         self.pf.refresh_from_db()
         func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
@@ -3663,17 +3679,11 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
-            funktion=self.func,
-        )
-        self.assertFalse(res.zur_lv_kontrolle)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
-
         self.assertFalse(fe.zur_lv_kontrolle)
         self.pf.refresh_from_db()
         func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
@@ -3741,7 +3751,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             anlage_datei=self.pf,
             funktion=self.func,
         )
-        self.assertTrue(res.negotiable)
         self.assertTrue(res.is_negotiable_manual_override)
 
         self.client.post(
