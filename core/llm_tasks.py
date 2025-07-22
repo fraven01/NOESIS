@@ -22,6 +22,7 @@ from .models import (
     Anlage2Function,
     Anlage2SubQuestion,
     Anlage2FunctionResult,
+    FunktionsErgebnis,
     Anlage2Config,
     FormatBParserRule,
     AntwortErkennungsRegel,
@@ -116,21 +117,11 @@ def _extract_bool(value: object) -> bool | None:
     return None
 
 
-def _calc_auto_negotiable(doc: dict | None, ai: dict | None) -> bool:
+def _calc_auto_negotiable(doc: object | None, ai: object | None) -> bool:
     """Berechnet den automatischen Verhandlungsstatus."""
 
-    doc_val = None
-    ai_val = None
-    if isinstance(doc, dict):
-        doc_val = doc.get("technisch_verfuegbar")
-        if doc_val is None:
-            doc_val = doc.get("technisch_vorhanden")
-        doc_val = _extract_bool(doc_val)
-    if isinstance(ai, dict):
-        ai_val = ai.get("technisch_verfuegbar")
-        if ai_val is None:
-            ai_val = ai.get("technisch_vorhanden")
-        ai_val = _extract_bool(ai_val)
+    doc_val = _extract_bool(doc)
+    ai_val = _extract_bool(ai)
     return doc_val is not None and ai_val is not None and doc_val == ai_val
 
 
@@ -478,16 +469,34 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 continue
             sub = None
 
+        tv = _extract_bool(
+            row.get("technisch_vorhanden") or row.get("technisch_verfuegbar")
+        )
+        eins = _extract_bool(row.get("einsatz_bei_telefonica"))
+        lv = _extract_bool(row.get("zur_lv_kontrolle"))
+        ki = _extract_bool(row.get("ki_beteiligung"))
         res, _ = Anlage2FunctionResult.objects.update_or_create(
             projekt=project_file.projekt,
             funktion=func,
             subquestion=sub,
-            defaults={"doc_result": row, "raw_json": row},
+            defaults={
+                "technisch_verfuegbar": tv,
+                "einsatz_bei_telefonica": eins,
+                "zur_lv_kontrolle": lv,
+                "ki_beteiligung": ki,
+                "source": "parser",
+            },
         )
-
-        res.doc_result = row
-        res.raw_json = row
-        res.save(update_fields=["doc_result", "raw_json"])
+        FunktionsErgebnis.objects.create(
+            projekt=project_file.projekt,
+            funktion=func,
+            subquestion=sub,
+            quelle="parser",
+            technisch_verfuegbar=tv,
+            einsatz_bei_telefonica=eins,
+            zur_lv_kontrolle=lv,
+            ki_beteiligung=ki,
+        )
 
     return results
 
@@ -1672,33 +1681,35 @@ def worker_verify_feature(
     sub_obj = None
     if object_type == "subquestion":
         sub_obj = obj_to_check
+    tv = verification_result.get("technisch_verfuegbar")
+    ki_bet = verification_result.get("ki_beteiligt")
     res, _ = Anlage2FunctionResult.objects.update_or_create(
         projekt_id=project_id,
         funktion_id=func_id,
         subquestion=sub_obj,
-        defaults={"ai_result": verification_result},
+        defaults={
+            "technisch_verfuegbar": tv,
+            "ki_beteiligung": ki_bet,
+            "source": "ki",
+        },
     )
 
-    auto_val = _calc_auto_negotiable(res.doc_result, verification_result)
+    auto_val = _calc_auto_negotiable(tv, ki_bet)
 
     if res.is_negotiable_manual_override is None:
         res.is_negotiable = auto_val
 
-    res.save(update_fields=["ai_result", "is_negotiable"])
+    res.save(update_fields=["technisch_verfuegbar", "ki_beteiligung", "is_negotiable", "source"])
 
-    if object_type == "function":
-        Anlage2FunctionResult.objects.filter(
-            projekt_id=project_id,
-            funktion_id=object_id,
-            source="manual",
-        ).delete()
-    elif object_type == "subquestion":
-        Anlage2FunctionResult.objects.filter(
-            projekt_id=project_id,
-            funktion_id=obj_to_check.funktion_id,
-            source="manual",
-            raw_json__subquestion_id=object_id,
-        ).delete()
+    FunktionsErgebnis.objects.create(
+        projekt_id=project_id,
+        funktion_id=func_id,
+        subquestion=sub_obj,
+        quelle="ki",
+        technisch_verfuegbar=tv,
+        ki_beteiligung=ki_bet,
+    )
+
 
     logger.info(
         "worker_verify_feature beendet für Projekt %s Objekt %s %s",
