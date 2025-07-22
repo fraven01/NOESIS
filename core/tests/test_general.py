@@ -3751,18 +3751,19 @@ class Anlage2ResetTests(NoesisTestCase):
 
     def test_run_anlage2_analysis_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf_old = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
         func = Anlage2Function.objects.create(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=projekt,
+            anlage_datei=pf_old,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf_old,
             funktion=func,
             quelle="parser",
         )
@@ -3788,18 +3789,19 @@ class Anlage2ResetTests(NoesisTestCase):
 
     def test_conditional_check_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf_old = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
         func = Anlage2Function.objects.create(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=projekt,
+            anlage_datei=pf_old,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
+            anlage_datei=pf_old,
             funktion=func,
             quelle="ki",
             technisch_verfuegbar=False,
