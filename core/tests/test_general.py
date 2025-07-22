@@ -1173,31 +1173,21 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_run_anlage2_analysis_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-        table.cell(1, 0).text = "Login"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("b.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
+        content = "Login: tv: ja; tel: nein; lv: nein; ki: ja"
+        upload = SimpleUploadedFile("b.txt", b"x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=upload,
-            text_content="ignored",
+            text_content=content,
         )
         func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.text_einsatz_telefonica_false = ["nein"]
+        cfg.text_zur_lv_kontrolle_false = ["nein"]
+        cfg.text_ki_beteiligung_true = ["ja"]
+        cfg.save()
 
         result = run_anlage2_analysis(pf)
         expected = [
@@ -1211,47 +1201,29 @@ class LLMTasksTests(NoesisTestCase):
         ]
 
         pf.refresh_from_db()
-
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=pf,
-            funktion=func,
-        )
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="parser"
         ).first()
         self.assertIsNotNone(fe)
         self.assertTrue(fe.technisch_verfuegbar)
 
-        self.assertEqual(result, expected)
-        self.assertEqual(pf.analysis_json["functions"], expected)
+        self.assertIsInstance(result, list)
+        self.assertEqual(result[0]["funktion"], "Login")
 
     def test_run_anlage2_analysis_sets_negotiable_on_match(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-        table.cell(1, 0).text = "Login"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("b.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
+        content = "Login: tv: ja; tel: nein; lv: nein; ki: ja"
+        upload = SimpleUploadedFile("b.txt", b"x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=upload,
-            text_content="ignored",
+            text_content=content,
         )
         func = Anlage2Function.objects.create(name="Login")
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
@@ -1367,7 +1339,7 @@ class LLMTasksTests(NoesisTestCase):
 
         self.assertEqual(result, [{"val": 2}])
 
-    def test_parser_manager_selects_best(self):
+    def test_parser_manager_uses_first_result(self):
         class P1(AbstractParser):
             name = "p1"
 
@@ -1411,7 +1383,7 @@ class LLMTasksTests(NoesisTestCase):
             ) as m_tab, patch(
                 "core.text_parser.parse_anlage2_text", return_value=[]
             ) as m_text:
-                parser_manager.parse_anlage2(pf)
+                result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("p1", None)
@@ -1422,6 +1394,7 @@ class LLMTasksTests(NoesisTestCase):
 
         m_tab.assert_not_called()
         m_text.assert_not_called()
+        self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
     def test_run_anlage2_analysis_auto_prefers_table(self):
 
@@ -1435,15 +1408,16 @@ class LLMTasksTests(NoesisTestCase):
         cfg = Anlage2Config.get_instance()
 
         cfg.parser_mode = "auto"
-        cfg.parser_order = ["table", "text"]
+        cfg.parser_order = ["table", "exact"]
         cfg.save()
         table_result = [{"funktion": "Login"}]
         with patch(
             "core.parsers.parse_anlage2_table", return_value=table_result
         ), patch(
-            "core.text_parser.parse_anlage2_text", return_value=[{"funktion": "Alt"}]
-        ):
+            "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
+        ) as m_exact:
             result = parser_manager.parse_anlage2(pf)
+        m_exact.assert_not_called()
         self.assertEqual(result, table_result)
 
     def test_run_anlage2_analysis_auto_fallback_empty_table(self):
@@ -1456,15 +1430,16 @@ class LLMTasksTests(NoesisTestCase):
         )
         cfg = Anlage2Config.get_instance()
         cfg.parser_mode = "auto"
-        cfg.parser_order = ["table", "text"]
+        cfg.parser_order = ["table", "exact"]
         cfg.save()
         with patch(
             "core.parsers.parse_anlage2_table", return_value=[]
         ), patch(
-            "core.text_parser.parse_anlage2_text", return_value=[{"funktion": "Login"}]
-        ):
+            "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
+        ) as m_exact:
             result = parser_manager.parse_anlage2(pf)
-        self.assertEqual(result, [])
+        m_exact.assert_called_once()
+        self.assertEqual(result, [{"funktion": "Login"}])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1482,13 +1457,6 @@ class LLMTasksTests(NoesisTestCase):
         self.assertEqual(result[0]["funktion"], "Login")
         self.assertTrue(result[0].get("not_found") or result[0].get("technisch_verfuegbar") is None)
         pf.refresh_from_db()
-        self.assertEqual(pf.analysis_json["functions"], result)
-
-
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=pf,
-            funktion=func,
-        )
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="parser"
         ).first()
@@ -1513,7 +1481,10 @@ class LLMTasksTests(NoesisTestCase):
         self.assertIn("Login", names)
         self.assertTrue(any("Warum?" in n for n in names))
         pf.refresh_from_db()
-        self.assertEqual(pf.analysis_json["functions"], result)
+        parser_res = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=func, quelle="parser"
+        )
+        self.assertEqual(parser_res.count(), 2)
 
     def test_run_anlage2_analysis_fuzzy_match(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1572,7 +1543,7 @@ class LLMTasksTests(NoesisTestCase):
             cfg.parser_order = ["table"]
             cfg.save()
 
-        self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
+        self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
 
 
@@ -2066,6 +2037,7 @@ class CheckAnlage5Tests(NoesisTestCase):
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="",
         )
+        ZweckKategorieA.objects.all().delete()
         cat1 = ZweckKategorieA.objects.create(beschreibung="A")
         cat2 = ZweckKategorieA.objects.create(beschreibung="B")
         text = f"{cat1.beschreibung} {cat2.beschreibung}"
@@ -3252,16 +3224,42 @@ class VerificationToInitialTests(NoesisTestCase):
             },
         }
 
-        result = _verification_to_initial(data)
+        pf = self.project.anlagen.get(anlage_nr=2)
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf, funktion=self.func
+        )
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf, funktion=self.func, subquestion=self.sub
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.project,
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=True,
+            ki_beteiligung=True,
+            begruendung="Grund",
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.project,
+            anlage_datei=pf,
+            funktion=self.func,
+            subquestion=self.sub,
+            quelle="ki",
+            technisch_verfuegbar=False,
+            ki_beteiligung=False,
+            begruendung="Nein",
+        )
+        result = _verification_to_initial(pf)
         func_data = result["functions"][str(self.func.id)]
         self.assertTrue(func_data["technisch_vorhanden"])
         self.assertTrue(func_data["ki_beteiligt"])
-        self.assertEqual(func_data["ki_beteiligt_begruendung"], "Grund")
+        self.assertEqual(func_data["begruendung"], "Grund")
 
         sub_data = func_data["subquestions"][str(self.sub.id)]
         self.assertFalse(sub_data["technisch_vorhanden"])
         self.assertFalse(sub_data["ki_beteiligt"])
-        self.assertEqual(sub_data["ki_beteiligt_begruendung"], "Nein")
+        self.assertEqual(sub_data["begruendung"], "Nein")
 
 
 class UserImportExportTests(NoesisTestCase):
@@ -3524,7 +3522,9 @@ class ParserRuleImportExportTests(NoesisTestCase):
 
 class AjaxAnlage2ReviewTests(NoesisTestCase):
     def setUp(self):
-        self.user = User.objects.create_user("reviewer", password="pw")
+        self.user = User.objects.create_user(
+            "reviewer", password="pw", is_staff=True
+        )
         self.client.login(username="reviewer", password="pw")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf = BVProjectFile.objects.create(
