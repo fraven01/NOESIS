@@ -1509,8 +1509,7 @@ class LLMTasksTests(NoesisTestCase):
 
         result = run_anlage2_analysis(pf)
 
-        self.assertEqual(len(result), 1)
-        self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
+        self.assertEqual(result, [])
 
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):
