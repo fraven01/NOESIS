@@ -16,7 +16,7 @@ from .models import (
     Area,
     BVProjectFile,
     Anlage2Function,
-    Anlage2FunctionResult,
+    AnlagenFunktionsMetadaten,
     FunktionsErgebnis,
     FormatBParserRule,
     AntwortErkennungsRegel,
@@ -185,13 +185,12 @@ class Anlage2FunctionAdmin(admin.ModelAdmin):
     list_display = ("name",)
 
 
-@admin.register(Anlage2FunctionResult)
-class Anlage2FunctionResultAdmin(admin.ModelAdmin):
+@admin.register(AnlagenFunktionsMetadaten)
+class AnlagenFunktionsMetadatenAdmin(admin.ModelAdmin):
     list_display = (
-        "projekt",
+        "anlage_datei",
         "funktion",
-        "technisch_verfuegbar",
-        "ki_beteiligung",
+        "is_negotiable",
     )
 
 
