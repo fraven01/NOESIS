@@ -961,6 +961,7 @@ class BuildRowDataTests(NoesisTestCase):
             {},
             {},
             {},
+            {},
             result_map,
         )
 
@@ -1009,6 +1010,7 @@ class BuildRowDataTests(NoesisTestCase):
             self.func.id,
             f"sub{sub.id}_",
             form,
+            {},
             {},
             {},
             {},
