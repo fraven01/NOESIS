@@ -483,6 +483,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         )
         FunktionsErgebnis.objects.create(
             projekt=project_file.projekt,
+            anlage_datei=project_file,
             funktion=func,
             subquestion=sub,
             quelle="parser",
@@ -1441,7 +1442,13 @@ def worker_verify_feature(
     )
 
     projekt = BVProject.objects.get(pk=project_id)
-    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
+
+    pf = (
+        BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2)
+        .order_by("id")
+        .first()
+    )
+
 
     gutachten_text = ""
     if projekt.gutachten_file:
@@ -1689,6 +1696,7 @@ def worker_verify_feature(
 
     FunktionsErgebnis.objects.create(
         projekt_id=project_id,
+        anlage_datei=pf,
         funktion_id=func_id,
         subquestion=sub_obj,
         quelle="ki",
