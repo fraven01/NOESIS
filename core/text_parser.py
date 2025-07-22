@@ -6,7 +6,6 @@ import re
 from typing import Dict, List, Tuple
 
 
-from thefuzz import fuzz
 
 from .models import (
     BVProjectFile,
@@ -68,20 +67,16 @@ def _load_alias_lists() -> tuple[
 
 
 def fuzzy_match(phrase: str, text: str, threshold: int = FUZZY_THRESHOLD) -> bool:
-    """Prüft präzise, ob eine Phrase als exakte Wortfolge im Text vorkommt.
+    """Prüft präzise, ob eine Phrase als zusammenhängende Wortfolge im Text vorkommt.
 
-    Verwendet reguläre Ausdrücke mit Wortgrenzen (\b), um Fehler
-    durch Teil-Übereinstimmungen zu vermeiden. Die Suche ignoriert
-    Groß- und Kleinschreibung. Der ``threshold``-Parameter wird aus
-    Kompatibilitätsgründen beibehalten, aber nicht verwendet.
+    Interne Leerzeichen werden flexibel als ``\s+`` behandelt, sodass auch
+    variierende Abstände oder Zeilenumbrüche erkannt werden. Groß- und
+    Kleinschreibung werden ignoriert. Der ``threshold``-Parameter existiert
+    nur aus Kompatibilitätsgründen und hat keine Funktion mehr.
     """
 
-    # re.escape behandelt mögliche Sonderzeichen in der Suchphrase.
-    # \b sorgt für die Übereinstimmung ganzer Wörter.
-    pattern = r"\b" + re.escape(phrase) + r"\b"
-
-    # re.search findet das Muster an beliebiger Stelle im Text.
-    # re.IGNORECASE ignoriert Groß-/Kleinschreibung.
+    words = phrase.split()
+    pattern = r"\b" + r"\s+".join(map(re.escape, words)) + r"\b"
     return bool(re.search(pattern, text, re.IGNORECASE))
 
 # Globale Phrasenarten, die beim Parsen von Freitext erkannt werden.
