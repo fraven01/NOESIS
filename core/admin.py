@@ -16,7 +16,8 @@ from .models import (
     Area,
     BVProjectFile,
     Anlage2Function,
-    Anlage2FunctionResult,
+    AnlagenFunktionsMetadaten,
+    FunktionsErgebnis,
     FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
@@ -184,16 +185,27 @@ class Anlage2FunctionAdmin(admin.ModelAdmin):
     list_display = ("name",)
 
 
-@admin.register(Anlage2FunctionResult)
-class Anlage2FunctionResultAdmin(admin.ModelAdmin):
+@admin.register(AnlagenFunktionsMetadaten)
+class AnlagenFunktionsMetadatenAdmin(admin.ModelAdmin):
+    list_display = (
+        "anlage_datei",
+        "funktion",
+        "is_negotiable",
+    )
+
+
+@admin.register(FunktionsErgebnis)
+class FunktionsErgebnisAdmin(admin.ModelAdmin):
     list_display = (
         "projekt",
         "funktion",
+        "subquestion",
+        "quelle",
         "technisch_verfuegbar",
         "ki_beteiligung",
-        "doc_result",
-        "ai_result",
-        "manual_result",
+        "einsatz_bei_telefonica",
+        "zur_lv_kontrolle",
+        "created_at",
     )
 
 

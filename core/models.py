@@ -161,6 +161,11 @@ class BVProject(models.Model):
         """Gibt alle Dateien der Anlage 3 zurück."""
         return self.anlagen.filter(anlage_nr=3)
 
+    @property
+    def is_verhandlungsfaehig(self) -> bool:
+        """Gibt zurück, ob alle Anlagen verhandlungsfähig sind."""
+        return all(f.verhandlungsfaehig for f in self.anlagen.all())
+
 
 class BVSoftware(models.Model):
     """Software-Eintrag innerhalb eines Projekts."""
@@ -277,8 +282,8 @@ class BVProjectFile(models.Model):
                 self.parser_order = cfg.parser_order
         super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
-            # Alte Ergebnisse für dieses Projekt entfernen
-            Anlage2FunctionResult.objects.filter(projekt=self.projekt).delete()
+            # Alte Ergebnisse für diese Datei entfernen
+            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=self).delete()
             funcs = list(
                 Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
             )
@@ -867,10 +872,10 @@ class Anlage2Function(models.Model):
         return self.name
 
 
-class Anlage2FunctionResult(models.Model):
-    """Speichert das Prüfergebnis einer Anlage-2-Funktion."""
+class AnlagenFunktionsMetadaten(models.Model):
+    """Speichert Metadaten einer Anlage-2-Funktion."""
 
-    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    anlage_datei = models.ForeignKey(BVProjectFile, on_delete=models.CASCADE)
     funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
     subquestion = models.ForeignKey(
         "Anlage2SubQuestion",
@@ -878,27 +883,17 @@ class Anlage2FunctionResult(models.Model):
         null=True,
         blank=True,
     )
-    technisch_verfuegbar = models.BooleanField(null=True)
-    ki_beteiligung = models.BooleanField(null=True)
-    einsatz_bei_telefonica = models.BooleanField(null=True)
-    zur_lv_kontrolle = models.BooleanField(null=True)
-    doc_result = models.JSONField(null=True, blank=True)
-    ai_result = models.JSONField(null=True, blank=True)
-    manual_result = models.JSONField(null=True, blank=True)
-    raw_json = models.JSONField(null=True, blank=True)
     gap_summary = models.TextField(blank=True)
     gap_notiz = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
     is_negotiable_manual_override = models.BooleanField(null=True, blank=True)
-    source = models.CharField(max_length=10, default="llm")
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [("projekt", "funktion", "subquestion")]
+        unique_together = [("anlage_datei", "funktion", "subquestion")]
         ordering = ["funktion__name"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
-        return f"{self.projekt} - {self.funktion}"
+        return f"{self.anlage_datei} - {self.funktion}"
 
     @property
     def negotiable(self) -> bool:
@@ -909,12 +904,6 @@ class Anlage2FunctionResult(models.Model):
         """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
         if self.subquestion:
             return f"{self.funktion.name}: {self.subquestion.frage_text}"
-        if isinstance(self.raw_json, dict) and self.raw_json.get("subquestion_id"):
-            try:
-                sub = Anlage2SubQuestion.objects.get(pk=self.raw_json["subquestion_id"])
-                return f"{self.funktion.name}: {sub.frage_text}"
-            except Anlage2SubQuestion.DoesNotExist:
-                pass
         return self.funktion.name
 
 
@@ -930,6 +919,34 @@ class Anlage2SubQuestion(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.frage_text
+
+
+class FunktionsErgebnis(models.Model):
+    """Speichert ein einzelnes Ergebnis einer Funktionsprüfung."""
+
+    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    anlage_datei = models.ForeignKey(
+        BVProjectFile,
+        on_delete=models.CASCADE,
+        related_name="funktions_ergebnisse",
+    )
+    funktion = models.ForeignKey(Anlage2Function, on_delete=models.CASCADE)
+    subquestion = models.ForeignKey(
+        Anlage2SubQuestion, on_delete=models.CASCADE, null=True, blank=True
+    )
+    quelle = models.CharField(max_length=20)
+    technisch_verfuegbar = models.BooleanField(null=True)
+    einsatz_bei_telefonica = models.BooleanField(null=True)
+    zur_lv_kontrolle = models.BooleanField(null=True)
+    ki_beteiligung = models.BooleanField(null=True)
+    begruendung = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.quelle
 
 
 class ZweckKategorieA(models.Model):

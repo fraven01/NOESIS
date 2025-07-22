@@ -16,6 +16,9 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    pip install -r requirements-dev.txt
    ```
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
+4. Installiere zusätzliche Systempakete wie `pandoc`, damit der Export nach
+   DOCX funktioniert. Unter Debian/Ubuntu lautet der Befehl beispielsweise
+   `sudo apt-get install pandoc`.
 
 ## Entwickler-Setup
 
@@ -28,8 +31,9 @@ pip install -r requirements-dev.txt
 
 ## Dependencies for Tests
 
-Bevor `python manage.py makemigrations --check` oder `python manage.py test`
-ausgeführt werden, müssen die benötigten Pakete installiert sein:
+Installiere vor jedem Testlauf **alle** Abhängigkeiten aus beiden
+Anforderungsdateien, sonst schlagen `python manage.py makemigrations --check`
+und `python manage.py test` fehl:
 
 ```bash
 pip install -r requirements.txt
@@ -38,8 +42,10 @@ pip install -r requirements-dev.txt
 
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
-Beim Testlauf wird `DJANGO_SECRET_KEY` automatisch auf `dummy_test_key` gesetzt,
-falls die Variable nicht gesetzt ist.
+Für alle Django-Managementbefehle muss die Umgebungsvariable
+`DJANGO_SECRET_KEY` gesetzt sein. Beim Aufruf von
+`python manage.py test` wird automatisch `dummy_test_key` verwendet,
+falls keine Variable vorhanden ist.
 
 ## Tests und Checks
 
