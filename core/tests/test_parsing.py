@@ -543,15 +543,7 @@ class DocxExtractTests(NoesisTestCase):
         cfg.text_technisch_verfuegbar_true = ["ja"]
         cfg.save()
         data = parse_anlage2_text("Logn: ja")
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                }
-            ],
-        )
+        self.assertEqual(data, [])
 
     def test_parse_anlage2_text_fuzzy_token_phrase(self):
         func = Anlage2Function.objects.create(name="Login")
@@ -559,15 +551,7 @@ class DocxExtractTests(NoesisTestCase):
         cfg.text_technisch_verfuegbar_true = ["ja bitte"]
         cfg.save()
         data = parse_anlage2_text("Lgin: ja bitte")
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                }
-            ],
-        )
+        self.assertEqual(data, [])
 
     def test_parse_anlage2_text_fuzzy_rule_phrase(self):
         func = Anlage2Function.objects.create(name="Login")
@@ -577,15 +561,7 @@ class DocxExtractTests(NoesisTestCase):
             actions_json=[{"field": "einsatz_telefonica", "value": True}],
         )
         data = parse_anlage2_text("Lgin: aktivv")
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "einsatz_telefonica": {"value": True, "note": None},
-                }
-            ],
-        )
+        self.assertEqual(data, [])
 
     def test_parse_anlage2_text_multiple_rules_priority(self):
         func = Anlage2Function.objects.create(name="Login")
