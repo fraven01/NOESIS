@@ -812,8 +812,32 @@ class BuildRowDataTests(NoesisTestCase):
         self.form = Anlage2ReviewForm()
 
     def test_flag_set_on_difference(self):
-        analysis = {"Testfunktion": {"technisch_vorhanden": True}}
-        verification = {"Testfunktion": {"technisch_vorhanden": False}}
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        result_map = {res.get_lookup_key(): res}
+
         row = _build_row_data(
             "Testfunktion",
             "Testfunktion",
@@ -823,17 +847,39 @@ class BuildRowDataTests(NoesisTestCase):
             {},
             {},
             {},
-            analysis,
-            verification,
             {},
-            {},
+            result_map,
         )
         self.assertTrue(row["requires_manual_review"])
 
     def test_flag_not_set_when_manual(self):
-        analysis = {"Testfunktion": {"technisch_vorhanden": True}}
-        verification = {"Testfunktion": {"technisch_vorhanden": False}}
         manual = {"Testfunktion": {"technisch_vorhanden": True}}
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=self.func,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=self.func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        result_map = {res.get_lookup_key(): res}
+
         row = _build_row_data(
             "Testfunktion",
             "Testfunktion",
@@ -843,16 +889,12 @@ class BuildRowDataTests(NoesisTestCase):
             {},
             {},
             {},
-            analysis,
-            verification,
             manual,
-            {},
+            result_map,
         )
         self.assertFalse(row["requires_manual_review"])
 
     def test_manual_flags_propagated(self):
-        analysis = {}
-        verification = {}
         manual = {"Testfunktion": {"technisch_vorhanden": True}}
         row = _build_row_data(
             "Testfunktion",
@@ -863,8 +905,6 @@ class BuildRowDataTests(NoesisTestCase):
             {},
             {},
             {},
-            analysis,
-            verification,
             manual,
             {},
         )
@@ -877,8 +917,6 @@ class BuildRowDataTests(NoesisTestCase):
             self.func.id,
             f"func{self.func.id}_",
             self.form,
-            {},
-            {},
             {},
             {},
             {},
@@ -912,9 +950,6 @@ class BuildRowDataTests(NoesisTestCase):
             quelle="ki",
             technisch_verfuegbar=False,
         )
-
-        analysis = {self.func.name: {"technisch_vorhanden": False}}
-        verification = {self.func.name: {"technisch_vorhanden": True}}
         result_map = {res.get_lookup_key(): res}
 
         row = _build_row_data(
@@ -925,9 +960,6 @@ class BuildRowDataTests(NoesisTestCase):
             self.form,
             {},
             {},
-            {},
-            analysis,
-            verification,
             {},
             result_map,
         )
@@ -969,8 +1001,6 @@ class BuildRowDataTests(NoesisTestCase):
         )
 
         lookup = res.get_lookup_key()
-        analysis = {lookup: {"technisch_vorhanden": True}}
-        verification = {lookup: {"technisch_vorhanden": False}}
         result_map = {lookup: res}
 
         row = _build_row_data(
@@ -981,9 +1011,6 @@ class BuildRowDataTests(NoesisTestCase):
             form,
             {},
             {},
-            {},
-            analysis,
-            verification,
             {},
             result_map,
             sub_id=sub.id,
