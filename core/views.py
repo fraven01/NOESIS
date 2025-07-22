@@ -3706,6 +3706,25 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             "zur_lv_kontrolle": "zur_lv_kontrolle",
         }
 
+        prev_manual = None
+        if (
+            field_name == "technisch_vorhanden"
+            and sub_id is None
+            and status_provided
+        ):
+            prev = (
+                FunktionsErgebnis.objects.filter(
+                    anlage_datei=anlage,
+                    funktion=funktion,
+                    subquestion__isnull=True,
+                    quelle="manuell",
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            if prev:
+                prev_manual = prev.technisch_verfuegbar
+
         anlage2_logger.debug(
             "Review gespeichert: pf=%s func=%s sub=%s field=%s status=%s notes=%r",
             pf_id,
@@ -3803,6 +3822,46 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             anlage.manual_analysis_json = manual_data
             anlage.save(update_fields=["manual_analysis_json"])
 
+            if (
+                field_name == "technisch_vorhanden"
+                and sub_id is None
+                and status is True
+                and prev_manual in (False, None)
+            ):
+                func_exists = (
+                    FunktionsErgebnis.objects.filter(
+                        anlage_datei=anlage,
+                        funktion=funktion,
+                        subquestion__isnull=True,
+                    )
+                    .exclude(quelle="manuell")
+                    .exists()
+                )
+                if not func_exists:
+                    async_task(
+                        "core.llm_tasks.worker_verify_feature",
+                        anlage.projekt_id,
+                        "function",
+                        funktion.id,
+                    )
+                for sub in funktion.anlage2subquestion_set.all():
+                    sub_exists = (
+                        FunktionsErgebnis.objects.filter(
+                            anlage_datei=anlage,
+                            funktion=funktion,
+                            subquestion=sub,
+                        )
+                        .exclude(quelle="manuell")
+                        .exists()
+                    )
+                    if not sub_exists:
+                        async_task(
+                            "core.llm_tasks.worker_verify_feature",
+                            anlage.projekt_id,
+                            "subquestion",
+                            sub.id,
+                        )
+
         return JsonResponse({
             "status": "success",
             "gap_summary": gap_text,
@@ -3838,6 +3897,26 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     cur = None
     new_state = True
 
+    prev_manual = None
+    if field_name == "technisch_vorhanden" and sub_id is None:
+        pf = (
+            result.anlage_datei.projekt.anlagen.filter(anlage_nr=2)
+            .order_by("id")
+            .first()
+        )
+        prev = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=result.funktion,
+                subquestion__isnull=True,
+                quelle="manuell",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if prev:
+            prev_manual = prev.technisch_verfuegbar
+
     field_map = {
         "technisch_vorhanden": "technisch_verfuegbar",
         "ki_beteiligung": "ki_beteiligung",
@@ -3861,6 +3940,46 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         quelle="manuell",
         **{attr: new_state},
     )
+
+    if (
+        field_name == "technisch_vorhanden"
+        and sub_id is None
+        and new_state
+        and prev_manual in (False, None)
+    ):
+        func_exists = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=result.funktion,
+                subquestion__isnull=True,
+            )
+            .exclude(quelle="manuell")
+            .exists()
+        )
+        if not func_exists:
+            async_task(
+                "core.llm_tasks.worker_verify_feature",
+                result.anlage_datei.projekt_id,
+                "function",
+                result.funktion_id,
+            )
+        for sub in result.funktion.anlage2subquestion_set.all():
+            sub_exists = (
+                FunktionsErgebnis.objects.filter(
+                    anlage_datei=pf,
+                    funktion=result.funktion,
+                    subquestion=sub,
+                )
+                .exclude(quelle="manuell")
+                .exists()
+            )
+            if not sub_exists:
+                async_task(
+                    "core.llm_tasks.worker_verify_feature",
+                    result.anlage_datei.projekt_id,
+                    "subquestion",
+                    sub.id,
+                )
 
     context = {
         "state": new_state,
