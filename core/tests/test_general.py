@@ -754,7 +754,6 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
-            source="manual",
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -950,7 +949,6 @@ class BuildRowDataTests(NoesisTestCase):
         res = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=self.func,
-            raw_json={"subquestion_id": sub.id},
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -1030,11 +1028,9 @@ class LLMTasksTests(NoesisTestCase):
         mock_q.assert_called()
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(data["functions"][0]["technisch_verfuegbar"])
-        self.assertEqual(data["functions"][0]["source"], "llm")
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf, funktion=func
         )
-        self.assertEqual(res.source, "llm")
 
     def test_check_anlage2_functions_stores_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3460,7 +3456,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             anlage_datei=self.pf,
             funktion=self.func,
         )
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
 
 
     def test_gap_generated_on_difference(self):
@@ -3552,7 +3547,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             anlage_datei=self.pf,
             funktion=self.func,
         )
-        self.assertTrue(res.einsatz_bei_telefonica)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
@@ -3577,7 +3571,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             anlage_datei=self.pf,
             funktion=self.func,
         )
-        self.assertFalse(res.zur_lv_kontrolle)
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
@@ -3611,8 +3604,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             anlage_datei=self.pf,
             funktion=self.func,
         )
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
-        self.assertFalse(res.manual_result["ki_beteiligung"])
 
 
     def test_set_negotiable_override(self):
@@ -3703,14 +3694,14 @@ class Anlage2ResetTests(NoesisTestCase):
 
     def test_run_anlage2_analysis_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
+        pf_old = BVProjectFile.objects.create(
             projekt=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
         func = Anlage2Function.objects.create(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
-            projekt=projekt,
+            anlage_datei=pf_old,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(

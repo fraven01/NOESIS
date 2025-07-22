@@ -1058,14 +1058,8 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             source = "llm"
 
         AnlagenFunktionsMetadaten.objects.update_or_create(
-
-            projekt=projekt,
+            anlage_datei=anlage,
             funktion=func,
-            defaults={
-                "technisch_verfuegbar": _val(vals, "technisch_verfuegbar"),
-                "ki_beteiligung": _val(vals, "ki_beteiligung"),
-                "source": source,
-            },
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -1376,15 +1370,10 @@ def check_anlage2_functions(
             "ki_beteiligung": data.get("ki_beteiligung"),
         }
 
+        pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
         AnlagenFunktionsMetadaten.objects.update_or_create(
-
-            projekt=projekt,
+            anlage_datei=pf,
             funktion=func,
-            defaults={
-                "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
-                "ki_beteiligung": vals.get("ki_beteiligung"),
-                "source": "llm",
-            },
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
