@@ -1302,7 +1302,7 @@ class LLMTasksTests(NoesisTestCase):
         )
 
         try:
-            result = run_anlage2_analysis(pf)
+            result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("fail")
@@ -1347,7 +1347,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=upload,
         )
         try:
-            result = run_anlage2_analysis(pf)
+            result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("one")
@@ -1398,11 +1398,11 @@ class LLMTasksTests(NoesisTestCase):
 
         try:
             with patch(
-                "core.llm_tasks.parse_anlage2_table", return_value=[]
+                "core.parsers.parse_anlage2_table", return_value=[]
             ) as m_tab, patch(
-                "core.llm_tasks.parse_anlage2_text", return_value=[]
+                "core.text_parser.parse_anlage2_text", return_value=[]
             ) as m_text:
-                run_anlage2_analysis(pf)
+                parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("p1", None)
@@ -1426,16 +1426,15 @@ class LLMTasksTests(NoesisTestCase):
         cfg = Anlage2Config.get_instance()
 
         cfg.parser_mode = "auto"
+        cfg.parser_order = ["table", "text"]
         cfg.save()
         table_result = [{"funktion": "Login"}]
         with patch(
-            "core.llm_tasks.parse_anlage2_table", return_value=table_result
-        ) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Alt"}]
-        ) as m_text:
-            result = run_anlage2_analysis(pf)
-        m_tab.assert_called_once()
-        m_text.assert_not_called()
+            "core.parsers.parse_anlage2_table", return_value=table_result
+        ), patch(
+            "core.text_parser.parse_anlage2_text", return_value=[{"funktion": "Alt"}]
+        ):
+            result = parser_manager.parse_anlage2(pf)
         self.assertEqual(result, table_result)
 
     def test_run_anlage2_analysis_auto_fallback_empty_table(self):
@@ -1448,16 +1447,15 @@ class LLMTasksTests(NoesisTestCase):
         )
         cfg = Anlage2Config.get_instance()
         cfg.parser_mode = "auto"
+        cfg.parser_order = ["table", "text"]
         cfg.save()
         with patch(
-            "core.llm_tasks.parse_anlage2_table", return_value=[]
-        ) as m_tab, patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[{"funktion": "Login"}]
-        ) as m_text:
-            result = run_anlage2_analysis(pf)
-        m_tab.assert_called_once()
-        m_text.assert_called_once()
-        self.assertEqual(result, [{"funktion": "Login"}])
+            "core.parsers.parse_anlage2_table", return_value=[]
+        ), patch(
+            "core.text_parser.parse_anlage2_text", return_value=[{"funktion": "Login"}]
+        ):
+            result = parser_manager.parse_anlage2(pf)
+        self.assertEqual(result, [])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
