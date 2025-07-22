@@ -759,14 +759,14 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             projekt=projekt,
             anlage_datei=pf,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
             technisch_verfuegbar=True,
             ki_beteiligung=False,
         )
         latest = FunktionsErgebnis.objects.filter(
             projekt=projekt,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
         ).first()
         self.assertTrue(latest.technisch_verfuegbar)
         self.assertFalse(latest.ki_beteiligung)
@@ -3575,7 +3575,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
-            quelle="manual",
+            quelle="manuell",
         ).first()
         self.assertTrue(fe.einsatz_bei_telefonica)
 
@@ -3600,7 +3600,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         fe = FunktionsErgebnis.objects.filter(
             projekt=self.projekt,
             funktion=self.func,
-            quelle="manual",
+            quelle="manuell",
         ).first()
         self.assertFalse(fe.zur_lv_kontrolle)
 
@@ -3708,7 +3708,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             FunktionsErgebnis.objects.filter(
                 projekt=self.projekt,
                 funktion=self.func,
-                quelle="manual",
+                quelle="manuell",
             ).exists()
         )
 
@@ -3838,7 +3838,7 @@ class Anlage2ResetTests(NoesisTestCase):
             projekt=projekt,
             anlage_datei=pf,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
             technisch_verfuegbar=True,
         )
         self.client.login(username=self.user.username, password="pw")
@@ -3851,7 +3851,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 projekt=projekt,
                 anlage_datei=pf,
                 funktion=func,
-                quelle="manual",
+                quelle="manuell",
             ).exists()
         )
         self.assertIsNone(res.is_negotiable_manual_override)
