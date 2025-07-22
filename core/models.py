@@ -161,6 +161,11 @@ class BVProject(models.Model):
         """Gibt alle Dateien der Anlage 3 zurück."""
         return self.anlagen.filter(anlage_nr=3)
 
+    @property
+    def is_verhandlungsfaehig(self) -> bool:
+        """Gibt zurück, ob alle Anlagen verhandlungsfähig sind."""
+        return all(f.verhandlungsfaehig for f in self.anlagen.all())
+
 
 class BVSoftware(models.Model):
     """Software-Eintrag innerhalb eines Projekts."""
