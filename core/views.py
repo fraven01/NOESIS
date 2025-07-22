@@ -84,7 +84,7 @@ from .models import (
     Anlage2SubQuestion,
     Anlage2Config,
     Anlage2ColumnHeading,
-    Anlage2FunctionResult,
+    AnlagenFunktionsMetadaten,
     SoftwareKnowledge,
     Gutachten,
     Tile,
@@ -248,7 +248,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     """Ermittelt die Dokumentergebnisse aus der Datenbank."""
     initial = {"functions": {}}
 
-    results = Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+    results = AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
 
     for res in results:
         func_id = str(res.funktion_id)
@@ -286,9 +286,11 @@ def _verification_to_initial(_data: dict | None) -> dict:
     """Liest KI-Prüfergebnisse aus der Datenbank."""
     initial = {"functions": {}}
 
-    results = Anlage2FunctionResult.objects.filter(projekt=_data.projekt) if isinstance(_data, BVProjectFile) else []
-    if isinstance(_data, BVProjectFile):
-        results = Anlage2FunctionResult.objects.filter(projekt=_data.projekt)
+    results = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=_data)
+        if isinstance(_data, BVProjectFile)
+        else []
+    )
 
     for res in results:
         func_id = str(res.funktion_id)
@@ -300,7 +302,7 @@ def _verification_to_initial(_data: dict | None) -> dict:
             )
         latest = (
             FunktionsErgebnis.objects.filter(
-                projekt=res.projekt,
+                projekt=res.anlage_datei.projekt,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",
@@ -414,7 +416,7 @@ def _build_row_data(
     ki_map: dict[tuple[str, str | None], str],
     beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]],
     manual_lookup: dict[str, dict],
-    result_map: dict[str, Anlage2FunctionResult],
+    result_map: dict[str, AnlagenFunktionsMetadaten],
     sub_id: int | None = None,
 ) -> dict:
     """Erzeugt die Darstellungsdaten für eine Funktion oder Unterfrage."""
@@ -428,7 +430,7 @@ def _build_row_data(
     if result_obj:
         parser_entry = (
             FunktionsErgebnis.objects.filter(
-                projekt=result_obj.projekt,
+                projekt=result_obj.anlage_datei.projekt,
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="parser",
@@ -438,7 +440,7 @@ def _build_row_data(
         )
         ai_entry = (
             FunktionsErgebnis.objects.filter(
-                projekt=result_obj.projekt,
+                projekt=result_obj.anlage_datei.projekt,
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="ki",
@@ -2946,7 +2948,7 @@ def projekt_file_edit_json(request, pk):
         raise Http404
     if request.method == "GET" and anlage.anlage_nr == 2:
         results = (
-            Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
             .select_related("funktion", "subquestion")
         )
         for res in results:
@@ -3059,7 +3061,7 @@ def projekt_file_edit_json(request, pk):
 
                 if cfg_rule.enforce_subquestion_override:
                     for fid in functions_to_override:
-                        Anlage2FunctionResult.objects.update_or_create(
+                        AnlagenFunktionsMetadaten.objects.update_or_create(
                             projekt=anlage.projekt,
                             funktion_id=fid,
                             defaults={
@@ -3105,7 +3107,7 @@ def projekt_file_edit_json(request, pk):
 
             result_map = {
                 r.get_lookup_key(): r
-                for r in Anlage2FunctionResult.objects.filter(projekt=anlage.projekt)
+                for r in AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
             }
 
             manual_init = (
@@ -3462,19 +3464,12 @@ def anlage2_feature_verify(request, pk):
         obj_id = int(subquestion_id)
         sub_obj = get_object_or_404(Anlage2SubQuestion, pk=obj_id)
         parent_res = (
-            Anlage2FunctionResult.objects.filter(
-                projekt=anlage.projekt, funktion=sub_obj.funktion
+            AnlagenFunktionsMetadaten.objects.filter(
+                anlage_datei=anlage, funktion=sub_obj.funktion
             )
             .order_by("-id")
             .first()
         )
-        if not parent_res or parent_res.technisch_verfuegbar is not True:
-            return JsonResponse(
-                {
-                    "status": "skipped",
-                    "message": "Hauptfunktion ist nicht vorhanden",
-                }
-            )
     else:
         logger.error(
             "FEHLER: Weder function_id noch subquestion_id im POST-Request gefunden. Sende 400 Bad Request."
@@ -3531,7 +3526,7 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
 
     funktion = get_object_or_404(Anlage2Function, pk=func_id)
 
-    Anlage2FunctionResult.objects.update_or_create(
+    AnlagenFunktionsMetadaten.objects.update_or_create(
         projekt=anlage.projekt,
         funktion=funktion,
         subquestion_id=sub_id,
@@ -3605,7 +3600,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             notes,
         )
 
-        res, _created = Anlage2FunctionResult.objects.get_or_create(
+        res, _created = AnlagenFunktionsMetadaten.objects.get_or_create(
             projekt=anlage.projekt,
             funktion=funktion,
             subquestion_id=sub_id,
@@ -3696,9 +3691,9 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 @require_POST
 def hx_update_review_cell(request, result_id: int, field_name: str):
     """Aktualisiert eine Bewertungszelle via htmx."""
-    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
     sub_id = request.POST.get("sub_id")
 
@@ -3709,14 +3704,8 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         "zur_lv_kontrolle": "zur_lv_kontrolle",
     }
     attr = field_map.get(field_name, "technisch_verfuegbar")
-    cur = getattr(result, attr)
-
-    if cur is True:
-        new_state = False
-    elif cur is False:
-        new_state = None
-    else:
-        new_state = True
+    cur = None
+    new_state = True
 
     field_map = {
         "technisch_vorhanden": "technisch_verfuegbar",
@@ -3724,14 +3713,10 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         "einsatz_bei_telefonica": "einsatz_bei_telefonica",
         "zur_lv_kontrolle": "zur_lv_kontrolle",
     }
-    attr = field_map.get(field_name, "technisch_verfuegbar")
-    setattr(result, attr, new_state)
-    result.source = "manual"
 
-    result.save(update_fields=[attr, "source"])
 
     FunktionsErgebnis.objects.create(
-        projekt=result.projekt,
+        projekt=result.anlage_datei.projekt,
         funktion=result.funktion,
         subquestion_id=sub_id,
         quelle="manuell",
@@ -3756,9 +3741,9 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 @require_POST
 def hx_toggle_negotiable(request, result_id: int):
     """Schaltet den Verhandlungsstatus um."""
-    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
 
     current = result.is_negotiable_manual_override
@@ -3773,9 +3758,7 @@ def hx_toggle_negotiable(request, result_id: int):
     if new_override is not None:
         result.is_negotiable = new_override
     else:
-        result.is_negotiable = _calc_auto_negotiable(
-            result.technisch_verfuegbar, result.ki_beteiligung
-        )
+        result.is_negotiable = False
     result.save(update_fields=["is_negotiable", "is_negotiable_manual_override"])
 
     context = {
@@ -3802,21 +3785,21 @@ def hx_project_file_status(request, pf_id: int):
 def edit_gap_notes(request, result_id: int):
     """Bearbeitet die Gap-Notizen für ein Ergebnis."""
 
-    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
 
     if request.method == "POST":
         result.gap_summary = request.POST.get("gap_summary", "")
         result.gap_notiz = request.POST.get("gap_notiz", "")
         result.save(update_fields=["gap_summary", "gap_notiz"])
-        pf = result.projekt.anlagen.filter(anlage_nr=2).first()
+        pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).first()
         if pf:
             return redirect("projekt_file_edit_json", pk=pf.pk)
-        return redirect("projekt_detail", pk=result.projekt.pk)
+        return redirect("projekt_detail", pk=result.anlage_datei.projekt.pk)
 
-    pf = result.projekt.anlagen.filter(anlage_nr=2).first()
+    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).first()
     context = {"result": result, "project_file": pf}
     return render(request, "gap_notes_form.html", context)
 
@@ -3826,9 +3809,9 @@ def edit_gap_notes(request, result_id: int):
 def ajax_generate_gap_summary(request, result_id: int) -> JsonResponse:
     """Startet die Generierung einer Gap-Zusammenfassung."""
 
-    result = get_object_or_404(Anlage2FunctionResult, pk=result_id)
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
 
     model = request.POST.get("model")
@@ -3850,8 +3833,8 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         return JsonResponse({"error": "invalid"}, status=400)
 
     # Nur manuelle Änderungen entfernen, automatische Ergebnisse beibehalten
-    Anlage2FunctionResult.objects.filter(
-        projekt=project_file.projekt
+    AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=project_file
     ).update(is_negotiable_manual_override=None)
     FunktionsErgebnis.objects.filter(
         projekt=project_file.projekt, quelle="manuell"
@@ -3898,10 +3881,10 @@ def projekt_file_delete_result(request, pk: int):
     project_file = get_object_or_404(BVProjectFile, pk=pk)
 
     if project_file.anlage_nr == 2:
-        Anlage2FunctionResult.objects.filter(
-            projekt=project_file.projekt
+        AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei=project_file
         ).exclude(source="parser").delete()
-        Anlage2FunctionResult.objects.filter(projekt=project_file.projekt).update(
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).update(
             is_negotiable=False,
             is_negotiable_manual_override=None
         )
@@ -4123,8 +4106,8 @@ def edit_ki_justification(request, pk):
     else:
         return HttpResponseBadRequest("invalid")
 
-    res_qs = Anlage2FunctionResult.objects.filter(
-        projekt=anlage.projekt,
+    res_qs = AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=anlage,
         funktion=obj if obj_type == "function" else obj.funktion,
         subquestion=obj if obj_type == "subquestion" else None,
     )
@@ -4151,8 +4134,8 @@ def justification_detail_edit(request, file_id, function_key):
     if anlage.anlage_nr != 2:
         raise Http404
 
-    res = Anlage2FunctionResult.objects.filter(
-        projekt=anlage.projekt,
+    res = AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=anlage,
         funktion__name=function_key,
         subquestion__isnull=True,
     ).first()
@@ -4185,8 +4168,8 @@ def justification_delete(request, file_id, function_key):
     if anlage.anlage_nr != 2:
         raise Http404
 
-    res = Anlage2FunctionResult.objects.filter(
-        projekt=anlage.projekt,
+    res = AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=anlage,
         funktion__name=function_key,
         subquestion__isnull=True,
     ).first()
