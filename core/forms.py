@@ -921,6 +921,15 @@ class ProjectImportForm(forms.Form):
     )
 
 
+class Anlage2ParserRuleImportForm(forms.Form):
+    """Formular für den Import der Parser-Regeln."""
+
+    json_file = forms.FileField(
+        label="JSON-Datei",
+        widget=forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+    )
+
+
 class Anlage4ConfigForm(forms.ModelForm):
     """Formular für die Anlage-4-Konfiguration."""
 

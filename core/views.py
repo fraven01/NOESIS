@@ -63,6 +63,7 @@ from .forms import (
     UserImportForm,
     Anlage2ConfigImportForm,
     ProjectImportForm,
+    Anlage2ParserRuleImportForm,
     ZweckKategorieAForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
@@ -2492,6 +2493,53 @@ class AntwortErkennungsRegelDeleteView(LoginRequiredMixin, StaffRequiredMixin, D
     model = AntwortErkennungsRegel
     template_name = "parser_rules/rule_confirm_delete.html"
     success_url = reverse_lazy("parser_rule_list")
+
+
+@login_required
+@admin_required
+def anlage2_parser_rule_export(request):
+    """Exportiert alle Antwortregeln als JSON."""
+    rules = [
+        {
+            "regel_name": r.regel_name,
+            "erkennungs_phrase": r.erkennungs_phrase,
+            "regel_anwendungsbereich": r.regel_anwendungsbereich,
+            "actions": r.actions_json,
+            "prioritaet": r.prioritaet,
+        }
+        for r in AntwortErkennungsRegel.objects.all().order_by("prioritaet")
+    ]
+    content = json.dumps(rules, ensure_ascii=False, indent=2)
+    resp = HttpResponse(content, content_type="application/json")
+    resp["Content-Disposition"] = "attachment; filename=parser_rules.json"
+    return resp
+
+
+@login_required
+@admin_required
+def anlage2_parser_rule_import(request):
+    """Importiert Antwortregeln aus einer JSON-Datei."""
+    form = Anlage2ParserRuleImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        raw = form.cleaned_data["json_file"].read().decode("utf-8")
+        try:
+            items = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            messages.error(request, "Ungültige JSON-Datei")
+            return redirect("anlage2_parser_rule_import")
+        for r in items:
+            AntwortErkennungsRegel.objects.update_or_create(
+                regel_name=r.get("regel_name"),
+                defaults={
+                    "erkennungs_phrase": r.get("erkennungs_phrase", ""),
+                    "regel_anwendungsbereich": r.get("regel_anwendungsbereich", "Hauptfunktion"),
+                    "actions_json": r.get("actions", []),
+                    "prioritaet": r.get("prioritaet", 0),
+                },
+            )
+        messages.success(request, "Antwortregeln importiert")
+        return redirect("parser_rule_list")
+    return render(request, "admin_anlage2_parser_rule_import.html", {"form": form})
 
 
 @login_required
