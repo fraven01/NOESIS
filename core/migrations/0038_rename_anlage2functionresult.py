@@ -1,9 +1,10 @@
 from django.db import migrations, models
 import django.db.models.deletion
 
+
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0036_add_funktions_ergebnis"),
+        ("core", "0037_add_anlage_datei_begruendung"),
     ]
 
     operations = [
@@ -19,7 +20,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="anlagenfunktionsmetadaten",
             name="anlage_datei",
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="core.bvprojectfile"),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="core.bvprojectfile"
+            ),
         ),
         migrations.RemoveField(
             model_name="anlagenfunktionsmetadaten",
