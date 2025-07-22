@@ -1710,15 +1710,19 @@ def worker_verify_feature(
 
     res.save(update_fields=["is_negotiable"])
 
-    FunktionsErgebnis.objects.create(
-        projekt_id=project_id,
-        anlage_datei=pf,
-        funktion_id=func_id,
-        subquestion=sub_obj,
-        quelle="ki",
-        technisch_verfuegbar=tv,
-        ki_beteiligung=ki_bet,
-    )
+    try:
+        FunktionsErgebnis.objects.create(
+            projekt_id=project_id,
+            anlage_datei=pf,
+            funktion_id=func_id,
+            subquestion=sub_obj,
+            quelle="ki",
+            technisch_verfuegbar=tv,
+            ki_beteiligung=ki_bet,
+            begruendung=justification,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Begr\u00fcndung konnte nicht gespeichert werden: %s", exc)
 
 
     logger.info(
