@@ -3581,6 +3581,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             .order_by("-created_at")
             .first()
         )
+
+        self.assertTrue(res.einsatz_bei_telefonica)
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manuell",
+        ).first()
+
         self.assertTrue(fe.einsatz_bei_telefonica)
         self.pf.refresh_from_db()
         func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
@@ -3608,6 +3616,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             .order_by("-created_at")
             .first()
         )
+
+        self.assertFalse(res.zur_lv_kontrolle)
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
+            funktion=self.func,
+            quelle="manuell",
+        ).first()
+
         self.assertFalse(fe.zur_lv_kontrolle)
         self.pf.refresh_from_db()
         func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
