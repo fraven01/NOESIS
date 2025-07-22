@@ -1059,7 +1059,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
 
         AnlagenFunktionsMetadaten.objects.update_or_create(
 
-            projekt=projekt,
+            anlage_datei=anlage,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
@@ -1342,6 +1342,10 @@ def check_anlage2_functions(
 ) -> list[dict]:
     """Pr\xfcft alle Funktionen aus Anlage 2 einzeln."""
     projekt = BVProject.objects.get(pk=projekt_id)
+    try:
+        anlage = projekt.anlagen.get(anlage_nr=2)
+    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
+        raise ValueError("Anlage 2 fehlt") from exc
     text = _collect_text(projekt)
     prompt_base = get_prompt(
         "check_anlage2_function",
@@ -1373,7 +1377,7 @@ def check_anlage2_functions(
 
         AnlagenFunktionsMetadaten.objects.update_or_create(
 
-            projekt=projekt,
+            anlage_datei=anlage,
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
@@ -1384,10 +1388,9 @@ def check_anlage2_functions(
             ki_beteiligung=vals.get("ki_beteiligung"),
         )
         results.append({**vals, "source": "llm", "funktion": func.name})
-    pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
-    if pf:
-        pf.verification_task_id = ""
-        pf.save(update_fields=["verification_task_id"])
+    if anlage:
+        anlage.verification_task_id = ""
+        anlage.save(update_fields=["verification_task_id"])
     return results
 
 
