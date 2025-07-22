@@ -23,10 +23,8 @@ from ..models import (
     Anlage2Config,
     Anlage2ColumnHeading,
     Anlage2SubQuestion,
-
     AnlagenFunktionsMetadaten,
     FunktionsErgebnis,
-
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
@@ -47,7 +45,9 @@ from ..docx_utils import (
 
 from .. import text_parser
 
-from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
+# from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
+from core.text_parser import parse_anlage2_text
+from core.text_parser import PHRASE_TYPE_CHOICES
 
 from ..anlage4_parser import parse_anlage4
 
@@ -101,7 +101,6 @@ from django.core.management import call_command
 from django.test import override_settings
 from django.conf import settings
 import json
-
 
 
 def create_statuses() -> None:
@@ -159,6 +158,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     LLMConfig.objects.all().delete()
     from django.apps import apps as django_apps
     from importlib import import_module
+
     create_initial_data = import_module(
         "core.migrations.0002_seed_initial_data"
     ).create_initial_data
@@ -224,10 +224,14 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         + "".join(f"{q}\n" for q in ANLAGE1_QUESTIONS[2:])
         + _ANLAGE1_SUFFIX
     )
-    Prompt.objects.update_or_create(name="check_anlage1", defaults={"text": check_anlage1_text})
+    Prompt.objects.update_or_create(
+        name="check_anlage1", defaults={"text": check_anlage1_text}
+    )
     Prompt.objects.update_or_create(
         name="check_anlage3_vision",
-        defaults={"text": "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        defaults={
+            "text": "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+        },
     )
     # Weitere Prompts für Tests bereitstellen
     roles = {r.name: r for r in apps.get_model("core", "LLMRole").objects.all()}
@@ -285,7 +289,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "3. Nenne exakt die übergebene Funktion/Eigenschaft, erfinde nichts dazu.  \n"
                 "4. Erkläre knapp *warum* mit der Funktion die Unterfrage (oder warum nicht) eine Leistungs- oder Verhaltenskontrolle möglich ist.  \n"
                 "5. Verwende Alltagssprache, keine Marketing-Floskeln.\n\n"
-                " [USER]\nSoftware: {{software_name}}  \nFunktion/Eigenschaft: {{function_name}}  \nUnterfrage: \"{{subquestion_text}}\""
+                ' [USER]\nSoftware: {{software_name}}  \nFunktion/Eigenschaft: {{function_name}}  \nUnterfrage: "{{subquestion_text}}"'
             )
         },
         "anlage2_ai_verification_prompt": {
@@ -300,8 +304,8 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         "anlage2_feature_verification": {
             "text": (
                 "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen "
-                "Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", "
-                "\"Nein\", oder \"Unsicher\" sein. Gib keine Einleitung, keine "
+                'Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH "Ja", '
+                '"Nein", oder "Unsicher" sein. Gib keine Einleitung, keine '
                 "Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: "
                 "Besitzt die Software '{software_name}' basierend auf allgemeinem "
                 "Wissen typischerweise die Funktion oder Eigenschaft "
@@ -313,14 +317,20 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         "check_anlage2_function": {
             "text": (
                 "Prüfe anhand des folgenden Textes, ob die genannte Funktion "
-                "vorhanden ist. Gib ein JSON mit den Schlüsseln \"technisch_verfuegbar\", "
-                "\"einsatz_telefonica\", \"zur_lv_kontrolle\" und \"ki_beteiligung\" "
+                'vorhanden ist. Gib ein JSON mit den Schlüsseln "technisch_verfuegbar", '
+                '"einsatz_telefonica", "zur_lv_kontrolle" und "ki_beteiligung" '
                 "zurück.\n\n"
             )
         },
-        "check_anlage3": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
-        "check_anlage4": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
-        "check_anlage5": {"text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"},
+        "check_anlage3": {
+            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+        },
+        "check_anlage4": {
+            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+        },
+        "check_anlage5": {
+            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+        },
         "classify_system": {
             "text": (
                 "Bitte klassifiziere das folgende Softwaresystem. "
@@ -1059,9 +1069,7 @@ class LLMTasksTests(NoesisTestCase):
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(data["functions"][0]["technisch_verfuegbar"])
         self.assertEqual(data["functions"][0]["source"], "llm")
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=pf, funktion=func
-        )
+        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="llm"
         ).first()
@@ -1080,15 +1088,12 @@ class LLMTasksTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
             run_conditional_anlage2_check(projekt.pk)
 
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=pf, funktion=func
-        )
+        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="ki"
         ).first()
         self.assertIsNotNone(fe)
         self.assertTrue(fe.technisch_verfuegbar)
-
 
     def test_check_anlage2_llm_receives_text(self):
         """Der LLM-Prompt enthält den bekannten Text."""
@@ -1344,17 +1349,13 @@ class LLMTasksTests(NoesisTestCase):
             name = "p1"
 
             def parse(self, project_file):
-                return [
-                    {"funktion": "A", "technisch_verfuegbar": {"value": False}}
-                ]
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
 
         class P2(AbstractParser):
             name = "p2"
 
             def parse(self, project_file):
-                return [
-                    {"funktion": "A", "technisch_verfuegbar": {"value": True}}
-                ]
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
 
         parser_manager.register(P1)
         parser_manager.register(P2)
@@ -1378,11 +1379,10 @@ class LLMTasksTests(NoesisTestCase):
         )
 
         try:
-            with patch(
-                "core.parsers.parse_anlage2_table", return_value=[]
-            ) as m_tab, patch(
-                "core.text_parser.parse_anlage2_text", return_value=[]
-            ) as m_text:
+            with (
+                patch("core.parsers.parse_anlage2_table", return_value=[]) as m_tab,
+                patch("core.text_parser.parse_anlage2_text", return_value=[]) as m_text,
+            ):
                 result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
@@ -1397,7 +1397,6 @@ class LLMTasksTests(NoesisTestCase):
         self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
     def test_run_anlage2_analysis_auto_prefers_table(self):
-
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             projekt=projekt,
@@ -1411,11 +1410,12 @@ class LLMTasksTests(NoesisTestCase):
         cfg.parser_order = ["table", "exact"]
         cfg.save()
         table_result = [{"funktion": "Login"}]
-        with patch(
-            "core.parsers.parse_anlage2_table", return_value=table_result
-        ), patch(
-            "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
-        ) as m_exact:
+        with (
+            patch("core.parsers.parse_anlage2_table", return_value=table_result),
+            patch(
+                "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
+            ) as m_exact,
+        ):
             result = parser_manager.parse_anlage2(pf)
         m_exact.assert_not_called()
         self.assertEqual(result, table_result)
@@ -1432,11 +1432,12 @@ class LLMTasksTests(NoesisTestCase):
         cfg.parser_mode = "auto"
         cfg.parser_order = ["table", "exact"]
         cfg.save()
-        with patch(
-            "core.parsers.parse_anlage2_table", return_value=[]
-        ), patch(
-            "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
-        ) as m_exact:
+        with (
+            patch("core.parsers.parse_anlage2_table", return_value=[]),
+            patch(
+                "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
+            ) as m_exact,
+        ):
             result = parser_manager.parse_anlage2(pf)
         m_exact.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
@@ -1455,7 +1456,9 @@ class LLMTasksTests(NoesisTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["funktion"], "Login")
-        self.assertTrue(result[0].get("not_found") or result[0].get("technisch_verfuegbar") is None)
+        self.assertTrue(
+            result[0].get("not_found") or result[0].get("technisch_verfuegbar") is None
+        )
         pf.refresh_from_db()
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="parser"
@@ -1504,23 +1507,18 @@ class LLMTasksTests(NoesisTestCase):
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0]["technisch_verfuegbar"]["value"])
 
-
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):
             name = "p1"
 
             def parse(self, project_file):
-                return [
-                    {"funktion": "A", "technisch_verfuegbar": {"value": False}}
-                ]
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
 
         class P2(AbstractParser):
             name = "p2"
 
             def parse(self, project_file):
-                return [
-                    {"funktion": "A", "technisch_verfuegbar": {"value": True}}
-                ]
+                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
 
         parser_manager.register(P1)
         parser_manager.register(P2)
@@ -1544,8 +1542,6 @@ class LLMTasksTests(NoesisTestCase):
             cfg.save()
 
         self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
-
-
 
     def test_analyse_anlage3_auto_ok(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2047,7 +2043,9 @@ class CheckAnlage5Tests(NoesisTestCase):
         review = pf.anlage5review
         self.assertEqual(set(data["purposes"]), {cat1.pk, cat2.pk})
         self.assertTrue(pf.verhandlungsfaehig)
-        self.assertEqual(set(review.found_purposes.values_list("pk", flat=True)), {cat1.pk, cat2.pk})
+        self.assertEqual(
+            set(review.found_purposes.values_list("pk", flat=True)), {cat1.pk, cat2.pk}
+        )
 
     def test_check_anlage5_detects_other_text(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2103,7 +2101,6 @@ class ReportingTests(NoesisTestCase):
             self.assertTrue(path.exists())
         finally:
             path.unlink(missing_ok=True)
-
 
 
 class ProjektFileCheckViewTests(NoesisTestCase):
@@ -2214,14 +2211,16 @@ class Anlage2ReviewTests(NoesisTestCase):
             verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Login")
-        self.sub = Anlage2SubQuestion.objects.create(funktion=self.func, frage_text="Warum?")
+        self.sub = Anlage2SubQuestion.objects.create(
+            funktion=self.func, frage_text="Warum?"
+        )
 
     def test_get_shows_table(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Login")
         self.assertContains(resp, "Warum?")
-        self.assertContains(resp, f"name=\"func{self.func.id}_technisch_vorhanden\"")
+        self.assertContains(resp, f'name="func{self.func.id}_technisch_vorhanden"')
 
     def test_post_saves_data(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
@@ -2269,9 +2268,7 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_subquestion_justification_link(self):
         self.file.verification_json = {
-            f"{self.func.name}: {self.sub.frage_text}": {
-                "ki_begruendung": "Text"
-            }
+            f"{self.func.name}: {self.sub.frage_text}": {"ki_begruendung": "Text"}
         }
         self.file.save()
 
@@ -2328,7 +2325,9 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
         self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")
-        self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
+        self.assertEqual(
+            Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1
+        )
         Path(path).unlink(missing_ok=True)
 
     def test_worker_updates_existing_gutachten(self):
@@ -2337,7 +2336,9 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             path = worker_generate_gutachten(self.projekt.pk, self.knowledge.pk)
         gutachten = Gutachten.objects.get(software_knowledge=self.knowledge)
         self.assertEqual(gutachten.text, "Neu")
-        self.assertEqual(Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1)
+        self.assertEqual(
+            Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1
+        )
         Path(path).unlink(missing_ok=True)
 
 
@@ -2451,7 +2452,9 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
         ):
             resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file.pk])
+        )
         self.file.refresh_from_db()
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         expected["questions"] = {
@@ -2465,7 +2468,9 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         with patch("core.views.check_anlage1") as mock_func:
             mock_func.return_value = {"task": "check_anlage1"}
             resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file.pk])
+        )
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
     def test_anlage2_uses_parser_by_default(self):
@@ -2473,7 +2478,9 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         with patch("core.views.run_anlage2_analysis") as mock_func:
             mock_func.return_value = []
             resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file2.pk])
+        )
         mock_func.assert_called_with(self.file2)
 
     def test_llm_param_triggers_full_check(self):
@@ -2481,7 +2488,9 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         with patch("core.views.check_anlage2") as mock_func:
             mock_func.return_value = {"task": "check_anlage2"}
             resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file2.pk])
+        )
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
     def test_anlage3_uses_analysis(self):
@@ -2517,7 +2526,9 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         with patch("core.views.run_anlage2_analysis") as mock_func:
             mock_func.return_value = []
             resp = self.client.get(url)
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file2.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file2.pk])
+        )
         mock_func.assert_called_with(self.file2)
 
     def test_parse_view_rejects_other_files(self):
@@ -2557,16 +2568,15 @@ class LLMConfigTests(NoesisTestCase):
         self.assertTrue(cfg.models_changed)
 
 
-
 class Anlage2ConfigSingletonTests(NoesisTestCase):
     def test_single_instance_enforced(self):
         first = Anlage2Config.get_instance()
         from django.db import transaction
+
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 Anlage2Config.objects.create()
         self.assertEqual(Anlage2Config.objects.count(), 1)
-
 
 
 class TileVisibilityTests(NoesisTestCase):
@@ -2617,7 +2627,6 @@ class TileVisibilityTests(NoesisTestCase):
         )
         resp = self.client.get(reverse("personal"))
         self.assertContains(resp, "<img", html=False)
-
 
     def _login(self, name: str) -> User:
         """Erzeugt einen Benutzer und loggt ihn ein."""
@@ -2791,7 +2800,6 @@ class ModelSelectionTests(NoesisTestCase):
             anlagen_model="a",
         )
 
-
     def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         with patch("core.views.check_anlage1") as mock_func:
@@ -2820,7 +2828,6 @@ class ModelSelectionTests(NoesisTestCase):
             resp,
             reverse("projekt_file_edit_json", args=[self.projekt.anlagen.first().pk]),
         )
-
 
     def test_functions_check_uses_model(self):
         url = reverse("projekt_functions_check", args=[self.projekt.pk])
@@ -2863,9 +2870,7 @@ class FunctionImportExportTests(NoesisTestCase):
         self.assertEqual(data[0]["subquestions"][0]["frage_text"], "Warum?")
 
     def test_import_creates_functions(self):
-        payload = json.dumps([
-            {"name": "Login", "subquestions": ["Frage"]}
-        ])
+        payload = json.dumps([{"name": "Login", "subquestions": ["Frage"]}])
         file = SimpleUploadedFile("func.json", payload.encode("utf-8"))
         url = reverse("anlage2_function_import")
         resp = self.client.post(
@@ -2877,14 +2882,14 @@ class FunctionImportExportTests(NoesisTestCase):
         self.assertTrue(Anlage2Function.objects.filter(name="Login").exists())
 
     def test_import_accepts_german_keys(self):
-        payload = json.dumps([
-            {
-                "funktion": "Anwesenheit",
-                "unterfragen": [
-                    {"frage": "Testfrage"}
-                ],
-            }
-        ])
+        payload = json.dumps(
+            [
+                {
+                    "funktion": "Anwesenheit",
+                    "unterfragen": [{"frage": "Testfrage"}],
+                }
+            ]
+        )
         file = SimpleUploadedFile("func_de.json", payload.encode("utf-8"))
         url = reverse("anlage2_function_import")
         resp = self.client.post(
@@ -2910,7 +2915,9 @@ class GutachtenLLMCheckTests(NoesisTestCase):
             software_name="A",
             is_known_by_llm=True,
         )
-        self.gutachten = Gutachten.objects.create(software_knowledge=self.knowledge, text="Test")
+        self.gutachten = Gutachten.objects.create(
+            software_knowledge=self.knowledge, text="Test"
+        )
 
     def test_endpoint_updates_note(self):
         url = reverse("gutachten_llm_check", args=[self.gutachten.pk])
@@ -2971,7 +2978,6 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertFalse(fe.ki_beteiligung)
         self.assertEqual(fe.begruendung, "Begruendung")
 
-
     def test_all_no_returns_false(self):
         with patch(
             "core.llm_tasks.query_llm",
@@ -2998,7 +3004,6 @@ class FeatureVerificationTests(NoesisTestCase):
         ).first()
         self.assertIsNotNone(fe)
         self.assertFalse(fe.technisch_verfuegbar)
-
 
     def test_subquestion_context_contains_question(self):
         """Die Subquestion wird korrekt im Kontext übergeben."""
@@ -3158,7 +3163,6 @@ class InitialCheckTests(NoesisTestCase):
         self.assertIn("Hint", prompt_text)
 
 
-
 class EditKIJustificationTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("justi", password="pass")
@@ -3170,7 +3174,6 @@ class EditKIJustificationTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-
             verification_json={
                 "Export": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}
             },
@@ -3178,10 +3181,13 @@ class EditKIJustificationTests(NoesisTestCase):
         self.func = Anlage2Function.objects.create(name="Export")
 
     def test_get_returns_form(self):
-        url = reverse(
-            "edit_ki_justification",
-            args=[self.file.pk],
-        ) + f"?function={self.func.pk}"
+        url = (
+            reverse(
+                "edit_ki_justification",
+                args=[self.file.pk],
+            )
+            + f"?function={self.func.pk}"
+        )
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Alt")
@@ -3192,7 +3198,9 @@ class EditKIJustificationTests(NoesisTestCase):
             url,
             {"function": self.func.pk, "ki_begruendung": "Neu"},
         )
-        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        self.assertRedirects(
+            resp, reverse("projekt_file_edit_json", args=[self.file.pk])
+        )
         self.file.refresh_from_db()
         self.assertEqual(
             self.file.verification_json["Export"]["ki_begruendung"],
@@ -3232,9 +3240,7 @@ class VerificationToInitialTests(NoesisTestCase):
         }
 
         pf = self.project.anlagen.get(anlage_nr=2)
-        AnlagenFunktionsMetadaten.objects.create(
-            anlage_datei=pf, funktion=self.func
-        )
+        AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf, funktion=self.func)
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf, funktion=self.func, subquestion=self.sub
         )
@@ -3277,7 +3283,9 @@ class UserImportExportTests(NoesisTestCase):
         self.client.login(username="uadmin", password="pass")
 
         self.group = Group.objects.create(name="testgroup")
-        self.area = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
+        self.area = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[
+            0
+        ]
         self.tile = Tile.objects.create(slug="t1", name="T", url_name="tile")
         self.tile.areas.add(self.area)
 
@@ -3339,6 +3347,7 @@ class Anlage1ImportTests(NoesisTestCase):
         self.assertEqual(q.text, "Neu?")
         self.assertEqual(q.num, 1)
 
+
 class Anlage2ConfigImportExportTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
@@ -3383,18 +3392,16 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                     "enforce_subquestion_override": True,
                     "text_technisch_verfuegbar_true": ["ja"],
                 },
-                "alias_headings": [
-                    {"field_name": "ki_beteiligung", "text": "KI?"}
-                ],
+                "alias_headings": [{"field_name": "ki_beteiligung", "text": "KI?"}],
                 "answer_rules": [
                     {
                         "regel_name": "R2",
                         "erkennungs_phrase": "nein",
                         "actions": [{"field": "technisch_verfuegbar", "value": False}],
-                        "prioritaet": 1
+                        "prioritaet": 1,
                     }
                 ],
-                "a4_parser": {"delimiter_phrase": "Y"}
+                "a4_parser": {"delimiter_phrase": "Y"},
             }
         )
         file = SimpleUploadedFile("cfg.json", payload.encode("utf-8"))
@@ -3406,9 +3413,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
                 field_name="ki_beteiligung", text="KI?"
             ).exists()
         )
-        self.assertTrue(
-            AntwortErkennungsRegel.objects.filter(regel_name="R2").exists()
-        )
+        self.assertTrue(AntwortErkennungsRegel.objects.filter(regel_name="R2").exists())
         a4_cfg = Anlage4ParserConfig.objects.first()
         self.assertEqual(a4_cfg.delimiter_phrase, "Y")
         self.cfg.refresh_from_db()
@@ -3425,7 +3430,6 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         self.user.groups.add(admin)
         self.client.login(username="cfguser", password="pass")
         self.cfg = Anlage2Config.get_instance()
-
 
     def test_update_parser_mode(self):
         url = reverse("anlage2_config")
@@ -3469,9 +3473,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             },
         )
         self.assertRedirects(resp, url + "?tab=table")
-        self.assertTrue(
-            Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists()
-        )
+        self.assertTrue(Anlage2ColumnHeading.objects.filter(text="Verfügbar?").exists())
 
     def test_multiline_phrases_saved(self):
         url = reverse("anlage2_config")
@@ -3487,7 +3489,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"]) 
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
 
 
 class ParserRuleImportExportTests(NoesisTestCase):
@@ -3512,26 +3514,25 @@ class ParserRuleImportExportTests(NoesisTestCase):
         self.assertTrue(any(r["regel_name"] == "R1" for r in data))
 
     def test_import_creates_rule(self):
-        payload = json.dumps([
-            {
-                "regel_name": "R2",
-                "erkennungs_phrase": "nein",
-                "actions": [{"field": "tech", "value": False}],
-            }
-        ])
+        payload = json.dumps(
+            [
+                {
+                    "regel_name": "R2",
+                    "erkennungs_phrase": "nein",
+                    "actions": [{"field": "tech", "value": False}],
+                }
+            ]
+        )
         file = SimpleUploadedFile("rules.json", payload.encode("utf-8"))
         url = reverse("anlage2_parser_rule_import")
         resp = self.client.post(url, {"json_file": file}, format="multipart")
         self.assertRedirects(resp, reverse("parser_rule_list"))
-        self.assertTrue(
-            AntwortErkennungsRegel.objects.filter(regel_name="R2").exists()
-        )
+        self.assertTrue(AntwortErkennungsRegel.objects.filter(regel_name="R2").exists())
+
 
 class AjaxAnlage2ReviewTests(NoesisTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            "reviewer", password="pw", is_staff=True
-        )
+        self.user = User.objects.create_user("reviewer", password="pw", is_staff=True)
         self.client.login(username="reviewer", password="pw")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf = BVProjectFile.objects.create(
@@ -3548,12 +3549,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": True,
-                "field_name": "technisch_vorhanden",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": True,
+                    "field_name": "technisch_vorhanden",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3568,7 +3571,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             quelle="manuell",
         ).first()
         self.assertTrue(fe.technisch_verfuegbar)
-
 
     def test_gap_generated_on_difference(self):
         AnlagenFunktionsMetadaten.objects.create(
@@ -3585,11 +3587,13 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": False,
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": False,
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3607,9 +3611,12 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             self.assertEqual(name, "core.llm_tasks.worker_generate_gap_summary")
             worker_generate_gap_summary(*args)
 
-        with patch("core.views.async_task", side_effect=immediate), patch(
-            "core.llm_tasks.query_llm",
-            return_value="Abweichung",
+        with (
+            patch("core.views.async_task", side_effect=immediate),
+            patch(
+                "core.llm_tasks.query_llm",
+                return_value="Abweichung",
+            ),
         ):
             resp = self.client.post(gap_url)
         self.assertEqual(resp.status_code, 200)
@@ -3632,12 +3639,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": True,
-                "field_name": "technisch_vorhanden",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": True,
+                    "field_name": "technisch_vorhanden",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3652,12 +3661,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": True,
-                "field_name": "einsatz_bei_telefonica",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": True,
+                    "field_name": "einsatz_bei_telefonica",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3675,12 +3686,14 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": False,
-                "field_name": "zur_lv_kontrolle",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": False,
+                    "field_name": "zur_lv_kontrolle",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3698,22 +3711,26 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": True,
-                "field_name": "technisch_vorhanden",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": True,
+                    "field_name": "technisch_vorhanden",
+                }
+            ),
             content_type="application/json",
         )
         self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "status": False,
-                "field_name": "ki_beteiligung",
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "status": False,
+                    "field_name": "ki_beteiligung",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -3727,7 +3744,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             quelle="manuell",
         )
         self.assertEqual(fes.count(), 2)
-
 
     def test_set_negotiable_override(self):
         AnlagenFunktionsMetadaten.objects.create(
@@ -3744,11 +3760,13 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         url = reverse("ajax_save_anlage2_review")
         resp = self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "set_negotiable": True,
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "set_negotiable": True,
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -3760,11 +3778,13 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
 
         self.client.post(
             url,
-            data=json.dumps({
-                "project_file_id": self.pf.pk,
-                "function_id": self.func.pk,
-                "set_negotiable": None,
-            }),
+            data=json.dumps(
+                {
+                    "project_file_id": self.pf.pk,
+                    "function_id": self.func.pk,
+                    "set_negotiable": None,
+                }
+            ),
             content_type="application/json",
         )
         res.refresh_from_db()
@@ -3871,8 +3891,12 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("new.txt", b"x"),
         )
-        with patch("core.llm_tasks.parse_anlage2_table", return_value=[{"funktion": "Login"}]), patch(
-            "core.llm_tasks.parse_anlage2_text", return_value=[]
+        with (
+            patch(
+                "core.llm_tasks.parse_anlage2_table",
+                return_value=[{"funktion": "Login"}],
+            ),
+            patch("core.llm_tasks.parse_anlage2_text", return_value=[]),
         ):
             run_anlage2_analysis(pf)
         results = AnlagenFunktionsMetadaten.objects.filter(
@@ -4003,5 +4027,3 @@ class Anlage2ResetTests(NoesisTestCase):
                 technisch_verfuegbar=True,
             ).exists()
         )
-
-
