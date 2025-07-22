@@ -1436,16 +1436,16 @@ class LLMTasksTests(NoesisTestCase):
                 "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
             ) as m_exact,
         ):
-            with patch(
-                "core.parsers.ExactParser.parse", return_value=[]
-            ) as m_exact, patch(
-                "core.text_parser.parse_anlage2_text",
-                return_value=[{"funktion": "Login"}],
-            ) as m_text:
-                result = parser_manager.parse_anlage2(pf)
-            m_exact.assert_called_once()
-            m_text.assert_called_once()
-            self.assertEqual(result, [{"funktion": "Login"}])
+        with patch(
+            "core.parsers.ExactParser.parse", return_value=[]
+        ) as m_exact, patch(
+            "core.text_parser.parse_anlage2_text",
+            return_value=[{"funktion": "Login"}],
+        ) as m_text:
+            result = parser_manager.parse_anlage2(pf)
+        m_exact.assert_called_once()
+        m_text.assert_called_once()
+        self.assertEqual(result, [{"funktion": "Login"}])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")

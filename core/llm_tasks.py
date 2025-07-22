@@ -39,7 +39,6 @@ from .text_parser import (
     build_token_map,
     apply_tokens,
     apply_rules,
-    parse_anlage2_text,
 )
 from .llm_utils import query_llm, query_llm_with_images
 from .docx_utils import (
