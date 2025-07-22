@@ -19,6 +19,7 @@ from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
 parser_logger = logging.getLogger("parser_debug")
+result_logger = logging.getLogger("anlage2_sergebnis")
 
 # Standard-Schwelle für Fuzzy-Vergleiche
 FUZZY_THRESHOLD = 80
@@ -193,7 +194,15 @@ def apply_rules(
     parser_logger.debug("Prüfe Regeln in '%s'", text_part)
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
-        if fuzzy_match(rule.erkennungs_phrase, text_part, threshold):
+        match = fuzzy_match(rule.erkennungs_phrase, text_part, threshold)
+        result_logger.debug(
+            "Regelvergleich '%s' (Prio %s) -> %s in '%s'",
+            rule.erkennungs_phrase,
+            rule.prioritaet,
+            "GEFUNDEN" if match else "NICHT gefunden",
+            text_part,
+        )
+        if match:
             actions = rule.actions_json or []
             if isinstance(actions, dict):
                 actions = [
