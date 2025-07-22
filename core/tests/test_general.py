@@ -507,7 +507,7 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
         )
-        self.client.login(username=self.user.username, password="pass")
+        self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=True)
             url = reverse("hx_project_file_status", args=[pf.pk])
