@@ -3185,10 +3185,6 @@ def projekt_file_edit_json(request, pk):
                         AnlagenFunktionsMetadaten.objects.update_or_create(
                             anlage_datei=anlage,
                             funktion_id=fid,
-                            defaults={
-                                "technisch_verfuegbar": True,
-                                "source": "manual",
-                            },
                         )
 
                 return redirect("projekt_detail", pk=anlage.projekt.pk)
@@ -3653,10 +3649,6 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
         anlage_datei=anlage,
         funktion=funktion,
         subquestion_id=sub_id,
-        defaults={
-            "technisch_verfuegbar": status,
-            "source": "manual",
-        },
     )
     FunktionsErgebnis.objects.create(
         projekt=anlage.projekt,
@@ -3728,7 +3720,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             anlage_datei=anlage,
             funktion=funktion,
             subquestion_id=sub_id,
-            defaults={"source": "manual"},
         )
 
         update_fields = []
@@ -3742,9 +3733,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 
         if field_name is not None and status_provided:
             attr = field_map.get(field_name, "technisch_verfuegbar")
-            setattr(res, attr, status)
-            res.source = "manual"
-            update_fields.extend([attr, "source"])
             FunktionsErgebnis.objects.create(
                 projekt=anlage.projekt,
                 anlage_datei=anlage,
@@ -3754,7 +3742,25 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                 **{attr: status},
             )
 
-        auto_val = _calc_auto_negotiable(res.technisch_verfuegbar, res.ki_beteiligung)
+        qs = FunktionsErgebnis.objects.filter(
+            anlage_datei=anlage,
+            funktion=funktion,
+            subquestion_id=sub_id,
+        )
+        tv_res = (
+            qs.exclude(technisch_verfuegbar__isnull=True)
+            .order_by("-created_at")
+            .first()
+        )
+        kb_res = (
+            qs.exclude(ki_beteiligung__isnull=True)
+            .order_by("-created_at")
+            .first()
+        )
+        auto_val = _calc_auto_negotiable(
+            tv_res.technisch_verfuegbar if tv_res else None,
+            kb_res.ki_beteiligung if kb_res else None,
+        )
 
         if set_neg != "__missing__":
             if set_neg in (True, "True", "true", "1", 1):
@@ -4016,7 +4022,7 @@ def projekt_file_delete_result(request, pk: int):
     if project_file.anlage_nr == 2:
         AnlagenFunktionsMetadaten.objects.filter(
             anlage_datei=project_file
-        ).exclude(source="parser").delete()
+        ).delete()
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).update(
             is_negotiable=False,
             is_negotiable_manual_override=None
