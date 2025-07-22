@@ -309,10 +309,7 @@ def _verification_to_initial(_data: dict | None) -> dict:
         )
         latest = (
             FunktionsErgebnis.objects.filter(
-
-
                 anlage_datei=pf,
-
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",
@@ -323,6 +320,9 @@ def _verification_to_initial(_data: dict | None) -> dict:
         if latest:
             dest["technisch_vorhanden"] = latest.technisch_verfuegbar
             dest["ki_beteiligt"] = latest.ki_beteiligung
+            dest["einsatz_bei_telefonica"] = latest.einsatz_bei_telefonica
+            dest["zur_lv_kontrolle"] = latest.zur_lv_kontrolle
+            dest["begruendung"] = latest.begruendung
 
     return initial
 
@@ -480,10 +480,12 @@ def _build_row_data(
             else None,
             "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
             "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
+            "begruendung": parser_entry.begruendung if parser_entry else None,
         }
         ai_data = {
             "technisch_vorhanden": ai_entry.technisch_verfuegbar if ai_entry else None,
             "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
+            "begruendung": ai_entry.begruendung if ai_entry else None,
         }
     else:
         doc_data = {}
@@ -3154,6 +3156,8 @@ def projekt_file_edit_json(request, pk):
                 beteiligt = res.ki_beteiligung
                 if beteiligt is not None:
                     beteilig_map[(fid, sid)] = (beteiligt, "")
+                if res.begruendung:
+                    ki_map[(fid, sid)] = res.begruendung
 
             manual_results_map = {}
             for r in FunktionsErgebnis.objects.filter(
