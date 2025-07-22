@@ -1061,11 +1061,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
 
             projekt=projekt,
             funktion=func,
-            defaults={
-                "technisch_verfuegbar": _val(vals, "technisch_verfuegbar"),
-                "ki_beteiligung": _val(vals, "ki_beteiligung"),
-                "source": source,
-            },
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
@@ -1380,11 +1375,6 @@ def check_anlage2_functions(
 
             projekt=projekt,
             funktion=func,
-            defaults={
-                "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
-                "ki_beteiligung": vals.get("ki_beteiligung"),
-                "source": "llm",
-            },
         )
         FunktionsErgebnis.objects.create(
             projekt=projekt,
