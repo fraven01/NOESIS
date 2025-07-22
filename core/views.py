@@ -3895,7 +3895,7 @@ def hx_toggle_negotiable(request, result_id: int):
     result.save(update_fields=["is_negotiable", "is_negotiable_manual_override"])
 
     context = {
-        "is_negotiable": result.is_negotiable,
+        "is_negotiable": result.negotiable,
         "override": result.is_negotiable_manual_override,
         "row": {"result_id": result.id},
     }
