@@ -169,6 +169,16 @@ urlpatterns = [
         name="parser_rule_delete",
     ),
     path(
+        "projects-admin/parser-rules/export/",
+        views.anlage2_parser_rule_export,
+        name="anlage2_parser_rule_export",
+    ),
+    path(
+        "projects-admin/parser-rules/import/",
+        views.anlage2_parser_rule_import,
+        name="anlage2_parser_rule_import",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",

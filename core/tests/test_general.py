@@ -3345,7 +3345,43 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"])
+        self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja", "okay"]) 
+
+
+class ParserRuleImportExportTests(NoesisTestCase):
+    def setUp(self):
+        admin_group = Group.objects.create(name="admin")
+        self.user = User.objects.create_user("ruleadmin", password="pass")
+        self.user.groups.add(admin_group)
+        self.client.login(username="ruleadmin", password="pass")
+
+    def test_export_returns_json(self):
+        AntwortErkennungsRegel.objects.create(
+            regel_name="R1",
+            erkennungs_phrase="ja",
+            actions_json=[{"field": "tech", "value": True}],
+        )
+        url = reverse("anlage2_parser_rule_export")
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertTrue(any(r["regel_name"] == "R1" for r in data))
+
+    def test_import_creates_rule(self):
+        payload = json.dumps([
+            {
+                "regel_name": "R2",
+                "erkennungs_phrase": "nein",
+                "actions": [{"field": "tech", "value": False}],
+            }
+        ])
+        file = SimpleUploadedFile("rules.json", payload.encode("utf-8"))
+        url = reverse("anlage2_parser_rule_import")
+        resp = self.client.post(url, {"json_file": file}, format="multipart")
+        self.assertRedirects(resp, reverse("parser_rule_list"))
+        self.assertTrue(
+            AntwortErkennungsRegel.objects.filter(regel_name="R2").exists()
+        )
 
 class AjaxAnlage2ReviewTests(NoesisTestCase):
     def setUp(self):
