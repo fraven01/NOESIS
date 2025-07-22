@@ -31,7 +31,7 @@ class ParserManager:
 
         cfg = Anlage2Config.get_instance()
         mode = project_file.parser_mode or cfg.parser_mode
-        order = project_file.parser_order or cfg.parser_order or ["table"]
+        order = project_file.parser_order or cfg.parser_order or ["exact"]
 
         if mode == "table_only":
             return self._run_single("table", project_file)

@@ -37,7 +37,7 @@
             Nur Konflikte anzeigen
         </label>
         <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
-        <button type="submit" name="run_parser" value="1" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</button>
+        <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     <div class="mb-3">
         <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>

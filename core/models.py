@@ -611,8 +611,12 @@ class Anlage2Config(models.Model):
         default="auto",
     )
 
+    def default_parser_order() -> list[str]:
+        """Standard-Parser-Reihenfolge."""
+        return ["exact"]
+
     parser_order = models.JSONField(
-        default=list,
+        default=default_parser_order,
         help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
@@ -666,7 +670,7 @@ class Anlage2Config(models.Model):
     @classmethod
     def get_instance(cls) -> "Anlage2Config":
         """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
-        return cls.objects.first() or cls.objects.create(parser_order=["table"])
+        return cls.objects.first() or cls.objects.create(parser_order=["exact"])
 
 
 class Anlage2ColumnHeading(models.Model):
