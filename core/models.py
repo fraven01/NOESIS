@@ -897,8 +897,42 @@ class AnlagenFunktionsMetadaten(models.Model):
 
     @property
     def negotiable(self) -> bool:
-        """Endgültiger Verhandlungsstatus, inkl. manuellem Override."""
-        return self.is_negotiable
+        """Berechnet den aktuellen Verhandlungsstatus."""
+        if self.is_negotiable_manual_override is not None:
+            return self.is_negotiable_manual_override
+
+        pf = (
+            self.anlage_datei.projekt.anlagen.filter(anlage_nr=2)
+            .order_by("id")
+            .first()
+        )
+        if not pf:
+            return False
+
+        parser_entry = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=self.funktion,
+                subquestion=self.subquestion,
+                quelle="parser",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        ai_entry = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=self.funktion,
+                subquestion=self.subquestion,
+                quelle="ki",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        doc_val = parser_entry.technisch_verfuegbar if parser_entry else None
+        ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
+        return doc_val is not None and ai_val is not None and doc_val == ai_val
 
     def get_lookup_key(self) -> str:
         """Liefert den eindeutigen Lookup-Schlüssel für dieses Ergebnis."""
