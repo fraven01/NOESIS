@@ -759,14 +759,14 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             projekt=projekt,
             anlage_datei=pf,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
             technisch_verfuegbar=True,
             ki_beteiligung=False,
         )
         latest = FunktionsErgebnis.objects.filter(
             projekt=projekt,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
         ).first()
         self.assertTrue(latest.technisch_verfuegbar)
         self.assertFalse(latest.ki_beteiligung)
@@ -3475,11 +3475,16 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
+        self.pf.refresh_from_db()
+        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
+        self.assertTrue(func_data["technisch_vorhanden"])
+
+        fe = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
             funktion=self.func,
-        )
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
+            quelle="manuell",
+        ).first()
+        self.assertTrue(fe.technisch_verfuegbar)
 
 
     def test_gap_generated_on_difference(self):
@@ -3567,17 +3572,19 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
-            funktion=self.func,
+        fe = (
+            FunktionsErgebnis.objects.filter(
+                projekt=self.projekt,
+                funktion=self.func,
+                quelle="manuell",
+            )
+            .order_by("-created_at")
+            .first()
         )
-        self.assertTrue(res.einsatz_bei_telefonica)
-        fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
-            funktion=self.func,
-            quelle="manual",
-        ).first()
         self.assertTrue(fe.einsatz_bei_telefonica)
+        self.pf.refresh_from_db()
+        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
+        self.assertTrue(func_data["einsatz_bei_telefonica"])
 
     def test_save_lv_kontrolle(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3592,17 +3599,19 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
-            funktion=self.func,
+        fe = (
+            FunktionsErgebnis.objects.filter(
+                projekt=self.projekt,
+                funktion=self.func,
+                quelle="manuell",
+            )
+            .order_by("-created_at")
+            .first()
         )
-        self.assertFalse(res.zur_lv_kontrolle)
-        fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
-            funktion=self.func,
-            quelle="manual",
-        ).first()
         self.assertFalse(fe.zur_lv_kontrolle)
+        self.pf.refresh_from_db()
+        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
+        self.assertFalse(func_data["zur_lv_kontrolle"])
 
     def test_manual_result_merge(self):
         url = reverse("ajax_save_anlage2_review")
@@ -3626,12 +3635,16 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
 
-        res = AnlagenFunktionsMetadaten.objects.get(
-            anlage_datei=self.pf,
+        self.pf.refresh_from_db()
+        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
+        self.assertTrue(func_data["technisch_vorhanden"])
+        self.assertFalse(func_data["ki_beteiligung"])
+        fes = FunktionsErgebnis.objects.filter(
+            projekt=self.projekt,
             funktion=self.func,
+            quelle="manuell",
         )
-        self.assertTrue(res.manual_result["technisch_vorhanden"])
-        self.assertFalse(res.manual_result["ki_beteiligung"])
+        self.assertEqual(fes.count(), 2)
 
 
     def test_set_negotiable_override(self):
@@ -3708,7 +3721,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             FunktionsErgebnis.objects.filter(
                 projekt=self.projekt,
                 funktion=self.func,
-                quelle="manual",
+                quelle="manuell",
             ).exists()
         )
 
@@ -3838,7 +3851,7 @@ class Anlage2ResetTests(NoesisTestCase):
             projekt=projekt,
             anlage_datei=pf,
             funktion=func,
-            quelle="manual",
+            quelle="manuell",
             technisch_verfuegbar=True,
         )
         self.client.login(username=self.user.username, password="pw")
@@ -3851,7 +3864,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 projekt=projekt,
                 anlage_datei=pf,
                 funktion=func,
-                quelle="manual",
+                quelle="manuell",
             ).exists()
         )
         self.assertIsNone(res.is_negotiable_manual_override)
