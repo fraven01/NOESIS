@@ -409,7 +409,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
         results.append(entry)
         workflow_logger.info(
-            "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> doc_result: %s",
+            "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> parser_result: %s",
             project_file.projekt_id,
             func.name,
             json.dumps(entry, ensure_ascii=False),
@@ -1061,15 +1061,21 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 "ki_beteiligung": raw.get("ki_beteiligung"),
             }
             source = "llm"
-        Anlage2FunctionResult.objects.update_or_create(
+        res, _ = Anlage2FunctionResult.objects.update_or_create(
             projekt=projekt,
             funktion=func,
             defaults={
                 "technisch_verfuegbar": _val(vals, "technisch_verfuegbar"),
                 "ki_beteiligung": _val(vals, "ki_beteiligung"),
-                "raw_json": raw,
                 "source": source,
             },
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle=source,
+            technisch_verfuegbar=_val(vals, "technisch_verfuegbar"),
+            ki_beteiligung=_val(vals, "ki_beteiligung"),
         )
         anlage2_logger.debug("Ergebnis Funktion '%s': %s", func.name, vals)
         entry = {"funktion": func.name, **vals, "source": source}
@@ -1372,16 +1378,21 @@ def check_anlage2_functions(
             "technisch_verfuegbar": data.get("technisch_verfuegbar"),
             "ki_beteiligung": data.get("ki_beteiligung"),
         }
-        Anlage2FunctionResult.objects.update_or_create(
+        res, _ = Anlage2FunctionResult.objects.update_or_create(
             projekt=projekt,
             funktion=func,
             defaults={
                 "technisch_verfuegbar": vals.get("technisch_verfuegbar"),
                 "ki_beteiligung": vals.get("ki_beteiligung"),
-                "raw_json": data,
-                "ai_result": data,
                 "source": "llm",
             },
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            funktion=func,
+            quelle="llm",
+            technisch_verfuegbar=vals.get("technisch_verfuegbar"),
+            ki_beteiligung=vals.get("ki_beteiligung"),
         )
         results.append({**vals, "source": "llm", "funktion": func.name})
     pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
@@ -1412,12 +1423,7 @@ def run_conditional_anlage2_check(
             funktion=func,
             subquestion__isnull=True,
         ).first()
-        doc_ok = False
-        if res and isinstance(res.doc_result, dict):
-            val = res.doc_result.get("technisch_vorhanden") or res.doc_result.get("technisch_verfuegbar")
-            if isinstance(val, dict):
-                val = val.get("value")
-            doc_ok = val is True
+        doc_ok = res.technisch_verfuegbar is True if res else False
         if doc_ok:
             for sub in func.anlage2subquestion_set.all():
                 worker_verify_feature(
@@ -1671,7 +1677,7 @@ def worker_verify_feature(
         "ki_beteiligt_begruendung": ai_reason,
     }
     workflow_logger.info(
-        "[%s] - KI-CHECK ERGEBNIS - Objekt [ID: %s] -> ai_result: %s",
+        "[%s] - KI-CHECK ERGEBNIS - Objekt [ID: %s] -> result: %s",
         project_id,
         object_id,
         json.dumps(verification_result, ensure_ascii=False),
@@ -1844,14 +1850,25 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     logger.info("worker_generate_gap_summary gestartet f\u00fcr Result %s", result_id)
     res = Anlage2FunctionResult.objects.select_related("projekt", "funktion").get(pk=result_id)
 
-    ai_val = None
-    if isinstance(res.ai_result, dict):
-        ai_val = res.ai_result.get("technisch_verfuegbar")
-    manual_val = None
-    if isinstance(res.manual_result, dict):
-        manual_val = res.manual_result.get("technisch_vorhanden")
+    ai_val = res.technisch_verfuegbar
+    ai_ki = res.ki_beteiligung
+    manual_override = (
+        FunktionsErgebnis.objects.filter(
+            projekt=res.projekt,
+            funktion=res.funktion,
+            subquestion=res.subquestion,
+            quelle="manuell",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    manual_val = manual_override.technisch_verfuegbar if manual_override else None
+    manual_ki = manual_override.ki_beteiligung if manual_override else None
 
-    conflict = f"KI-Check: {ai_val} / Review: {manual_val}"
+    conflict = (
+        f"Technisch verfügbar: {ai_val} / Review: {manual_val}; "
+        f"KI-Beteiligung: {ai_ki} / Review: {manual_ki}"
+    )
 
     gut_text = ""
     projekt = res.projekt
