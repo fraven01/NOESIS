@@ -335,8 +335,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         project_file.projekt_id,
     )
 
-    # Alte Ergebnisse entfernen, um sie an die aktuelle Datei zu binden
-    AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).delete()
+    # Alte Ergebnisse zum Projekt entfernen, damit nur die aktuelle Datei
+    # berücksichtigt wird
+    AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei__projekt=project_file.projekt
+    ).delete()
 
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
