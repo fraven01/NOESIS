@@ -3135,7 +3135,7 @@ def projekt_file_edit_json(request, pk):
                 if cfg_rule.enforce_subquestion_override:
                     for fid in functions_to_override:
                         AnlagenFunktionsMetadaten.objects.update_or_create(
-                            projekt=anlage.projekt,
+                            anlage_datei=anlage,
                             funktion_id=fid,
                             defaults={
                                 "technisch_verfuegbar": True,
@@ -3602,7 +3602,7 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
     funktion = get_object_or_404(Anlage2Function, pk=func_id)
 
     AnlagenFunktionsMetadaten.objects.update_or_create(
-        projekt=anlage.projekt,
+        anlage_datei=anlage,
         funktion=funktion,
         subquestion_id=sub_id,
         defaults={
@@ -3677,7 +3677,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         )
 
         res, _created = AnlagenFunktionsMetadaten.objects.get_or_create(
-            projekt=anlage.projekt,
+            anlage_datei=anlage,
             funktion=funktion,
             subquestion_id=sub_id,
             defaults={"source": "manual"},
@@ -3793,12 +3793,12 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
 
     pf = (
-        result.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+        result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
     )
     FunktionsErgebnis.objects.create(
 
 
-        projekt=result.projekt,
+        projekt=result.anlage_datei.projekt,
         anlage_datei=pf,
 
 
@@ -4197,8 +4197,14 @@ def edit_ki_justification(request, pk):
         subquestion=obj if obj_type == "subquestion" else None,
     )
     res = res_qs.first()
-    data = {}
+    data = (anlage.verification_json or {}).get(key, {})
     if request.method == "POST":
+        new_text = request.POST.get("ki_begruendung", "")
+        vdata = anlage.verification_json or {}
+        entry = vdata.setdefault(key, {})
+        entry["ki_begruendung"] = new_text
+        anlage.verification_json = vdata
+        anlage.save(update_fields=["verification_json"])
         messages.success(request, "Begründung gespeichert")
         return redirect("projekt_file_edit_json", pk=anlage.pk)
 
