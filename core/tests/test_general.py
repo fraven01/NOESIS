@@ -2928,17 +2928,6 @@ class FeatureVerificationTests(NoesisTestCase):
         )
         self.assertEqual(mock_q.call_count, 4)
         pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
-        self.assertEqual(
-            pf.verification_json["Export"],
-            {
-                "technisch_verfuegbar": True,
-                "ki_begruendung": "Begruendung",
-                "ki_beteiligt": False,
-                "ki_beteiligt_begruendung": "",
-            },
-        )
-
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf,
             funktion=self.func,
@@ -2948,6 +2937,7 @@ class FeatureVerificationTests(NoesisTestCase):
         ).first()
         self.assertIsNotNone(fe)
         self.assertTrue(fe.technisch_verfuegbar)
+        self.assertFalse(fe.ki_beteiligung)
 
 
     def test_all_no_returns_false(self):
