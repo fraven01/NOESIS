@@ -2969,6 +2969,7 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertIsNotNone(fe)
         self.assertTrue(fe.technisch_verfuegbar)
         self.assertFalse(fe.ki_beteiligung)
+        self.assertEqual(fe.begruendung, "Begruendung")
 
 
     def test_all_no_returns_false(self):
@@ -3041,6 +3042,12 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertEqual(result["ki_begruendung"], "Begruendung")
         self.assertIsNone(result["ki_beteiligt"])
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        fe = FunktionsErgebnis.objects.filter(
+            anlage_datei=pf, funktion=self.func, quelle="ki"
+        ).first()
+        self.assertIsNotNone(fe)
+        self.assertEqual(fe.begruendung, "Begruendung")
 
     def test_negotiable_set_on_match(self):
         pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
