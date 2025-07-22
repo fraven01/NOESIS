@@ -244,10 +244,122 @@ def apply_rules(
         entry[best_field]["note"] = remaining
 
 
+def _clean_text(text: str) -> str:
+    """Entfernt Sonderzeichen vor der Zeilenaufteilung."""
+
+    text = text.replace("\n", " ")
+    text = re.sub(r"[\r\n\t]+", " ", text)
+    text = text.replace("\u00b6", " ")
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.strip()
+
+
+def _split_lines(text: str) -> list[str]:
+    """Zerteilt einen Text in bereinigte Zeilen."""
+
+    text = text.replace("\u00b6", "\n").replace("\r", "\n")
+    lines = text.splitlines()
+    cleaned: list[str] = []
+    for line in lines:
+        line = re.sub(r"\s{2,}", " ", line.replace("\t", " ")).strip()
+        if line:
+            cleaned.append(line)
+    return cleaned
+
+
+def _alias_regex(alias: str) -> str:
+    """Erzeugt ein flexibles Regex für einen Funktionsalias."""
+
+    parts = re.split(r"[\s\-_/]+", alias.strip())
+    pattern = r"[\s\-_/]*".join(map(re.escape, parts))
+    return rf"^{pattern}[\s\-_:]*"
+
+
 def parse_anlage2_text(text: str) -> List[dict[str, object]]:
-    """Platzhalter für die Textparser-Logik."""
+    """Parst die Freitextvariante der Anlage 2."""
 
     parser_logger.info("parse_anlage2_text gestartet")
-    return []
+
+    text = _clean_text(text)
+    lines = _split_lines(text)
+
+    func_aliases, sub_aliases, func_map = _load_alias_lists()
+    cfg = Anlage2Config.get_instance()
+    token_map = build_token_map(cfg)
+    rules = list(AntwortErkennungsRegel.objects.all())
+
+    results: dict[str, dict[str, object]] = {}
+    order: list[str] = []
+    current_key: str | None = None
+
+    for raw in lines:
+        line = re.sub(r"^[\d]+[.)]\s*", "", raw).strip()
+        if not line:
+            continue
+
+        found_key = None
+        found_alias = None
+        found_sub = False
+        line_norm = _normalize(line.split(":", 1)[0])
+
+        # Zuerst Unterfragen prüfen
+        found_func = None
+        for func_id, aliases in sub_aliases.items():
+            for alias_norm, sub in aliases:
+                if line_norm.startswith(alias_norm):
+                    func = func_map[func_id]
+                    main_entry = results.get(func.name)
+                    if not main_entry or (
+                        main_entry.get("technisch_verfuegbar", {}).get("value")
+                        is not True
+                    ):
+                        found_key = None
+                        found_alias = None
+                        found_sub = False
+                        break
+                    found_key = f"{func.name}: {sub.frage_text}"
+                    found_alias = sub.frage_text
+                    found_sub = True
+                    found_func = func
+                    break
+            if found_key or found_sub:
+                break
+
+        if not found_key:
+            for alias_norm, func in func_aliases:
+                if line_norm.startswith(alias_norm):
+                    found_key = func.name
+                    found_alias = func.name
+                    break
+
+        text_part = line
+        if found_key:
+            current_key = found_key
+            if ":" in line:
+                text_part = line.split(":", 1)[1].strip()
+            else:
+                text_part = re.sub(_alias_regex(found_alias), "", line, flags=re.I).strip()
+
+            entry = results.setdefault(found_key, {"funktion": found_key})
+            if found_key not in order:
+                order.append(found_key)
+
+            if not found_sub:
+                line_entry: dict[str, object] = {}
+                apply_tokens(line_entry, text_part, token_map)
+                apply_rules(line_entry, text_part, rules)
+                for key, value in line_entry.items():
+                    entry[key] = value
+            continue
+
+        if current_key:
+            entry = results[current_key]
+            line_entry = {}
+            apply_tokens(line_entry, line, token_map)
+            apply_rules(line_entry, line, rules)
+            for key, value in line_entry.items():
+                entry[key] = value
+
+    return [results[k] for k in order]
 
 
