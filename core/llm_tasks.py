@@ -1940,6 +1940,13 @@ def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
     if m:
         other_text = m.group(1).strip()
         anlage5_logger.debug("Sonstige Zwecke gefunden: %r", other_text)
+        if re.fullmatch(r"[-_]*", other_text) or other_text.lower() in {
+            "n/a",
+            "keine",
+            "-",
+        }:
+            other_text = ""
+            anlage5_logger.debug("Sonstige Zwecke sind nur ein Platzhalter")
     else:
         anlage5_logger.debug("Sonstige Zwecke nicht gefunden")
 

@@ -5,7 +5,6 @@ from typing import Dict, List, Type
 
 from .models import BVProjectFile, Anlage2Config
 from .parsers import AbstractParser, TableParser, ExactParser
-from .text_parser import FuzzyTextParser
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class ParserManager:
             candidates = [n for n in order if n in {"text", "exact"}]
             if not candidates:
                 candidates = [n for n in ("text", "exact") if n in self._parsers]
-        else:  # auto
+        else:  # auto or unknown mode
             candidates = order
 
         for name in candidates:
@@ -75,6 +74,5 @@ class ParserManager:
 
 parser_manager = ParserManager()
 parser_manager.register(TableParser)
-parser_manager.register(FuzzyTextParser)
 parser_manager.register(ExactParser)
 
