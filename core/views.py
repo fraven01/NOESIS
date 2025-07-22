@@ -439,7 +439,10 @@ def _build_row_data(
 
     if result_obj:
         pf = (
-            result_obj.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+            result_obj.anlage_datei.projekt.anlagen
+            .filter(anlage_nr=2)
+            .order_by("id")
+            .first()
         )
         parser_entry = (
             FunktionsErgebnis.objects.filter(
