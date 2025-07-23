@@ -257,6 +257,11 @@ urlpatterns = [
         name="justification_detail_edit",
     ),
     path(
+        "work/anlage/file/<int:file_id>/involvement/<path:function_key>/",
+        views.ki_involvement_detail_edit,
+        name="ki_involvement_detail_edit",
+    ),
+    path(
         "work/anlage/file/<int:file_id>/justification/<path:function_key>/delete/",
         views.justification_delete,
         name="justification_delete",
