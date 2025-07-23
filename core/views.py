@@ -639,6 +639,7 @@ def _build_row_data(
         "ki_begruendung": begr_md,
         "ki_begruendung_md": begr_md,
         "ki_begruendung_html": markdownify(begr_md) if begr_md else "",
+        "has_justification": bool(begr_md and begr_md.strip()),
         "ki_beteiligt": bet_val,
         "ki_beteiligt_begruendung": bet_reason,
         "has_preliminary_gap": has_gap,
@@ -4401,23 +4402,53 @@ def justification_detail_edit(request, file_id, function_key):
     if anlage.anlage_nr != 2:
         raise Http404
 
-    res = AnlagenFunktionsMetadaten.objects.filter(
-        anlage_datei=anlage,
-        funktion__name=function_key,
-        subquestion__isnull=True,
-    ).first()
-    data = {}
+    func_name = function_key
+    sub_text = None
+    if ":" in function_key:
+        func_name, sub_text = [p.strip() for p in function_key.split(":", 1)]
+
+    funktion = get_object_or_404(Anlage2Function, name=func_name)
+    subquestion = None
+    if sub_text:
+        subquestion = get_object_or_404(
+            Anlage2SubQuestion, funktion=funktion, frage_text=sub_text
+        )
+
+    fe = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=anlage,
+            funktion=funktion,
+            subquestion=subquestion,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    initial_text = fe.begruendung if fe and fe.begruendung else ""
+
     if request.method == "POST":
         form = JustificationForm(request.POST)
         if form.is_valid():
-            if res:
-                pass
+            text = form.cleaned_data["justification"]
+            if fe:
+                fe.begruendung = text
+                fe.save(update_fields=["begruendung"])
+            else:
+                FunktionsErgebnis.objects.create(
+                    projekt=anlage.projekt,
+                    anlage_datei=anlage,
+                    funktion=funktion,
+                    subquestion=subquestion,
+                    quelle="ki",
+                    begruendung=text,
+                )
             messages.success(request, "Begründung gespeichert")
             return redirect("projekt_file_edit_json", pk=anlage.pk)
     else:
-        form = JustificationForm(initial={"justification": data.get("ki_begruendung", "")})
+        form = JustificationForm(initial={"justification": initial_text})
 
-    justification_html = ""
+    justification_html = markdownify(initial_text)
     context = {
         "project_file": anlage,
         "function_name": function_key,

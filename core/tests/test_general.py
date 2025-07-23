@@ -2271,10 +2271,14 @@ class Anlage2ReviewTests(NoesisTestCase):
         )
 
     def test_subquestion_justification_link(self):
-        self.file.verification_json = {
-            f"{self.func.name}: {self.sub.frage_text}": {"ki_begruendung": "Text"}
-        }
-        self.file.save()
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            anlage_datei=self.file,
+            funktion=self.func,
+            subquestion=self.sub,
+            quelle="ki",
+            begruendung="Text",
+        )
 
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.get(url)
@@ -3210,6 +3214,34 @@ class EditKIJustificationTests(NoesisTestCase):
             self.file.verification_json["Export"]["ki_begruendung"],
             "Neu",
         )
+
+
+class JustificationDetailEditTests(NoesisTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("jdet", password="pw")
+        self.client.login(username="jdet", password="pw")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("jd.txt", b"data"),
+            manual_analysis_json={"functions": {}},
+            analysis_json={},
+            verification_json={"functions": {}},
+        )
+        self.func = Anlage2Function.objects.create(name="Export")
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            anlage_datei=self.file,
+            funktion=self.func,
+            quelle="ki",
+            begruendung="Begruendung",
+        )
+
+    def test_get_loads_text(self):
+        url = reverse("justification_detail_edit", args=[self.file.pk, self.func.name])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Begruendung")
 
 
 class VerificationToInitialTests(NoesisTestCase):
