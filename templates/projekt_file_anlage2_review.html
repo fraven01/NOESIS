@@ -71,6 +71,9 @@
                 data-ai='{{ row.ai_result|tojson }}'
                 data-doc='{{ row.doc_result|tojson }}'
                 data-manual='{{ row.manual_result|tojson }}'
+                data-ai-labels='{{ row.ai_status|tojson }}'
+                data-doc-labels='{{ row.doc_status|tojson }}'
+                data-manual-labels='{{ row.manual_status|tojson }}'
                 data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
                 data-manual-override="{{ row.negotiable_manual_override|yesno:'true,false,' }}"
                 data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
@@ -116,7 +119,7 @@
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
-                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
+                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field state_text=row.initial_status|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
@@ -226,27 +229,36 @@ function updatePopoverContent(icon, input) {
     const doc = safeJsonParse(row.dataset.doc);
     const ai = safeJsonParse(row.dataset.ai);
     const manual = safeJsonParse(row.dataset.manual);
+    const docLabels = safeJsonParse(row.dataset.docLabels);
+    const aiLabels = safeJsonParse(row.dataset.aiLabels);
+    const manualLabels = safeJsonParse(row.dataset.manualLabels);
     const field = icon.dataset.fieldName;
     const docKey = field === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
     const aiKey = field === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : field;
     let docEntry = doc[docKey];
-    let docVal = docEntry;
+    let docVal = docLabels && docLabels[docKey];
     let docNote = '';
     if (docEntry && typeof docEntry === 'object') {
-        if ('value' in docEntry) docVal = docEntry.value;
+        if (docVal === undefined && 'value' in docEntry) docVal = docEntry.value;
         docNote = docEntry.note || docEntry.text || '';
+    } else if (docVal === undefined) {
+        docVal = docEntry;
     }
     let aiEntry = ai[aiKey];
-    let aiVal = aiEntry;
+    let aiVal = aiLabels && aiLabels[aiKey];
     let aiNote = '';
     if (aiEntry && typeof aiEntry === 'object') {
-        if ('value' in aiEntry) aiVal = aiEntry.value;
+        if (aiVal === undefined && 'value' in aiEntry) aiVal = aiEntry.value;
         aiNote = aiEntry.note || aiEntry.text || '';
+    } else if (aiVal === undefined) {
+        aiVal = aiEntry;
     }
-    let manualVal = null;
+    let manualVal = manualLabels && manualLabels[aiKey];
     let manualEntry = manual[aiKey];
-    if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
-    else if (manualEntry !== undefined) manualVal = manualEntry;
+    if (manualVal === undefined) {
+        if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
+        else if (manualEntry !== undefined) manualVal = manualEntry;
+    }
     if (manualVal === null && icon.dataset.isManual === 'true' && input && input.dataset && 'state' in input.dataset) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
@@ -272,6 +284,7 @@ function updateRowAppearance(row) {
         if (!icon) return;
         const manual = textToState(icon.textContent);
         icon.dataset.isManual = manual !== null ? 'true' : 'false';
+        const labels = safeJsonParse(row.dataset.manualLabels || '{}');
         const docKey = f === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         const aiKey = f === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         let docVal = doc[docKey];
@@ -289,6 +302,8 @@ function updateRowAppearance(row) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
         }
         icon.classList.add(cls);
+        labels[aiKey] = manual === true ? 'ja' : manual === false ? 'nein' : 'unsicher';
+        row.dataset.manualLabels = JSON.stringify(labels);
         updatePopoverContent(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
         if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
             needsReview = true;

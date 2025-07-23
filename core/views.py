@@ -429,6 +429,16 @@ def _resolve_value(
     return doc_val, src
 
 
+def _status_text(value: bool | None, exists: bool) -> str:
+    """Wandelt einen booleschen Wert in einen Status-Text um."""
+
+    if value is True:
+        return "ja"
+    if value is False:
+        return "nein"
+    return "unsicher" if exists else "nicht_geprueft"
+
+
 def _get_display_data(
     lookup_key: str,
     analysis_data: dict[str, dict],
@@ -536,15 +546,33 @@ def _build_row_data(
             "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
             "begruendung": ai_entry.begruendung if ai_entry else None,
         }
+        doc_status = {}
+        ai_status = {}
+        manual_status = {}
+        initial_status = {}
+        for field, _ in get_anlage2_fields():
+            doc_status[field] = _status_text(doc_data.get(field), parser_entry is not None)
+            ai_status[field] = _status_text(ai_data.get(field), ai_entry is not None)
+            manual_status[field] = _status_text(manual_data.get(field), field in manual_data)
+            exists = (parser_entry is not None) or (ai_entry is not None) or (field in manual_data)
+            initial_status[field] = _status_text(disp["values"].get(field), exists)
     else:
         doc_data = {}
         ai_data = {}
+        doc_status = {}
+        ai_status = {}
+        manual_status = {}
+        initial_status = {}
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
     manual_data = manual_lookup.get(lookup_key, {})
     doc_json = json.dumps(doc_data, ensure_ascii=False)
     ai_json = json.dumps(ai_data, ensure_ascii=False)
     manual_json = json.dumps(manual_data, ensure_ascii=False)
+    doc_status_json = json.dumps(doc_status, ensure_ascii=False)
+    ai_status_json = json.dumps(ai_status, ensure_ascii=False)
+    manual_status_json = json.dumps(manual_status, ensure_ascii=False)
+    initial_status_json = json.dumps(initial_status, ensure_ascii=False)
 
     disp = _get_display_data(
         lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
@@ -616,11 +644,19 @@ def _build_row_data(
         "name": display_name,
         "doc_result": doc_data,
         "doc_json": doc_json,
+        "doc_status": doc_status,
+        "doc_status_json": doc_status_json,
         "ai_result": ai_data,
         "ai_json": ai_json,
+        "ai_status": ai_status,
+        "ai_status_json": ai_status_json,
         "manual_result": manual_data,
         "manual_json": manual_json,
+        "manual_status": manual_status,
+        "manual_status_json": manual_status_json,
         "initial": disp["values"],
+        "initial_status": initial_status,
+        "initial_status_json": initial_status_json,
         "manual_flags": disp["manual_flags"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
@@ -3987,6 +4023,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
     context = {
         "state": new_state,
+        "state_text": _status_text(new_state, True),
         "source": "Manuell",
         "field_name": field_name,
         "row": {
