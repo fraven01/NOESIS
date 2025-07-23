@@ -26,14 +26,6 @@
 .status-nein {
     background-color: #6c757d;
 }
-.status-unsicher {
-    background-color: #ffc107;
-    color: black;
-}
-.status-ungeprueft {
-    background-color: #6c757d;
-    color: white;
-}
 /* Farblogik für technische Verfügbarkeit */
 .status-ok {
     background-color: #28a745;
