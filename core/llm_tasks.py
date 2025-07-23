@@ -473,7 +473,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         tv = _extract_bool(
             row.get("technisch_vorhanden") or row.get("technisch_verfuegbar")
         )
-        eins = _extract_bool(row.get("einsatz_bei_telefonica"))
+        eins = _extract_bool(
+            row.get("einsatz_bei_telefonica") or row.get("einsatz_telefonica")
+        )
         lv = _extract_bool(row.get("zur_lv_kontrolle"))
         ki = _extract_bool(row.get("ki_beteiligung"))
         AnlagenFunktionsMetadaten.objects.update_or_create(
