@@ -1849,48 +1849,95 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
     return reply
 
 
-def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -> str:
-    """Erzeugt eine Gap-Zusammenfassung f\u00fcr ein Review-Ergebnis."""
+def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -> dict[str, str]:
+    """Erzeugt interne und externe Gap-Texte für ein Review-Ergebnis."""
 
-    logger.info("worker_generate_gap_summary gestartet f\u00fcr Result %s", result_id)
+    logger.info("worker_generate_gap_summary gestartet für Result %s", result_id)
 
-    res = AnlagenFunktionsMetadaten.objects.select_related("anlage_datei", "funktion").get(pk=result_id)
-
-    conflict = ""
-
-
-    gut_text = ""
-    projekt = res.anlage_datei.projekt
-    if projekt.gutachten_file:
-        path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
-        try:
-            gut_text = extract_text(path)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Gutachten konnte nicht geladen werden: %s", exc)
-
-    snippet = gut_text[:500]
-
-    base_prompt = Prompt.objects.filter(name="gap_summary").first()
-    prefix = (
-        base_prompt.text
-        if base_prompt
-        else (
-            "Fasse kurz zusammen, warum der manuelle Review von der KI-Einschätzung abweicht.\n\n"
-        )
+    res = (
+        AnlagenFunktionsMetadaten.objects.select_related(
+            "anlage_datei",
+            "funktion",
+            "subquestion",
+        ).get(pk=result_id)
     )
-    text = f"Funktion: {res.funktion.name}\n{conflict}\n{snippet}"
-    prompt_obj = Prompt(name="tmp", text=prefix + text, role=base_prompt.role if base_prompt else None)
-    reply = query_llm(
-        prompt_obj,
-        {},
+
+    pf = res.anlage_datei
+    projekt = pf.projekt
+
+    doc_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=res.funktion,
+            subquestion=res.subquestion,
+            quelle="parser",
+        ).order_by("-created_at").first()
+    )
+    ai_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=res.funktion,
+            subquestion=res.subquestion,
+            quelle="ki",
+        ).order_by("-created_at").first()
+    )
+    manual_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=res.funktion,
+            subquestion=res.subquestion,
+            quelle="manuell",
+        ).order_by("-created_at").first()
+    )
+
+    context = {
+        "funktion": res.funktion.name,
+        "unterfrage": res.subquestion.frage_text if res.subquestion else "",
+        "dokument_wert": getattr(doc_entry, "technisch_verfuegbar", None),
+        "ki_wert": getattr(ai_entry, "technisch_verfuegbar", None),
+        "manueller_wert": getattr(manual_entry, "technisch_verfuegbar", None),
+        "ki_begruendung": getattr(ai_entry, "begruendung", ""),
+    }
+
+    prompt_internal = Prompt.objects.filter(name="gap_summary_internal").first()
+    if not prompt_internal:
+        prompt_internal = Prompt(name="tmp", text="Formuliere eine technische Zusammenfassung des Konflikts.")
+    internal = query_llm(
+        prompt_internal,
+        context,
         model_name=model_name,
         model_type="gutachten",
         project_prompt=projekt.project_prompt,
+    ).strip()
+
+    prompt_external = Prompt.objects.filter(name="gap_communication_external").first()
+    if not prompt_external:
+        prompt_external = Prompt(name="tmp", text="Formuliere eine freundliche Rückfrage an den Fachbereich.")
+    external = query_llm(
+        prompt_external,
+        context,
+        model_name=model_name,
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt,
+    ).strip()
+
+    res.gap_notiz = internal
+    res.gap_summary = external
+    res.save(update_fields=["gap_notiz", "gap_summary"])
+
+    FunktionsErgebnis.objects.create(
+        projekt=projekt,
+        anlage_datei=pf,
+        funktion=res.funktion,
+        subquestion=res.subquestion,
+        quelle="gap",
+        gap_begruendung_intern=internal,
+        gap_begruendung_extern=external,
     )
-    res.gap_summary = reply.strip()
-    res.save(update_fields=["gap_summary"])
-    logger.info("worker_generate_gap_summary beendet f\u00fcr Result %s", result_id)
-    return reply.strip()
+
+    logger.info("worker_generate_gap_summary beendet für Result %s", result_id)
+    return {"intern": internal, "extern": external}
+
 
 
 def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:

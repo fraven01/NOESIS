@@ -3658,13 +3658,21 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             patch("core.views.async_task", side_effect=immediate),
             patch(
                 "core.llm_tasks.query_llm",
-                return_value="Abweichung",
+                side_effect=["Intern", "Extern"],
             ),
         ):
             resp = self.client.post(gap_url)
         self.assertEqual(resp.status_code, 200)
         res.refresh_from_db()
-        self.assertEqual(res.gap_summary, "Abweichung")
+        self.assertEqual(res.gap_notiz, "Intern")
+        self.assertEqual(res.gap_summary, "Extern")
+        gap_entry = FunktionsErgebnis.objects.filter(
+            anlage_datei=self.pf,
+            funktion=self.func,
+            quelle="gap",
+        ).latest("created_at")
+        self.assertEqual(gap_entry.gap_begruendung_intern, "Intern")
+        self.assertEqual(gap_entry.gap_begruendung_extern, "Extern")
 
     def test_manual_sets_negotiable(self):
         AnlagenFunktionsMetadaten.objects.create(
