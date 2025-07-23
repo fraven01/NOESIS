@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.db import DatabaseError
 from django.utils import timezone
 from django_q.tasks import async_task
 
@@ -1702,10 +1703,17 @@ def worker_verify_feature(
 
     auto_val = _calc_auto_negotiable(tv, ki_bet)
 
-    if res.is_negotiable_manual_override is None:
-        res.is_negotiable = auto_val
+    try:
+        if res.is_negotiable_manual_override is None:
+            res.is_negotiable = auto_val
 
-    res.save(update_fields=["is_negotiable"])
+        res.save(update_fields=["is_negotiable"])
+    except DatabaseError:
+        logger.warning(
+            "FunktionsErgebnis %s wurde während der Verarbeitung gelöscht. Speichern wird übersprungen.",
+            res.pk,
+        )
+        return verification_result
 
     try:
         FunktionsErgebnis.objects.create(
