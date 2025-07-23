@@ -116,7 +116,7 @@
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
-                {% include 'partials/review_cell.html' with row=row field_name=field status=row.status_values|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
+                {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
@@ -278,11 +278,11 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        icon.classList.remove('status-badge','status-ja','status-nein','status-unsicher','status-ok','status-konflikt','status-manuell-abweichung');
+        icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
         if (manual === true) icon.classList.add('status-badge','status-ja');
         else if (manual === false) icon.classList.add('status-badge','status-nein');
-        else icon.classList.add('status-badge','status-unsicher');
-        let cls = 'status-unsicher';
+        else icon.classList.add('status-badge','status-unbekannt');
+        let cls = 'status-unbekannt';
         if (manual !== null) {
             cls = manual === docVal ? 'status-ok' : 'status-manuell-abweichung';
         } else if (docVal !== undefined && aiVal !== undefined) {
