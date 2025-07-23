@@ -1693,19 +1693,27 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
+
+    auto_val = _calc_auto_negotiable(tv, ki_bet)
+
+    existing = AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=pf,
+        funktion_id=func_id,
+        subquestion=sub_obj,
+    ).first()
+
+    defaults = (
+        {}
+        if existing and existing.is_negotiable_manual_override is not None
+        else {"is_negotiable": auto_val}
+    )
+
     res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
         anlage_datei=pf,
         funktion_id=func_id,
         subquestion=sub_obj,
-        defaults={},
+        defaults=defaults,
     )
-
-    auto_val = _calc_auto_negotiable(tv, ki_bet)
-
-    if res.is_negotiable_manual_override is None:
-        res.is_negotiable = auto_val
-
-    res.save(update_fields=["is_negotiable"])
 
     try:
         FunktionsErgebnis.objects.create(
