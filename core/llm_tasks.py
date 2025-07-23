@@ -326,7 +326,9 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
     """Analysiert eine Anlage 2 und legt Ergebnisse ab.
 
-    Beim Fuzzy-Abgleich wird eine Schwelle von 80 verwendet.
+    Die Analyse erfolgt zeilenbasiert. Funktionsnamen oder definierte Aliase
+    werden exakt dem Text vor dem Doppelpunkt zugeordnet. Mehrere Zeilen zu
+    einer Funktion werden dabei zusammengeführt.
     """
 
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
@@ -361,15 +363,62 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     lines = _split_lines(project_file.text_content or "")
 
     def _normalize_search(text: str) -> str:
-        """Bereitet einen String für Fuzzy-Vergleiche vor."""
+        """Normalisiert Begriffe f\xfcr exakte Vergleiche."""
         return re.sub(r"[\W_]+", "", text).lower()
 
-    line_data: list[tuple[str, str, str]] = []
+    fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
+
+    func_alias_map: dict[str, Anlage2Function] = {}
+    sub_alias_map: dict[str, tuple[Anlage2Function, Anlage2SubQuestion]] = {}
+
+    for func in functions:
+        aliases = [func.name]
+        if func.detection_phrases:
+            aliases.extend(func.detection_phrases.get("name_aliases", []))
+        for alias in aliases:
+            func_alias_map[_normalize_search(alias)] = func
+        for sub in func.anlage2subquestion_set.all():
+            sub_aliases = [sub.frage_text]
+            if sub.detection_phrases:
+                sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
+            for alias in sub_aliases:
+                sub_alias_map[_normalize_search(alias)] = (func, sub)
+
+    results_map: dict[str, dict[str, object]] = {}
+
+    def _get_entry(func: Anlage2Function, sub: Anlage2SubQuestion | None) -> dict[str, object]:
+        key = func.name if sub is None else f"{func.name}: {sub.frage_text}"
+        entry = results_map.get(key)
+        if entry is None:
+            entry = {"funktion": key}
+            if sub is not None:
+                entry["subquestion_id"] = sub.id
+            for f in fields:
+                entry[f] = None
+            entry["not_found"] = False
+            results_map[key] = entry
+        return entry
+
     for line in lines:
         before, after = (line.split(":", 1) + [""])[0:2]
-        line_data.append((before, after, _normalize_search(before)))
+        norm = _normalize_search(before)
+        if norm in func_alias_map:
+            func = func_alias_map[norm]
+            entry = _get_entry(func, None)
+        elif norm in sub_alias_map:
+            func, sub = sub_alias_map[norm]
+            entry = _get_entry(func, sub)
+        else:
+            continue
 
-    fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
+        line_entry: dict[str, object] = {}
+        apply_tokens(line_entry, after, token_map)
+        apply_rules(line_entry, after, rules)
+        for key, value in line_entry.items():
+            if key in {"funktion", "subquestion_id"}:
+                continue
+            if entry.get(key) is None:
+                entry[key] = value
 
     results: list[dict[str, object]] = []
 
@@ -381,50 +430,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         return entry
 
     for func in functions:
-        workflow_logger.info(
-            "[%s] - PARSER-LOOP - Suche nach Funktion '%s' im Dokument.",
-            project_file.projekt_id,
-            func.name,
-        )
-        result_logger.debug("Starte Verarbeitung Funktion '%s'", func.name)
-
-        aliases = [func.name]
-        if func.detection_phrases:
-            aliases.extend(func.detection_phrases.get("name_aliases", []))
-
-        alias_norms = [_normalize_search(a) for a in aliases]
-
-        matches: list[str] = []
-        for before, after, norm in line_data:
-            for a_norm in alias_norms:
-                score = fuzz.partial_ratio(a_norm, norm)
-                # akzeptiere Treffer ab 80 Punkten
-                if score >= 80:
-                    matches.append(after)
-                    break
-
-        if matches:
-            entry = {"funktion": func.name}
-            for f in fields:
-                entry[f] = None
-            entry["not_found"] = False
-            for part in matches:
-                result_logger.debug(
-                    "Funktion '%s' - verarbeite Text: %s",
-                    func.name,
-                    part,
-                )
-                line_entry: dict[str, object] = {}
-                apply_tokens(line_entry, part, token_map)
-                apply_rules(line_entry, part, rules)
-                for key, value in line_entry.items():
-                    if key == "funktion":
-                        continue
-                    if entry.get(key) is None:
-                        entry[key] = value
-        else:
+        entry = results_map.pop(func.name, None)
+        if entry is None:
             entry = _blank_entry(func.name)
-
         results.append(entry)
         workflow_logger.info(
             "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> parser_result: %s",
@@ -434,44 +442,10 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         )
 
         for sub in func.anlage2subquestion_set.all():
-            sub_aliases = [sub.frage_text]
-            if sub.detection_phrases:
-                sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
-            sub_alias_norms = [_normalize_search(a) for a in sub_aliases]
-            sub_matches: list[str] = []
-            for before, after, norm in line_data:
-                for a_norm in sub_alias_norms:
-                    score = fuzz.partial_ratio(a_norm, norm)
-                    # akzeptiere Treffer ab 80 Punkten
-                    if score >= 80:
-                        sub_matches.append(after)
-                        break
-            result_logger.debug(
-                "Starte Verarbeitung Subfrage '%s'", sub.frage_text
-            )
-            sub_entry = {
-                "funktion": f"{func.name}: {sub.frage_text}",
-                "subquestion_id": sub.id,
-            }
-            if sub_matches:
-                for f in fields:
-                    sub_entry[f] = None
-                sub_entry["not_found"] = False
-                for part in sub_matches:
-                    result_logger.debug(
-                        "Subfrage '%s' - verarbeite Text: %s",
-                        sub.frage_text,
-                        part,
-                    )
-                    line_entry: dict[str, object] = {}
-                    apply_tokens(line_entry, part, token_map)
-                    apply_rules(line_entry, part, rules)
-                    for key, value in line_entry.items():
-                        if key == "funktion" or key == "subquestion_id":
-                            continue
-                        if sub_entry.get(key) is None:
-                            sub_entry[key] = value
-            else:
+            key = f"{func.name}: {sub.frage_text}"
+            sub_entry = results_map.pop(key, None)
+            if sub_entry is None:
+                sub_entry = {"funktion": key, "subquestion_id": sub.id}
                 for f in fields:
                     sub_entry[f] = None
                 sub_entry["not_found"] = True
