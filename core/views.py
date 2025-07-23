@@ -426,7 +426,11 @@ def _resolve_value(
     if ai_val is not None:
         return ai_val, src
 
-    return doc_val, src
+    if doc_val is not None:
+        return doc_val, src
+
+    # Null-Werte werden als "nicht vorhanden" interpretiert
+    return False, src
 
 
 def _get_display_data(

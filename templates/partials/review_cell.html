@@ -8,10 +8,8 @@
             hx-target="closest td" hx-swap="outerHTML">
         {% if state == True %}
         ✓ Vorhanden
-        {% elif state == False %}
-        ✗ Nicht vorhanden
         {% else %}
-        ? Unbekannt
+        ✗ Nicht vorhanden
         {% endif %}
     </button>
     <span class="source-icon" title="{{ source }}">
