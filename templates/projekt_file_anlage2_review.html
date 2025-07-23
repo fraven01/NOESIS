@@ -281,6 +281,13 @@ function updateRowAppearance(row) {
     const fieldOrder = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
     let needsReview = false;
     const textToState = txt => txt.trim().startsWith('✓') ? true : (txt.trim().startsWith('✗') ? false : null);
+    const techIconEl = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
+    let techManualVal = techIconEl ? textToState(techIconEl.textContent) : null;
+    let techDocVal = doc.hasOwnProperty('technisch_verfuegbar') ? doc.technisch_verfuegbar : doc.technisch_vorhanden;
+    if (techDocVal && typeof techDocVal === 'object' && 'value' in techDocVal) techDocVal = techDocVal.value;
+    let techAiVal = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
+    if (techAiVal && typeof techAiVal === 'object' && 'value' in techAiVal) techAiVal = techAiVal.value;
+    const techEffective = techManualVal !== null ? techManualVal : (techDocVal !== undefined ? techDocVal : techAiVal);
     fieldOrder.forEach(f => {
         const icon = row.querySelector(`.tri-state-icon[data-field-name="${f}"]`);
         if (!icon) return;
@@ -301,6 +308,10 @@ function updateRowAppearance(row) {
             cls = manual === docVal ? 'status-ok' : 'status-manuell-abweichung';
         } else if (docVal !== undefined && aiVal !== undefined) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
+        }
+        const finalVal = manual !== null ? manual : (docVal !== undefined ? docVal : aiVal);
+        if ((f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') && techEffective === false && finalVal === false) {
+            cls = 'status-ok';
         }
         icon.classList.add(cls);
         updatePopoverContent(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
