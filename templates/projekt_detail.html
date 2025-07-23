@@ -60,9 +60,9 @@
             </td>
             <td class="px-2 py-1 text-center">
             {% if a.anlage_nr == 2 %}
-                {% if a.is_verification_running %}
+                {% if a.get_anlage2_state == 'running' %}
                     <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span></span>
-                {% elif a.analysis_json %}
+                {% elif a.get_anlage2_state == 'parsed' %}
                     <a href="{% url 'projekt_file_edit_json' a.pk %}"
                        class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
                 {% endif %}
