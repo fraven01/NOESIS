@@ -367,6 +367,12 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     line_data: list[tuple[str, str, str]] = []
     for line in lines:
         before, after = (line.split(":", 1) + [""])[0:2]
+        result_logger.debug(
+            "Zeilenaufteilung: '%s' -> before='%s' after='%s'",
+            line,
+            before,
+            after,
+        )
         line_data.append((before, after, _normalize_search(before)))
 
     fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
@@ -392,18 +398,30 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         if func.detection_phrases:
             aliases.extend(func.detection_phrases.get("name_aliases", []))
 
-        alias_norms = [_normalize_search(a) for a in aliases]
+        alias_norms = [(a, _normalize_search(a)) for a in aliases]
 
         matches: list[str] = []
         for before, after, norm in line_data:
-            for a_norm in alias_norms:
+            for alias, a_norm in alias_norms:
                 score = fuzz.partial_ratio(a_norm, norm)
                 # akzeptiere Treffer ab 80 Punkten
                 if score >= 80:
+                    result_logger.debug(
+                        "Aliasvergleich Funktion '%s': Alias '%s' vs '%s' -> Score %s",
+                        func.name,
+                        alias,
+                        before,
+                        score,
+                    )
                     matches.append(after)
                     break
 
         if matches:
+            result_logger.debug(
+                "Funktion '%s' - gesammelte Matches: %s",
+                func.name,
+                matches,
+            )
             entry = {"funktion": func.name}
             for f in fields:
                 entry[f] = None
@@ -437,13 +455,20 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             sub_aliases = [sub.frage_text]
             if sub.detection_phrases:
                 sub_aliases.extend(sub.detection_phrases.get("name_aliases", []))
-            sub_alias_norms = [_normalize_search(a) for a in sub_aliases]
+            sub_alias_norms = [(a, _normalize_search(a)) for a in sub_aliases]
             sub_matches: list[str] = []
             for before, after, norm in line_data:
-                for a_norm in sub_alias_norms:
+                for alias, a_norm in sub_alias_norms:
                     score = fuzz.partial_ratio(a_norm, norm)
                     # akzeptiere Treffer ab 80 Punkten
                     if score >= 80:
+                        result_logger.debug(
+                            "Aliasvergleich Subfrage '%s': Alias '%s' vs '%s' -> Score %s",
+                            sub.frage_text,
+                            alias,
+                            before,
+                            score,
+                        )
                         sub_matches.append(after)
                         break
             result_logger.debug(
@@ -454,6 +479,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 "subquestion_id": sub.id,
             }
             if sub_matches:
+                result_logger.debug(
+                    "Subfrage '%s' - gesammelte Matches: %s",
+                    sub.frage_text,
+                    sub_matches,
+                )
                 for f in fields:
                     sub_entry[f] = None
                 sub_entry["not_found"] = False
