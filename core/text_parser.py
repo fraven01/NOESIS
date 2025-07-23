@@ -18,7 +18,7 @@ from .models import (
 from .parsers import AbstractParser
 
 logger = logging.getLogger(__name__)
-parser_logger = logging.getLogger("parser_debug")
+debug_logger = logging.getLogger("anlage2_debug")
 result_logger = logging.getLogger("anlage2_ergebnis")
 
 # Standard-Schwelle für Fuzzy-Vergleiche
@@ -103,7 +103,7 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
     Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
     """
 
-    parser_logger.info("parse_format_b gestartet")
+    debug_logger.info("parse_format_b gestartet")
     rules = FormatBParserRule.objects.all()
     if rules:
         mapping = {r.key.lower(): r.target_field for r in rules}
@@ -138,7 +138,7 @@ def parse_format_b(text: str) -> List[dict[str, object]]:
             }
         results.append(entry)
 
-    parser_logger.info("parse_format_b beendet: %s Einträge", len(results))
+    debug_logger.info("parse_format_b beendet: %s Einträge", len(results))
 
     return results
 
@@ -168,13 +168,13 @@ def apply_tokens(
     threshold: int = FUZZY_THRESHOLD,
 ) -> None:
     """Wendet Token-Regeln auf einen Textabschnitt an."""
-    parser_logger.debug("Prüfe Tokens in '%s'", text_part)
+    debug_logger.debug("Prüfe Tokens in '%s'", text_part)
     for field, items in token_map.items():
         if field in entry:
             continue
         for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
             if fuzzy_match(phrase, text_part, threshold):
-                parser_logger.debug(
+                debug_logger.debug(
                     "Token '%s' gefunden, setze %s=%s",
                     phrase,
                     field,
@@ -191,11 +191,11 @@ def apply_rules(
     threshold: int = FUZZY_THRESHOLD,
 ) -> None:
     """Wendet Antwortregeln auf einen Textabschnitt an."""
-    parser_logger.debug("Prüfe Regeln in '%s'", text_part)
+    debug_logger.debug("Prüfe Regeln in '%s'", text_part)
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
         match = fuzzy_match(rule.erkennungs_phrase, text_part, threshold)
-        result_logger.debug(
+        debug_logger.debug(
             "Regelvergleich '%s' (Prio %s) -> %s in '%s'",
             rule.erkennungs_phrase,
             rule.prioritaet,
@@ -220,7 +220,7 @@ def apply_rules(
                         rule.prioritaet,
                         rule.erkennungs_phrase,
                     )
-                    parser_logger.debug(
+                    debug_logger.debug(
                         "Regel '%s' (%s) setzt %s=%s",
                         rule.regel_name,
                         rule.erkennungs_phrase,
@@ -278,7 +278,7 @@ def _alias_regex(alias: str) -> str:
 def parse_anlage2_text(text: str) -> List[dict[str, object]]:
     """Parst die Freitextvariante der Anlage 2."""
 
-    parser_logger.info("parse_anlage2_text gestartet")
+    debug_logger.info("parse_anlage2_text gestartet")
 
     text = _clean_text(text)
     lines = _split_lines(text)
@@ -334,6 +334,11 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
 
         text_part = line
         if found_key:
+            debug_logger.debug(
+                "Analysiere Funktion '%s' mit Text: %s",
+                found_key,
+                text_part,
+            )
             current_key = found_key
             if ":" in line:
                 text_part = line.split(":", 1)[1].strip()
@@ -354,12 +359,20 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
 
         if current_key:
             entry = results[current_key]
+            debug_logger.debug(
+                "Analysiere Funktion '%s' mit Text: %s",
+                current_key,
+                line,
+            )
             line_entry = {}
             apply_tokens(line_entry, line, token_map)
             apply_rules(line_entry, line, rules)
             for key, value in line_entry.items():
                 entry[key] = value
 
-    return [results[k] for k in order]
+    ordered_results = [results[k] for k in order]
+    for res in ordered_results:
+        result_logger.info("Ergebnis Funktion '%s': %s", res.get("funktion"), res)
+    return ordered_results
 
 

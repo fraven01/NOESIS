@@ -56,7 +56,7 @@ from .anlage3_parser import parse_anlage3
 from docx import Document
 
 logger = logging.getLogger(__name__)
-parser_logger = logging.getLogger("parser_debug")
+debug_logger = logging.getLogger("anlage2_debug")
 anlage1_logger = logging.getLogger("anlage1_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
 anlage3_logger = logging.getLogger("anlage3_debug")
@@ -270,8 +270,8 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
     if not text_content:
         return None
     text = text_content.replace("\u00b6", "\n")
-    parser_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
-    parser_logger.debug(
+    debug_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
+    debug_logger.debug(
         f"--- ANFANG ROH-TEXT ANLAGE 2 ---\n{text}\n--- ENDE ROH-TEXT ANLAGE 2 ---"
     )
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -1009,7 +1009,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         table = parser_manager.parse_anlage2(anlage)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
         parser_error = str(exc)
-        parser_logger.error("Fehler im Parser: %s", exc)
+        debug_logger.error("Fehler im Parser: %s", exc)
         anlage.analysis_json = {"parser_error": parser_error}
         anlage.save(update_fields=["analysis_json"])
         table = []
@@ -1037,7 +1037,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         )
         anlage2_logger.debug("Tabellenzeile: %s", row)
         if row is None:
-            parser_logger.debug("Parser fand Funktion '%s' nicht", func.name)
+            debug_logger.debug("Parser fand Funktion '%s' nicht", func.name)
 
         def _val(item, key):
             value = item.get(key)
@@ -1112,7 +1112,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 None,
             )
             if sub_row is None:
-                parser_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
+                debug_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text

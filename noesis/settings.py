@@ -203,13 +203,6 @@ LOGGING = {
             "filename": BASE_DIR / "llm-debug.log",
             "formatter": "llm_formatter",
         },
-        "parser_file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "parser-debug.log",
-            "formatter": "verbose",
-            "encoding": "utf-8",
-        },
         "anlage1_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
@@ -228,13 +221,6 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "anlage2-ergebnis.log",
-            "formatter": "verbose",
-            "encoding": "utf-8",
-        },
-        "anlage2_sergebnis_file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage2-sergebnis.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
@@ -302,11 +288,6 @@ LOGGING = {
             "level": "DEBUG",  # Hier setzt du den Loglevel für DEINE App auf DEBUG
             "propagate": False,
         },
-        "parser_debug": {
-            "handlers": ["parser_file"],
-            "level": "INFO",
-            "propagate": False,
-        },
         "anlage1_debug": {
             "handlers": ["anlage1_file"],
             "level": "DEBUG",
@@ -319,11 +300,6 @@ LOGGING = {
         },
         "anlage2_ergebnis": {
             "handlers": ["anlage2_ergebnis_file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-        "anlage2_sergebnis": {
-            "handlers": ["anlage2_sergebnis_file"],
             "level": "DEBUG",
             "propagate": False,
         },
