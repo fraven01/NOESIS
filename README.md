@@ -333,6 +333,8 @@ erscheinen anschließend direkt in der Tabelle, wobei die jeweilige Begründung
 Die Antwort auf die KI-Frage wird unter `ki_beteiligt` gespeichert. Gibt das
 Modell "Ja" zurück, folgt zudem eine kurze Erläuterung, die im Feld
 `ki_beteiligt_begruendung` landet.
+Über das ℹ️-Symbol in der Tabelle gelangt man zur Detailansicht, in der sich
+die Begründung bearbeiten lässt.
 
 ### Edit-Ansicht für Analysedaten
 

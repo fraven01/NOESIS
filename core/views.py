@@ -4460,6 +4460,54 @@ def justification_detail_edit(request, file_id, function_key):
 
 
 @login_required
+def ki_involvement_detail_edit(request, file_id, function_key):
+    """Zeigt und bearbeitet die Begründung zur KI-Beteiligung."""
+
+    anlage = get_object_or_404(BVProjectFile, pk=file_id)
+    if anlage.anlage_nr != 2:
+        raise Http404
+
+    func_name = function_key
+    sub_text = None
+    if ":" in function_key:
+        func_name, sub_text = [p.strip() for p in function_key.split(":", 1)]
+
+    get_object_or_404(Anlage2Function, name=func_name)
+    if sub_text:
+        get_object_or_404(
+            Anlage2SubQuestion,
+            funktion__name=func_name,
+            frage_text=sub_text,
+        )
+
+    data = (anlage.verification_json or {}).get(function_key, {})
+    initial_text = data.get("ki_beteiligt_begruendung", "")
+
+    if request.method == "POST":
+        form = JustificationForm(request.POST)
+        if form.is_valid():
+            text = form.cleaned_data["justification"]
+            vdata = anlage.verification_json or {}
+            entry = vdata.setdefault(function_key, {})
+            entry["ki_beteiligt_begruendung"] = text
+            anlage.verification_json = vdata
+            anlage.save(update_fields=["verification_json"])
+            messages.success(request, "Begründung gespeichert")
+            return redirect("projekt_file_edit_json", pk=anlage.pk)
+    else:
+        form = JustificationForm(initial={"justification": initial_text})
+
+    involvement_html = markdownify(initial_text)
+    context = {
+        "project_file": anlage,
+        "function_name": function_key,
+        "form": form,
+        "involvement_html": involvement_html,
+    }
+    return render(request, "involvement_detail.html", context)
+
+
+@login_required
 def justification_delete(request, file_id, function_key):
     """Löscht die KI-Begründung für einen Funktionsschlüssel."""
 

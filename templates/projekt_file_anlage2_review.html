@@ -85,6 +85,10 @@
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
+                    {% if row.ki_beteiligt_begruendung %}
+                    <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}"
+                       class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
+                    {% endif %}
                     {% else %}
                     {{ row.name }}
                     {% if row.has_justification %}
@@ -92,6 +96,10 @@
                        class="btn btn-sm btn-outline-secondary ms-2">
                         Begründung ansehen/bearbeiten
                     </a>
+                    {% endif %}
+                    {% if row.ki_beteiligt_begruendung %}
+                    <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}"
+                       class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
                     {% endif %}
                     {% endif %}
                     {% if row.source_text and row.source_text != 'N/A' %}
