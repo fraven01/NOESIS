@@ -307,6 +307,16 @@ class BVProjectFile(models.Model):
         task = fetch(self.verification_task_id)
         return bool(task and task.success is None)
 
+    def get_anlage2_state(self) -> str:
+        """Liefert den Bearbeitungszustand der Anlage 2."""
+        if self.anlage_nr != 2:
+            return ""
+        if self.is_verification_running():
+            return "running"
+        if not self.analysis_json:
+            return "pending"
+        return "parsed"
+
 
 class SoftwareKnowledge(models.Model):
     """Kenntnisstand des LLM zu einer Software in einem Projekt."""
