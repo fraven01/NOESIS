@@ -6,12 +6,14 @@
             data-is-manual="{{ is_manual|yesno:'true,false' }}"
             hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
             hx-target="closest td" hx-swap="outerHTML">
-        {% if state == True %}
-        ✓ Vorhanden
-        {% elif state == False %}
-        ✗ Nicht vorhanden
+        {% if status == 'ja' %}
+        ✓ Ja
+        {% elif status == 'nein' %}
+        ✗ Nein
+        {% elif status == 'unsicher' %}
+        ? Unsicher
         {% else %}
-        ? Unbekannt
+        ? Nicht geprüft
         {% endif %}
     </button>
     <span class="source-icon" title="{{ source }}">
@@ -24,7 +26,7 @@
         {% endif %}
     </span>
     {% else %}
-    <span>-</span>
+    <span class="status-badge status-ungeprueft">Nicht geprüft</span>
     {% endif %}
     {{ widget }}
 </td>
