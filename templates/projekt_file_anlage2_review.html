@@ -251,6 +251,12 @@ function updatePopoverContent(icon, input) {
         if ('value' in aiEntry) aiVal = aiEntry.value;
         aiNote = aiEntry.note || aiEntry.text || '';
     }
+    let aiDisplay;
+    if (ai.hasOwnProperty(aiKey)) {
+        aiDisplay = aiVal === true ? 'True' : aiVal === false ? 'False' : 'Unsicher';
+    } else {
+        aiDisplay = 'Nicht geprüft';
+    }
     let manualVal = null;
     let manualEntry = manual[aiKey];
     if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
@@ -260,7 +266,7 @@ function updatePopoverContent(icon, input) {
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
     }
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
-                 `KI-Check: ${aiVal}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
+                 `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
                  `Manuell: ${manualVal}`;
     icon.dataset.popoverContent = html;
     if (window.attachCustomPopover) {
