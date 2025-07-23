@@ -147,7 +147,7 @@ from django.conf import settings
 from .templatetags.recording_extras import markdownify
 
 logger = logging.getLogger(__name__)
-debug_logger = logging.getLogger("parser_debug")
+debug_logger = logging.getLogger("anlage2_debug")
 admin_a2_logger = logging.getLogger("anlage2_admin_debug")
 anlage2_logger = logging.getLogger("anlage2_debug")
 ergebnis_logger = logging.getLogger("anlage2_ergebnis")

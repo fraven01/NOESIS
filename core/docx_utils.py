@@ -28,8 +28,8 @@ def extract_text(path: Path) -> str:
     """Extrahiert den gesamten Text einer DOCX-Datei."""
     doc = Document(str(path))
     text = "\n".join(p.text for p in doc.paragraphs)
-    parser_logger = logging.getLogger("parser_debug")
-    parser_logger.debug("Rohtext aus %s: %r", path, text)
+    debug_logger = logging.getLogger("anlage2_debug")
+    debug_logger.debug("Rohtext aus %s: %r", path, text)
     return text
 
 
@@ -227,9 +227,9 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     ``note``.
     """
     logger = logging.getLogger(__name__)
-    parser_logger = logging.getLogger("parser_debug")
+    debug_logger = logging.getLogger("anlage2_debug")
     logger.debug(f"Starte parse_anlage2_table mit Pfad: {path}")
-    parser_logger.info("parse_anlage2_table gestartet: %s", path)
+    debug_logger.info("parse_anlage2_table gestartet: %s", path)
 
     try:
         doc = Document(str(path))
@@ -248,7 +248,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
     skipped = 0
     if not doc.tables:
         logger.debug("Keine Tabellen im Dokument gefunden")
-        parser_logger.debug("Keine Tabellen im Dokument gefunden")
+        debug_logger.debug("Keine Tabellen im Dokument gefunden")
     for table_idx, table in enumerate(doc.tables):
         headers_raw = [cell.text for cell in table.rows[0].cells]
         headers = [
@@ -304,13 +304,13 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
             if main_col_text and "Wenn die Funktion technisch" not in main_col_text:
                 current_main_function_name = main_col_text
-                parser_logger.debug(
+                debug_logger.debug(
                     "Hauptfunktion erkannt: %s", current_main_function_name
                 )
                 row_data = {"funktion": current_main_function_name}
             elif sub_col_text and current_main_function_name:
                 full_name = f"{current_main_function_name}: {sub_col_text}"
-                parser_logger.debug("Unterfrage erkannt: %s", full_name)
+                debug_logger.debug("Unterfrage erkannt: %s", full_name)
                 row_data = {"funktion": full_name}
                 is_sub = True
 
@@ -328,7 +328,7 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
                         continue
                     row_data[col_name] = _parse_cell_value(row.cells[idx].text)
 
-            parser_logger.debug("Verarbeite Zeile %s: %s", row_idx, row_data)
+            debug_logger.debug("Verarbeite Zeile %s: %s", row_idx, row_data)
             found.append(row_data["funktion"])
             logger.debug(
                 "Zeile %s: Funktion '%s' Daten %s",
@@ -345,10 +345,10 @@ def parse_anlage2_table(path: Path) -> list[dict[str, object]]:
 
     logger.debug(f"Endgültige Ergebnisse: {results}")
     if found:
-        parser_logger.info("Gefundene Funktionen: %s", ", ".join(found))
+        debug_logger.info("Gefundene Funktionen: %s", ", ".join(found))
     if skipped:
-        parser_logger.info("Übersprungene Zeilen: %s", skipped)
-    parser_logger.info("parse_anlage2_table beendet: %s", path)
+        debug_logger.info("Übersprungene Zeilen: %s", skipped)
+    debug_logger.info("parse_anlage2_table beendet: %s", path)
     return results
 
 

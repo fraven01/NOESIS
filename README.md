@@ -60,7 +60,8 @@ python manage.py test
 ## Logging
 
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
-Parserbezogene Informationen landen in `parser-debug.log` im selben Verzeichnis. Das Log fasst gefundene Funktionen zusammen und vermerkt nur kurz nicht erkannte Zeilen.
+Parserbezogene Informationen zu Anlage 2 landen in `anlage2-debug.log`. Dieses Log vermerkt detailliert jeden Verarbeitungsschritt.
+Eine kompakte Zusammenfassung der finalen Ergebnisse befindet sich in `anlage2-ergebnis.log`.
 Während der Entwicklung schreibt jede Anlage ihr eigenes Debug-Log. Die Dateien
 `anlage1-debug.log` bis `anlage5-debug.log` enthalten detaillierte Meldungen der
 jeweiligen Analysefunktionen. Durch den Eintrag `*.log` im `.gitignore` werden
@@ -146,7 +147,7 @@ den vollständigen Funktionskatalog aus der Datenbank und sucht dann im
 Dokument nach passenden Stellen. Anschließend bewertet das LLM jede
 einzelne Funktion. Dadurch erhält jede Funktion einen Eintrag im
 Ergebnis, selbst wenn sie im Dokument gar nicht vorkommt. Die
-gesammelten Resultate landen kompakt in `parser-debug.log`.
+gesammelten Resultate landen kompakt in `anlage2-ergebnis.log`.
 
 In der Projektübersicht stehen zwei Schaltflächen bereit. Über **Prüfen** wird
 der Parser erneut ausgeführt, um aktualisierte Dateien einzulesen. Mit
