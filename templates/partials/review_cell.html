@@ -4,14 +4,13 @@
     <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
             data-field-name="{{ field_name }}"
             data-is-manual="{{ is_manual|yesno:'true,false' }}"
+            data-ai-unsicher="{{ ai_unsicher|yesno:'true,false' }}"
             hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
             hx-target="closest td" hx-swap="outerHTML">
         {% if state == True %}
         ✓ Vorhanden
-        {% elif state == False %}
-        ✗ Nicht vorhanden
         {% else %}
-        ? Unbekannt
+        ✗ Nicht vorhanden
         {% endif %}
     </button>
     <span class="source-icon" title="{{ source }}">

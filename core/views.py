@@ -452,6 +452,8 @@ def _get_display_data(
         doc_val = a_data.get(field)
         manual_exists = field in m_data
         val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists)
+        if val is None:
+            val = False
         values[field] = val
         sources[field] = src
         manual_flags[field] = manual_exists
@@ -555,11 +557,7 @@ def _build_row_data(
     for field, _ in fields_def:
         bf = form[f"{form_prefix}{field}"]
         initial_value = disp["values"].get(field)
-        state = (
-            "true"
-            if initial_value is True
-            else "false" if initial_value is False else "unknown"
-        )
+        state = "true" if initial_value is True else "false"
         origin_val = "none"
         if field == "technisch_vorhanden":
             man_val = manual_lookup.get(lookup_key, {}).get(field)
@@ -576,12 +574,13 @@ def _build_row_data(
             "data-origin": origin_val,
         }
         if field == "technisch_vorhanden" and sub_id is not None:
-            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
+            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "false"})
         bf.field.widget.attrs.update(attrs)
         form_fields_map[field] = {
             "widget": bf,
             "source": disp["sources"][field],
             "origin": rev_origin.get(field),
+            "ai_unsicher": field in ai_data and ai_data.get(field) is None,
         }
 
 
