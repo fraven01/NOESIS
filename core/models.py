@@ -978,6 +978,8 @@ class FunktionsErgebnis(models.Model):
     zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
     begruendung = models.TextField(blank=True, null=True)
+    gap_begruendung_intern = models.TextField(blank=True, null=True)
+    gap_begruendung_extern = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
