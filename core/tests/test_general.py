@@ -253,14 +253,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "probabilistische Ergebnisse liefert."
             )
         },
-        "anlage2_ai_involvement_justification": {
-            "text": (
-                "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
-                "der Software '{software_name}' eine KI-Komponente beinhaltet oder "
-                "beinhalten kann, insbesondere im Hinblick auf die Verarbeitung "
-                "unstrukturierter Daten oder nicht-deterministischer Ergebnisse."
-            )
-        },
         "anlage2_feature_justification": {
             "text": (
                 "Warum besitzt die Software '{software_name}' typischerweise die "
