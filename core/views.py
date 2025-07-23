@@ -429,6 +429,15 @@ def _resolve_value(
     return doc_val, src
 
 
+def _bool_to_status(value: bool | None) -> str:
+    """Wandelt einen Bool-Wert in einen Status-String um."""
+    if value is True:
+        return "ja"
+    if value is False:
+        return "nein"
+    return "unsicher"
+
+
 def _get_display_data(
     lookup_key: str,
     analysis_data: dict[str, dict],
@@ -549,6 +558,7 @@ def _build_row_data(
     disp = _get_display_data(
         lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
     )
+    status_map = {field: _bool_to_status(disp["values"].get(field)) for field, _ in get_anlage2_fields()}
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
     rev_origin = {}
@@ -621,6 +631,7 @@ def _build_row_data(
         "manual_result": manual_data,
         "manual_json": manual_json,
         "initial": disp["values"],
+        "status_values": status_map,
         "manual_flags": disp["manual_flags"],
         "form_fields": form_fields_map,
         "is_negotiable": is_negotiable,
@@ -3987,6 +3998,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
     context = {
         "state": new_state,
+        "status": _bool_to_status(new_state),
         "source": "Manuell",
         "field_name": field_name,
         "row": {
