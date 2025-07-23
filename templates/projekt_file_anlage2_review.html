@@ -79,7 +79,7 @@
                     {% if not row.sub %}
                     <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {{ row.name }}
-                    {% if row.ki_begruendung %}
+                    {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
                        class="btn btn-sm btn-outline-secondary ms-2">
                         Begründung ansehen/bearbeiten
@@ -87,7 +87,7 @@
                     {% endif %}
                     {% else %}
                     {{ row.name }}
-                    {% if row.ki_begruendung %}
+                    {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
                        class="btn btn-sm btn-outline-secondary ms-2">
                         Begründung ansehen/bearbeiten
