@@ -496,6 +496,16 @@ def _build_row_data(
         parent_key = lookup_key.split(":", 1)[0].strip()
         result_obj = result_map.get(parent_key)
 
+    manual_data = manual_lookup.get(lookup_key, {})
+    parser_entry = None
+    ai_entry = None
+    doc_data = {}
+    ai_data = {}
+    doc_status = {}
+    ai_status = {}
+    manual_status = {}
+    initial_status = {}
+
     if result_obj:
         pf = (
             result_obj.anlage_datei.projekt.anlagen
@@ -505,11 +515,7 @@ def _build_row_data(
         )
         parser_entry = (
             FunktionsErgebnis.objects.filter(
-
-
                 anlage_datei=pf,
-
-
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="parser",
@@ -519,10 +525,7 @@ def _build_row_data(
         )
         ai_entry = (
             FunktionsErgebnis.objects.filter(
-
-
                 anlage_datei=pf,
-
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="ki",
@@ -531,12 +534,8 @@ def _build_row_data(
             .first()
         )
         doc_data = {
-            "technisch_vorhanden": parser_entry.technisch_verfuegbar
-            if parser_entry
-            else None,
-            "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica
-            if parser_entry
-            else None,
+            "technisch_vorhanden": parser_entry.technisch_verfuegbar if parser_entry else None,
+            "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica if parser_entry else None,
             "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
             "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
             "begruendung": parser_entry.begruendung if parser_entry else None,
@@ -546,26 +545,17 @@ def _build_row_data(
             "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
             "begruendung": ai_entry.begruendung if ai_entry else None,
         }
-        doc_status = {}
-        ai_status = {}
-        manual_status = {}
-        initial_status = {}
-        for field, _ in get_anlage2_fields():
-            doc_status[field] = _status_text(doc_data.get(field), parser_entry is not None)
-            ai_status[field] = _status_text(ai_data.get(field), ai_entry is not None)
-            manual_status[field] = _status_text(manual_data.get(field), field in manual_data)
-            exists = (parser_entry is not None) or (ai_entry is not None) or (field in manual_data)
-            initial_status[field] = _status_text(disp["values"].get(field), exists)
-    else:
-        doc_data = {}
-        ai_data = {}
-        doc_status = {}
-        ai_status = {}
-        manual_status = {}
-        initial_status = {}
+
+    disp = _get_display_data(lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup)
+
+    for field, _ in get_anlage2_fields():
+        doc_status[field] = _status_text(doc_data.get(field), parser_entry is not None)
+        ai_status[field] = _status_text(ai_data.get(field), ai_entry is not None)
+        manual_status[field] = _status_text(manual_data.get(field), field in manual_data)
+        exists = (parser_entry is not None) or (ai_entry is not None) or (field in manual_data)
+        initial_status[field] = _status_text(disp["values"].get(field), exists)
 
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
-    manual_data = manual_lookup.get(lookup_key, {})
     doc_json = json.dumps(doc_data, ensure_ascii=False)
     ai_json = json.dumps(ai_data, ensure_ascii=False)
     manual_json = json.dumps(manual_data, ensure_ascii=False)
@@ -574,9 +564,6 @@ def _build_row_data(
     manual_status_json = json.dumps(manual_status, ensure_ascii=False)
     initial_status_json = json.dumps(initial_status, ensure_ascii=False)
 
-    disp = _get_display_data(
-        lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
-    )
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
     rev_origin = {}
