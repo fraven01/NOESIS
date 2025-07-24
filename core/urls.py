@@ -362,6 +362,11 @@ urlpatterns = [
         name="projekt_file_parse_anlage2",
     ),
     path(
+        "work/anlage/<int:pk>/trigger-analysis/",
+        views.trigger_file_analysis,
+        name="trigger_file_analysis",
+    ),
+    path(
         "work/anlage/<int:pk>/analyse4/",
         views.projekt_file_analyse_anlage4,
         name="projekt_file_analyse_anlage4",

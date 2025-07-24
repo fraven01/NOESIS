@@ -1,16 +1,29 @@
-{% if anlage.processing_status == 'PROCESSING' or not anlage.analysis_json %}
-<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
+{% if anlage.anlage_nr == 3 %}
+  {% url 'anlage3_file_review' anlage.pk as edit_url %}
+{% elif anlage.anlage_nr == 4 %}
+  {% url 'anlage4_review' anlage.pk as edit_url %}
+{% elif anlage.anlage_nr == 5 %}
+  {% url 'anlage5_review' anlage.pk as edit_url %}
+{% elif anlage.anlage_nr == 6 %}
+  {% url 'anlage6_review' anlage.pk as edit_url %}
 {% else %}
-  {% if anlage.anlage_nr == 3 %}
-  <a href="{% url 'anlage3_file_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-  {% elif anlage.anlage_nr == 4 %}
-  <a href="{% url 'anlage4_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-  {% elif anlage.anlage_nr == 5 %}
-  <a href="{% url 'anlage5_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-  {% elif anlage.anlage_nr == 6 %}
-  <a href="{% url 'anlage6_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-  {% else %}
-  <a href="{% url 'projekt_file_edit_json' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-  {% endif %}
+  {% url 'projekt_file_edit_json' anlage.pk as edit_url %}
+{% endif %}
+
+{% if anlage.processing_status == 'PROCESSING' %}
+<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
+{% elif anlage.processing_status == 'COMPLETE' %}
+<a href="{{ edit_url }}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+{% elif anlage.processing_status == 'FAILED' %}
+<span class="text-red-600 mr-2">Analyse fehlgeschlagen</span>
+<form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline">
+  {% csrf_token %}
+  <button class="bg-purple-600 text-white px-2 py-1 rounded">Erneut versuchen</button>
+</form>
+{% else %}
+<form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline">
+  {% csrf_token %}
+  <button class="bg-purple-600 text-white px-2 py-1 rounded">Analyse starten</button>
+</form>
 {% endif %}
 
