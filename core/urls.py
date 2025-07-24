@@ -407,6 +407,11 @@ urlpatterns = [
         name="projekt_file_delete_result",
     ),
     path(
+        "work/anlage/<int:pk>/delete-version/",
+        views.delete_project_file_version,
+        name="delete_project_file_version",
+    ),
+    path(
         "work/anlage/<int:pk>/reset-all-reviews/",
         views.ajax_reset_all_reviews,
         name="ajax_reset_all_reviews",
