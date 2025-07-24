@@ -247,6 +247,11 @@ urlpatterns = [
         name="projekt_functions_check",
     ),
     path(
+        "work/projekte/<int:projekt_id>/anlage2/supervision/",
+        views.anlage2_supervision,
+        name="anlage2_supervision",
+    ),
+    path(
         "work/anlage/<int:pk>/verify-feature/",
         views.anlage2_feature_verify,
         name="anlage2_feature_verify",
@@ -295,6 +300,16 @@ urlpatterns = [
         "hx/negotiable/<int:result_id>/",
         views.hx_toggle_negotiable,
         name="hx_toggle_negotiable",
+    ),
+    path(
+        "hx/supervision/confirm/<int:result_id>/",
+        views.hx_supervision_confirm,
+        name="hx_supervision_confirm",
+    ),
+    path(
+        "hx/supervision/notes/<int:result_id>/",
+        views.hx_supervision_save_notes,
+        name="hx_supervision_save_notes",
     ),
     path(
         "projects/anlagen/<int:pf_id>/status/",

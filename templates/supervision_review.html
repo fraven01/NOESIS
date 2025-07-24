@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Anlage 2 Supervision{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Supervision Anlage 2</h1>
+<div class="space-y-4">
+  {% for row in rows %}
+    {% include 'partials/supervision_row.html' with row=row %}
+  {% empty %}
+    <p>Keine Funktionen gefunden.</p>
+  {% endfor %}
+</div>
+{% endblock %}

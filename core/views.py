@@ -651,6 +651,57 @@ def _build_row_data(
     }
 
 
+def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile) -> dict:
+    """Erzeugt eine einfache Datenstruktur für die Supervisions-Ansicht."""
+
+    parser_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion=result.subquestion,
+            quelle="parser",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    ai_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion=result.subquestion,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    manual_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion=result.subquestion,
+            quelle="manuell",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    doc_val = parser_entry.technisch_verfuegbar if parser_entry else None
+    ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
+    final_val = manual_entry.technisch_verfuegbar if manual_entry else None
+
+    return {
+        "result_id": result.id,
+        "name": result.get_lookup_key(),
+        "doc_val": doc_val,
+        "doc_snippet": parser_entry.begruendung if parser_entry else "",
+        "ai_val": ai_val,
+        "ai_reason": ai_entry.begruendung if ai_entry else "",
+        "final_val": final_val,
+        "notes": result.supervisor_notes or "",
+        "has_discrepancy": doc_val is not None and ai_val is not None and doc_val != ai_val,
+    }
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -3613,6 +3664,80 @@ def anlage2_feature_verify(request, pk):
     )
 
     return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
+def anlage2_supervision(request, projekt_id):
+    """Zeigt die neue Supervisions-Ansicht f\u00fcr Anlage 2."""
+
+    projekt = get_object_or_404(BVProject, pk=projekt_id)
+    pf = projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    if pf is None:
+        raise Http404
+
+    results = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+        .select_related("funktion", "subquestion")
+        .order_by("funktion__name")
+    )
+
+    rows = [_build_supervision_row(r, pf) for r in results]
+
+    context = {"projekt": projekt, "rows": rows}
+    return render(request, "supervision_review.html", context)
+
+
+@login_required
+@require_POST
+def hx_supervision_confirm(request, result_id: int):
+    """Speichert das KI-Ergebnis als manuellen Wert."""
+
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    ai_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion=result.subquestion,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if ai_entry:
+        FunktionsErgebnis.objects.create(
+            projekt=result.anlage_datei.projekt,
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion=result.subquestion,
+            quelle="manuell",
+            technisch_verfuegbar=ai_entry.technisch_verfuegbar,
+        )
+
+    row = _build_supervision_row(result, pf)
+    return render(request, "partials/supervision_row.html", {"row": row})
+
+
+@login_required
+@require_POST
+def hx_supervision_save_notes(request, result_id: int):
+    """Speichert die Notizen des Supervisors."""
+
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    result.supervisor_notes = request.POST.get("notes", "")
+    result.save(update_fields=["supervisor_notes"])
+
+    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    row = _build_supervision_row(result, pf)
+    return render(request, "partials/supervision_row.html", {"row": row})
 
 
 @login_required

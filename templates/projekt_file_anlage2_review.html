@@ -9,6 +9,11 @@
 {% block title %}Anlage 2 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
+<p>
+  <a href="{% url 'anlage2_supervision' anlage.projekt.pk %}" class="bg-purple-600 text-white px-3 py-1 rounded">
+    Zur neuen Supervisions-Ansicht wechseln
+  </a>
+</p>
 <div class="bg-white rounded-lg shadow p-4 space-y-4">
 <form method="post" class="space-y-4 mb-4">
     {% csrf_token %}
