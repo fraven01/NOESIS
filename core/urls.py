@@ -322,11 +322,6 @@ urlpatterns = [
         name="hx_supervision_revert_to_document",
     ),
     path(
-        "projects/anlagen/<int:pf_id>/status/",
-        views.hx_project_file_status,
-        name="hx_project_file_status",
-    ),
-    path(
         "hx_anlage_status/<int:pk>/",
         views.hx_anlage_status,
         name="hx_anlage_status",
