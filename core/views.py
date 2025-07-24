@@ -3265,6 +3265,13 @@ def projekt_file_edit_json(request, pk):
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
         raise Http404
+    versions = list(
+        BVProjectFile.objects.filter(
+            projekt=anlage.projekt,
+            anlage_nr=anlage.anlage_nr,
+        ).order_by("version")
+    )
+
     if request.method == "GET" and anlage.anlage_nr == 2:
         results = (
             AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
