@@ -3889,11 +3889,12 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
 @login_required
 @require_POST
 def hx_update_review_cell(request, result_id: int, field_name: str):
-    """Aktualisiert eine Bewertungszelle via htmx."""
+    """Schaltet einen Review-Wert um und rendert die komplette Tabellenzeile."""
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
     if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
+
     sub_id = request.POST.get("sub_id")
 
     field_map = {
@@ -3903,105 +3904,140 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         "zur_lv_kontrolle": "zur_lv_kontrolle",
     }
     attr = field_map.get(field_name, "technisch_verfuegbar")
-    cur = None
-    new_state = True
-
-    prev_manual = None
-    if field_name == "technisch_vorhanden" and sub_id is None:
-        pf = (
-            result.anlage_datei.projekt.anlagen.filter(anlage_nr=2)
-            .order_by("id")
-            .first()
-        )
-        prev = (
-            FunktionsErgebnis.objects.filter(
-                anlage_datei=pf,
-                funktion=result.funktion,
-                subquestion__isnull=True,
-                quelle="manuell",
-            )
-            .order_by("-created_at")
-            .first()
-        )
-        if prev:
-            prev_manual = prev.technisch_verfuegbar
-
-    field_map = {
-        "technisch_vorhanden": "technisch_verfuegbar",
-        "ki_beteiligung": "ki_beteiligung",
-        "einsatz_bei_telefonica": "einsatz_bei_telefonica",
-        "zur_lv_kontrolle": "zur_lv_kontrolle",
-    }
-
 
     pf = (
         result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
     )
-    FunktionsErgebnis.objects.create(
 
-
-        projekt=result.anlage_datei.projekt,
+    manual_qs = FunktionsErgebnis.objects.filter(
         anlage_datei=pf,
-
-
         funktion=result.funktion,
         subquestion_id=sub_id,
         quelle="manuell",
-        **{attr: new_state},
-    )
+    ).exclude(**{attr: None}).order_by("-created_at")
 
-    if (
-        field_name == "technisch_vorhanden"
-        and sub_id is None
-        and new_state
-        and prev_manual in (False, None)
-    ):
-        func_exists = (
+    manual_entry = manual_qs.first()
+
+    if manual_entry:
+        manual_entry.delete()
+    else:
+        parser_entry = (
             FunktionsErgebnis.objects.filter(
                 anlage_datei=pf,
                 funktion=result.funktion,
-                subquestion__isnull=True,
+                subquestion_id=sub_id,
+                quelle="parser",
             )
-            .exclude(quelle="manuell")
-            .exists()
+            .exclude(**{attr: None})
+            .order_by("-created_at")
+            .first()
         )
-        if not func_exists:
-            async_task(
-                "core.llm_tasks.worker_verify_feature",
-                result.anlage_datei.projekt_id,
-                "function",
-                result.funktion_id,
+        ai_entry = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=result.funktion,
+                subquestion_id=sub_id,
+                quelle="ki",
             )
-        for sub in result.funktion.anlage2subquestion_set.all():
-            sub_exists = (
-                FunktionsErgebnis.objects.filter(
-                    anlage_datei=pf,
-                    funktion=result.funktion,
-                    subquestion=sub,
-                )
-                .exclude(quelle="manuell")
-                .exists()
-            )
-            if not sub_exists:
-                async_task(
-                    "core.llm_tasks.worker_verify_feature",
-                    result.anlage_datei.projekt_id,
-                    "subquestion",
-                    sub.id,
-                )
+            .exclude(**{attr: None})
+            .order_by("-created_at")
+            .first()
+        )
+        doc_val = getattr(parser_entry, attr) if parser_entry else None
+        ai_val = getattr(ai_entry, attr) if ai_entry else None
+        cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name)
+        new_state = not cur_val if cur_val is not None else True
+        FunktionsErgebnis.objects.create(
+            projekt=result.anlage_datei.projekt,
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle="manuell",
+            **{attr: new_state},
+        )
 
-    context = {
-        "state": new_state,
-        "source": "Manuell",
-        "field_name": field_name,
-        "row": {
-            "sub": sub_id is not None,
-            "result_id": result.id,
-            "sub_id": sub_id,
-        },
-        "is_manual": True,
+    lookup_key = result.get_lookup_key()
+    display_name = (
+        result.subquestion.frage_text if result.subquestion else result.funktion.name
+    )
+
+    parser_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle="parser",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    ai_entry = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    doc_data = {
+        "technisch_vorhanden": parser_entry.technisch_verfuegbar if parser_entry else None,
+        "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica if parser_entry else None,
+        "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
+        "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
     }
-    return render(request, "partials/review_cell.html", context)
+    ai_data = {
+        "technisch_vorhanden": ai_entry.technisch_verfuegbar if ai_entry else None,
+        "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
+    }
+
+    manual_data: dict[str, bool] = {}
+    for f_key, db_key in field_map.items():
+        m_entry = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=result.funktion,
+                subquestion_id=sub_id,
+                quelle="manuell",
+            )
+            .exclude(**{db_key: None})
+            .order_by("-created_at")
+            .first()
+        )
+        if m_entry is not None:
+            manual_data[f_key] = getattr(m_entry, db_key)
+
+    manual_lookup = {lookup_key: manual_data}
+    analysis_lookup = {lookup_key: doc_data}
+    verification_lookup = {lookup_key: ai_data}
+    result_map = {lookup_key: result}
+    form = Anlage2ReviewForm()
+
+    row = _build_row_data(
+        display_name,
+        lookup_key,
+        result.funktion_id,
+        f"{'func' if sub_id is None else 'sub'}{result.funktion_id if sub_id is None else sub_id}_",
+        form,
+        analysis_lookup,
+        {},
+        {},
+        manual_lookup,
+        result_map,
+        sub_id=sub_id,
+    )
+
+    fields_def = get_anlage2_fields()
+    context = {
+        "row": row,
+        "fields": [f[0] for f in fields_def],
+        "field_pairs": fields_def,
+        "anlage": result.anlage_datei,
+    }
+
+    return render(request, "partials/review_row.html", context)
 
 
 @login_required

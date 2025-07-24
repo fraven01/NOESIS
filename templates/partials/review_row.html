@@ -1,0 +1,69 @@
+{% load recording_extras %}
+<tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }} {% endif %}{% if row.is_negotiable %}negotiated-row{% endif %}"
+    data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
+    data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
+    data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
+    data-ai='{{ row.ai_result|tojson }}'
+    data-doc='{{ row.doc_result|tojson }}'
+    data-manual='{{ row.manual_result|tojson }}'
+    data-negotiable="{{ row.is_negotiable|yesno:'true,false' }}"
+    data-manual-override="{{ row.negotiable_manual_override|yesno:'true,false,' }}"
+    data-requires-review="{{ row.requires_manual_review|yesno:'true,false' }}"
+    data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
+    <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
+        {% if not row.sub %}
+        <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
+        {{ row.name }}
+        {% if row.has_justification %}
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="btn btn-sm btn-outline-secondary ms-2">Begründung ansehen/bearbeiten</a>
+        {% endif %}
+        {% if row.ki_beteiligt_begruendung %}
+        <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}" class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
+        {% endif %}
+        {% else %}
+        {{ row.name }}
+        {% if row.has_justification %}
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="btn btn-sm btn-outline-secondary ms-2">Begründung ansehen/bearbeiten</a>
+        {% endif %}
+        {% if row.ki_beteiligt_begruendung %}
+        <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}" class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
+        {% endif %}
+        {% endif %}
+        {% if row.source_text and row.source_text != 'N/A' %}
+        <span class="text-muted small source-indicator" title="{{ row.source_text }}">
+            {% if row.source_text == 'Manuell' %}
+            <i class="fas fa-user"></i>
+            {% else %}
+            <i class="fas fa-file-alt"></i>
+            {% endif %}
+        </span>
+        {% elif row.source_text == 'N/A' %}
+        <span class="text-muted small source-indicator"><i class="fas fa-question"></i></span>
+        {% endif %}
+    </td>
+    <td class="border px-2 text-center">
+        <button type="button" class="btn btn-sm btn-light review-cycle-btn"
+            data-state="robot" title="KI-Prüfung starten"
+            data-project-file-id="{{ anlage.pk }}"
+            data-function-id="{{ row.func_id }}"
+            data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
+            {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
+    </td>
+    {% for field in fields %}
+    {% with f=row.form_fields|get_item:field %}
+    {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
+    {% endwith %}
+    {% endfor %}
+    {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
+    <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
+        {% if row.result_id %}
+        <a href="{% url 'edit_gap_notes' row.result_id %}" class="gap-note-icon {% if row.has_notes %}text-blue-600{% endif %}">🗒️</a>
+        <button type="button" class="gap-summary-btn" data-result-id="{{ row.result_id }}" title="Gap-Zusammenfassung generieren">↻</button>
+        {% else %}
+        <span class="gap-note-icon">🗒️</span>
+        {% endif %}
+        {% if row.requires_manual_review %}
+        <div class="text-danger text-sm">Manueller Review erforderlich</div>
+        {% endif %}
+    </td>
+</tr>

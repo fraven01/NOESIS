@@ -1,5 +1,9 @@
 (function(){
+    function removeAll(){
+        document.querySelectorAll('.custom-popover').forEach(el => el.remove());
+    }
     function createPopover(content, target){
+        removeAll();
         const pop = document.createElement('div');
         pop.className = 'custom-popover';
         pop.innerHTML = (content || '').replace(/\n/g, '<br>');
@@ -25,6 +29,7 @@
         });
     }
     window.attachCustomPopover = attach;
+    window.removeCustomPopovers = removeAll;
     window.initCustomPopovers = function(container=document){
         container.querySelectorAll('[data-popover-content]').forEach(el => {
             if(!el.dataset.popoverInit){
@@ -33,4 +38,5 @@
             }
         });
     };
+    document.body.addEventListener('htmx:beforeSwap', removeAll);
 })();
