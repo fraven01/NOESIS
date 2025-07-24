@@ -1073,3 +1073,19 @@ class Anlage3ParserRule(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.field_name
+
+
+class SupervisionStandardNote(models.Model):
+    """Vordefinierte Notiz für die Supervision."""
+
+    note_text = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "note_text"]
+        verbose_name = "Standardnotiz Supervision"
+        verbose_name_plural = "Standardnotizen Supervision"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return self.note_text

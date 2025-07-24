@@ -24,6 +24,7 @@ from .models import (
     Anlage3ParserRule,
     Anlage3Metadata,
     Anlage5Review,
+    SupervisionStandardNote,
 )
 
 
@@ -272,6 +273,12 @@ class Anlage5ReviewAdmin(admin.ModelAdmin):
 @admin.register(Anlage3Metadata)
 class Anlage3MetadataAdmin(admin.ModelAdmin):
     list_display = ("project_file", "name", "zeitraum")
+
+
+@admin.register(SupervisionStandardNote)
+class SupervisionStandardNoteAdmin(admin.ModelAdmin):
+    list_display = ("note_text", "is_active", "display_order")
+    list_editable = ("is_active", "display_order")
 
 
 # Registrierung der Modelle

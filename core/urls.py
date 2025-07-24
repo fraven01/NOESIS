@@ -312,6 +312,11 @@ urlpatterns = [
         name="hx_supervision_save_notes",
     ),
     path(
+        "hx/supervision/add-note/<int:result_id>/",
+        views.hx_supervision_add_standard_note,
+        name="hx_supervision_add_standard_note",
+    ),
+    path(
         "projects/anlagen/<int:pf_id>/status/",
         views.hx_project_file_status,
         name="hx_project_file_status",
