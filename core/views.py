@@ -702,6 +702,41 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
     }
 
 
+def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
+    """Gruppiert Hauptfunktionen und Unterfragen für die Supervision."""
+
+    results = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+        .select_related("funktion", "subquestion")
+        .order_by("funktion__name", "subquestion__id")
+    )
+
+    grouped: dict[int, dict] = {}
+    for r in results:
+        key = r.funktion_id
+        grouped.setdefault(key, {"function": None, "subrows": [], "name": r.funktion.name})
+        row_data = _build_supervision_row(r, pf)
+        if r.subquestion_id:
+            grouped[key]["subrows"].append(row_data)
+        else:
+            grouped[key]["function"] = row_data
+
+    groups: list[dict] = []
+    for g in grouped.values():
+        func = g.get("function")
+        if not func:
+            continue
+        present = func["final_val"]
+        if present is None:
+            present = func["doc_val"] if func["doc_val"] is not None else func["ai_val"]
+        groups.append({
+            "function": func,
+            "subrows": g.get("subrows", []),
+            "show_subs": bool(present),
+        })
+    return groups
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -3675,13 +3710,7 @@ def anlage2_supervision(request, projekt_id):
     if pf is None:
         raise Http404
 
-    results = (
-        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
-        .select_related("funktion", "subquestion")
-        .order_by("funktion__name")
-    )
-
-    rows = [_build_supervision_row(r, pf) for r in results]
+    rows = _build_supervision_groups(pf)
 
     context = {"projekt": projekt, "rows": rows}
     return render(request, "supervision_review.html", context)
@@ -3718,6 +3747,10 @@ def hx_supervision_confirm(request, result_id: int):
             technisch_verfuegbar=ai_entry.technisch_verfuegbar,
         )
 
+    if result.subquestion is None:
+        groups = _build_supervision_groups(pf)
+        group = next(g for g in groups if g["function"]["result_id"] == result.id)
+        return render(request, "partials/supervision_group.html", {"group": group})
     row = _build_supervision_row(result, pf)
     return render(request, "partials/supervision_row.html", {"row": row})
 
@@ -3736,6 +3769,10 @@ def hx_supervision_save_notes(request, result_id: int):
     result.save(update_fields=["supervisor_notes"])
 
     pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    if result.subquestion is None:
+        groups = _build_supervision_groups(pf)
+        group = next(g for g in groups if g["function"]["result_id"] == result.id)
+        return render(request, "partials/supervision_group.html", {"group": group})
     row = _build_supervision_row(result, pf)
     return render(request, "partials/supervision_row.html", {"row": row})
 
