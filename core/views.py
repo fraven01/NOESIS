@@ -2984,6 +2984,20 @@ def projekt_file_upload(request, pk):
             obj = form.save(commit=False)
             obj.projekt = projekt
             obj.text_content = content
+            old_file = (
+                BVProjectFile.objects.filter(
+                    projekt=projekt,
+                    anlage_nr=obj.anlage_nr,
+                    is_active=True,
+                )
+                .order_by("-version")
+                .first()
+            )
+            if old_file:
+                old_file.is_active = False
+                old_file.save(update_fields=["is_active"])
+                obj.version = old_file.version + 1
+                obj.parent = old_file
             obj.save()
 
             if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
