@@ -23,6 +23,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 import io
 import zipfile
 from django.db import transaction
+from django.db.models import Q
 import subprocess
 import whisper
 import torch
@@ -3085,6 +3086,8 @@ def projekt_file_upload(request, pk):
                         obj.save(update_fields=["verhandlungsfaehig"])
                 except Exception:
                     logger.exception("Fehler beim Seitenzählen")
+            if old_file:
+                return redirect("compare_versions", pk=obj.pk)
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()
@@ -4980,6 +4983,54 @@ def download_knowledge_as_word(request, knowledge_id):
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+
+
+@login_required
+def compare_versions(request, pk):
+    """Vergleicht eine Datei mit ihrer Vorgängerversion."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    parent = project_file.parent
+    if not parent:
+        raise Http404
+
+    if request.method == "POST":
+        result_id = int(request.POST.get("result_id", 0))
+        action = request.POST.get("action")
+        result = get_object_or_404(
+            AnlagenFunktionsMetadaten, pk=result_id, anlage_datei=parent
+        )
+        if not _user_can_edit_project(request.user, project_file.projekt):
+            return HttpResponseForbidden("Nicht berechtigt")
+        if action == "fix":
+            result.gap_summary = ""
+            result.gap_notiz = ""
+            result.save(update_fields=["gap_summary", "gap_notiz"])
+        elif action == "carry":
+            AnlagenFunktionsMetadaten.objects.update_or_create(
+                anlage_datei=project_file,
+                funktion=result.funktion,
+                subquestion=result.subquestion,
+                defaults={
+                    "gap_summary": result.gap_summary,
+                    "gap_notiz": result.gap_notiz,
+                    "is_negotiable": result.is_negotiable,
+                },
+            )
+        return HttpResponse("", status=204)
+
+    parent_gaps = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=parent)
+        .filter(Q(gap_summary__isnull=False) & ~Q(gap_summary="") | Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
+        .select_related("funktion", "subquestion")
+    )
+
+    context = {
+        "file": project_file,
+        "parent": parent,
+        "parent_gaps": parent_gaps,
+    }
+    return render(request, "version_compare.html", context)
 
 
 @login_required
