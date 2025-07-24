@@ -127,6 +127,7 @@ from .parser_manager import parser_manager
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
+from .utils import get_project_file
 from django.forms import formset_factory, modelformset_factory
 
 
@@ -352,11 +353,7 @@ def _verification_to_initial(_data: dict | None) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
-        pf = (
-            _data
-            if isinstance(_data, BVProjectFile)
-            else res.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
-        )
+        pf = _data if isinstance(_data, BVProjectFile) else get_project_file(res.projekt, 2)
         latest = (
             FunktionsErgebnis.objects.filter(
                 anlage_datei=pf,
@@ -3721,7 +3718,7 @@ def anlage2_supervision(request, projekt_id):
     """Zeigt die neue Supervisions-Ansicht f\u00fcr Anlage 2."""
 
     projekt = get_object_or_404(BVProject, pk=projekt_id)
-    pf = projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    pf = get_project_file(projekt, 2)
     if pf is None:
         raise Http404
 
@@ -3744,7 +3741,7 @@ def hx_supervision_confirm(request, result_id: int):
     if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    pf = get_project_file(result.anlage_datei.projekt, 2)
     ai_entry = (
         FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
@@ -3786,7 +3783,7 @@ def hx_supervision_save_notes(request, result_id: int):
     result.supervisor_notes = request.POST.get("notes", "")
     result.save(update_fields=["supervisor_notes"])
 
-    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    pf = get_project_file(result.anlage_datei.projekt, 2)
     if result.subquestion is None:
         groups = _build_supervision_groups(pf)
         group = next(g for g in groups if g["function"]["result_id"] == result.id)
@@ -3813,7 +3810,7 @@ def hx_supervision_add_standard_note(request, result_id: int):
             result.supervisor_notes = note_text
         result.save(update_fields=["supervisor_notes"])
 
-    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    pf = get_project_file(result.anlage_datei.projekt, 2)
     if result.subquestion is None:
         groups = _build_supervision_groups(pf)
         group = next(g for g in groups if g["function"]["result_id"] == result.id)
@@ -4112,9 +4109,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     }
     attr = field_map.get(field_name, "technisch_verfuegbar")
 
-    pf = (
-        result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
-    )
+    pf = get_project_file(result.anlage_datei.projekt, 2)
 
     manual_qs = FunktionsErgebnis.objects.filter(
         anlage_datei=pf,
@@ -4304,12 +4299,12 @@ def edit_gap_notes(request, result_id: int):
         result.gap_summary = request.POST.get("gap_summary", "")
         result.gap_notiz = request.POST.get("gap_notiz", "")
         result.save(update_fields=["gap_summary", "gap_notiz"])
-        pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).first()
+        pf = get_project_file(result.anlage_datei.projekt, 2)
         if pf:
             return redirect("projekt_file_edit_json", pk=pf.pk)
         return redirect("projekt_detail", pk=result.anlage_datei.projekt.pk)
 
-    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).first()
+    pf = get_project_file(result.anlage_datei.projekt, 2)
     context = {"result": result, "project_file": pf}
     return render(request, "gap_notes_form.html", context)
 
