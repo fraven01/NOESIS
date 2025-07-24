@@ -2431,6 +2431,71 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
         self.assertFalse(self.file.verhandlungsfaehig)
 
 
+class ProjektFileVersionDeletionTests(NoesisTestCase):
+    def setUp(self):
+        self.user.is_staff = True
+        self.user.save()
+        self.client.login(username=self.user.username, password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_delete_active_restores_parent(self):
+        v1 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"d"),
+            text_content="t",
+        )
+        v1.is_active = False
+        v1.save(update_fields=["is_active"])
+        v2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("b.txt", b"d"),
+            text_content="t",
+            version=2,
+            parent=v1,
+        )
+        url = reverse("delete_project_file_version", args=[v2.pk])
+        resp = self.client.post(url, follow=True)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.assertContains(resp, "Die Version wurde erfolgreich gel\u00f6scht.")
+        self.assertFalse(BVProjectFile.objects.filter(pk=v2.pk).exists())
+        v1.refresh_from_db()
+        self.assertTrue(v1.is_active)
+
+    def test_delete_inactive_repairs_chain(self):
+        v1 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"d"),
+            text_content="t",
+            is_active=False,
+        )
+        v2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("b.txt", b"d"),
+            text_content="t",
+            version=2,
+            parent=v1,
+            is_active=False,
+        )
+        v3 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("c.txt", b"d"),
+            text_content="t",
+            version=3,
+            parent=v2,
+        )
+        url = reverse("delete_project_file_version", args=[v2.pk])
+        resp = self.client.post(url, follow=True)
+        self.assertContains(resp, "Die Version wurde erfolgreich gel\u00f6scht.")
+        self.assertFalse(BVProjectFile.objects.filter(pk=v2.pk).exists())
+        v3.refresh_from_db()
+        self.assertEqual(v3.parent, v1)
+
+
 class ProjektFileCheckResultTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("vuser", password="pass")

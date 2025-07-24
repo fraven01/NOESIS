@@ -5,12 +5,24 @@
 <h1 class="text-2xl font-semibold mb-4">Version {{ file.version }} mit Vorgänger vergleichen</h1>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div>
-    <h2 class="font-semibold">Aktuelle Version (v{{ file.version }})</h2>
+    <h2 class="font-semibold">
+      Aktuelle Version (v{{ file.version }})
+      <form method="post" action="{% url 'delete_project_file_version' file.pk %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+      </form>
+    </h2>
     <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ file.manual_analysis_json|default:file.analysis_json|tojson }}</pre>
   </div>
   {% if parent %}
   <div>
-    <h2 class="font-semibold">Vorherige Version (v{{ parent.version }})</h2>
+    <h2 class="font-semibold">
+      Vorherige Version (v{{ parent.version }})
+      <form method="post" action="{% url 'delete_project_file_version' parent.pk %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+      </form>
+    </h2>
     <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
   </div>
   {% endif %}

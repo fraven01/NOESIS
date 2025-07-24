@@ -4603,6 +4603,37 @@ def projekt_file_delete_result(request, pk: int):
 
 
 @login_required
+@require_http_methods(["POST"])
+def delete_project_file_version(request, pk: int):
+    """Löscht eine Anlagenversion."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, project_file.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    with transaction.atomic():
+        is_active = project_file.is_active
+        parent = project_file.parent
+        successor = BVProjectFile.objects.filter(parent=project_file).first()
+
+        if project_file.upload:
+            (Path(settings.MEDIA_ROOT) / project_file.upload.name).unlink(missing_ok=True)
+
+        project_file.delete()
+
+        if is_active and parent:
+            parent.is_active = True
+            parent.save(update_fields=["is_active"])
+        elif not is_active and successor:
+            successor.parent = parent
+            successor.save(update_fields=["parent"])
+
+    messages.success(request, "Die Version wurde erfolgreich gelöscht.")
+    return redirect("projekt_detail", pk=project_file.projekt.pk)
+
+
+@login_required
 def projekt_gap_analysis(request, pk):
     """Stellt die Gap-Analyse als Download bereit."""
     projekt = get_object_or_404(BVProject, pk=pk)
