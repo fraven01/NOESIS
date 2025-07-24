@@ -22,6 +22,7 @@
                 <th class="py-2">Name</th>
                 <th class="py-2">Rolle</th>
                 <th class="py-2">Systemrolle</th>
+                <th class="py-2">Kontext</th>
                 <th class="py-2">Text</th>
                 <th class="py-2 text-center">Aktion</th>
             </tr>
@@ -45,6 +46,12 @@
                         <label>
                             <input type="checkbox" name="use_system_role" class="mr-2" {% if p.use_system_role %}checked{% endif %}>
                             Aktiv
+                        </label>
+                </td>
+                <td class="py-1">
+                        <label>
+                            <input type="checkbox" name="use_project_context" class="mr-2" {% if p.use_project_context %}checked{% endif %}>
+                            Kontext
                         </label>
                 </td>
                 <td class="py-1">

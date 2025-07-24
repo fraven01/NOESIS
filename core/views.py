@@ -55,6 +55,7 @@ from .forms import (
     JustificationForm,
 
     KnowledgeDescriptionForm,
+    ProjectContextForm,
 
     ProjectStatusForm,
     ProjectStatusImportForm,
@@ -1594,7 +1595,8 @@ def admin_prompts(request):
                 role_id = request.POST.get("role")
                 prompt.role = LLMRole.objects.filter(pk=role_id).first() if role_id else None
                 prompt.use_system_role = bool(request.POST.get("use_system_role"))
-                prompt.save(update_fields=["text", "role", "use_system_role"])
+                prompt.use_project_context = bool(request.POST.get("use_project_context"))
+                prompt.save(update_fields=["text", "role", "use_system_role", "use_project_context"])
         return redirect("admin_prompts")
 
     labels = [
@@ -1626,6 +1628,7 @@ def admin_prompt_export(request):
             "text": p.text,
             "role_id": p.role_id,
             "use_system_role": p.use_system_role,
+            "use_project_context": p.use_project_context,
         }
         for p in Prompt.objects.all().order_by("name")
     ]
@@ -1657,6 +1660,7 @@ def admin_prompt_import(request):
                     "text": item.get("text") or item.get("prompt_text", ""),
                     "role_id": item.get("role_id"),
                     "use_system_role": item.get("use_system_role", True),
+                    "use_project_context": item.get("use_project_context", True),
                 },
             )
         messages.success(request, "Prompts importiert")
@@ -2720,19 +2724,6 @@ def projekt_list(request):
 @login_required
 def projekt_detail(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
-    if request.method == "POST" and "project_prompt" in request.POST:
-        new_prompt = request.POST.get("project_prompt", "")
-        changed = projekt.project_prompt != new_prompt
-        projekt.project_prompt = new_prompt
-        projekt.save(update_fields=["project_prompt"])
-
-        async_task(
-            "core.llm_tasks.run_conditional_anlage2_check",
-            projekt.pk,
-        )
-
-        messages.success(request, "Projekt-Prompt gespeichert")
-        return redirect("projekt_detail", pk=projekt.pk)
     all_files = projekt.anlagen.all()
     anlage3_list = all_files.filter(anlage_nr=3)
     other_anlagen = all_files.exclude(anlage_nr=3)
@@ -5001,6 +4992,25 @@ def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
         user_context,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
+def edit_project_context(request, pk):
+    """Bearbeitet den Projekt-Kontext."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if request.method == "POST":
+        form = ProjectContextForm(request.POST, instance=projekt)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Projekt-Kontext gespeichert")
+            return redirect("projekt_detail", pk=projekt.pk)
+    else:
+        form = ProjectContextForm(instance=projekt)
+    return render(
+        request,
+        "edit_project_context.html",
+        {"form": form, "projekt": projekt},
+    )
 
 
 @login_required

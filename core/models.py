@@ -434,6 +434,13 @@ class Prompt(models.Model):
             "die eine strikte, kurze Antwort erfordern."
         ),
     )
+    use_project_context = models.BooleanField(
+        default=True,
+        help_text=(
+            "Soll diesem Prompt automatisch der Projekt-Kontext vorangestellt "
+            "werden?"
+        ),
+    )
 
     class Meta:
         ordering = ["name"]
