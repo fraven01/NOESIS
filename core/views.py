@@ -2786,6 +2786,25 @@ def anlage3_file_review(request, pk):
     if project_file.anlage_nr != 3:
         raise Http404
 
+    version = request.GET.get("version")
+    if version and version.isdigit():
+        alt = (
+            BVProjectFile.objects.filter(
+                projekt=project_file.projekt,
+                anlage_nr=project_file.anlage_nr,
+                version=int(version),
+            ).first()
+        )
+        if alt:
+            project_file = alt
+
+    versions = list(
+        BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+        ).order_by("version")
+    )
+
     try:
         meta = project_file.anlage3meta
     except Anlage3Metadata.DoesNotExist:
@@ -2799,7 +2818,12 @@ def anlage3_file_review(request, pk):
     else:
         form = Anlage3MetadataForm(instance=meta)
 
-    context = {"anlage": project_file, "form": form}
+    context = {
+        "anlage": project_file,
+        "form": form,
+        "versions": versions,
+        "current_version": project_file.version,
+    }
     return render(request, "projekt_file_anlage3_review.html", context)
 
 
@@ -2809,6 +2833,25 @@ def anlage4_review(request, pk):
     project_file = get_object_or_404(BVProjectFile, pk=pk)
     if project_file.anlage_nr != 4:
         raise Http404
+
+    version = request.GET.get("version")
+    if version and version.isdigit():
+        alt = (
+            BVProjectFile.objects.filter(
+                projekt=project_file.projekt,
+                anlage_nr=project_file.anlage_nr,
+                version=int(version),
+            ).first()
+        )
+        if alt:
+            project_file = alt
+
+    versions = list(
+        BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+        ).order_by("version")
+    )
 
     anlage4_logger.info("Zugriff auf Anlage4 Review f\u00fcr Datei %s", pk)
 
@@ -2849,6 +2892,8 @@ def anlage4_review(request, pk):
     context = {
         "anlage": project_file,
         "rows": rows,
+        "versions": versions,
+        "current_version": project_file.version,
     }
     anlage4_logger.info("Anlage4 Review abgeschlossen für Datei %s", pk)
     return render(request, "projekt_file_anlage4_review.html", context)
@@ -2861,6 +2906,25 @@ def anlage5_review(request, pk):
     project_file = get_object_or_404(BVProjectFile, pk=pk)
     if project_file.anlage_nr != 5:
         raise Http404
+
+    version = request.GET.get("version")
+    if version and version.isdigit():
+        alt = (
+            BVProjectFile.objects.filter(
+                projekt=project_file.projekt,
+                anlage_nr=project_file.anlage_nr,
+                version=int(version),
+            ).first()
+        )
+        if alt:
+            project_file = alt
+
+    versions = list(
+        BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+        ).order_by("version")
+    )
 
     try:
         review = project_file.anlage5review
@@ -2889,7 +2953,12 @@ def anlage5_review(request, pk):
     else:
         form = Anlage5ReviewForm(initial=initial)
 
-    context = {"anlage": project_file, "form": form}
+    context = {
+        "anlage": project_file,
+        "form": form,
+        "versions": versions,
+        "current_version": project_file.version,
+    }
     return render(request, "projekt_file_anlage5_review.html", context)
 
 
@@ -3111,6 +3180,25 @@ def projekt_file_check_view(request, pk):
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
         raise Http404
+
+    version_param = request.GET.get("version")
+    if version_param and version_param.isdigit():
+        alt = (
+            BVProjectFile.objects.filter(
+                projekt=anlage.projekt,
+                anlage_nr=anlage.anlage_nr,
+                version=int(version_param),
+            ).first()
+        )
+        if alt:
+            anlage = alt
+
+    versions = list(
+        BVProjectFile.objects.filter(
+            projekt=anlage.projekt,
+            anlage_nr=anlage.anlage_nr,
+        ).order_by("version")
+    )
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
     def parse_only(_pid: int, model_name: str | None = None):
@@ -3545,7 +3633,12 @@ def projekt_file_edit_json(request, pk):
             form = BVProjectFileJSONForm(instance=anlage)
         template = "projekt_file_json_form.html"
 
-    context = {"form": form, "anlage": anlage}
+    context = {
+        "form": form,
+        "anlage": anlage,
+        "versions": versions,
+        "current_version": anlage.version,
+    }
     if anlage.anlage_nr == 1:
         context["qa"] = qa
     elif anlage.anlage_nr == 2:
@@ -3718,16 +3811,30 @@ def anlage2_supervision(request, projekt_id):
     """Zeigt die neue Supervisions-Ansicht f\u00fcr Anlage 2."""
 
     projekt = get_object_or_404(BVProject, pk=projekt_id)
-    pf = get_project_file(projekt, 2)
+    version_param = request.GET.get("version")
+    if version_param and version_param.isdigit():
+        pf = get_project_file(projekt, 2, version=int(version_param))
+    else:
+        pf = get_project_file(projekt, 2)
     if pf is None:
         raise Http404
+
+    versions = list(
+        BVProjectFile.objects.filter(projekt=projekt, anlage_nr=2).order_by("version")
+    )
 
     rows = _build_supervision_groups(pf)
     notes = list(
         SupervisionStandardNote.objects.filter(is_active=True).order_by("display_order")
     )
 
-    context = {"projekt": projekt, "rows": rows, "standard_notes": notes}
+    context = {
+        "projekt": projekt,
+        "rows": rows,
+        "standard_notes": notes,
+        "versions": versions,
+        "current_version": pf.version,
+    }
     return render(request, "supervision_review.html", context)
 
 

@@ -2,6 +2,7 @@
 {% block title %}Anlage 2 Supervision{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Supervision Anlage 2</h1>
+{% include 'partials/version_switcher.html' %}
 <div class="space-y-4">
   {% for group in rows %}
     {% include 'partials/supervision_group.html' with group=group standard_notes=standard_notes %}

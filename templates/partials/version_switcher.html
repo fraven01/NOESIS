@@ -1,0 +1,17 @@
+{% if versions|length > 1 %}
+<div class="mb-4">
+  <label for="version-select" class="font-semibold mr-2">Version:</label>
+  <select id="version-select" class="border rounded p-1">
+    {% for v in versions %}
+      <option value="{{ v.version }}" {% if v.version == current_version %}selected{% endif %}>Version {{ v.version }}</option>
+    {% endfor %}
+  </select>
+</div>
+<script>
+  document.getElementById('version-select').addEventListener('change', function(){
+    const params = new URLSearchParams(window.location.search);
+    params.set('version', this.value);
+    window.location.search = params.toString();
+  });
+</script>
+{% endif %}
