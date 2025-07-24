@@ -899,6 +899,7 @@ class AnlagenFunktionsMetadaten(models.Model):
     )
     gap_summary = models.TextField(blank=True)
     gap_notiz = models.TextField(blank=True, null=True)
+    supervisor_notes = models.TextField(blank=True, null=True)
     is_negotiable = models.BooleanField(default=False)
     is_negotiable_manual_override = models.BooleanField(null=True, blank=True)
 
