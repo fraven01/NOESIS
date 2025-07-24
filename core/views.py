@@ -3937,6 +3937,40 @@ def hx_supervision_add_standard_note(request, result_id: int):
 
 
 @login_required
+@require_POST
+def hx_supervision_revert_to_document(request, result_id: int):
+    """Setzt manuelle Bewertungen auf Dokumentenwerte zurück."""
+
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf = get_project_file(result.anlage_datei.projekt, 2)
+
+    FunktionsErgebnis.objects.filter(
+        anlage_datei=pf,
+        funktion=result.funktion,
+        subquestion=result.subquestion,
+        quelle="manuell",
+    ).delete()
+
+    main_result = AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei=pf,
+        funktion=result.funktion,
+        subquestion__isnull=True,
+    ).first()
+
+    groups = _build_supervision_groups(pf)
+    if main_result:
+        group = next(
+            g for g in groups if g["function"]["result_id"] == main_result.id
+        )
+        return render(request, "partials/supervision_group.html", {"group": group})
+    return HttpResponse("Not found", status=404)
+
+
+@login_required
 def ajax_check_task_status(request, task_id: str) -> JsonResponse:
     """Prüft den Status eines Django-Q-Tasks und gibt ihn als JSON zurück."""
     task = fetch(task_id)
