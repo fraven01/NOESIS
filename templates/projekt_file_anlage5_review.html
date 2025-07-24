@@ -2,6 +2,7 @@
 {% block title %}Anlage 5 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 5 Zwecke prüfen</h1>
+{% include 'partials/version_switcher.html' %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <div class="space-y-2">

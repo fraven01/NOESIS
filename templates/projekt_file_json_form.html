@@ -6,6 +6,7 @@
 {% block title %}Analyse bearbeiten{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Analyse f\u00fcr Anlage {{ anlage.anlage_nr }} bearbeiten</h1>
+{% include 'partials/version_switcher.html' %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
     {{ form.non_field_errors }}
