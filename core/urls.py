@@ -232,6 +232,11 @@ urlpatterns = [
     path("work/projekte/<int:pk>/", views.projekt_detail, name="projekt_detail"),
     path("work/projekte/<int:pk>/bearbeiten/", views.projekt_edit, name="projekt_edit"),
     path(
+        "work/projekte/<int:pk>/context/",
+        views.edit_project_context,
+        name="edit_project_context",
+    ),
+    path(
         "work/projekte/<int:pk>/anlage/",
         views.projekt_file_upload,
         name="projekt_file_upload",

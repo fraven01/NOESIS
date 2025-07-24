@@ -13,12 +13,13 @@
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
-<form method="post" action="">
-    {% csrf_token %}
-    <h3 class="font-semibold mb-2">Projekt Kontext</h3>
-    <textarea name="project_prompt" rows="4" class="border rounded w-full p-2">{{ projekt.project_prompt }}</textarea>
-    <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded mt-2">Speichern</button>
-</form>
+<p class="mb-2">
+    <strong>Projekt Kontext:</strong>
+    {{ projekt.project_prompt|truncatewords:20 }}
+    <a href="{% url 'edit_project_context' projekt.pk %}" class="ml-2" title="Bearbeiten">
+        ✎
+    </a>
+</p>
 <form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>

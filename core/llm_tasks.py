@@ -290,7 +290,10 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
             else "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n"
         ) + text_content
         prompt_obj = Prompt(
-            name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+            name="tmp",
+            text=prompt_text,
+            role=base_obj.role if base_obj else None,
+            use_project_context=base_obj.use_project_context if base_obj else True,
         )
         reply = query_llm(
             prompt_obj,
@@ -530,14 +533,17 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     )
     prompt_text = prefix + _collect_text(projekt)
     prompt_obj = Prompt(
-        name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+        name="tmp",
+        text=prompt_text,
+        role=base_obj.role if base_obj else None,
+        use_project_context=base_obj.use_project_context if base_obj else True,
     )
     reply = query_llm(
         prompt_obj,
         {},
         model_name=model_name,
         model_type="default",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
     try:
         data = json.loads(reply)
@@ -565,14 +571,17 @@ def generate_gutachten(
         )
         prompt_text = prefix + projekt.software_string
         prompt_obj = Prompt(
-            name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+            name="tmp",
+            text=prompt_text,
+            role=base_obj.role if base_obj else None,
+            use_project_context=base_obj.use_project_context if base_obj else True,
         )
         text = query_llm(
             prompt_obj,
             {},
             model_name=model_name,
             model_type="gutachten",
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
     doc = Document()
     for line in text.splitlines():
@@ -632,14 +641,17 @@ def worker_generate_gutachten(
         target = projekt.software_string
 
     prompt_obj = Prompt(
-        name="tmp", text=prefix + target, role=base_obj.role if base_obj else None
+        name="tmp",
+        text=prefix + target,
+        role=base_obj.role if base_obj else None,
+        use_project_context=base_obj.use_project_context if base_obj else True,
     )
     text = query_llm(
         prompt_obj,
         {},
         model_name=model,
         model_type="gutachten",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
     path = generate_gutachten(projekt.id, text, model_name=model)
 
@@ -759,11 +771,12 @@ def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict
                 anlage3_logger.error("Fehler beim Lesen von %s: %s", path, exc)
                 images = []
 
+        proj_prompt = projekt.project_prompt if not prompt_obj or prompt_obj.use_project_context else None
         reply = query_llm_with_images(
             prompt,
             images,
             model,
-            project_prompt=projekt.project_prompt,
+            project_prompt=proj_prompt,
         )
         try:
             data = json.loads(reply)
@@ -797,7 +810,10 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     )
     prompt_text = prefix + anlage.text_content
     prompt_obj = Prompt(
-        name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+        name="tmp",
+        text=prompt_text,
+        role=base_obj.role if base_obj else None,
+        use_project_context=base_obj.use_project_context if base_obj else True,
     )
 
     reply = query_llm(
@@ -805,7 +821,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
         {},
         model_name=model_name,
         model_type="anlagen",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
     try:
         data = json.loads(reply)
@@ -899,7 +915,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
             {},
             model_name=model_name,
             model_type="anlagen",
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
         anlage1_logger.debug(
             "check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500]
@@ -939,7 +955,11 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
         if _llm_enabled(q):
             prompt_text = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
-            prompt_obj = Prompt(name="tmp", text=prompt_text)
+            prompt_obj = Prompt(
+                name="tmp",
+                text=prompt_text,
+                use_project_context=True,
+            )
             anlage1_logger.debug(
                 "check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r",
                 q.num,
@@ -951,7 +971,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
                     {},
                     model_name=model_name,
                     model_type="anlagen",
-                    project_prompt=projekt.project_prompt,
+                    project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
                 )
                 anlage1_logger.debug(
                     "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r", q.num, reply
@@ -1057,13 +1077,17 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text
             )
-            prompt_obj = Prompt(name="tmp", text=prompt_text)
+            prompt_obj = Prompt(
+                name="tmp",
+                text=prompt_text,
+                use_project_context=True,
+            )
             reply = query_llm(
                 prompt_obj,
                 {},
                 model_name=model_name,
                 model_type="anlagen",
-                project_prompt=projekt.project_prompt,
+                project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
             anlage2_logger.debug(
                 "LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply
@@ -1112,13 +1136,17 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
             )
-            prompt_obj = Prompt(name="tmp", text=prompt_text)
+            prompt_obj = Prompt(
+                name="tmp",
+                text=prompt_text,
+                use_project_context=True,
+            )
             reply = query_llm(
                 prompt_obj,
                 {},
                 model_name=model_name,
                 model_type="anlagen",
-                project_prompt=projekt.project_prompt,
+                project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
             anlage2_logger.debug(
                 "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
@@ -1183,13 +1211,17 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         except KeyError as exc:  # pragma: no cover - falsches Template
             raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
         anlage4_logger.debug("A4 Sync Prompt #%s: %s", idx, prompt_text)
-        prompt_obj = Prompt(name="tmp", text=prompt_text)
+        prompt_obj = Prompt(
+            name="tmp",
+            text=prompt_text,
+            use_project_context=True,
+        )
         reply = query_llm(
             prompt_obj,
             {},
             model_name=model_name,
             model_type="anlagen",
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
         anlage4_logger.debug("A4 Sync Raw Response #%s: %s", idx, reply)
         if "```json" in reply:
@@ -1380,13 +1412,17 @@ def check_anlage2_functions(
     results: list[dict] = []
     for func in Anlage2Function.objects.order_by("name"):
         prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
-        prompt_obj = Prompt(name="tmp", text=prompt_text)
+        prompt_obj = Prompt(
+            name="tmp",
+            text=prompt_text,
+            use_project_context=True,
+        )
         reply = query_llm(
             prompt_obj,
             {},
             model_name=model_name,
             model_type="anlagen",
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
         try:
             data = json.loads(reply)
@@ -1559,7 +1595,7 @@ def worker_verify_feature(
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
         ans = reply.strip()
         try:
@@ -1640,7 +1676,7 @@ def worker_verify_feature(
             model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
-            project_prompt=projekt.project_prompt,
+            project_prompt=projekt.project_prompt if just_prompt_obj.use_project_context else None,
         ).strip()
 
         if result is True:
@@ -1662,7 +1698,7 @@ def worker_verify_feature(
                     model_name=model_name,
                     model_type="anlagen",
                     temperature=0.1,
-                    project_prompt=projekt.project_prompt,
+                    project_prompt=projekt.project_prompt if ai_check_obj.use_project_context else None,
                 )
                 .strip()
                 .lower()
@@ -1698,7 +1734,7 @@ def worker_verify_feature(
                     model_name=model_name,
                     model_type="anlagen",
                     temperature=0.1,
-                    project_prompt=projekt.project_prompt,
+                    project_prompt=projekt.project_prompt if ai_just_obj.use_project_context else None,
                 ).strip()
 
     # Ergebnisdictionary für Datenbank und Rückgabewert
@@ -1870,14 +1906,17 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
         )
     )
     prompt_obj = Prompt(
-        name="tmp", text=prefix + text, role=base_obj.role if base_obj else None
+        name="tmp",
+        text=prefix + text,
+        role=base_obj.role if base_obj else None,
+        use_project_context=base_obj.use_project_context if base_obj else True,
     )
     reply = query_llm(
         prompt_obj,
         {},
         model_name=model_name,
         model_type="gutachten",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])
@@ -1942,7 +1981,7 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         context,
         model_name=model_name,
         model_type="gutachten",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_internal.use_project_context else None,
     ).strip()
 
     prompt_external = Prompt.objects.filter(name="gap_communication_external").first()
@@ -1953,7 +1992,7 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         context,
         model_name=model_name,
         model_type="gutachten",
-        project_prompt=projekt.project_prompt,
+        project_prompt=projekt.project_prompt if prompt_external.use_project_context else None,
     ).strip()
 
     res.gap_notiz = internal

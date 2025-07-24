@@ -786,6 +786,20 @@ class KnowledgeDescriptionForm(forms.ModelForm):
         }
 
 
+class ProjectContextForm(forms.ModelForm):
+    """Formular zum Bearbeiten des Projekt-Kontexts."""
+
+    class Meta:
+        model = BVProject
+        fields = ["project_prompt"]
+        labels = {"project_prompt": "Projekt-Kontext"}
+        widgets = {
+            "project_prompt": forms.Textarea(
+                attrs={"class": "border rounded p-2 w-full", "rows": 20}
+            )
+        }
+
+
 class ProjectStatusForm(forms.ModelForm):
     """Formular für einen Projektstatus."""
 

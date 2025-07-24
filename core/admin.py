@@ -133,7 +133,7 @@ class RecordingAdmin(admin.ModelAdmin):
 
 @admin.register(Prompt)
 class PromptAdmin(admin.ModelAdmin):
-    list_display = ("name",)
+    list_display = ("name", "use_system_role", "use_project_context")
 
 
 class TileAdmin(admin.ModelAdmin):

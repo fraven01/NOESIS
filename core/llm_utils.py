@@ -63,7 +63,7 @@ def query_llm(
     else:
         task_prompt = prompt_object.text
 
-    if project_prompt:
+    if project_prompt and getattr(prompt_object, "use_project_context", True):
         task_prompt = project_prompt.strip() + "\n\n" + task_prompt
 
     prompt = (
