@@ -44,7 +44,6 @@
         <tr>
             <th class="px-2 py-1">Nr.</th>
             <th class="px-2 py-1">Datei</th>
-            <th class="px-2 py-1 text-center">Prüfen</th>
             <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
             <th class="px-2 py-1 text-center">Vergleich</th>
             <th class="px-2 py-1 text-center">Geprüft</th>
@@ -56,33 +55,11 @@
         <tr class="border-t">
             <td class="px-2 py-1">{{ a.anlage_nr }}</td>
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
-            <td class="px-2 py-1 text-center">
-                {% include "partials/check_button.html" with file=a %}
-            </td>
             <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
-                {% if a.anlage_nr == 2 %}
-                    hx-get="{% url 'hx_anlage_status' a.pk %}"
-                    hx-trigger="load, every 5s"
-                    hx-swap="outerHTML"
-                {% endif %}>
-            {% if a.anlage_nr == 2 %}
-                {% include 'partials/anlage_status.html' with anlage=a %}
-            {% elif a.anlage_nr == 3 and a.analysis_json %}
-                <a href="{% url 'anlage3_file_review' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-            {% elif a.anlage_nr == 4 and a.analysis_json %}
-                <a href="{% url 'anlage4_review' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-            {% elif a.anlage_nr == 5 and a.anlage5review %}
-                <a href="{% url 'anlage5_review' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-            {% elif a.anlage_nr == 6 and a.analysis_json %}
-                <a href="{% url 'anlage6_review' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-            {% elif a.analysis_json %}
-                <a href="{% url 'projekt_file_edit_json' a.pk %}"
-                   class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-            {% endif %}
+                hx-get="{% url 'hx_anlage_status' a.pk %}"
+                hx-trigger="load, every 5s"
+                hx-swap="outerHTML">
+            {% include 'partials/anlage_status.html' with anlage=a %}
             </td>
             <td class="px-2 py-1 text-center">
                 {% if a.parent %}
@@ -110,7 +87,7 @@
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="7">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -122,7 +99,6 @@
     <thead>
         <tr>
             <th class="px-2 py-1">Datei</th>
-            <th class="px-2 py-1 text-center">Prüfen</th>
             <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
             <th class="px-2 py-1 text-center">Vergleich</th>
             <th class="px-2 py-1 text-center">Geprüft</th>
@@ -133,11 +109,11 @@
     {% for a in anlage3_page %}
         <tr class="border-t">
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
-            <td class="px-2 py-1 text-center">{% include "partials/check_button.html" with file=a %}</td>
-            <td class="px-2 py-1 text-center">
-                {% if a.analysis_json %}
-                    <a href="{% url 'projekt_file_edit_json' a.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% endif %}
+            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
+                hx-get="{% url 'hx_anlage_status' a.pk %}"
+                hx-trigger="load, every 5s"
+                hx-swap="outerHTML">
+                {% include 'partials/anlage_status.html' with anlage=a %}
             </td>
             <td class="px-2 py-1 text-center">
                 {% if a.parent %}
@@ -165,7 +141,7 @@
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="6">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>

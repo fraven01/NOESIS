@@ -3067,20 +3067,6 @@ def projekt_file_upload(request, pk):
                 obj.parent = old_file
 
             obj.save()
-            if obj.anlage_nr == 2:
-                obj.processing_status = BVProjectFile.PROCESSING
-                obj.save(update_fields=["processing_status"])
-                try:
-                    task_id = async_task(
-                        "core.llm_tasks.run_conditional_anlage2_check",
-                        obj.pk,
-                    )
-                    if task_id:
-                        obj.verification_task_id = str(task_id)
-                        obj.save(update_fields=["verification_task_id"])
-                except Exception:
-                    logger.exception("Fehler beim Starten der Auto-Analyse")
-
             if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
                 try:
                     from .anlage3_parser import parse_anlage3
@@ -3100,20 +3086,6 @@ def projekt_file_upload(request, pk):
                         obj.save(update_fields=["verhandlungsfaehig"])
                 except Exception:
                     logger.exception("Fehler beim Seitenzählen")
-            if old_file:
-                try:
-                    task_map = {
-                        1: ("core.llm_tasks.check_anlage1", projekt.pk),
-                        2: ("core.llm_tasks.worker_run_anlage2_analysis", obj.pk),
-                        3: ("core.llm_tasks.analyse_anlage3", projekt.pk),
-                        4: ("core.llm_tasks.analyse_anlage4_async", projekt.pk),
-                        5: ("core.llm_tasks.check_anlage5", projekt.pk),
-                    }
-                    task = task_map.get(obj.anlage_nr)
-                    if task:
-                        async_task(task[0], task[1])
-                except Exception:
-                    logger.exception("Fehler beim Starten der Auto-Analyse")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()
@@ -4450,18 +4422,6 @@ def hx_toggle_negotiable(request, result_id: int):
         "row": {"result_id": result.id},
     }
     return render(request, "partials/negotiable_cell.html", context)
-
-
-@login_required
-def hx_project_file_status(request, pf_id: int):
-    """Liefert den HTML-Status des Prüfbuttons für eine Anlage."""
-    pf = get_object_or_404(BVProjectFile, pk=pf_id)
-
-    if not _user_can_edit_project(request.user, pf.projekt):
-        return HttpResponseForbidden("Nicht berechtigt")
-
-    context = {"file": pf}
-    return render(request, "partials/check_button.html", context)
 
 
 @login_required

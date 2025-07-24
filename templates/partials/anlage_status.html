@@ -1,6 +1,16 @@
-{% if anlage.processing_status == 'PROCESSING' %}
-<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Initiale Prüfung läuft...</span>
-{% elif anlage.analysis_json %}
-<a href="{% url 'projekt_file_edit_json' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+{% if anlage.processing_status == 'PROCESSING' or not anlage.analysis_json %}
+<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
+{% else %}
+  {% if anlage.anlage_nr == 3 %}
+  <a href="{% url 'anlage3_file_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+  {% elif anlage.anlage_nr == 4 %}
+  <a href="{% url 'anlage4_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+  {% elif anlage.anlage_nr == 5 %}
+  <a href="{% url 'anlage5_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+  {% elif anlage.anlage_nr == 6 %}
+  <a href="{% url 'anlage6_review' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+  {% else %}
+  <a href="{% url 'projekt_file_edit_json' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+  {% endif %}
 {% endif %}
 
