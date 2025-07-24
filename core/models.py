@@ -246,6 +246,15 @@ class BVProjectFile(models.Model):
         blank=True,
         help_text="Reihenfolge der Parser für diese Anlage.",
     )
+    version = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children",
+    )
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", null=True, blank=True)
     manual_analysis_json = models.JSONField(blank=True, null=True)
