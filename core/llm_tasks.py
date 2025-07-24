@@ -13,6 +13,8 @@ from django.db import DatabaseError
 from django.utils import timezone
 from django_q.tasks import async_task
 
+from .utils import get_project_file
+
 from .models import (
     BVProject,
     BVProjectFile,
@@ -1429,7 +1431,7 @@ def run_conditional_anlage2_check(
                     projekt_id, "subquestion", sub.id, model_name
                 )
 
-    pf = BVProjectFile.objects.filter(projekt_id=projekt_id, anlage_nr=2).first()
+    pf = get_project_file(projekt, 2)
     if pf:
         pf.verification_task_id = ""
         pf.save(update_fields=["verification_task_id"])
@@ -1457,13 +1459,7 @@ def worker_verify_feature(
     )
 
     projekt = BVProject.objects.get(pk=project_id)
-    pf = BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2).first()
-
-    pf = (
-        BVProjectFile.objects.filter(projekt_id=project_id, anlage_nr=2)
-        .order_by("id")
-        .first()
-    )
+    pf = get_project_file(projekt, 2)
 
 
     gutachten_text = ""
