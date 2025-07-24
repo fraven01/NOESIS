@@ -218,6 +218,18 @@ class BVProjectStatusHistory(models.Model):
 class BVProjectFile(models.Model):
     """Datei-Anlagen zu einem BVProject."""
 
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
+
+    PROCESSING_STATUS_CHOICES = [
+        (PENDING, "Ausstehend"),
+        (PROCESSING, "In Bearbeitung"),
+        (COMPLETE, "Abgeschlossen"),
+        (FAILED, "Fehlgeschlagen"),
+    ]
+
     projekt = models.ForeignKey(
         BVProject,
         on_delete=models.CASCADE,
@@ -271,6 +283,11 @@ class BVProjectFile(models.Model):
         blank=True,
         help_text="ID des laufenden Verifizierungstasks.",
     )
+    processing_status = models.CharField(
+        max_length=20,
+        choices=PROCESSING_STATUS_CHOICES,
+        default=PENDING,
+    )
     manual_reviewed = models.BooleanField("Manuell geprüft", default=False)
     verhandlungsfaehig = models.BooleanField("Verhandlungsfähig", default=False)
 
@@ -290,24 +307,6 @@ class BVProjectFile(models.Model):
             if not self.parser_order:
                 self.parser_order = cfg.parser_order
         super().save(*args, **kwargs)
-        if is_new and self.anlage_nr == 2:
-            # Alte Ergebnisse für diese Datei entfernen
-            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=self).delete()
-            funcs = list(
-                Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
-            )
-            workflow_logger.info(
-                "[%s] - UPLOAD - Anlage 2 hochgeladen. Starte automatische KI-Pr\u00fcfung f\u00fcr %s Funktionen.",
-                self.projekt_id,
-                len(funcs),
-            )
-            task_id = async_task(
-                "core.llm_tasks.run_conditional_anlage2_check",
-                self.projekt_id,
-            )
-            if task_id:
-                self.verification_task_id = str(task_id)
-                super().save(update_fields=["verification_task_id"])
 
     def is_verification_running(self) -> bool:
         """Prüft, ob ein Verifizierungstask läuft."""

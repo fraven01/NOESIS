@@ -3065,7 +3065,21 @@ def projekt_file_upload(request, pk):
                 old_file.save(update_fields=["is_active"])
                 obj.version = old_file.version + 1
                 obj.parent = old_file
+
             obj.save()
+            if obj.anlage_nr == 2:
+                obj.processing_status = BVProjectFile.PROCESSING
+                obj.save(update_fields=["processing_status"])
+                try:
+                    task_id = async_task(
+                        "core.llm_tasks.run_conditional_anlage2_check",
+                        obj.pk,
+                    )
+                    if task_id:
+                        obj.verification_task_id = str(task_id)
+                        obj.save(update_fields=["verification_task_id"])
+                except Exception:
+                    logger.exception("Fehler beim Starten der Auto-Analyse")
 
             if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
                 try:
@@ -3856,6 +3870,7 @@ def anlage2_supervision(request, projekt_id):
         "standard_notes": notes,
         "versions": versions,
         "current_version": pf.version,
+        "pf": pf,
     }
     return render(request, "supervision_review.html", context)
 
@@ -4447,6 +4462,18 @@ def hx_project_file_status(request, pf_id: int):
 
     context = {"file": pf}
     return render(request, "partials/check_button.html", context)
+
+
+@login_required
+def hx_anlage_status(request, pk: int):
+    """Gibt den Bearbeitungsstatus einer Anlage 2 zurück."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, anlage.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    context = {"anlage": anlage}
+    return render(request, "partials/anlage_status.html", context)
 
 
 @login_required

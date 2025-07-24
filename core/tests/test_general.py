@@ -424,21 +424,17 @@ class BVProjectFileTests(NoesisTestCase):
         form = BVProjectFileJSONForm(instance=pf)
         self.assertIn("analysis_json", form.fields)
 
-    def test_save_stores_task_id(self):
+    def test_save_does_not_start_task(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        Anlage2Function.objects.create(name="Login")
-        with patch("core.models.async_task", return_value="tid1") as mock_task:
+        with patch("core.models.async_task") as mock_task:
             pf = BVProjectFile.objects.create(
                 projekt=projekt,
                 anlage_nr=2,
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 text_content="t",
             )
-        self.assertEqual(pf.verification_task_id, "tid1")
-        mock_task.assert_called_with(
-            "core.llm_tasks.run_conditional_anlage2_check",
-            projekt.pk,
-        )
+        self.assertEqual(pf.verification_task_id, "")
+        mock_task.assert_not_called()
 
     def test_is_verification_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -515,6 +511,33 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertNotContains(resp, "hx-trigger")
         self.assertContains(resp, "Prüfen")
 
+    def test_hx_anlage_status_processing(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.PROCESSING,
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_anlage_status", args=[pf.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "spinner")
+
+    def test_hx_anlage_status_ready(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.COMPLETE,
+            analysis_json={},
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_anlage_status", args=[pf.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Analyse bearbeiten")
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
@@ -580,7 +603,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        with patch("core.models.async_task", return_value="tid1") as mock_async:
+        with patch("core.views.async_task", return_value="tid1") as mock_async:
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
@@ -590,9 +613,10 @@ class ProjektFileUploadTests(NoesisTestCase):
         pf = self.projekt.anlagen.get(anlage_nr=2)
         self.assertIsNone(pf.analysis_json)
         self.assertEqual(pf.verification_task_id, "tid1")
+        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
         mock_async.assert_called_with(
             "core.llm_tasks.run_conditional_anlage2_check",
-            self.projekt.pk,
+            pf.pk,
         )
 
 
