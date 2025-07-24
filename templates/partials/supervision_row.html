@@ -3,24 +3,5 @@
     {{ row.name }}
     {% if row.has_discrepancy %}<span class="ms-2 text-red-600">⚠️</span>{% endif %}
   </summary>
-  <div class="p-2 space-y-2">
-    <div>
-      <strong>Parser:</strong> {{ row.doc_val|yesno:"Vorhanden,Nicht vorhanden,?" }}
-      {% if row.doc_snippet %}<pre class="bg-gray-100 p-2 rounded">{{ row.doc_snippet }}</pre>{% endif %}
-    </div>
-    <div>
-      <strong>KI:</strong> {{ row.ai_val|yesno:"Vorhanden,Nicht vorhanden,?" }}
-      {% if row.ai_reason %}<pre class="bg-gray-100 p-2 rounded">{{ row.ai_reason }}</pre>{% endif %}
-    </div>
-    <div>
-      <strong>Final:</strong> {{ row.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}
-      <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
-        <button class="bg-green-600 text-white px-2 py-1 rounded ms-2" type="submit">Bestätigen</button>
-      </form>
-    </div>
-    <form hx-post="{% url 'hx_supervision_save_notes' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="space-y-2">
-      <textarea name="notes" rows="2" class="border rounded w-full p-2">{{ row.notes }}</textarea>
-      <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>
-    </form>
-  </div>
+  {% include 'partials/supervision_row_content.html' with row=row %}
 </details>
