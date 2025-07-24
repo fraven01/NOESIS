@@ -3087,7 +3087,10 @@ def projekt_file_upload(request, pk):
                 except Exception:
                     logger.exception("Fehler beim Seitenzählen")
             if old_file:
-                return redirect("compare_versions", pk=obj.pk)
+                async_task(
+                    "core.llm_tasks.run_anlage2_analysis_async",
+                    obj.pk,
+                )
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()

@@ -501,6 +501,13 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     return results
 
 
+def run_anlage2_analysis_async(file_id: int) -> list[dict[str, object]]:
+    """Asynchrone Variante von ``run_anlage2_analysis``."""
+
+    project_file = BVProjectFile.objects.get(pk=file_id)
+    return run_anlage2_analysis(project_file)
+
+
 
 
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
