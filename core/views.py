@@ -3087,7 +3087,19 @@ def projekt_file_upload(request, pk):
                 except Exception:
                     logger.exception("Fehler beim Seitenzählen")
             if old_file:
-                return redirect("compare_versions", pk=obj.pk)
+                try:
+                    task_map = {
+                        1: ("core.llm_tasks.check_anlage1", projekt.pk),
+                        2: ("core.llm_tasks.worker_run_anlage2_analysis", obj.pk),
+                        3: ("core.llm_tasks.analyse_anlage3", projekt.pk),
+                        4: ("core.llm_tasks.analyse_anlage4_async", projekt.pk),
+                        5: ("core.llm_tasks.check_anlage5", projekt.pk),
+                    }
+                    task = task_map.get(obj.anlage_nr)
+                    if task:
+                        async_task(task[0], task[1])
+                except Exception:
+                    logger.exception("Fehler beim Starten der Auto-Analyse")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectFileForm()

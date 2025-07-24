@@ -501,6 +501,22 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     return results
 
 
+def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
+    """Führt die Parser-Analyse für Anlage 2 im Hintergrund aus."""
+
+    anlage2_logger.info(
+        "worker_run_anlage2_analysis gestartet für Datei %s",
+        file_id,
+    )
+    pf = BVProjectFile.objects.get(pk=file_id)
+    result = run_anlage2_analysis(pf)
+    anlage2_logger.info(
+        "worker_run_anlage2_analysis beendet für Datei %s",
+        file_id,
+    )
+    return result
+
+
 
 
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
