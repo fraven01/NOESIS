@@ -59,14 +59,14 @@
             <td class="px-2 py-1 text-center">
                 {% include "partials/check_button.html" with file=a %}
             </td>
-            <td class="px-2 py-1 text-center">
+            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
+                {% if a.anlage_nr == 2 %}
+                    hx-get="{% url 'hx_anlage_status' a.pk %}"
+                    hx-trigger="load, every 5s"
+                    hx-swap="outerHTML"
+                {% endif %}>
             {% if a.anlage_nr == 2 %}
-                {% if a.get_anlage2_state == 'running' %}
-                    <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span></span>
-                {% elif a.get_anlage2_state == 'parsed' %}
-                    <a href="{% url 'projekt_file_edit_json' a.pk %}"
-                       class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
-                {% endif %}
+                {% include 'partials/anlage_status.html' with anlage=a %}
             {% elif a.anlage_nr == 3 and a.analysis_json %}
                 <a href="{% url 'anlage3_file_review' a.pk %}"
                    class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>

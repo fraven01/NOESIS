@@ -1423,34 +1423,47 @@ def run_conditional_anlage2_check(
     """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
 
     projekt = BVProject.objects.get(pk=projekt_id)
-
-    # Alle bisherigen Prüfergebnisse entfernen
-    AnlagenFunktionsMetadaten.objects.filter(anlage_datei__projekt=projekt).delete()
-
-    for func in Anlage2Function.objects.prefetch_related(
-        "anlage2subquestion_set"
-    ).order_by("name"):
-        worker_verify_feature(
-            projekt_id, "function", func.id, model_name
-        )
-        res = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__projekt_id=projekt_id,
-            funktion=func,
-            subquestion__isnull=True,
-        ).first()
-
-        doc_ok = False
-
-        if doc_ok:
-            for sub in func.anlage2subquestion_set.all():
-                worker_verify_feature(
-                    projekt_id, "subquestion", sub.id, model_name
-                )
-
     pf = get_project_file(projekt, 2)
-    if pf:
-        pf.verification_task_id = ""
-        pf.save(update_fields=["verification_task_id"])
+    try:
+        if pf:
+            pf.processing_status = BVProjectFile.PROCESSING
+            pf.save(update_fields=["processing_status"])
+
+        # Alle bisherigen Prüfergebnisse entfernen
+        AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei__projekt=projekt
+        ).delete()
+
+        for func in Anlage2Function.objects.prefetch_related(
+            "anlage2subquestion_set"
+        ).order_by("name"):
+            worker_verify_feature(
+                projekt_id, "function", func.id, model_name
+            )
+            res = AnlagenFunktionsMetadaten.objects.filter(
+                anlage_datei__projekt_id=projekt_id,
+                funktion=func,
+                subquestion__isnull=True,
+            ).first()
+
+            doc_ok = False
+
+            if doc_ok:
+                for sub in func.anlage2subquestion_set.all():
+                    worker_verify_feature(
+                        projekt_id, "subquestion", sub.id, model_name
+                    )
+
+        pf = get_project_file(projekt, 2)
+        if pf:
+            pf.verification_task_id = ""
+            pf.processing_status = BVProjectFile.COMPLETE
+            pf.save(update_fields=["verification_task_id", "processing_status"])
+    except Exception:
+        if pf:
+            pf.processing_status = BVProjectFile.FAILED
+            pf.save(update_fields=["processing_status"])
+        raise
 
 
 def worker_verify_feature(

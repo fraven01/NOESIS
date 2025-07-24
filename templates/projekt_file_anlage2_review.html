@@ -14,6 +14,13 @@
     Zur neuen Supervisions-Ansicht wechseln
   </a>
 </p>
+{% if anlage.processing_status == 'PROCESSING' %}
+<div id="anlage-edit-{{ anlage.pk }}" class="p-4 text-center"
+     hx-get="{% url 'hx_anlage_status' anlage.pk %}"
+     hx-trigger="load, every 5s" hx-swap="outerHTML">
+  <span class="spinner"></span> Initiale Prüfung läuft...
+</div>
+{% else %}
 <div class="bg-white rounded-lg shadow p-4 space-y-4">
 <form method="post" class="space-y-4 mb-4">
     {% csrf_token %}
@@ -157,6 +164,7 @@
     </div>
 </form>
 </div>
+{% endif %}
 {% endblock %}
 {% block extra_js %}
 <script src="{% static 'js/popover.js' %}"></script>

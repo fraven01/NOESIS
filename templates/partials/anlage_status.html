@@ -1,0 +1,6 @@
+{% if anlage.processing_status == 'PROCESSING' %}
+<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Initiale Prüfung läuft...</span>
+{% elif anlage.analysis_json %}
+<a href="{% url 'projekt_file_edit_json' anlage.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+{% endif %}
+
