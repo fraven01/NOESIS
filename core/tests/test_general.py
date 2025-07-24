@@ -538,6 +538,48 @@ class BVProjectFileTests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertContains(resp, "Analyse bearbeiten")
 
+    def test_hx_anlage_status_failed(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.FAILED,
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_anlage_status", args=[pf.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Analyse fehlgeschlagen")
+        self.assertContains(resp, "Erneut versuchen")
+
+    def test_hx_anlage_status_pending(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.PENDING,
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_anlage_status", args=[pf.pk])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Analyse starten")
+
+    def test_trigger_file_analysis_starts_tasks(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.PENDING,
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        with patch("core.views.start_analysis_for_file") as mock_start:
+            url = reverse("trigger_file_analysis", args=[pf.pk])
+            resp = self.client.post(url)
+        mock_start.assert_called_with(pf)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[projekt.pk]))
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):

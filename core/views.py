@@ -128,7 +128,7 @@ from .parser_manager import parser_manager
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
-from .utils import get_project_file
+from .utils import get_project_file, start_analysis_for_file
 from django.forms import formset_factory, modelformset_factory
 
 
@@ -4434,6 +4434,19 @@ def hx_anlage_status(request, pk: int):
 
     context = {"anlage": anlage}
     return render(request, "partials/anlage_status.html", context)
+
+
+@login_required
+@require_POST
+def trigger_file_analysis(request, pk: int):
+    """L\u00F6st die Analyse f\u00FCr eine bestehende Datei erneut aus."""
+    file_obj = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, file_obj.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    start_analysis_for_file(file_obj)
+    return redirect("projekt_detail", pk=file_obj.projekt.pk)
 
 
 @login_required
