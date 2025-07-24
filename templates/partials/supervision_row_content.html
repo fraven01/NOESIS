@@ -10,7 +10,7 @@
   <div>
     <strong>Final:</strong> {{ row.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}
     <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
-      <button class="bg-green-600 text-white px-2 py-1 rounded ms-2" type="submit">Bestätigen</button>
+      <button class="bg-green-600 text-white px-2 py-1 rounded ms-2" type="submit">Als GAP markieren</button>
     </form>
   </div>
   <div class="space-x-2">
@@ -26,6 +26,14 @@
   </div>
   <form hx-post="{% url 'hx_supervision_save_notes' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="space-y-2">
     <textarea name="notes" rows="2" class="border rounded w-full p-2">{{ row.notes }}</textarea>
-    <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>
+    <div class="space-x-2">
+      <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>
+      <button type="button"
+              hx-post="{% url 'hx_supervision_revert_to_document' row.result_id %}"
+              hx-target="closest details" hx-swap="outerHTML"
+              class="bg-gray-300 px-2 py-1 rounded">
+        Auf Dokumenten-Wert zurücksetzen
+      </button>
+    </div>
   </form>
 </div>
