@@ -473,9 +473,15 @@ function updateRowAppearance(row) {
         });
     });
 
+    document.body.addEventListener('htmx:beforeSwap', () => {
+        if (window.removeCustomPopovers) removeCustomPopovers();
+    });
     document.body.addEventListener('htmx:afterSwap', e => {
         const r = e.target.closest("tr[data-parsed-status]");
-        if (r) updateRowAppearance(r);
+        if (r) {
+            if (window.initCustomPopovers) initCustomPopovers(r);
+            updateRowAppearance(r);
+        }
     });
     document.querySelectorAll("tbody tr[data-parsed-status]").forEach(r => updateRowAppearance(r));
     applyFilters();
