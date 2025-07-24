@@ -100,6 +100,7 @@ from .models import (
     ZweckKategorieA,
     Anlage5Review,
     Anlage3Metadata,
+    SupervisionStandardNote,
 )
 from .docx_utils import extract_text, get_docx_page_count
 from .llm_utils import query_llm
@@ -3711,8 +3712,11 @@ def anlage2_supervision(request, projekt_id):
         raise Http404
 
     rows = _build_supervision_groups(pf)
+    notes = list(
+        SupervisionStandardNote.objects.filter(is_active=True).order_by("display_order")
+    )
 
-    context = {"projekt": projekt, "rows": rows}
+    context = {"projekt": projekt, "rows": rows, "standard_notes": notes}
     return render(request, "supervision_review.html", context)
 
 
@@ -3767,6 +3771,33 @@ def hx_supervision_save_notes(request, result_id: int):
 
     result.supervisor_notes = request.POST.get("notes", "")
     result.save(update_fields=["supervisor_notes"])
+
+    pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
+    if result.subquestion is None:
+        groups = _build_supervision_groups(pf)
+        group = next(g for g in groups if g["function"]["result_id"] == result.id)
+        return render(request, "partials/supervision_group.html", {"group": group})
+    row = _build_supervision_row(result, pf)
+    return render(request, "partials/supervision_row.html", {"row": row})
+
+
+@login_required
+@require_POST
+def hx_supervision_add_standard_note(request, result_id: int):
+    """Fügt eine Standardnotiz zu den Supervisor-Notizen hinzu."""
+
+    result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
+
+    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    note_text = request.POST.get("note_text", "")
+    if note_text:
+        if result.supervisor_notes:
+            result.supervisor_notes += "\n" + note_text
+        else:
+            result.supervisor_notes = note_text
+        result.save(update_fields=["supervisor_notes"])
 
     pf = result.anlage_datei.projekt.anlagen.filter(anlage_nr=2).order_by("id").first()
     if result.subquestion is None:

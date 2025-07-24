@@ -13,6 +13,17 @@
       <button class="bg-green-600 text-white px-2 py-1 rounded ms-2" type="submit">Bestätigen</button>
     </form>
   </div>
+  <div class="space-x-2">
+    {% for note in standard_notes %}
+    <button type="button"
+            hx-post="{% url 'hx_supervision_add_standard_note' row.result_id %}"
+            hx-vals='{"note_text": "{{ note.note_text }}"}'
+            hx-target="closest details" hx-swap="outerHTML"
+            class="bg-gray-200 px-2 py-1 rounded">
+      {{ note.note_text }}
+    </button>
+    {% endfor %}
+  </div>
   <form hx-post="{% url 'hx_supervision_save_notes' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="space-y-2">
     <textarea name="notes" rows="2" class="border rounded w-full p-2">{{ row.notes }}</textarea>
     <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>

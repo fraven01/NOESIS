@@ -3,11 +3,11 @@
     {{ group.function.name }}
     {% if group.subrows %}<span class="ms-2">+</span>{% endif %}
   </summary>
-  {% include 'partials/supervision_row_content.html' with row=group.function %}
+  {% include 'partials/supervision_row_content.html' with row=group.function standard_notes=standard_notes %}
   {% if group.show_subs and group.subrows %}
   <div class="ms-4 space-y-4 mt-2">
     {% for sub in group.subrows %}
-      {% include 'partials/supervision_row.html' with row=sub %}
+      {% include 'partials/supervision_row.html' with row=sub standard_notes=standard_notes %}
     {% endfor %}
   </div>
   {% endif %}
