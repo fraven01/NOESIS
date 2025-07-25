@@ -169,10 +169,45 @@
         const form = input ? input.closest('form') : null;
         const container = document.getElementById('preview-container');
         const anlageSelect = document.getElementById('id_anlage_nr');
+        const submitButton = form ? form.querySelector('[type=submit]') : null;
+
+        // Warnungselement für doppelte Anlagennummern
+        const dupWarning = document.createElement('div');
+        dupWarning.className = 'text-red-600 p-2 border border-red-400 rounded mb-2 hidden';
+        dupWarning.textContent = 'Mehrere Dateien besitzen dieselbe Anlage-Nummer.';
+        container.parentNode.insertBefore(dupWarning, container);
 
         if (!input || !dropzone || !form || !container) return;
 
         let currentFiles = [];
+
+        // Prüft auf doppelte Anlagennummern und aktualisiert UI
+        function checkDuplicates() {
+            const counts = {};
+            currentFiles.forEach(it => {
+                if (it.anlageNr) {
+                    counts[it.anlageNr] = (counts[it.anlageNr] || 0) + 1;
+                }
+            });
+
+            let hasDup = false;
+            currentFiles.forEach(it => {
+                if (it.anlageNr && counts[it.anlageNr] > 1) {
+                    it.wrapper.classList.add('border-red-600');
+                    hasDup = true;
+                } else {
+                    it.wrapper.classList.remove('border-red-600');
+                }
+            });
+
+            if (hasDup) {
+                dupWarning.classList.remove('hidden');
+                if (submitButton) submitButton.disabled = true;
+            } else {
+                dupWarning.classList.add('hidden');
+                if (submitButton) submitButton.disabled = false;
+            }
+        }
 
         function handleFiles(files) {
             container.innerHTML = ''; // Alte Vorschauen löschen
@@ -192,14 +227,16 @@
                 const preview = createPreview(file, container, () => {
                     const idx = currentFiles.findIndex(it => it.file === file);
                     if (idx !== -1) currentFiles.splice(idx, 1);
+                    checkDuplicates();
                 }, detectedNr);
                 const item = { file, bar: preview.bar, wrapper: preview.wrapper, select: preview.select, anlageNr: detectedNr };
                 currentFiles.push(item);
                 preview.select.addEventListener('change', () => {
                     item.anlageNr = parseInt(preview.select.value, 10);
+                    checkDuplicates();
                 });
             }
-
+            checkDuplicates();
         }
 
         dropzone.addEventListener('click', () => input.click());
@@ -222,7 +259,6 @@
                 return;
             }
             
-            const submitButton = form.querySelector('[type=submit]');
             if(submitButton) submitButton.disabled = true;
 
             const targetSel = form.getAttribute('hx-target');
