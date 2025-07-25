@@ -6,6 +6,7 @@
         <tr>
             {% if show_nr %}<th class="px-2 py-1">Nr.</th>{% endif %}
             <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1">Version</th>
             <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
             <th class="px-2 py-1 text-center">Vergleich</th>
             <th class="px-2 py-1 text-center">Geprüft</th>
@@ -16,7 +17,8 @@
     {% for a in anlagen %}
         <tr class="border-t">
             {% if show_nr %}<td class="px-2 py-1">{{ a.anlage_nr }}</td>{% endif %}
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|clean_filename }}</a></td>
+            <td class="px-2 py-1">{{ a.version }}</td>
             <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}">
                 {% include 'partials/anlage_status.html' with anlage=a %}
             </td>
@@ -45,7 +47,7 @@
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="{% if show_nr %}6{% else %}5{% endif %}">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="{% if show_nr %}7{% else %}6{% endif %}">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
