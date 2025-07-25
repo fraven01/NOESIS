@@ -211,7 +211,6 @@ class BVProjectFileForm(forms.ModelForm):
             "upload",
             "parser_mode",
             "parser_order",
-            "manual_analysis_json",
         ]
         labels = {
             "anlage_nr": "Anlage Nr",
@@ -219,7 +218,6 @@ class BVProjectFileForm(forms.ModelForm):
             "parser_mode": "Parser-Modus",
             "parser_order": "Parser-Reihenfolge",
             "manual_comment": "Kommentar",
-            "manual_analysis_json": "Manuelle Analyse (JSON)",
             "manual_reviewed": "Manuell geprüft",
             "verhandlungsfaehig": "Verhandlungsfähig",
         }
@@ -233,9 +231,6 @@ class BVProjectFileForm(forms.ModelForm):
             ),
             "manual_comment": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 3}
-            ),
-            "manual_analysis_json": forms.Textarea(
-                attrs={"class": "border rounded p-2", "rows": 5}
             ),
             "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
