@@ -108,7 +108,7 @@
             const docxContainer = document.createElement('div');
             docxContainer.className = 'preview-docx';
             thumb.appendChild(docxContainer);
-            loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js')
+            loadScript('/static/vendor/docx-preview.min.js')
                 .then(() => docx.renderAsync(file, docxContainer))
                 .catch(() => {
                     docxContainer.textContent = 'Vorschau konnte nicht geladen werden';
