@@ -484,8 +484,8 @@ urlpatterns = [
     ),
     path(
         "ajax/rerun-initial-check/",
-        views.ajax_rerun_initial_check_with_context,
-        name="ajax_rerun_initial_check_with_context",
+        views.ajax_rerun_initial_check,
+        name="ajax_rerun_initial_check",
     ),
     path(
         "knowledge/<int:knowledge_id>/edit/",
