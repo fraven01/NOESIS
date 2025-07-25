@@ -178,39 +178,6 @@
 
         let currentFiles = [];
 
-        function updateDuplicateStatus() {
-            const counts = {};
-            let hasDuplicate = false;
-
-            for (const item of currentFiles) {
-                counts[item.anlageNr] = (counts[item.anlageNr] || 0) + 1;
-            }
-
-            for (const item of currentFiles) {
-                item.wrapper.classList.remove('duplicate');
-                if (counts[item.anlageNr] > 1) {
-                    item.wrapper.classList.add('duplicate');
-                    hasDuplicate = true;
-                }
-            }
-
-            let warning = document.getElementById('duplicate-warning');
-            if (hasDuplicate) {
-                if (!warning) {
-                    warning = document.createElement('div');
-                    warning.id = 'duplicate-warning';
-                    warning.className = 'text-red-600 p-2 border border-red-400 rounded mb-2';
-                    warning.textContent = 'Mehrere Dateien f\u00fcr dieselbe Anlage ausgew\u00e4hlt.';
-                    container.insertBefore(warning, container.firstChild);
-                }
-            } else if (warning) {
-                warning.remove();
-            }
-
-            const submitButton = form.querySelector('[type=submit]');
-            if (submitButton) submitButton.disabled = hasDuplicate;
-        }
-
         function handleFiles(files) {
             container.innerHTML = ''; // Alte Vorschauen löschen
             currentFiles = [];
@@ -229,17 +196,14 @@
                 const preview = createPreview(file, container, () => {
                     const idx = currentFiles.findIndex(it => it.file === file);
                     if (idx !== -1) currentFiles.splice(idx, 1);
-                    updateDuplicateStatus();
                 }, detectedNr);
                 const item = { file, bar: preview.bar, wrapper: preview.wrapper, select: preview.select, anlageNr: detectedNr };
                 currentFiles.push(item);
                 preview.select.addEventListener('change', () => {
                     item.anlageNr = parseInt(preview.select.value, 10);
-                    updateDuplicateStatus();
                 });
             }
 
-            updateDuplicateStatus();
         }
 
         dropzone.addEventListener('click', () => input.click());
