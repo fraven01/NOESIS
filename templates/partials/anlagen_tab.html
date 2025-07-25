@@ -1,0 +1,66 @@
+{% load recording_extras %}
+{% url 'hx_project_anlage_tab' projekt.pk anlage_nr as base_url %}
+<div class="overflow-x-auto">
+<table class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            {% if show_nr %}<th class="px-2 py-1">Nr.</th>{% endif %}
+            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
+            <th class="px-2 py-1 text-center">Vergleich</th>
+            <th class="px-2 py-1 text-center">Geprüft</th>
+            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in anlagen %}
+        <tr class="border-t">
+            {% if show_nr %}<td class="px-2 py-1">{{ a.anlage_nr }}</td>{% endif %}
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
+                hx-get="{% url 'hx_anlage_status' a.pk %}"
+                hx-trigger="load, every 5s"
+                hx-swap="outerHTML">
+                {% include 'partials/anlage_status.html' with anlage=a %}
+            </td>
+            <td class="px-2 py-1 text-center">
+                {% if a.parent %}
+                    <a href="{% url 'compare_versions' a.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded">Mit Vorgänger vergleichen</a>
+                {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.verhandlungsfaehig %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.verhandlungsfaehig %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="{% if show_nr %}6{% else %}5{% endif %}">Keine Anlagen vorhanden</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% if page_obj %}
+<div class="flex justify-between items-center">
+    {% if page_obj.has_previous %}
+        <a hx-get="{{ base_url }}?page={{ page_obj.previous_page_number }}" hx-target="#anlage-tab-content" class="px-2 py-1 bg-gray-300 rounded">«</a>
+    {% endif %}
+    <span>Seite {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a hx-get="{{ base_url }}?page={{ page_obj.next_page_number }}" hx-target="#anlage-tab-content" class="px-2 py-1 bg-gray-300 rounded">»</a>
+    {% endif %}
+</div>
+{% endif %}
+</div>

@@ -2725,11 +2725,7 @@ def projekt_list(request):
 def projekt_detail(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     all_files = projekt.anlagen.all()
-    anlage3_list = all_files.filter(anlage_nr=3)
-    other_anlagen = all_files.exclude(anlage_nr=3)
     reviewed = all_files.filter(manual_reviewed=True).count()
-    page = request.GET.get("a3page")
-    anlage3_page = Paginator(anlage3_list, 10).get_page(page)
     is_admin = request.user.groups.filter(name="admin").exists()
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
@@ -2748,8 +2744,7 @@ def projekt_detail(request, pk):
         "num_reviewed": reviewed,
         "is_verhandlungsfaehig": projekt.is_verhandlungsfaehig,
         "is_admin": is_admin,
-        "anlage3_page": anlage3_page,
-        "other_anlagen": other_anlagen,
+        "anlage_numbers": list(range(1, 7)),
 
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
@@ -4425,6 +4420,28 @@ def hx_anlage_status(request, pk: int):
 
     context = {"anlage": anlage}
     return render(request, "partials/anlage_status.html", context)
+
+
+@login_required
+def hx_project_anlage_tab(request, pk: int, nr: int):
+    """Rendert die Dateiliste für eine Anlage als Tab-Inhalt."""
+
+    projekt = get_object_or_404(BVProject, pk=pk)
+
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
+    page = request.GET.get("page") if nr == 3 else None
+    page_obj = Paginator(files_qs, 10).get_page(page) if nr == 3 else None
+    context = {
+        "projekt": projekt,
+        "anlagen": page_obj or files_qs,
+        "page_obj": page_obj,
+        "anlage_nr": nr,
+        "show_nr": False,
+    }
+    return render(request, "partials/anlagen_tab.html", context)
 
 
 @login_required
