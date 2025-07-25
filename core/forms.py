@@ -206,13 +206,11 @@ class BVProjectFileForm(forms.ModelForm):
     class Meta:
         model = BVProjectFile
         fields = [
-            "anlage_nr",
             "upload",
             "parser_mode",
             "parser_order",
         ]
         labels = {
-            "anlage_nr": "Anlage Nr",
             "upload": "Datei",
             "parser_mode": "Parser-Modus",
             "parser_order": "Parser-Reihenfolge",
@@ -221,10 +219,6 @@ class BVProjectFileForm(forms.ModelForm):
             "verhandlungsfaehig": "Verhandlungsfähig",
         }
         widgets = {
-            "anlage_nr": forms.Select(
-                choices=[(i, str(i)) for i in range(1, 7)],
-                attrs={"class": "border rounded p-2"},
-            ),
             "upload": MultiFileInput(
                 attrs={"class": "hidden", "id": "id_upload", "multiple": True}
             ),
@@ -239,9 +233,12 @@ class BVProjectFileForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, anlage_nr=None, **kwargs):
+        self.anlage_nr = anlage_nr
         super().__init__(*args, **kwargs)
-        nr = self.data.get("anlage_nr") or self.initial.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
+        if self.anlage_nr is None:
+            self.anlage_nr = getattr(self.instance, "anlage_nr", None)
+        nr = self.anlage_nr
         if str(nr) != "2":
             self.fields.pop("parser_mode", None)
             self.fields.pop("parser_order", None)
@@ -255,9 +252,7 @@ class BVProjectFileForm(forms.ModelForm):
 
         f = self.cleaned_data["upload"]
         ext = Path(f.name).suffix.lower()
-        nr = self.cleaned_data.get("anlage_nr") or getattr(
-            self.instance, "anlage_nr", None
-        )
+        nr = self.anlage_nr or getattr(self.instance, "anlage_nr", None)
 
         if f.size > settings.MAX_UPLOAD_SIZE:
             raise forms.ValidationError(

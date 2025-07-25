@@ -3022,7 +3022,7 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
     """Speichert eine einzelne hochgeladene Datei."""
 
     uploaded = form.cleaned_data["upload"]
-    anlage_nr = form.cleaned_data["anlage_nr"]
+    anlage_nr = form.anlage_nr
     content = ""
     lower_name = uploaded.name.lower()
     if lower_name.endswith(".docx"):
@@ -3089,41 +3089,69 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
 
 @login_required
 def projekt_file_upload(request, pk):
-    """Lädt genau eine Datei zu einem Projekt hoch."""
+    """
+    Lädt eine oder mehrere Dateien zu einem Projekt hoch. 
+    Verarbeitet pro Anfrage genau eine Datei, wie vom Frontend gesendet.
+    """
     projekt = get_object_or_404(BVProject, pk=pk)
+
     if request.method == "POST":
-        # Pro Anfrage wird nur eine Datei verarbeitet
+        # Nimmt die eine Datei entgegen, die vom asynchronen JS-Request gesendet wird
         upload = request.FILES.get("upload")
         if not upload:
-            return HttpResponseBadRequest("Keine Datei übermittelt")
-        nr = request.POST.get("anlage_nr")
-        form = BVProjectFileForm({"anlage_nr": nr}, {"upload": upload})
+            return HttpResponseBadRequest("Keine Datei übermittelt.")
+
+        # Nimmt die anlage_nr entgegen, die für DIESE EINE Datei vom JS gesendet wurde
+        anlage_nr_str = request.POST.get("anlage_nr")
+        
+        # Formular-Instanz mit den Daten für diese eine Datei erstellen
+        # Wir übergeben die Daten direkt an die Form, um die Validierung zu nutzen.
+        form = BVProjectFileForm(
+            {"anlage_nr": anlage_nr_str}, 
+            {"upload": upload}
+        )
+
         if form.is_valid():
             try:
-                saved = _save_project_file(projekt, form)
-            except ValueError:
-                return HttpResponseBadRequest("Ungültiges Dateiformat")
+                # Die _save_project_file-Hilfsfunktion kümmert sich um die Speicherung
+                saved_file = _save_project_file(projekt, form)
+            except ValueError as e:
+                # Fehler bei Duplikaten oder anderen Validierungen abfangen
+                return HttpResponseBadRequest(str(e))
+
+            # Bei einem erfolgreichen htmx-Request wird das Tabellen-Partial neu geladen
             if request.headers.get("HX-Request"):
-                nr = saved.anlage_nr
-                files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
+                # Korrekt gefilterte Liste für den Response holen
+                files_qs = projekt.anlagen.filter(anlage_nr=saved_file.anlage_nr).order_by("-version")
                 context = {
                     "projekt": projekt,
                     "anlagen": files_qs,
                     "page_obj": None,
-                    "anlage_nr": nr,
+                    "anlage_nr": saved_file.anlage_nr,
                     "show_nr": False,
                 }
                 return render(request, "partials/anlagen_tab.html", context)
+            
+            # Fallback für Non-JS-Uploads
             return redirect("projekt_detail", pk=projekt.pk)
-        form = BVProjectFileForm(request.POST, request.FILES)
-    else:
-        anlage_param = request.GET.get("anlage_nr")
-        initial = {}
-        if anlage_param and anlage_param.isdigit():
-            nr_val = int(anlage_param)
-            if 1 <= nr_val <= 6:
-                initial["anlage_nr"] = nr_val
-        form = BVProjectFileForm(initial=initial)
+        
+        else:
+            # Wenn das Formular nicht gültig ist (z.B. Dateityp falsch)
+            # Im htmx-Kontext einen Fehler zurückgeben
+            if request.headers.get("HX-Request"):
+                return HttpResponseBadRequest(form.errors.as_text())
+            # Ansonsten das volle Formular mit Fehlern rendern (für Non-JS)
+
+    # Logik für den initialen GET-Request (Anzeige des leeren Formulars)
+    anlage_param = request.GET.get("anlage_nr")
+    nr_val = None
+    if anlage_param and anlage_param.isdigit():
+        val = int(anlage_param)
+        if 1 <= val <= 6:
+            nr_val = val
+            
+    form = BVProjectFileForm(initial={'anlage_nr': nr_val})
+
     return render(
         request,
         "projekt_file_form.html",
