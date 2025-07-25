@@ -43,13 +43,16 @@
   {% for nr in anlage_numbers %}
   <button class="anlage-tab-btn px-3 py-1 border-b-2 {% if forloop.first %}border-blue-600 text-blue-600{% else %}border-transparent text-gray-600{% endif %}"
           hx-get="{% url 'hx_project_anlage_tab' projekt.pk nr %}"
-          hx-target="#anlage-tab-content" hx-swap="innerHTML" hx-push-url="false">
+          hx-target="#anlage-tab-content" hx-swap="innerHTML" hx-push-url="false"
+          data-nr="{{ nr }}">
     Anlage {{ nr }}
   </button>
   {% endfor %}
 </nav>
 <div id="anlage-tab-content" hx-get="{% url 'hx_project_anlage_tab' projekt.pk 1 %}" hx-trigger="load"></div>
-<a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded mt-4 inline-block">Anlage hochladen</a>
+<a id="upload-link" data-base-url="{% url 'projekt_file_upload' projekt.pk %}"
+   href="{% url 'projekt_file_upload' projekt.pk %}?anlage_nr=1"
+   class="bg-blue-600 text-white px-4 py-2 rounded mt-4 inline-block">Anlage hochladen</a>
 </div>
 
 
@@ -335,6 +338,8 @@ document.addEventListener('htmx:beforeRequest',function(e){
     });
     t.classList.remove('border-transparent','text-gray-600');
     t.classList.add('border-blue-600','text-blue-600');
+    const link=document.getElementById('upload-link');
+    if(link){link.href=`${link.dataset.baseUrl}?anlage_nr=${t.dataset.nr}`;}
   }
 });
 });

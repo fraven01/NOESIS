@@ -674,6 +674,11 @@ class ProjektFileUploadTests(NoesisTestCase):
             pf.pk,
         )
 
+    def test_upload_form_prefills_anlage_nr(self):
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.get(f"{url}?anlage_nr=4")
+        self.assertContains(resp, '<option value="4" selected>')
+
 
 class AutoApprovalTests(NoesisTestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
