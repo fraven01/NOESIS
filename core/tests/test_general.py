@@ -2237,6 +2237,23 @@ class ProjektFileCheckViewTests(NoesisTestCase):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         expected = {
             "task": "check_anlage1",
+            "version": 1,
+            "anlage": 1,
+            "companies": {"value": None, "editable": True},
+            "departments": {"value": None, "editable": True},
+            "it_integration_summary": {"value": None, "editable": True},
+            "vendors": {"value": None, "editable": True},
+            "question4_raw": {"value": None, "editable": True},
+            "purpose_summary": {"value": None, "editable": True},
+            "purpose_missing": {"value": None, "editable": True},
+            "documentation_links": {"value": None, "editable": True},
+            "replaced_systems": {"value": None, "editable": True},
+            "legacy_functions": {"value": None, "editable": True},
+            "question9_raw": {"value": None, "editable": True},
+            "inconsistencies": {"value": None, "editable": True},
+            "keywords": {"value": None, "editable": True},
+            "plausibility_score": {"value": None, "editable": True},
+            "manual_comments": {"value": None, "editable": True},
         }
         llm_reply = json.dumps(
             {
@@ -2270,7 +2287,26 @@ class ProjektFileCheckViewTests(NoesisTestCase):
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
-        expected = {"task": "check_anlage1"}
+        expected = {
+            "task": "check_anlage1",
+            "version": 1,
+            "anlage": 1,
+            "companies": {"value": None, "editable": True},
+            "departments": {"value": None, "editable": True},
+            "it_integration_summary": {"value": None, "editable": True},
+            "vendors": {"value": None, "editable": True},
+            "question4_raw": {"value": None, "editable": True},
+            "purpose_summary": {"value": None, "editable": True},
+            "purpose_missing": {"value": None, "editable": True},
+            "documentation_links": {"value": None, "editable": True},
+            "replaced_systems": {"value": None, "editable": True},
+            "legacy_functions": {"value": None, "editable": True},
+            "question9_raw": {"value": None, "editable": True},
+            "inconsistencies": {"value": None, "editable": True},
+            "keywords": {"value": None, "editable": True},
+            "plausibility_score": {"value": None, "editable": True},
+            "manual_comments": {"value": None, "editable": True},
+        }
         llm_reply = json.dumps(
             {
                 "companies": None,
@@ -2617,7 +2653,26 @@ class ProjektFileCheckResultTests(NoesisTestCase):
 
     def test_get_runs_check_and_redirects_to_edit(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        expected = {"task": "check_anlage1"}
+        expected = {
+            "task": "check_anlage1",
+            "version": 1,
+            "anlage": 1,
+            "companies": {"value": None, "editable": True},
+            "departments": {"value": None, "editable": True},
+            "it_integration_summary": {"value": None, "editable": True},
+            "vendors": {"value": None, "editable": True},
+            "question4_raw": {"value": None, "editable": True},
+            "purpose_summary": {"value": None, "editable": True},
+            "purpose_missing": {"value": None, "editable": True},
+            "documentation_links": {"value": None, "editable": True},
+            "replaced_systems": {"value": None, "editable": True},
+            "legacy_functions": {"value": None, "editable": True},
+            "question9_raw": {"value": None, "editable": True},
+            "inconsistencies": {"value": None, "editable": True},
+            "keywords": {"value": None, "editable": True},
+            "plausibility_score": {"value": None, "editable": True},
+            "manual_comments": {"value": None, "editable": True},
+        }
         llm_reply = json.dumps(
             {
                 "companies": None,
