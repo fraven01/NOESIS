@@ -485,7 +485,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
-            url = reverse("hx_project_file_status", args=[pf.pk])
+            url = reverse("hx_anlage_status", args=[pf.pk])
             resp = self.client.get(url)
         self.assertContains(resp, "hx-trigger")
         self.assertContains(resp, "spinner")
@@ -501,7 +501,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=True)
-            url = reverse("hx_project_file_status", args=[pf.pk])
+            url = reverse("hx_anlage_status", args=[pf.pk])
             resp = self.client.get(url)
         self.assertNotContains(resp, "hx-trigger")
         self.assertContains(resp, "Prüfen")
