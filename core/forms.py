@@ -3,6 +3,11 @@ from django.forms import Textarea, modelformset_factory
 import json
 import logging
 from pathlib import Path
+import re
+
+
+class MultiFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
 from .models import (
     Recording,
     BVProject,
@@ -222,7 +227,7 @@ class BVProjectFileForm(forms.ModelForm):
                 choices=[(i, str(i)) for i in range(1, 7)],
                 attrs={"class": "border rounded p-2"},
             ),
-            "upload": forms.ClearableFileInput(attrs={"class": "border rounded p-2"}),
+            "upload": MultiFileInput(attrs={"class": "border rounded p-2", "multiple": True}),
             "manual_comment": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 3}
             ),
@@ -239,6 +244,17 @@ class BVProjectFileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        file_obj = (self.files or {}).get("upload")
+        if file_obj and not (self.data.get("anlage_nr") or self.initial.get("anlage_nr")):
+            match = re.search(r"anlage_(\d)", file_obj.name, re.IGNORECASE)
+            if match:
+                num = int(match.group(1))
+                if 1 <= num <= 6:
+                    if self.is_bound:
+                        data = self.data.copy()
+                        data["anlage_nr"] = str(num)
+                        self.data = data
+                    self.initial.setdefault("anlage_nr", num)
         nr = self.data.get("anlage_nr") or self.initial.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
         if str(nr) != "2":
             self.fields.pop("parser_mode", None)

@@ -3003,76 +3003,104 @@ def projekt_edit(request, pk):
     return render(request, "projekt_form.html", context)
 
 
+def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProjectFile:
+    """Speichert eine einzelne hochgeladene Datei."""
+
+    uploaded = form.cleaned_data["upload"]
+    content = ""
+    lower_name = uploaded.name.lower()
+    if lower_name.endswith(".docx"):
+        from tempfile import NamedTemporaryFile
+
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        for chunk in uploaded.chunks():
+            tmp.write(chunk)
+        tmp.close()
+        try:
+            content = extract_text(Path(tmp.name))
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
+    elif lower_name.endswith(".pdf"):
+        uploaded.read()
+        uploaded.seek(0)
+    else:
+        try:
+            content = uploaded.read().decode("utf-8")
+        except UnicodeDecodeError as exc:
+            logger.error("Datei konnte nicht als UTF-8 dekodiert werden: %s", exc)
+            raise ValueError("invalid")
+
+    obj = form.save(commit=False)
+    obj.projekt = projekt
+    obj.text_content = content
+    old_file = (
+        BVProjectFile.objects.filter(
+            projekt=projekt,
+            anlage_nr=obj.anlage_nr,
+            is_active=True,
+        )
+        .order_by("-version")
+        .first()
+    )
+    if old_file:
+        old_file.is_active = False
+        old_file.save(update_fields=["is_active"])
+        obj.version = old_file.version + 1
+        obj.parent = old_file
+
+    obj.save()
+    if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
+        try:
+            from .anlage3_parser import parse_anlage3
+
+            meta = parse_anlage3(obj)
+            if meta:
+                Anlage3Metadata.objects.update_or_create(project_file=obj, defaults=meta)
+        except Exception:
+            logger.exception("Fehler beim Anlage3 Parser")
+
+        try:
+            pages = get_docx_page_count(Path(obj.upload.path))
+            if pages == 1:
+                obj.verhandlungsfaehig = True
+                obj.save(update_fields=["verhandlungsfaehig"])
+        except Exception:
+            logger.exception("Fehler beim Seitenzählen")
+
+    return obj
+
+
 @login_required
 def projekt_file_upload(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     if request.method == "POST":
-        form = BVProjectFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            uploaded = form.cleaned_data["upload"]
-            content = ""
-            lower_name = uploaded.name.lower()
-            if lower_name.endswith(".docx"):
-                from tempfile import NamedTemporaryFile
-
-                tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-                for chunk in uploaded.chunks():
-                    tmp.write(chunk)
-                tmp.close()
-                try:
-                    content = extract_text(Path(tmp.name))
-                finally:
-                    Path(tmp.name).unlink(missing_ok=True)
-            elif lower_name.endswith(".pdf"):
-                uploaded.read()  # Bytes einlesen, aber nicht dekodieren
-                uploaded.seek(0)
-            else:
-                try:
-                    content = uploaded.read().decode("utf-8")
-                except UnicodeDecodeError as exc:
-                    logger.error(
-                        "Datei konnte nicht als UTF-8 dekodiert werden: %s", exc
-                    )
-                    return HttpResponseBadRequest("Ungültiges Dateiformat")
-            obj = form.save(commit=False)
-            obj.projekt = projekt
-            obj.text_content = content
-            old_file = (
-                BVProjectFile.objects.filter(
-                    projekt=projekt,
-                    anlage_nr=obj.anlage_nr,
-                    is_active=True,
-                )
-                .order_by("-version")
-                .first()
-            )
-            if old_file:
-                old_file.is_active = False
-                old_file.save(update_fields=["is_active"])
-                obj.version = old_file.version + 1
-                obj.parent = old_file
-
-            obj.save()
-            if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
-                try:
-                    from .anlage3_parser import parse_anlage3
-                    meta = parse_anlage3(obj)
-                    if meta:
-                        Anlage3Metadata.objects.update_or_create(
-                            project_file=obj, defaults=meta
-                        )
-                except Exception:
-                    logger.exception("Fehler beim Anlage3 Parser")
-
-            if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
-                try:
-                    pages = get_docx_page_count(Path(obj.upload.path))
-                    if pages == 1:
-                        obj.verhandlungsfaehig = True
-                        obj.save(update_fields=["verhandlungsfaehig"])
-                except Exception:
-                    logger.exception("Fehler beim Seitenzählen")
+        files = request.FILES.getlist("upload")
+        if not files and request.FILES.get("upload"):
+            files = [request.FILES["upload"]]
+        saved = []
+        for f in files:
+            data = request.POST.copy()
+            form = BVProjectFileForm(data, {"upload": f})
+            if not form.is_valid():
+                continue
+            try:
+                saved.append(_save_project_file(projekt, form))
+            except ValueError:
+                return HttpResponseBadRequest("Ungültiges Dateiformat")
+        if request.headers.get("HX-Request") and saved:
+            nr = saved[0].anlage_nr
+            files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
+            context = {
+                "projekt": projekt,
+                "anlagen": files_qs,
+                "page_obj": None,
+                "anlage_nr": nr,
+                "show_nr": False,
+            }
+            return render(request, "partials/anlagen_tab.html", context)
+        if saved:
             return redirect("projekt_detail", pk=projekt.pk)
+        form = BVProjectFileForm(request.POST, request.FILES)
     else:
         anlage_param = request.GET.get("anlage_nr")
         initial = {}

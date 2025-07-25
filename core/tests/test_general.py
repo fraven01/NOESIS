@@ -681,6 +681,44 @@ class ProjektFileUploadTests(NoesisTestCase):
         resp = self.client.get(f"{url}?anlage_nr=4")
         self.assertContains(resp, '<option value="4" selected>')
 
+    def test_filename_sets_anlage_nr(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=5).exists())
+
+    def test_multiple_file_upload(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            data = fh.read()
+        Path(tmp.name).unlink(missing_ok=True)
+        up1 = SimpleUploadedFile("Anlage_1.docx", data)
+        up2 = SimpleUploadedFile("Anlage_2.docx", data)
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"upload": [up1, up2], "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.projekt.anlagen.count(), 2)
+
 
 class AutoApprovalTests(NoesisTestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
