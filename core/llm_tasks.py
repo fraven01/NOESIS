@@ -832,30 +832,33 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     ) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
 
-    question_objs = list(Anlage1Question.objects.order_by("num"))
-    if not question_objs:
-        question_objs = [
-            Anlage1Question(
-                num=i,
-                text=t,
-                enabled=True,
-                parser_enabled=True,
-                llm_enabled=True,
-            )
-            for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
-        ]
+    data: dict | None = None
+    save_fields = ["processing_status"]
 
-    cfg = Anlage1Config.objects.first()
+    try:
+        question_objs = list(Anlage1Question.objects.order_by("num"))
+        if not question_objs:
+            question_objs = [
+                Anlage1Question(
+                    num=i,
+                    text=t,
+                    enabled=True,
+                    parser_enabled=True,
+                    llm_enabled=True,
+                )
+                for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
+            ]
 
-    # Debug-Log für den zu parsenden Text
+
     anlage1_logger.debug(
         "check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r",
         anlage.text_content[:500] if anlage.text_content else None,
     )
 
-    save_fields = ["processing_status"]
-    try:
+
         parsed = parse_anlage1_questions(anlage.text_content)
+ound_nums: dict[str, str | None] = {}
+
 
         if parsed:
             anlage1_logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
@@ -878,7 +881,7 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     finally:
         anlage.save(update_fields=save_fields)
 
-    return data
+    return data or {}
 
 
 def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
