@@ -32,7 +32,7 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
     """
 
     task_map: dict[int, list[tuple[str, int]]] = {
-        1: [("core.llm_tasks.check_anlage1", file_obj.projekt.pk)],
+        1: [("core.llm_tasks.check_anlage1", file_obj.pk)],
         2: [
             ("core.llm_tasks.worker_run_anlage2_analysis", file_obj.pk),
             ("core.llm_tasks.run_conditional_anlage2_check", file_obj.pk),
