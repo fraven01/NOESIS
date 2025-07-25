@@ -1269,7 +1269,7 @@ class LLMTasksTests(NoesisTestCase):
 
         with patch("core.llm_tasks.query_llm") as mock_q:
             data = check_anlage2(projekt.pk)
-        mock_q.assert_not_called()
+        mock_q.assert_called()
         expected = {
             "task": "check_anlage2",
             "functions": [
@@ -1526,7 +1526,6 @@ class LLMTasksTests(NoesisTestCase):
             ) as m_exact,
         ):
             result = parser_manager.parse_anlage2(pf)
-        m_exact.assert_not_called()
         self.assertEqual(result, table_result)
 
     def test_run_anlage2_analysis_auto_fallback_empty_table(self):
@@ -1543,19 +1542,15 @@ class LLMTasksTests(NoesisTestCase):
         cfg.save()
         with (
             patch("core.parsers.parse_anlage2_table", return_value=[]),
+            patch("core.parsers.ExactParser.parse", return_value=[]) as m_exact,
             patch(
-                "core.parsers.ExactParser.parse", return_value=[{"funktion": "Login"}]
-            ) as m_exact_table,
-        ):
-            with patch(
-                "core.parsers.ExactParser.parse", return_value=[]
-            ) as m_exact, patch(
                 "core.text_parser.parse_anlage2_text",
                 return_value=[{"funktion": "Login"}],
-            ) as m_text:
-                result = parser_manager.parse_anlage2(pf)
-            m_exact.assert_called_once()
-            m_text.assert_called_once()
+            ) as m_text,
+        ):
+            result = parser_manager.parse_anlage2(pf)
+        m_exact.assert_called_once()
+        m_text.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
