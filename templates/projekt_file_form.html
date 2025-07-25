@@ -17,6 +17,7 @@
         <div id="dropzone" class="border-2 border-dashed p-6 text-center cursor-pointer">
             Dateien hierher ziehen oder klicken, um auszuwählen
         </div>
+        <div id="preview-container" class="mt-2 space-y-2"></div>
         {{ form.upload.errors }}
     </div>
     {% if form.parser_mode %}
@@ -58,16 +59,9 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const dropzone = document.getElementById('dropzone');
-    const input = document.getElementById('id_upload');
-    dropzone.addEventListener('click', () => input.click());
-    dropzone.addEventListener('dragover', e => {e.preventDefault(); dropzone.classList.add('bg-gray-100');});
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('bg-gray-100'));
-    dropzone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropzone.classList.remove('bg-gray-100');
-        input.files = e.dataTransfer.files;
-    });
+    if (window.initFileUpload) {
+        initFileUpload();
+    }
 });
 </script>
 {% endblock %}
