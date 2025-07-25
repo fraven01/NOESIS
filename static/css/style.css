@@ -264,3 +264,8 @@ input[type="submit"]:hover {
 .status-toggle-btn i {
     pointer-events: none;
 }
+
+/* Rote Hervorhebung für doppelt gewählte Anlagen */
+.preview-item.duplicate {
+    border-color: #dc3545;
+}

@@ -95,7 +95,7 @@
         barContainer.appendChild(bar);
         wrapper.appendChild(barContainer);
 
-        return bar;
+        return { bar, wrapper };
     }
     
     // --- Logik zum Senden der Datei aus 'main' ---
@@ -143,6 +143,39 @@
 
         let currentFiles = [];
 
+        function updateDuplicateStatus() {
+            const counts = {};
+            let hasDuplicate = false;
+
+            for (const item of currentFiles) {
+                counts[item.anlageNr] = (counts[item.anlageNr] || 0) + 1;
+            }
+
+            for (const item of currentFiles) {
+                item.wrapper.classList.remove('duplicate');
+                if (counts[item.anlageNr] > 1) {
+                    item.wrapper.classList.add('duplicate');
+                    hasDuplicate = true;
+                }
+            }
+
+            let warning = document.getElementById('duplicate-warning');
+            if (hasDuplicate) {
+                if (!warning) {
+                    warning = document.createElement('div');
+                    warning.id = 'duplicate-warning';
+                    warning.className = 'text-red-600 p-2 border border-red-400 rounded mb-2';
+                    warning.textContent = 'Mehrere Dateien f\u00fcr dieselbe Anlage ausgew\u00e4hlt.';
+                    container.insertBefore(warning, container.firstChild);
+                }
+            } else if (warning) {
+                warning.remove();
+            }
+
+            const submitButton = form.querySelector('[type=submit]');
+            if (submitButton) submitButton.disabled = hasDuplicate;
+        }
+
         function handleFiles(files) {
             container.innerHTML = ''; // Alte Vorschauen löschen
             currentFiles = [];
@@ -157,9 +190,12 @@
                     input.value = ''; // Input zurücksetzen bei Fehler
                     return; // Stoppt bei erstem Fehler
                 }
-                const bar = createPreview(file, container);
-                currentFiles.push({ file, bar });
+                const preview = createPreview(file, container);
+                const anlageNr = getAnlageNrFromName(file.name);
+                currentFiles.push({ file, bar: preview.bar, wrapper: preview.wrapper, anlageNr });
             }
+
+            updateDuplicateStatus();
         }
 
         dropzone.addEventListener('click', () => input.click());
