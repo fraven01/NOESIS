@@ -109,8 +109,14 @@
             // PDF-Vorschau (vereinfacht, da komplex)
             thumb.textContent = '📄 PDF Vorschau';
         } else if (acceptedDocxTypes.includes(file.type)) {
-             // DOCX-Vorschau (vereinfacht)
-            thumb.textContent = '📄 DOCX Vorschau';
+            const docxContainer = document.createElement('div');
+            docxContainer.className = 'preview-docx';
+            thumb.appendChild(docxContainer);
+            loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js')
+                .then(() => docx.renderAsync(file, docxContainer))
+                .catch(() => {
+                    docxContainer.textContent = 'Vorschau konnte nicht geladen werden';
+                });
         }
 
         const barContainer = document.createElement('div');
