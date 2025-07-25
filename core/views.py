@@ -3022,10 +3022,7 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
     """Speichert eine einzelne hochgeladene Datei."""
 
     uploaded = form.cleaned_data["upload"]
-    try:
-        anlage_nr = extract_anlage_nr(uploaded.name)
-    except ValueError:
-        raise
+    anlage_nr = form.cleaned_data["anlage_nr"]
     content = ""
     lower_name = uploaded.name.lower()
     if lower_name.endswith(".docx"):
@@ -3099,13 +3096,7 @@ def projekt_file_upload(request, pk):
             files = [request.FILES["upload"]]
         saved = []
         for f in files:
-            try:
-                nr = extract_anlage_nr(f.name)
-            except ValueError as exc:
-                return HttpResponseBadRequest(str(exc))
-            data = request.POST.copy()
-            data["anlage_nr"] = str(nr)
-            form = BVProjectFileForm(data, {"upload": f})
+            form = BVProjectFileForm(request.POST, {"upload": f})
             if not form.is_valid():
                 continue
             try:
