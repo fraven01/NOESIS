@@ -3096,7 +3096,8 @@ def projekt_file_upload(request, pk):
             files = [request.FILES["upload"]]
         saved = []
         for f in files:
-            form = BVProjectFileForm(request.POST, {"upload": f})
+            nr = request.POST.get("anlage_nr")
+            form = BVProjectFileForm({"anlage_nr": nr}, {"upload": f})
             if not form.is_valid():
                 continue
             try:
