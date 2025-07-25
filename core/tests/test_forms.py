@@ -259,4 +259,19 @@ class BVProjectFileFormTests(NoesisTestCase):
         )
         self.assertFalse(form.is_valid())
 
+    def test_posted_anlage_nr_is_used(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        form = BVProjectFileForm({"anlage_nr": 2}, {"upload": upload})
+        self.assertTrue(form.is_valid())
+        obj = form.save(commit=False)
+        self.assertEqual(obj.anlage_nr, 2)
+
 
