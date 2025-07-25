@@ -22,7 +22,9 @@
 <a href="{{ edit_url }}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
 <form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline ml-2">
   {% csrf_token %}
-  <button class="bg-purple-600 text-white px-2 py-1 rounded">Erneut analysieren</button>
+  <button class="bg-purple-600 text-white px-2 py-1 rounded" title="Erneut analysieren">
+      <i class="fas fa-sync-alt"></i>
+  </button>
 </form>
 {% elif anlage.processing_status == 'FAILED' %}
 <span class="text-red-600 mr-2">Analyse fehlgeschlagen</span>
