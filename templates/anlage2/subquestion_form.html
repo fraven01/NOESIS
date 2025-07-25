@@ -15,16 +15,16 @@
         <div id="alias-container">
             {% for val in aliases %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" value="{{ val }}" class="form-control flex-grow">
-                <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                <input type="text" name="name_aliases" value="{{ val }}" class="border rounded px-2 py-1 flex-grow">
+                <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
             </div>
             {% endfor %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" class="form-control flex-grow">
-                <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                <input type="text" name="name_aliases" class="border rounded px-2 py-1 flex-grow">
+                <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
             </div>
         </div>
-        <button type="button" id="add-alias-btn" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+        <button type="button" id="add-alias-btn" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+ Alias hinzufügen</button>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -40,11 +40,11 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'name_aliases';
-            input.className = 'form-control flex-grow';
+            input.className = 'border rounded px-2 py-1 flex-grow';
             const del = document.createElement('button');
             del.type = 'button';
             del.textContent = 'x';
-            del.className = 'btn btn-sm btn-secondary ml-2 remove-btn';
+            del.className = 'remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white';
             del.addEventListener('click', () => wrap.remove());
             wrap.appendChild(input);
             wrap.appendChild(del);

@@ -203,13 +203,12 @@
                 <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
                 <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
             {% elif row.entry and row.entry.is_known_by_llm is False %}
-                <button type="button" class="btn btn-warning btn-sm retry-with-context-btn" 
-                        data-bs-toggle="modal" data-bs-target="#contextModal"
+                <button type="button" class="retry-with-context-btn px-2 py-1 text-sm rounded bg-yellow-500 text-white"
                         data-knowledge-id="{{ row.entry.id }}">
                     Kontext hinzufügen & erneut prüfen
                 </button>
             {% else %}
-                <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" 
+                <button type="button" class="start-initial-check-btn px-2 py-1 text-sm rounded bg-blue-600 text-white"
                          data-knowledge-id="{{ row.entry.id|default:'' }}">
                     Prüfung starten
                 </button>
@@ -222,9 +221,9 @@
                     <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
                     <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
                 {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
+                    <button class="generate-gutachten-btn px-2 py-1 text-sm rounded bg-blue-600 text-white" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
                 {% endif %}
-                <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
+                <span class="gutachten-status-spinner ml-2" id="gutachten-status-{{ row.entry.id }}"></span>
             {% endif %}
             </td>
         </tr>
@@ -256,19 +255,17 @@
 </div>
 
 <!-- Modal für zusätzlichen Kontext -->
-<div class="modal fade" id="contextModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Kontext hinzufügen</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <textarea id="contextText" class="form-control" rows="4"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary send-context-btn">Senden</button>
-      </div>
+<div id="contextModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white rounded shadow w-96">
+    <div class="border-b p-2 flex justify-between items-center">
+      <h5 class="font-semibold">Kontext hinzufügen</h5>
+      <button type="button" id="contextModalClose" class="text-gray-500">&times;</button>
+    </div>
+    <div class="p-2">
+      <textarea id="contextText" class="w-full border rounded p-2" rows="4"></textarea>
+    </div>
+    <div class="border-t p-2 text-right">
+      <button type="button" class="send-context-btn bg-blue-600 text-white px-2 py-1 rounded">Senden</button>
     </div>
   </div>
 </div>
@@ -406,10 +403,12 @@ document.addEventListener('DOMContentLoaded',function(){
     btn.addEventListener('click',function(){
       contextId=this.dataset.knowledgeId;
       document.getElementById('contextText').value='';
+      const modal=document.getElementById('contextModal');
+      if(modal){modal.classList.remove('hidden');}
     });
   });
   const sendBtn=document.querySelector('.send-context-btn');
- if(sendBtn){
+  if(sendBtn){
    sendBtn.addEventListener('click',function(){
       const text=document.getElementById('contextText').value;
       const body=new FormData();
@@ -429,9 +428,14 @@ document.addEventListener('DOMContentLoaded',function(){
           },3000);
         });
       const modalEl=document.getElementById('contextModal');
-      bootstrap.Modal.getInstance(modalEl).hide();
+      if(modalEl){modalEl.classList.add('hidden');}
     });
   }
+  const closeBtn=document.getElementById('contextModalClose');
+  if(closeBtn){closeBtn.addEventListener('click',()=>{
+    const modal=document.getElementById('contextModal');
+    if(modal){modal.classList.add('hidden');}
+  });}
 });
 });
 </script>

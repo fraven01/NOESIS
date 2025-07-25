@@ -10,17 +10,17 @@
             <tr class="border-b text-left">
                 <th class="py-2">
                     Titel
-                    <input type="text" name="q" placeholder="Suchen..." value="{{ search_query }}" class="form-control form-control-sm mt-1">
+                    <input type="text" name="q" placeholder="Suchen..." value="{{ search_query }}" class="mt-1 border rounded px-2 py-1 text-sm">
                 </th>
                 <th class="py-2">Beschreibung</th>
 
                 <th class="py-2">
                     Software-Typen
-                    <input type="text" name="software" placeholder="Suchen..." value="{{ software_filter }}" class="form-control form-control-sm mt-1">
+                    <input type="text" name="software" placeholder="Suchen..." value="{{ software_filter }}" class="mt-1 border rounded px-2 py-1 text-sm">
                 </th>
                 <th class="py-2">
                     Status
-                    <select name="status" class="form-select form-select-sm mt-1">
+                    <select name="status" class="mt-1 border rounded px-2 py-1 text-sm">
                         <option value="">Alle</option>
                         {% for s in status_choices %}
                             <option value="{{ s.key }}" {% if s.key == status_filter %}selected{% endif %}>{{ s.name }}</option>

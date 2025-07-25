@@ -1,7 +1,7 @@
 <details class="border rounded" {% if row.has_discrepancy %}open{% endif %}>
   <summary class="p-2 cursor-pointer {% if row.has_discrepancy %}bg-red-100{% else %}bg-gray-100{% endif %}">
     {{ row.name }}
-    {% if row.has_discrepancy %}<span class="ms-2 text-red-600">⚠️</span>{% endif %}
+    {% if row.has_discrepancy %}<span class="ml-2 text-red-600">⚠️</span>{% endif %}
   </summary>
   {% include 'partials/supervision_row_content.html' with row=row standard_notes=standard_notes %}
 </details>

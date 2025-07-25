@@ -22,16 +22,16 @@
             <div id="ges-aliases-container">
                 {% for val in form.instance.gesellschaft_aliases %}
                 <div class="flex mb-2">
-                    <input type="text" name="gesellschaft_aliases" value="{{ val }}" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="gesellschaft_aliases" value="{{ val }}" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
-                    <input type="text" name="gesellschaft_aliases" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="gesellschaft_aliases" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
             </div>
-            <button type="button" id="add-ges-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-ges-alias" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+ Alias hinzufügen</button>
         </div>
         <div>
             <label>{{ form.fachbereiche_phrase.label }}</label>
@@ -43,48 +43,48 @@
             <div id="fb-aliases-container">
                 {% for val in form.instance.fachbereich_aliases %}
                 <div class="flex mb-2">
-                    <input type="text" name="fachbereich_aliases" value="{{ val }}" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="fachbereich_aliases" value="{{ val }}" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
-                    <input type="text" name="fachbereich_aliases" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="fachbereich_aliases" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
             </div>
-            <button type="button" id="add-fb-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-fb-alias" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+ Alias hinzufügen</button>
         </div>
         <div>
             <label>{{ form.name_aliases.label }}</label>
             <div id="name-aliases-container">
                 {% for val in form.instance.name_aliases %}
                 <div class="flex mb-2">
-                    <input type="text" name="name_aliases" value="{{ val }}" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="name_aliases" value="{{ val }}" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
-                    <input type="text" name="name_aliases" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="name_aliases" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
             </div>
-            <button type="button" id="add-name-alias" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-name-alias" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+ Alias hinzufügen</button>
         </div>
         <div class="mb-3">
             <label class="form-label">Negative Patterns (jeweils ein Regex pro Feld):</label>
             <div id="negative-inputs-container">
                 {% for pat in form.instance.negative_patterns %}
                 <div class="flex mb-2">
-                    <input type="text" name="negative_patterns" value="{{ pat }}" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="negative_patterns" value="{{ pat }}" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
-                    <input type="text" name="negative_patterns" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="negative_patterns" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
             </div>
-            <button type="button" id="add-negative-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+            <button type="button" id="add-negative-btn" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+</button>
         </div>
     </section>
     <section class="border rounded p-4 space-y-4">
@@ -94,16 +94,16 @@
             <div id="column-inputs-container">
                 {% for col in form.instance.table_columns %}
                 <div class="flex mb-2">
-                    <input type="text" name="table_columns" value="{{ col }}" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="table_columns" value="{{ col }}" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
-                    <input type="text" name="table_columns" class="form-control flex-grow">
-                    <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                    <input type="text" name="table_columns" class="border rounded px-2 py-1 flex-grow">
+                    <button type="button" class="remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white">x</button>
                 </div>
             </div>
-            <button type="button" id="add-column-btn" class="btn btn-sm btn-secondary mt-1">+ Spalte hinzufügen</button>
+            <button type="button" id="add-column-btn" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+ Spalte hinzufügen</button>
         </div>
     </section>
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
@@ -125,11 +125,11 @@
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.name = name;
-                input.className = 'form-control flex-grow';
+                input.className = 'border rounded px-2 py-1 flex-grow';
                 const del = document.createElement('button');
                 del.type = 'button';
                 del.textContent = 'x';
-                del.className = 'btn btn-sm btn-secondary ml-2 remove-btn';
+                del.className = 'remove-btn ml-2 px-2 py-1 text-sm rounded bg-gray-500 text-white';
                 del.addEventListener('click', () => wrap.remove());
                 wrap.appendChild(input);
                 wrap.appendChild(del);

@@ -10,7 +10,7 @@
   <div>
     <strong>Final:</strong> {{ row.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}
     <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
-      <button class="bg-green-600 text-white px-2 py-1 rounded ms-2" type="submit">Als GAP markieren</button>
+      <button class="bg-green-600 text-white px-2 py-1 rounded ml-2" type="submit">Als GAP markieren</button>
     </form>
   </div>
   <div class="space-x-2">
