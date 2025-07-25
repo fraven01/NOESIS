@@ -3074,7 +3074,13 @@ def projekt_file_upload(request, pk):
                     logger.exception("Fehler beim Seitenzählen")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
-        form = BVProjectFileForm()
+        anlage_param = request.GET.get("anlage_nr")
+        initial = {}
+        if anlage_param and anlage_param.isdigit():
+            nr_val = int(anlage_param)
+            if 1 <= nr_val <= 6:
+                initial["anlage_nr"] = nr_val
+        form = BVProjectFileForm(initial=initial)
     return render(request, "projekt_file_form.html", {"form": form, "projekt": projekt})
 
 
