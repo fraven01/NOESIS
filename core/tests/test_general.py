@@ -65,6 +65,7 @@ from ..forms import (
     BVProjectForm,
     BVProjectUploadForm,
     BVProjectFileJSONForm,
+    BVProjectFileForm,
     Anlage2ConfigForm,
     Anlage2ReviewForm,
 )
@@ -92,7 +93,7 @@ from ..llm_tasks import (
     parse_anlage1_questions,
     _parse_anlage2,
 )
-from ..views import _verification_to_initial, _build_row_data
+from ..views import _verification_to_initial, _build_row_data, _save_project_file
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock
 from django.core.management import call_command
@@ -714,6 +715,21 @@ class ProjektFileUploadTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(self.projekt.anlagen.count(), 2)
+
+    def test_save_project_file_respects_form_value(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        form = BVProjectFileForm({"anlage_nr": 1}, {"upload": upload})
+        self.assertTrue(form.is_valid())
+        pf = _save_project_file(self.projekt, form)
+        self.assertEqual(pf.anlage_nr, 1)
 
 
 class AutoApprovalTests(NoesisTestCase):
