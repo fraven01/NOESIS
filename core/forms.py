@@ -227,7 +227,9 @@ class BVProjectFileForm(forms.ModelForm):
                 choices=[(i, str(i)) for i in range(1, 7)],
                 attrs={"class": "border rounded p-2"},
             ),
-            "upload": MultiFileInput(attrs={"class": "border rounded p-2", "multiple": True}),
+            "upload": MultiFileInput(
+                attrs={"class": "hidden", "id": "id_upload", "multiple": True}
+            ),
             "manual_comment": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 3}
             ),
