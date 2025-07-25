@@ -205,10 +205,7 @@ class BVProjectFileForm(forms.ModelForm):
             "upload",
             "parser_mode",
             "parser_order",
-            "manual_comment",
             "manual_analysis_json",
-            "manual_reviewed",
-            "verhandlungsfaehig",
         ]
         labels = {
             "anlage_nr": "Anlage Nr",
