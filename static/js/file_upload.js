@@ -131,13 +131,13 @@
     }
     
     // --- Logik zum Senden der Datei aus 'main' ---
-    function sendFile(form, file, bar, anlageNr) {
+    function sendFile(form, file, bar, dropdown) {
         return new Promise((resolve, reject) => {
              const url = form.getAttribute('hx-post') || form.action;
-             const formData = new FormData(form);
-             formData.set('upload', file); // 'upload' anpassen, falls nötig
-             if (anlageNr) {
-                 formData.set('anlage_nr', String(anlageNr));
+             const formData = new FormData();
+             formData.append('upload', file); // 'upload' anpassen, falls nötig
+             if (dropdown) {
+                 formData.append('anlage_nr', dropdown.value);
              }
              const xhr = new XMLHttpRequest();
              xhr.open('POST', url, true);
@@ -234,7 +234,7 @@
 
             for (const item of currentFiles) {
                 try {
-                    const resp = await sendFile(form, item.file, item.bar, item.anlageNr);
+                    const resp = await sendFile(form, item.file, item.bar, item.select);
                     if (target) {
                         target.innerHTML = resp;
                         if (window.htmx) { htmx.process(target); }
