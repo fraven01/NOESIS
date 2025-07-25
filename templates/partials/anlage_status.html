@@ -14,6 +14,10 @@
 <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
 {% elif anlage.processing_status == 'COMPLETE' %}
 <a href="{{ edit_url }}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+<form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline ml-2">
+  {% csrf_token %}
+  <button class="bg-purple-600 text-white px-2 py-1 rounded">Erneut analysieren</button>
+</form>
 {% elif anlage.processing_status == 'FAILED' %}
 <span class="text-red-600 mr-2">Analyse fehlgeschlagen</span>
 <form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline">
