@@ -1620,7 +1620,15 @@ class LLMTasksTests(NoesisTestCase):
 
         result = run_anlage2_analysis(pf)
 
-        self.assertEqual(result, [])
+        expected = [{
+            "funktion": "Login",
+            "not_found": True,
+            "technisch_verfuegbar": None,
+            "einsatz_telefonica": None,
+            "zur_lv_kontrolle": None,
+            "ki_beteiligung": None,
+        }]
+        self.assertEqual(result, expected)
 
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):
