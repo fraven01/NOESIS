@@ -89,18 +89,6 @@ ANLAGE1_QUESTIONS = [
     "Frage 9: Lege den Text als question9_raw ab.",
 ]
 
-# Vorlage für die Bewertung einzelner Antworten.
-_ANLAGE1_EVAL = (
-    "Bewerte die Antwort auf Frage {num}. Mögliche Status: 'ok', 'unklar',"
-    " 'unvollständig'. Gib ein JSON mit den Schlüsseln 'status',"
-    " 'hinweis' und optional 'vorschlag' zurück.\n\nFrage: {question}\nAntwort: {answer}"
-)
-
-_ANLAGE1_INTRO = "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
-_ANLAGE1_IT = "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-_ANLAGE1_SUFFIX = (
-    "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
-)
 
 
 def _add_editable_flags(data: dict) -> dict:
@@ -860,15 +848,6 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
 
     cfg = Anlage1Config.objects.first()
 
-    # Ermittele separat, welche Fragen für das LLM aktiviert sind.
-    def _llm_enabled(q: Anlage1Question) -> bool:
-        enabled = q.llm_enabled
-        if cfg:
-            enabled = enabled and getattr(cfg, f"enable_q{q.num}", True)
-        return enabled
-
-    llm_questions = [q for q in question_objs if _llm_enabled(q)]
-
     # Debug-Log für den zu parsenden Text
     anlage1_logger.debug(
         "check_anlage1: Zu parsende Anlage1 text_content (ersten 500 Zeichen): %r",
@@ -878,128 +857,16 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     save_fields = ["processing_status"]
     try:
         parsed = parse_anlage1_questions(anlage.text_content)
-        answers: dict[str, str | list | None]
-        found_nums: dict[str, str | None] = {}
-        data: dict
 
         if parsed:
             anlage1_logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-            answers = {
-                str(q.num): parsed.get(str(q.num), {}).get("answer") for q in question_objs
-            }
-            found_nums = {
-                str(q.num): parsed.get(str(q.num), {}).get("found_num")
+            questions = {
+                str(q.num): {"answer": parsed.get(str(q.num), {}).get("answer")}
                 for q in question_objs
             }
-            data = {"task": "check_anlage1", "source": "parser"}
+            data = {"task": "check_anlage1", "source": "parser", "questions": questions}
         else:
-            parts = [_ANLAGE1_INTRO]
-            for q in llm_questions:
-                parts.append(get_prompt(f"anlage1_q{q.num}", q.text) + "\n")
-            insert_at = 3 if len(parts) > 2 else len(parts)
-            parts.insert(insert_at, _ANLAGE1_IT)
-            parts.append(_ANLAGE1_SUFFIX)
-            prefix = "".join(parts)
-            base_obj = Prompt.objects.filter(
-                name=f"anlage1_q{llm_questions[0].num}"
-            ).first()
-            prompt_text = prefix + anlage.text_content
-            prompt_obj = Prompt(
-                name="tmp",
-                text=prompt_text,
-                role=base_obj.role if base_obj else None,
-            )
-
-            anlage1_logger.debug(
-                "check_anlage1: Sende Prompt an LLM (ersten 500 Zeichen): %r",
-                prompt_text[:500],
-            )
-            reply = query_llm(
-                prompt_obj,
-                {},
-                model_name=model_name,
-                model_type="anlagen",
-                project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-            )
-            anlage1_logger.debug(
-                "check_anlage1: LLM Antwort (ersten 500 Zeichen): %r", reply[:500]
-            )
-            try:
-                data = json.loads(reply)
-            except Exception:  # noqa: BLE001
-                data = {"raw": reply}
-            if data.get("task") != "check_anlage1":
-                data = {"task": "check_anlage1"}
-
-            def _val(key: str):
-                if isinstance(data.get(key), dict) and "value" in data[key]:
-                    return data[key]["value"]
-                return data.get(key)
-
-            base_answers = {
-                "1": _val("companies"),
-                "2": _val("departments"),
-                "3": _val("vendors"),
-                "4": _val("question4_raw"),
-                "5": _val("purpose_summary"),
-                "6": _val("documentation_links"),
-                "7": _val("replaced_systems"),
-                "8": _val("legacy_functions"),
-                "9": _val("question9_raw"),
-            }
-            answers = {str(q.num): base_answers.get(str(q.num)) for q in question_objs}
-            data["questions"] = {}
-
-        questions: dict[str, dict] = {}
-        for q in question_objs:
-            key = str(q.num)
-            ans = answers.get(key)
-            if ans in (None, "", []):
-                ans = "leer"
-            q_data = {"answer": ans, "status": None, "hinweis": "", "vorschlag": ""}
-            if _llm_enabled(q):
-                prompt_text = _ANLAGE1_EVAL.format(num=q.num, question=q.text, answer=ans)
-                prompt_obj = Prompt(
-                    name="tmp",
-                    text=prompt_text,
-                    use_project_context=True,
-                )
-                anlage1_logger.debug(
-                    "check_anlage1: Sende Bewertungs-Prompt an LLM (Frage %s): %r",
-                    q.num,
-                    prompt_text,
-                )
-                try:
-                    reply = query_llm(
-                        prompt_obj,
-                        {},
-                        model_name=model_name,
-                        model_type="anlagen",
-                        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-                    )
-                    anlage1_logger.debug(
-                        "check_anlage1: Bewertungs-LLM Antwort (Frage %s): %r",
-                        q.num,
-                        reply,
-                    )
-                    fb = json.loads(reply)
-                except Exception:  # noqa: BLE001
-                    fb = {"status": "unklar", "hinweis": "LLM Fehler"}
-                q_data["status"] = fb.get("status")
-                q_data["hinweis"] = fb.get("hinweis", "")
-                q_data["vorschlag"] = fb.get("vorschlag", "")
-            found_num = found_nums.get(key)
-            if found_num and str(found_num) != key:
-                msg = (
-                    f"Entspricht nicht den Frage Anforderungen der IT Rahmen 2.0: Frage {found_num} statt {q.num}."
-                )
-                if q_data["hinweis"]:
-                    q_data["hinweis"] += " " + msg
-                else:
-                    q_data["hinweis"] = msg
-            questions[key] = q_data
-
-        data["questions"] = questions
+            data = {"task": "check_anlage1", "questions": {}}
 
         anlage.analysis_json = data
         anlage.processing_status = BVProjectFile.COMPLETE
