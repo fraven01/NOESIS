@@ -3104,11 +3104,16 @@ def projekt_file_upload(request, pk):
         # Nimmt die anlage_nr entgegen, die für DIESE EINE Datei vom JS gesendet wurde
         anlage_nr_str = request.POST.get("anlage_nr")
         
-        # Formular-Instanz mit den Daten für diese eine Datei erstellen
-        # Wir übergeben die Daten direkt an die Form, um die Validierung zu nutzen.
+        # Formular mit POST-Daten und Datei erstellen. Die Anlagen-Nummer
+        # muss separat an den Konstruktor übergeben werden, damit
+        # ``BVProjectFileForm`` korrekt initialisiert wird.
+        anlage_nr = (
+            int(anlage_nr_str) if anlage_nr_str and anlage_nr_str.isdigit() else None
+        )
         form = BVProjectFileForm(
-            {"anlage_nr": anlage_nr_str}, 
-            {"upload": upload}
+            request.POST,
+            request.FILES,
+            anlage_nr=anlage_nr,
         )
 
         if form.is_valid():
