@@ -28,6 +28,7 @@ import subprocess
 import whisper
 import torch
 import json
+import re
 from django_q.tasks import async_task, fetch, result, Task
 
 from .forms import (
@@ -3003,6 +3004,21 @@ def projekt_edit(request, pk):
     return render(request, "projekt_form.html", context)
 
 
+_ANLAGE_RE = re.compile(r"anlage_(\d)", re.IGNORECASE)
+
+
+def get_anlage_nr_from_filename(name: str) -> int | None:
+    """Extrahiert die Anlagen-Nummer aus dem Dateinamen."""
+    match = _ANLAGE_RE.search(name)
+    if not match:
+        return None
+    try:
+        nr = int(match.group(1))
+    except (TypeError, ValueError):
+        return None
+    return nr if 1 <= nr <= 6 else None
+
+
 def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProjectFile:
     """Speichert eine einzelne hochgeladene Datei."""
 
@@ -3079,7 +3095,13 @@ def projekt_file_upload(request, pk):
             files = [request.FILES["upload"]]
         saved = []
         for f in files:
+            nr = get_anlage_nr_from_filename(f.name)
+            if nr is None:
+                return HttpResponseBadRequest(
+                    "Dateiname muss dem Muster anlage_[1-6] entsprechen"
+                )
             data = request.POST.copy()
+            data["anlage_nr"] = str(nr)
             form = BVProjectFileForm(data, {"upload": f})
             if not form.is_valid():
                 continue
@@ -3102,13 +3124,7 @@ def projekt_file_upload(request, pk):
             return redirect("projekt_detail", pk=projekt.pk)
         form = BVProjectFileForm(request.POST, request.FILES)
     else:
-        anlage_param = request.GET.get("anlage_nr")
-        initial = {}
-        if anlage_param and anlage_param.isdigit():
-            nr_val = int(anlage_param)
-            if 1 <= nr_val <= 6:
-                initial["anlage_nr"] = nr_val
-        form = BVProjectFileForm(initial=initial)
+        form = BVProjectFileForm()
     return render(
         request,
         "projekt_file_form.html",
