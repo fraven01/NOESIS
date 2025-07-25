@@ -3028,10 +3028,13 @@ class ModelSelectionTests(NoesisTestCase):
         )
 
     def test_prompt_save_triggers_async_check(self):
-        url = reverse("projekt_detail", args=[self.projekt.pk])
-        with patch("core.views.async_task") as mock_task:
+        url = reverse("edit_project_context", args=[self.projekt.pk])
+        with patch("core.models.async_task") as mock_task:
             resp = self.client.post(url, {"project_prompt": "Test"})
-        self.assertRedirects(resp, url)
+        self.assertRedirects(
+            resp,
+            reverse("projekt_detail", args=[self.projekt.pk]),
+        )
         mock_task.assert_called_with(
             "core.llm_tasks.run_conditional_anlage2_check",
             self.projekt.pk,
