@@ -41,11 +41,11 @@
     {% csrf_token %}
     <div class="filter-controls mb-2">
         <label>
-            <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
+            <input type="checkbox" id="show-relevant-only-filter" class="form-checkbox mr-2">
             Nur als "vorhanden" markierte Funktionen anzeigen
         </label>
         <label class="ml-4">
-            <input type="checkbox" id="show-conflicts-only" class="form-check-input mr-2">
+            <input type="checkbox" id="show-conflicts-only" class="form-checkbox mr-2">
             Nur Konflikte anzeigen
         </label>
         <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
@@ -89,29 +89,29 @@
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
-                    <button class="btn btn-sm btn-light toggle-button mr-2" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
+                    <button class="toggle-button mr-2 px-1 py-0.5 text-sm rounded bg-gray-200" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="btn btn-sm btn-outline-secondary ms-2">
+                       class="ml-2 px-1 py-0.5 text-sm rounded border border-gray-400 text-gray-800">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
                     {% if row.ki_beteiligt_begruendung %}
                     <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}"
-                       class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
+                       class="ml-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
                     {% endif %}
                     {% else %}
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="btn btn-sm btn-outline-secondary ms-2">
+                       class="ml-2 px-1 py-0.5 text-sm rounded border border-gray-400 text-gray-800">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
                     {% if row.ki_beteiligt_begruendung %}
                     <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}"
-                       class="ms-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
+                       class="ml-2 text-blue-600" title="KI-Beteiligung">ℹ️</a>
                     {% endif %}
                     {% endif %}
                     {% if row.source_text and row.source_text != 'N/A' %}
@@ -127,7 +127,7 @@
                     {% endif %}
                 </td>
                 <td class="border px-2 text-center">
-                    <button type="button" class="btn btn-sm btn-light review-cycle-btn"
+                    <button type="button" class="review-cycle-btn px-1 py-0.5 text-sm rounded bg-gray-200"
                         data-state="robot" title="KI-Prüfung starten"
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"

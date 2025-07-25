@@ -22,9 +22,9 @@
     <div class="mb-3">
         <label class="form-label">Software (jede Software in ein eigenes Feld):</label>
         <div id="software-inputs-container">
-            <input type="text" name="software_typen" class="form-control mb-2">
+            <input type="text" name="software_typen" class="mb-2 border rounded px-2 py-1">
         </div>
-        <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
+        <button type="button" id="add-software-btn" class="mt-1 px-2 py-1 text-sm rounded bg-gray-500 text-white">+</button>
     </div>
     {% if 'status' in form.fields %}
     <div>
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const newInput = document.createElement('input');
             newInput.type = 'text';
             newInput.name = 'software_typen';
-            newInput.className = 'form-control mb-2';
+            newInput.className = 'mb-2 border rounded px-2 py-1';
             newInput.placeholder = 'Weitere Software...';
 
             container.appendChild(newInput);
