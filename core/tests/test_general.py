@@ -2678,7 +2678,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         self.assertRedirects(
             resp, reverse("projekt_file_edit_json", args=[self.file2.pk])
         )
-        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+        mock_func.assert_called_with(self.file2.pk, model_name=None)
 
     def test_anlage3_uses_analysis(self):
         pf = BVProjectFile.objects.create(
@@ -2692,7 +2692,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             mock_func.return_value = {"task": "analyse_anlage3"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
-        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+        mock_func.assert_called_with(pf.pk, model_name=None)
 
     def test_anlage3_llm_param_triggers_vision_check(self):
         pf = BVProjectFile.objects.create(
@@ -2706,7 +2706,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             mock_func.return_value = {"task": "check_anlage3_vision"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
-        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+        mock_func.assert_called_with(pf.pk, model_name=None)
 
     def test_parse_view_runs_parser(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk])
