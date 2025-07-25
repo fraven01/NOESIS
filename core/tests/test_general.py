@@ -3659,14 +3659,14 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             url,
             self._build_general_data(
                 parser_mode="text_only",
-                parser_order=["text"],
+                parser_order=["exact"],
                 action="save_general",
                 active_tab="general",
             ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertEqual(self.cfg.parser_order, ["exact"])
 
     def test_update_parser_order(self):
         url = reverse("anlage2_config")
@@ -3674,14 +3674,14 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             url,
             self._build_general_data(
                 parser_mode=self.cfg.parser_mode,
-                parser_order=["text"],
+                parser_order=["exact"],
                 action="save_general",
                 active_tab="general",
             ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertEqual(self.cfg.parser_order, ["exact"])
 
     def test_save_table_tab(self):
         url = reverse("anlage2_config")
