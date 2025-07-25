@@ -332,6 +332,11 @@ urlpatterns = [
         name="hx_anlage_status",
     ),
     path(
+        "hx/project/<int:pk>/anlage/<int:nr>/",
+        views.hx_project_anlage_tab,
+        name="hx_project_anlage_tab",
+    ),
+    path(
         "anlage2/notizen/<int:result_id>/",
         views.edit_gap_notes,
         name="edit_gap_notes",
