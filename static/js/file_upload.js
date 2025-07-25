@@ -57,7 +57,7 @@
     }
 
     // --- Vorschau-Logik aus 'main' ---
-    function createPreview(file, container) {
+    function createPreview(file, container, onRemove) {
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-item flex flex-col mb-2 border p-2 rounded';
         const thumb = document.createElement('div');
@@ -66,7 +66,17 @@
         const fileNameSpan = document.createElement('span');
         fileNameSpan.className = "font-bold text-sm mb-2 block";
         fileNameSpan.textContent = file.name;
-        
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'self-end text-gray-500 hover:text-red-600';
+        removeBtn.textContent = '✖';
+        removeBtn.addEventListener('click', () => {
+            wrapper.remove();
+            if (typeof onRemove === 'function') onRemove();
+        });
+
+        wrapper.appendChild(removeBtn);
         wrapper.appendChild(fileNameSpan);
         wrapper.appendChild(thumb);
         container.appendChild(wrapper);
@@ -190,7 +200,11 @@
                     input.value = ''; // Input zurücksetzen bei Fehler
                     return; // Stoppt bei erstem Fehler
                 }
-                const preview = createPreview(file, container);
+                const preview = createPreview(file, container, () => {
+                    const idx = currentFiles.findIndex(it => it.file === file);
+                    if (idx !== -1) currentFiles.splice(idx, 1);
+                    updateDuplicateStatus();
+                });
                 const anlageNr = getAnlageNrFromName(file.name);
                 currentFiles.push({ file, bar: preview.bar, wrapper: preview.wrapper, anlageNr });
             }
