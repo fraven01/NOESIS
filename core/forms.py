@@ -3,7 +3,6 @@ from django.forms import Textarea, modelformset_factory
 import json
 import logging
 from pathlib import Path
-import re
 from django.conf import settings
 
 
@@ -242,17 +241,6 @@ class BVProjectFileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        file_obj = (self.files or {}).get("upload")
-        if file_obj and not (self.data.get("anlage_nr") or self.initial.get("anlage_nr")):
-            match = re.search(r"anlage_(\d)", file_obj.name, re.IGNORECASE)
-            if match:
-                num = int(match.group(1))
-                if 1 <= num <= 6:
-                    if self.is_bound:
-                        data = self.data.copy()
-                        data["anlage_nr"] = str(num)
-                        self.data = data
-                    self.initial.setdefault("anlage_nr", num)
         nr = self.data.get("anlage_nr") or self.initial.get("anlage_nr") or getattr(self.instance, "anlage_nr", None)
         if str(nr) != "2":
             self.fields.pop("parser_mode", None)
@@ -263,19 +251,13 @@ class BVProjectFileForm(forms.ModelForm):
                 self.initial["parser_order"] = self.instance.parser_order
 
     def clean_upload(self):
-        """Prüft Dateiname, Größe und Endung abhängig von der Anlagen-Nummer."""
+        """Prüft Größe und Endung abhängig von der Anlagen-Nummer."""
 
         f = self.cleaned_data["upload"]
         ext = Path(f.name).suffix.lower()
         nr = self.cleaned_data.get("anlage_nr") or getattr(
             self.instance, "anlage_nr", None
         )
-
-        name_match = re.search(r"anlage_(\d)", f.name, re.IGNORECASE)
-        if not name_match:
-            raise forms.ValidationError(
-                "Dateiname muss dem Muster anlage_[1-6] entsprechen"
-            )
 
         if f.size > settings.MAX_UPLOAD_SIZE:
             raise forms.ValidationError(

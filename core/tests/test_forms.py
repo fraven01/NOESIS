@@ -250,7 +250,7 @@ class BVProjectFileFormTests(NoesisTestCase):
         form = BVProjectFileForm(
             {"anlage_nr": 1}, {"upload": SimpleUploadedFile("foo.docx", b"d")}
         )
-        self.assertFalse(form.is_valid())
+        self.assertTrue(form.is_valid())
 
     def test_max_size(self):
         form = BVProjectFileForm(
