@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
     --color-primary: #2563eb; /* blue-600 */
     --color-primary-dark: #1e40af; /* blue-800 */
@@ -10,38 +14,30 @@
 
 /* Stil für Zurück-Link im Header */
 .back-link {
-    margin-right: 0.5rem;
+    @apply mr-2;
 }
 
 .status-badge {
-    padding: 0.2em 0.6em;
-    border-radius: 1em;
-    font-size: 0.8em;
-    font-weight: bold;
-    color: white;
+    @apply px-2 py-1 rounded-full text-xs font-bold text-white;
 }
 .status-ja {
-    background-color: #28a745;
+    @apply bg-green-600;
 }
 .status-nein {
-    background-color: #6c757d;
+    @apply bg-gray-500;
 }
 /* Farblogik für technische Verfügbarkeit */
 .status-ok {
-    background-color: #28a745;
-    color: white;
+    @apply bg-green-600 text-white;
 }
 .status-konflikt {
-    background-color: #dc3545;
-    color: white;
+    @apply bg-red-600 text-white;
 }
 .status-manuell-abweichung {
-    background-color: #ffc107;
-    color: black;
+    @apply bg-yellow-400 text-black;
 }
 .status-unbekannt {
-    background-color: #6c757d;
-    color: white;
+    @apply bg-gray-500 text-white;
 }
 
 /* Einfaches Collapse-Verhalten für Tabellenzeilen */
@@ -62,23 +58,19 @@
 /* Status-Badges für Projektübersichten */
 .status-badge-new,
 .status-badge-classified {
-    background-color: #0d6efd;
-    color: white;
+    @apply bg-blue-600 text-white;
 }
 .status-badge-in_pruefung_anlage_x,
 .status-badge-fb_in_pruefung {
-    background-color: #ffc107;
-    color: black;
+    @apply bg-yellow-400 text-black;
 }
 .status-badge-gutachten_ok,
 .status-badge-gutachten_freigegeben,
 .status-badge-endgeprueft {
-    background-color: #198754;
-    color: white;
+    @apply bg-green-700 text-white;
 }
 .status-badge-error {
-    background-color: #dc3545;
-    color: white;
+    @apply bg-red-600 text-white;
 }
 
 /* Sichtbare Links im gesamten Projekt */
@@ -133,17 +125,16 @@ input[type="submit"]:hover {
 }
 
 .btn-primary-custom {
-    background-color: var(--color-primary);
-    color: #ffffff;
+    @apply bg-primary text-white;
 }
 
 .btn-primary-custom:hover {
-    background-color: var(--color-primary-dark);
+    @apply bg-primary-dark;
 }
 
 .tile-bg {
     background-image: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
-    color: #ffffff;
+    @apply text-white;
 }
 
 .spinner {
@@ -191,8 +182,8 @@ input[type="submit"]:hover {
 
 /* Icon für Notiz-Bearbeitung */
 .gap-note-icon {
-    cursor: pointer;
+    @apply cursor-pointer;
 }
 .gap-note-icon.filled {
-    color: #2563eb;
+    @apply text-primary;
 }
