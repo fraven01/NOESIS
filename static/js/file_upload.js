@@ -26,10 +26,6 @@
         const nrDropdown = anlageNrDropdown ? parseInt(anlageNrDropdown.value, 10) : null;
         const nrFilename = getAnlageNrFromName(file.name);
         const anlageNr = nrFilename !== null ? nrFilename : nrDropdown;
-
-        if (nrFilename === null) {
-            return 'Dateiname muss dem Muster anlage_[1-6] entsprechen.';
-        }
         if (maxSize && file.size > maxSize) {
             const mb = Math.round(maxSize / 1024 / 1024);
             return `Datei zu groß (max. ${mb} MB).`;
