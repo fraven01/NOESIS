@@ -9,11 +9,6 @@
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div>
-        {{ form.anlage_nr.label_tag }}<br>
-        {{ form.anlage_nr }}
-        {{ form.anlage_nr.errors }}
-    </div>
-    <div>
         {{ form.upload }}
   <div class="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer" id="dropzone">
         Dateien hierher ziehen oder klicken zum Auswählen
