@@ -526,26 +526,29 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_anlage_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            processing_status=BVProjectFile.COMPLETE,
-            analysis_json={},
-        )
+        with patch("core.signals.start_analysis_for_file"):
+            pf = BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                processing_status=BVProjectFile.COMPLETE,
+                analysis_json={},
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Analyse bearbeiten")
+        self.assertContains(resp, "Analyse erneut starten")
 
     def test_hx_anlage_status_failed(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            processing_status=BVProjectFile.FAILED,
-        )
+        with patch("core.signals.start_analysis_for_file"):
+            pf = BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                processing_status=BVProjectFile.FAILED,
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
@@ -554,12 +557,13 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_anlage_status_pending(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            processing_status=BVProjectFile.PENDING,
-        )
+        with patch("core.signals.start_analysis_for_file"):
+            pf = BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                processing_status=BVProjectFile.PENDING,
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
