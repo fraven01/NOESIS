@@ -17,12 +17,12 @@
     {% endif %}>
 
 {% if anlage.processing_status == 'PROCESSING' %}
-<span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
+<span class="table-action-btn table-action-secondary disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
 {% elif anlage.processing_status == 'COMPLETE' %}
-<a href="{{ edit_url }}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+<a href="{{ edit_url }}" class="table-action-btn table-action-primary">Analyse bearbeiten</a>
 <form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline ml-2">
   {% csrf_token %}
-  <button class="bg-purple-600 text-white px-2 py-1 rounded" title="Erneut analysieren">
+  <button class="table-action-btn table-action-primary" title="Erneut analysieren">
       <i class="fas fa-sync-alt"></i>
   </button>
 </form>
@@ -30,12 +30,12 @@
 <span class="text-red-600 mr-2">Analyse fehlgeschlagen</span>
 <form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline">
   {% csrf_token %}
-  <button class="bg-purple-600 text-white px-2 py-1 rounded">Erneut versuchen</button>
+  <button class="table-action-btn table-action-primary">Erneut versuchen</button>
 </form>
 {% else %}
 <form method="post" action="{% url 'trigger_file_analysis' anlage.pk %}" class="inline">
   {% csrf_token %}
-  <button class="bg-purple-600 text-white px-2 py-1 rounded">Analyse starten</button>
+  <button class="table-action-btn table-action-primary">Analyse starten</button>
 </form>
 {% endif %}
 
