@@ -10,6 +10,12 @@
   {% url 'projekt_file_edit_json' anlage.pk as edit_url %}
 {% endif %}
 
+<div id="anlage-edit-{{ anlage.pk }}" hx-swap="outerHTML"
+    {% if anlage.processing_status == 'PROCESSING' or anlage.processing_status == 'PENDING' %}
+        hx-get="{% url 'hx_anlage_status' anlage.pk %}"
+        hx-trigger="load, every 5s"
+    {% endif %}>
+
 {% if anlage.processing_status == 'PROCESSING' %}
 <span class="bg-purple-300 text-white px-2 py-1 rounded disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
 {% elif anlage.processing_status == 'COMPLETE' %}
@@ -30,4 +36,6 @@
   <button class="bg-purple-600 text-white px-2 py-1 rounded">Analyse starten</button>
 </form>
 {% endif %}
+
+</div>
 
