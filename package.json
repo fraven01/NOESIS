@@ -14,5 +14,13 @@
   "devDependencies": {
     "tailwindcss": "^4.1.11",
     "tailwindcss-cli": "^0.1.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fraven01/NOESIS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fraven01/NOESIS/issues"
+  },
+  "homepage": "https://github.com/fraven01/NOESIS#readme"
 }
