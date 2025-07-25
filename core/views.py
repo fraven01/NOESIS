@@ -4990,11 +4990,10 @@ def ajax_start_initial_checks(request, project_id):
 
 @login_required
 @require_POST
-def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
-    """Startet den Initial-Check erneut mit zusätzlichem Kontext."""
+def ajax_rerun_initial_check(request) -> JsonResponse:
+    """Startet den Initial-Check erneut."""
 
     knowledge_id = request.POST.get("knowledge_id")
-    user_context = request.POST.get("user_context", "")
     try:
         knowledge_id = int(knowledge_id)
     except (TypeError, ValueError):
@@ -5006,7 +5005,6 @@ def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
     task_id = async_task(
         "core.llm_tasks.worker_run_initial_check",
         knowledge_id,
-        user_context,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
 

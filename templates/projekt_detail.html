@@ -85,7 +85,7 @@
                         {{ row.entry.description|markdownify }}
                     </div>
                 {% elif row.entry and row.entry.is_known_by_llm is False %}
-                    <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren. Bitte fügen Sie zusätzlichen Kontext hinzu, um die Prüfung zu wiederholen.</p>
+                    <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren.</p>
                 {% else %}
                 {% endif %}
             </td>
@@ -95,10 +95,9 @@
                 <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
                 <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
             {% elif row.entry and row.entry.is_known_by_llm is False %}
-                <button type="button" class="btn btn-warning btn-sm retry-with-context-btn" 
-                        data-bs-toggle="modal" data-bs-target="#contextModal"
+                <button type="button" class="btn btn-warning btn-sm retry-check-btn"
                         data-knowledge-id="{{ row.entry.id }}">
-                    Kontext hinzufügen & erneut prüfen
+                    Erneut prüfen
                 </button>
             {% else %}
                 <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" 
@@ -147,23 +146,6 @@
 </div>
 </div>
 
-<!-- Modal für zusätzlichen Kontext -->
-<div class="modal fade" id="contextModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Kontext hinzufügen</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <textarea id="contextText" class="form-control" rows="4"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary send-context-btn">Senden</button>
-      </div>
-    </div>
-  </div>
-</div>
 <script>
 
 
@@ -293,22 +275,13 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 document.addEventListener('DOMContentLoaded',function(){
-  let contextId=null;
-  document.querySelectorAll('.retry-with-context-btn').forEach(btn=>{
+  document.querySelectorAll('.retry-check-btn, .start-initial-check-btn').forEach(btn=>{
     btn.addEventListener('click',function(){
-      contextId=this.dataset.knowledgeId;
-      document.getElementById('contextText').value='';
-    });
-  });
-  const sendBtn=document.querySelector('.send-context-btn');
- if(sendBtn){
-   sendBtn.addEventListener('click',function(){
-      const text=document.getElementById('contextText').value;
+      const knowledgeId=this.dataset.knowledgeId;
       const body=new FormData();
-      body.append('knowledge_id',contextId);
-      body.append('user_context',text);
-      showSpinner(sendBtn, 'Senden...');
-      fetch('{% url "ajax_rerun_initial_check_with_context" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+      body.append('knowledge_id',knowledgeId);
+      showSpinner(btn, 'Prüfung...');
+      fetch('{% url "ajax_rerun_initial_check" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
         .then(r=>r.json()).then(data=>{
           const tid=data.task_id;
           const tmpl='{% url "ajax_check_task_status" "dummy" %}';
@@ -319,11 +292,9 @@ document.addEventListener('DOMContentLoaded',function(){
               }
             });
           },3000);
-        });
-      const modalEl=document.getElementById('contextModal');
-      bootstrap.Modal.getInstance(modalEl).hide();
+        }).catch(()=>{hideSpinner(btn);});
     });
-  }
+  });
 });
 
 document.addEventListener('htmx:beforeRequest',function(e){
