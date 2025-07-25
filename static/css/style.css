@@ -223,3 +223,44 @@ input[type="submit"]:hover {
     transition: width 0.2s;
     border-radius: 0.25rem;
 }
+/* Table action buttons */
+.table-action-btn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    color: #ffffff;
+    display: inline-block;
+}
+
+.table-action-primary {
+    background-color: var(--color-primary);
+}
+
+.table-action-primary:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.table-action-secondary {
+    background-color: #6b7280; /* gray-500 */
+}
+
+.table-action-secondary:hover {
+    background-color: #4b5563; /* gray-700 */
+}
+
+/* Icon-based status toggle */
+.status-toggle-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.status-toggle-btn:focus {
+    outline: none;
+}
+
+.status-toggle-btn i {
+    pointer-events: none;
+}
