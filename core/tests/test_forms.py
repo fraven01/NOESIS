@@ -1,6 +1,8 @@
 from .test_general import *
-from ..forms import Anlage5ReviewForm
+from ..forms import Anlage5ReviewForm, BVProjectFileForm
 from ..models import ZweckKategorieA
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
@@ -235,5 +237,26 @@ class Anlage5ReviewFormTests(NoesisTestCase):
         data = form.get_json()
         self.assertEqual(data["purposes"], [cat.pk])
         self.assertEqual(data["sonstige"], "x")
+
+
+class BVProjectFileFormTests(NoesisTestCase):
+    def test_extension_validation(self):
+        form = BVProjectFileForm(
+            {"anlage_nr": 1}, {"upload": SimpleUploadedFile("Anlage_1.pdf", b"d")}
+        )
+        self.assertFalse(form.is_valid())
+
+    def test_filename_pattern(self):
+        form = BVProjectFileForm(
+            {"anlage_nr": 1}, {"upload": SimpleUploadedFile("foo.docx", b"d")}
+        )
+        self.assertFalse(form.is_valid())
+
+    def test_max_size(self):
+        form = BVProjectFileForm(
+            {"anlage_nr": 1},
+            {"upload": SimpleUploadedFile("Anlage_1.docx", b"x" * (settings.MAX_UPLOAD_SIZE + 1))},
+        )
+        self.assertFalse(form.is_valid())
 
 

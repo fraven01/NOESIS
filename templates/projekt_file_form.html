@@ -14,54 +14,52 @@
     </div>
     <div>
         {{ form.upload }}
-        <div id="dropzone" class="border-2 border-dashed p-6 text-center cursor-pointer">
-            Dateien hierher ziehen oder klicken, um auszuwählen
-        </div>
-        <div id="preview-container" class="mt-2 space-y-2"></div>
-        {{ form.upload.errors }}
+  <div class="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer" id="dropzone">
+        Dateien hierher ziehen oder klicken zum Auswählen
     </div>
-    {% if form.parser_mode %}
-    <div>
-        {{ form.parser_mode.label_tag }}<br>
-        {{ form.parser_mode }}
-        {{ form.parser_mode.errors }}
-    </div>
-    <div>
-        {{ form.parser_order.label_tag }}<br>
-        {{ form.parser_order }}
-        {{ form.parser_order.errors }}
-    </div>
-    {% endif %}
-    <div>
-        {{ form.manual_comment.label_tag }}<br>
-        {{ form.manual_comment }}
-        {{ form.manual_comment.errors }}
-    </div>
-    {% if form.manual_analysis_json %}
-    <div>
-        {{ form.manual_analysis_json.label_tag }}<br>
-        {{ form.manual_analysis_json }}
-        {{ form.manual_analysis_json.errors }}
-    </div>
-    {% endif %}
-    <div>
-        {{ form.manual_reviewed }} {{ form.manual_reviewed.label_tag }}
-        {{ form.manual_reviewed.errors }}
-    </div>
-    <div>
-        {{ form.verhandlungsfaehig }} {{ form.verhandlungsfaehig.label_tag }}
-        {{ form.verhandlungsfaehig.errors }}
-    </div>
-<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    <input type="file" name="upload" class="hidden" id="id_upload" multiple>
+    
+    <div id="preview-container" class="mt-4 space-y-2"></div>
+
+    {{ form.upload.errors }}
+</div>
+{% if form.parser_mode %}
+<div>
+    {{ form.parser_mode.label_tag }}<br>
+    {{ form.parser_mode }}
+    {{ form.parser_mode.errors }}
+</div>
+<div>
+    {{ form.parser_order.label_tag }}<br>
+    {{ form.parser_order }}
+    {{ form.parser_order.errors }}
+</div>
+{% endif %}
+<div>
+    {{ form.manual_comment.label_tag }}<br>
+    {{ form.manual_comment }}
+    {{ form.manual_comment.errors }}
+</div>
+{% if form.manual_analysis_json %}
+<div>
+    {{ form.manual_analysis_json.label_tag }}<br>
+    {{ form.manual_analysis_json }}
+    {{ form.manual_analysis_json.errors }}
+</div>
+{% endif %}
+<div>
+    {{ form.manual_reviewed }} {{ form.manual_reviewed.label_tag }}
+    {{ form.manual_reviewed.errors }}
+</div>
+<div>
+    {{ form.verhandlungsfaehig }} {{ form.verhandlungsfaehig.label_tag }}
+    {{ form.verhandlungsfaehig.errors }}
+</div>
+<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded mt-4">Speichern</button>
 </form>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.initFileUpload) {
-        initFileUpload();
-    }
-});
-</script>
+<script>window.MAX_UPLOAD_SIZE = {{ max_size|default:10485760 }};</script>
+<script src="{% static 'js/file_upload.js' %}"></script>
 {% endblock %}
