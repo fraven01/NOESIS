@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 import markdown
 from django import template
 from django.utils.safestring import mark_safe
@@ -10,6 +11,20 @@ register = template.Library()
 @register.filter
 def basename(value):
     return Path(value).name
+
+
+@register.filter
+def clean_filename(value: str) -> str:
+    """Entfernt automatisch angehängte Suffixe aus Dateinamen."""
+    name = Path(value).name
+    stem = Path(name).stem
+    suffix = Path(name).suffix
+    parts = stem.split("_")
+    if len(parts) > 1:
+        last = parts[-1]
+        if re.fullmatch(r"[0-9a-f]{7,}", last) or re.fullmatch(r"v\d+", last):
+            stem = "_".join(parts[:-1])
+    return f"{stem}{suffix}"
 
 
 @register.filter
