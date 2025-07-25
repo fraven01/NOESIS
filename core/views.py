@@ -3111,11 +3111,14 @@ def projekt_file_check(request, pk, nr):
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        func(pk, model_name=model)
         anlage = BVProjectFile.objects.filter(
             projekt_id=pk, anlage_nr=nr_int
         ).first()
-        analysis = anlage.analysis_json if anlage else None
+        if not anlage:
+            return JsonResponse({"error": "not found"}, status=404)
+        func(anlage.pk, model_name=model)
+        anlage.refresh_from_db()
+        analysis = anlage.analysis_json
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=404)
     except RuntimeError:
@@ -3153,7 +3156,7 @@ def projekt_file_check_pk(request, pk):
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        func(anlage.projekt_id, model_name=model)
+        func(anlage.pk, model_name=model)
         anlage.refresh_from_db()
         analysis = anlage.analysis_json
     except RuntimeError:
@@ -3210,7 +3213,7 @@ def projekt_file_check_view(request, pk):
     category = request.GET.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        func(anlage.projekt_id, model_name=model)
+        func(anlage.pk, model_name=model)
     except RuntimeError:
         messages.error(request, "Missing LLM credentials from environment.")
     except Exception:

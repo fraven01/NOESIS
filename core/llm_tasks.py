@@ -823,11 +823,10 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     return data
 
 
-def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
+def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     """Pr\xfcft die erste Anlage nach neuem Schema."""
-    projekt = BVProject.objects.get(pk=projekt_id)
     try:
-        anlage = projekt.anlagen.get(anlage_nr=1)
+        anlage = BVProjectFile.objects.get(pk=file_id)
     except (
         BVProjectFile.DoesNotExist
     ) as exc:  # pragma: no cover - sollte selten passieren

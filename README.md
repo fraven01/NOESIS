@@ -110,7 +110,7 @@ Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
 Der Aufruf
 
 ```bash
-python manage.py check_anlage1 42
+python manage.py check_anlage1 <file_id>
 ```
 
 führt eine hybride Analyse der Systembeschreibung durch. Zunächst versucht der
