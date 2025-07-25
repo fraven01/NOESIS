@@ -580,6 +580,19 @@ class BVProjectFileTests(NoesisTestCase):
         mock_start.assert_called_with(pf)
         self.assertRedirects(resp, reverse("projekt_detail", args=[projekt.pk]))
 
+    def test_hx_project_anlage_returns_table(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_project_anlage", args=[projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "a.txt")
+        self.assertContains(resp, "Analyse starten")
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):

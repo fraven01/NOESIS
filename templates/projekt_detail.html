@@ -39,124 +39,20 @@
 
 <div class="bg-white rounded-lg shadow p-4">
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
-<div class="overflow-x-auto">
-<table class="mb-4 w-full text-left">
-    <thead>
-        <tr>
-            <th class="px-2 py-1">Nr.</th>
-            <th class="px-2 py-1">Datei</th>
-            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
-            <th class="px-2 py-1 text-center">Vergleich</th>
-            <th class="px-2 py-1 text-center">Geprüft</th>
-            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for a in other_anlagen %}
-        <tr class="border-t">
-            <td class="px-2 py-1">{{ a.anlage_nr }}</td>
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">Anlage {{ a.anlage_nr }}</a></td>
-            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
-                hx-get="{% url 'hx_anlage_status' a.pk %}"
-                hx-trigger="load, every 5s"
-                hx-swap="outerHTML">
-            {% include 'partials/anlage_status.html' with anlage=a %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                {% if a.parent %}
-                    <a href="{% url 'compare_versions' a.pk %}"
-                       class="bg-blue-600 text-white px-2 py-1 rounded">Mit Vorgänger vergleichen</a>
-                {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
-                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
-                    </button>
-                </form>
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.verhandlungsfaehig %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
-                        {% if a.verhandlungsfaehig %}✓{% else %}✗{% endif %}
-                    </button>
-                </form>
-            </td>
-        </tr>
-    {% empty %}
-        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
+<ul class="flex border-b mb-4" id="anlage-tabs" role="tablist">
+    {% for nr in anlage_numbers %}
+    <li class="mr-2" role="presentation">
+        <button class="px-4 py-2 {% if forloop.first %}bg-gray-200{% else %}bg-gray-100{% endif %}"
+                hx-get="{% url 'hx_project_anlage' projekt.pk nr %}"
+                hx-target="#anlage-tab-content"
+                hx-swap="innerHTML"
+                {% if forloop.first %}hx-trigger="load"{% endif %}>
+            Anlage {{ nr }}
+        </button>
+    </li>
     {% endfor %}
-    </tbody>
-</table>
-</div>
-<details class="mt-4">
-<summary class="cursor-pointer font-semibold">Anlage 3 Dateien ({{ anlage3_page.paginator.count }})</summary>
-<div class="overflow-x-auto mt-2">
-<table class="mb-2 w-full text-left">
-    <thead>
-        <tr>
-            <th class="px-2 py-1">Datei</th>
-            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
-            <th class="px-2 py-1 text-center">Vergleich</th>
-            <th class="px-2 py-1 text-center">Geprüft</th>
-            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for a in anlage3_page %}
-        <tr class="border-t">
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
-            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
-                hx-get="{% url 'hx_anlage_status' a.pk %}"
-                hx-trigger="load, every 5s"
-                hx-swap="outerHTML">
-                {% include 'partials/anlage_status.html' with anlage=a %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                {% if a.parent %}
-                    <a href="{% url 'compare_versions' a.pk %}"
-                       class="bg-blue-600 text-white px-2 py-1 rounded">Mit Vorgänger vergleichen</a>
-                {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
-                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
-                    </button>
-                </form>
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.verhandlungsfaehig %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
-                        {% if a.verhandlungsfaehig %}✓{% else %}✗{% endif %}
-                    </button>
-                </form>
-            </td>
-        </tr>
-    {% empty %}
-        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
-    {% endfor %}
-    </tbody>
-</table>
-<div class="flex justify-between items-center">
-    {% if anlage3_page.has_previous %}
-        <a href="?a3page={{ anlage3_page.previous_page_number }}" class="px-2 py-1 bg-gray-300 rounded">«</a>
-    {% endif %}
-    <span>Seite {{ anlage3_page.number }} / {{ anlage3_page.paginator.num_pages }}</span>
-    {% if anlage3_page.has_next %}
-        <a href="?a3page={{ anlage3_page.next_page_number }}" class="px-2 py-1 bg-gray-300 rounded">»</a>
-    {% endif %}
-</div>
-</div>
-</details>
+</ul>
+<div id="anlage-tab-content"></div>
 <a href="{% url 'projekt_file_upload' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">Anlage hochladen</a>
 </div>
 

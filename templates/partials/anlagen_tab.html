@@ -1,0 +1,51 @@
+<div class="overflow-x-auto">
+<table class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
+            <th class="px-2 py-1 text-center">Vergleich</th>
+            <th class="px-2 py-1 text-center">Geprüft</th>
+            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in files %}
+        <tr class="border-t">
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
+                hx-get="{% url 'hx_anlage_status' a.pk %}"
+                hx-trigger="load, every 5s"
+                hx-swap="outerHTML">
+                {% include 'partials/anlage_status.html' with anlage=a %}
+            </td>
+            <td class="px-2 py-1 text-center">
+                {% if a.parent %}
+                    <a href="{% url 'compare_versions' a.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded">Mit Vorgänger vergleichen</a>
+                {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+            <td class="px-2 py-1 text-center">
+                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
+                    <button class="px-2 py-1 rounded {% if a.verhandlungsfaehig %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                        {% if a.verhandlungsfaehig %}✓{% else %}✗{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5">Keine Anlagen vorhanden</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
