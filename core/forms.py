@@ -4,6 +4,7 @@ import json
 import logging
 from pathlib import Path
 import re
+from django.conf import settings
 
 
 class MultiFileInput(forms.ClearableFileInput):
@@ -267,7 +268,7 @@ class BVProjectFileForm(forms.ModelForm):
                 self.initial["parser_order"] = self.instance.parser_order
 
     def clean_upload(self):
-        """Prüft die Dateiendung abhängig von der Anlagen-Nummer."""
+        """Prüft Dateiname, Größe und Endung abhängig von der Anlagen-Nummer."""
 
         f = self.cleaned_data["upload"]
         ext = Path(f.name).suffix.lower()
@@ -275,9 +276,22 @@ class BVProjectFileForm(forms.ModelForm):
             self.instance, "anlage_nr", None
         )
 
+        name_match = re.search(r"anlage_(\d)", f.name, re.IGNORECASE)
+        if not name_match:
+            raise forms.ValidationError(
+                "Dateiname muss dem Muster anlage_[1-6] entsprechen"
+            )
+
+        if f.size > settings.MAX_UPLOAD_SIZE:
+            raise forms.ValidationError(
+                "Datei überschreitet die maximale Größe"
+            )
+
         if nr == 3:
             if ext not in [".docx", ".pdf"]:
-                raise forms.ValidationError("Nur .docx oder .pdf erlaubt für Anlage 3")
+                raise forms.ValidationError(
+                    "Nur .docx oder .pdf erlaubt für Anlage 3"
+                )
         else:
             if ext != ".docx":
                 raise forms.ValidationError("Nur .docx Dateien erlaubt")

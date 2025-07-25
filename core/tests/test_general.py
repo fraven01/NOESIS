@@ -609,7 +609,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         doc.save(tmp.name)
         tmp.close()
         with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("t.docx", fh.read())
+            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
@@ -630,7 +630,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         tmp.close()
         pdf.save(tmp.name)
         with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("t.pdf", fh.read())
+            upload = SimpleUploadedFile("Anlage_3.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
@@ -654,7 +654,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         doc.save(tmp.name)
         tmp.close()
         with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("t.docx", fh.read())
+            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
         Anlage2Function.objects.create(name="Login")
@@ -734,7 +734,7 @@ class AutoApprovalTests(NoesisTestCase):
         document.save(tmp.name)
         tmp.close()
         with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("t.docx", fh.read())
+            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -816,7 +816,7 @@ class Anlage3AutomationTests(NoesisTestCase):
         document.save(tmp.name)
         tmp.close()
         with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("t.docx", fh.read())
+            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
         resp = self.client.post(

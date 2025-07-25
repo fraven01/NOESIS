@@ -138,6 +138,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # Cookies explizit auf SameSite=Lax setzen
 SESSION_COOKIE_SAMESITE = "Lax"

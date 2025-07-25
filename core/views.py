@@ -3109,7 +3109,11 @@ def projekt_file_upload(request, pk):
             if 1 <= nr_val <= 6:
                 initial["anlage_nr"] = nr_val
         form = BVProjectFileForm(initial=initial)
-    return render(request, "projekt_file_form.html", {"form": form, "projekt": projekt})
+    return render(
+        request,
+        "projekt_file_form.html",
+        {"form": form, "projekt": projekt, "max_size": settings.MAX_UPLOAD_SIZE},
+    )
 
 
 @login_required
