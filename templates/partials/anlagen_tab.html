@@ -17,10 +17,7 @@
         <tr class="border-t">
             {% if show_nr %}<td class="px-2 py-1">{{ a.anlage_nr }}</td>{% endif %}
             <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
-            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}"
-                hx-get="{% url 'hx_anlage_status' a.pk %}"
-                hx-trigger="load, every 5s"
-                hx-swap="outerHTML">
+            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}">
                 {% include 'partials/anlage_status.html' with anlage=a %}
             </td>
             <td class="px-2 py-1 text-center">
