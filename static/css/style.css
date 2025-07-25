@@ -196,3 +196,30 @@ input[type="submit"]:hover {
 .gap-note-icon.filled {
     color: #2563eb;
 }
+
+/* Vorschau-Container für hochgeladene Dateien */
+.preview-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-thumb img,
+.preview-pdf,
+.preview-docx {
+    max-height: 6rem;
+    object-fit: contain;
+}
+
+.progress-container {
+    background-color: #e5e7eb; /* gray-200 */
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 0.5rem;
+    background-color: #2563eb; /* blue-600 */
+    width: 0;
+    transition: width 0.2s;
+    border-radius: 0.25rem;
+}
