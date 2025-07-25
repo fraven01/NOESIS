@@ -655,7 +655,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        with patch("core.views.async_task", return_value="tid1") as mock_async:
+        with patch("core.views.async_task") as mock_async:
+            mock_async.return_value = SimpleNamespace(id="tid1")
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
