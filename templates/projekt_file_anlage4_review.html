@@ -6,10 +6,11 @@
 {% endblock %}
 {% block title %}Anlage 4 Review{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-4">Anlage 4 Auswertungen prüfen</h1>
+<h1 class="text-xl sm:text-2xl font-semibold mb-4">Anlage 4 Auswertungen prüfen</h1>
 {% include 'partials/version_switcher.html' %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
+    <div class="overflow-x-auto">
     <table class="table-auto w-full border">
         <thead>
             <tr>
@@ -44,6 +45,7 @@
 {% endfor %}
         </tbody>
     </table>
+    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
 </form>
 {% endblock %}
