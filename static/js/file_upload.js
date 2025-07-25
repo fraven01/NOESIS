@@ -25,7 +25,7 @@
     function validateFile(file, anlageNrDropdown) {
         const nrDropdown = anlageNrDropdown ? parseInt(anlageNrDropdown.value, 10) : null;
         const nrFilename = getAnlageNrFromName(file.name);
-        const anlageNr = nrDropdown || nrFilename;
+        const anlageNr = nrFilename !== null ? nrFilename : nrDropdown;
 
         if (nrFilename === null) {
             return 'Dateiname muss dem Muster anlage_[1-6] entsprechen.';
