@@ -12,31 +12,14 @@
             <aside class="admin-sidebar">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="admin-nav space-y-4 text-sm">
+            {% for sec in admin_links %}
             <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
-                <a href="{% url 'admin_projects' %}">Projekt-Liste</a><br>
-                <a href="{% url 'admin_project_statuses' %}">Projekt-Status</a><br>
+                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">{{ sec.title }}</h3>
+                {% for link in sec.links %}
+                <a href="{% url link.url_name %}">{{ link.label }}</a><br>
+                {% endfor %}
             </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
-                <a href="{% url 'admin_anlage1' %}">Anlage 1 Fragen</a><br>
-                <a href="{% url 'anlage2_function_list' %}">Anlage 2 Funktionen</a><br>
-                <a href="{% url 'anlage2_config' %}">Anlage 2 Globale Phrasen</a><br>
-                <a href="{% url 'parser_rule_list' %}">Exakter Parser Regeln</a><br>
-                <a href="{% url 'anlage4_config' %}">Anlage 4 Konfiguration</a><br>
-                <a href="{% url 'zweckkategoriea_list' %}">Zwecke verwalten</a><br>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
-                <a href="{% url 'admin_llm_roles' %}">LLM-Rollen</a><br>
-                <a href="{% url 'admin_prompts' %}">Prompts</a><br>
-                <a href="{% url 'admin_models' %}">LLM-Modelle</a><br>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
-                <a href="{% url 'admin_user_list' %}">Benutzer verwalten</a><br>
-                <a href="{% url 'admin:auth_group_changelist' %}">Gruppen</a><br>
-            </div>
+            {% endfor %}
         </nav>
             </aside>
             <div class="flex-1">
