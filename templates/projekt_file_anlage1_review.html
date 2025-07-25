@@ -2,9 +2,10 @@
 {% load recording_extras %}
 {% block title %}Anlage 1 Review{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-4">Anlage 1 Fragen prüfen</h1>
+<h1 class="text-xl sm:text-2xl font-semibold mb-4">Anlage 1 Fragen prüfen</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
+    <div class="overflow-x-auto">
     <table class="table-auto w-full border">
         <thead>
             <tr>
@@ -29,6 +30,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
     <div class="space-x-2 mt-2">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
     </div>

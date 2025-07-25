@@ -1,7 +1,7 @@
 {% extends 'admin_base.html' %}
 {% block title %}Exakter Parser Regeln{% endblock %}
 {% block admin_content %}
-<h1 class="text-2xl font-semibold mb-4">Regeln für Exakten Parser</h1>
+<h1 class="text-xl sm:text-2xl font-semibold mb-4">Regeln für Exakten Parser</h1>
 <div class="mb-4 space-x-2">
     <a href="{% url 'parser_rule_add' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Neue Regel</a>
     <a href="{% url 'anlage2_parser_rule_import' %}" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</a>
@@ -11,6 +11,7 @@
     <a href="{% url 'anlage2_parser_rule_import' %}" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</a>
     <a href="{% url 'anlage2_parser_rule_export' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Exportieren</a>
 </div>
+<div class="overflow-x-auto">
 <table class="min-w-full">
     <thead>
         <tr class="border-b text-left">
@@ -40,4 +41,5 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

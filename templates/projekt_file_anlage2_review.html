@@ -8,7 +8,7 @@
 {% load recording_extras %}
 {% block title %}Anlage 2 Review{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
+<h1 class="text-xl sm:text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
 <p>
   <a href="{% url 'anlage2_supervision' anlage.projekt.pk %}" class="bg-purple-600 text-white px-3 py-1 rounded">
     Zur neuen Supervisions-Ansicht wechseln
@@ -55,7 +55,7 @@
         <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>
         <button type="button" id="collapse-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle einklappen</button>
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto -mx-4 md:mx-0">
     <table class="table-auto w-full border">
         <thead>
             <tr>
