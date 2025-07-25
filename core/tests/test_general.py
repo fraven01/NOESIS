@@ -2714,7 +2714,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         mock_func.assert_called_with(self.projekt.pk, model_name=None)
 
     def test_parse_view_runs_parser(self):
-        url = reverse("projekt_file_parse_anlage2", args=[self.file2.pk])
+        url = reverse("projekt_file_check_view", args=[self.file2.pk])
         with patch("core.views.run_anlage2_analysis") as mock_func:
             mock_func.return_value = []
             resp = self.client.get(url)
