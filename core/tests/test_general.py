@@ -160,12 +160,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     create_initial_data = import_module(
         "core.migrations.0002_seed_initial_data"
     ).create_initial_data
-    from ..llm_tasks import (
-        ANLAGE1_QUESTIONS,
-        _ANLAGE1_INTRO,
-        _ANLAGE1_IT,
-        _ANLAGE1_SUFFIX,
-    )
+    from ..llm_tasks import ANLAGE1_QUESTIONS
 
     try:
         create_initial_data(django_apps, None)
@@ -213,14 +208,14 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
 
     check_anlage1_text = (
-        _ANLAGE1_INTRO
+        "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
         + ANLAGE1_QUESTIONS[0]
         + "\n"
         + ANLAGE1_QUESTIONS[1]
         + "\n"
-        + _ANLAGE1_IT
+        + "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
         + "".join(f"{q}\n" for q in ANLAGE1_QUESTIONS[2:])
-        + _ANLAGE1_SUFFIX
+        + "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
     )
     Prompt.objects.update_or_create(
         name="check_anlage1", defaults={"text": check_anlage1_text}
