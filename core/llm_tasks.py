@@ -13,7 +13,7 @@ from django.db import DatabaseError
 from django.utils import timezone
 from django_q.tasks import async_task
 
-from .utils import get_project_file
+from .utils import get_project_file, update_file_status
 
 from .models import (
     BVProject,
@@ -873,6 +873,7 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
         save_fields.append("analysis_json")
     except Exception:
         anlage.processing_status = BVProjectFile.FAILED
+        update_file_status(anlage.pk, BVProjectFile.FAILED)
         anlage1_logger.exception("Fehler bei der Analyse von Anlage 1")
         raise
     finally:
@@ -1379,6 +1380,7 @@ def run_conditional_anlage2_check(
     except Exception:
         if pf:
             pf.processing_status = BVProjectFile.FAILED
+            update_file_status(pf.pk, BVProjectFile.FAILED)
             pf.save(update_fields=["processing_status"])
         raise
 

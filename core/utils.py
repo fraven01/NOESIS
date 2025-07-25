@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django_q.tasks import async_task
+from django.db import transaction
 
 from .models import BVProject, BVProjectFile
 
@@ -53,4 +54,13 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
             async_task(func, arg)
         except Exception:
             logger.exception("Fehler beim Starten der Analyse")
+
+
+@transaction.atomic
+def update_file_status(file_id: int, status: str) -> None:
+    """Aktualisiert den Verarbeitungsstatus einer Projektdatei."""
+
+    pf = BVProjectFile.objects.get(pk=file_id)
+    pf.processing_status = status
+    pf.save(update_fields=["processing_status"])
 
