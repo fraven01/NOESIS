@@ -3074,7 +3074,13 @@ def projekt_file_upload(request, pk):
                     logger.exception("Fehler beim Seitenzählen")
             return redirect("projekt_detail", pk=projekt.pk)
     else:
-        form = BVProjectFileForm()
+        anlage_param = request.GET.get("anlage_nr")
+        initial = {}
+        if anlage_param and anlage_param.isdigit():
+            nr_val = int(anlage_param)
+            if 1 <= nr_val <= 6:
+                initial["anlage_nr"] = nr_val
+        form = BVProjectFileForm(initial=initial)
     return render(request, "projekt_file_form.html", {"form": form, "projekt": projekt})
 
 
@@ -4990,11 +4996,10 @@ def ajax_start_initial_checks(request, project_id):
 
 @login_required
 @require_POST
-def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
-    """Startet den Initial-Check erneut mit zusätzlichem Kontext."""
+def ajax_rerun_initial_check(request) -> JsonResponse:
+    """Startet den Initial-Check erneut."""
 
     knowledge_id = request.POST.get("knowledge_id")
-    user_context = request.POST.get("user_context", "")
     try:
         knowledge_id = int(knowledge_id)
     except (TypeError, ValueError):
@@ -5006,7 +5011,6 @@ def ajax_rerun_initial_check_with_context(request) -> JsonResponse:
     task_id = async_task(
         "core.llm_tasks.worker_run_initial_check",
         knowledge_id,
-        user_context,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
 
