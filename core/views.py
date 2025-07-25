@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 import os
+import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group, Permission
@@ -3003,10 +3004,28 @@ def projekt_edit(request, pk):
     return render(request, "projekt_form.html", context)
 
 
+def extract_anlage_nr(filename: str) -> int:
+    """Extrahiert die Anlagen-Nummer aus dem Dateinamen.
+
+    Erwartet Muster wie "Anlage_3_..." oder "anlage_3_...".
+    """
+
+    match = re.search(r"anlage_(\d)", filename, re.IGNORECASE)
+    if match:
+        nr = int(match.group(1))
+        if 1 <= nr <= 6:
+            return nr
+    raise ValueError("Dateiname muss eine Anlagen-Nummer enthalten")
+
+
 def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProjectFile:
     """Speichert eine einzelne hochgeladene Datei."""
 
     uploaded = form.cleaned_data["upload"]
+    try:
+        anlage_nr = extract_anlage_nr(uploaded.name)
+    except ValueError:
+        raise
     content = ""
     lower_name = uploaded.name.lower()
     if lower_name.endswith(".docx"):
@@ -3032,6 +3051,7 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
 
     obj = form.save(commit=False)
     obj.projekt = projekt
+    obj.anlage_nr = anlage_nr
     obj.text_content = content
     old_file = (
         BVProjectFile.objects.filter(
@@ -3079,7 +3099,12 @@ def projekt_file_upload(request, pk):
             files = [request.FILES["upload"]]
         saved = []
         for f in files:
+            try:
+                nr = extract_anlage_nr(f.name)
+            except ValueError as exc:
+                return HttpResponseBadRequest(str(exc))
             data = request.POST.copy()
+            data["anlage_nr"] = str(nr)
             form = BVProjectFileForm(data, {"upload": f})
             if not form.is_valid():
                 continue
