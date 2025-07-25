@@ -3089,33 +3089,31 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
 
 @login_required
 def projekt_file_upload(request, pk):
+    """Lädt genau eine Datei zu einem Projekt hoch."""
     projekt = get_object_or_404(BVProject, pk=pk)
     if request.method == "POST":
-        files = request.FILES.getlist("upload")
-        if not files and request.FILES.get("upload"):
-            files = [request.FILES["upload"]]
-        saved = []
-        for f in files:
-            nr = request.POST.get("anlage_nr")
-            form = BVProjectFileForm({"anlage_nr": nr}, {"upload": f})
-            if not form.is_valid():
-                continue
+        # Pro Anfrage wird nur eine Datei verarbeitet
+        upload = request.FILES.get("upload")
+        if not upload:
+            return HttpResponseBadRequest("Keine Datei übermittelt")
+        nr = request.POST.get("anlage_nr")
+        form = BVProjectFileForm({"anlage_nr": nr}, {"upload": upload})
+        if form.is_valid():
             try:
-                saved.append(_save_project_file(projekt, form))
+                saved = _save_project_file(projekt, form)
             except ValueError:
                 return HttpResponseBadRequest("Ungültiges Dateiformat")
-        if request.headers.get("HX-Request") and saved:
-            nr = saved[0].anlage_nr
-            files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
-            context = {
-                "projekt": projekt,
-                "anlagen": files_qs,
-                "page_obj": None,
-                "anlage_nr": nr,
-                "show_nr": False,
-            }
-            return render(request, "partials/anlagen_tab.html", context)
-        if saved:
+            if request.headers.get("HX-Request"):
+                nr = saved.anlage_nr
+                files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
+                context = {
+                    "projekt": projekt,
+                    "anlagen": files_qs,
+                    "page_obj": None,
+                    "anlage_nr": nr,
+                    "show_nr": False,
+                }
+                return render(request, "partials/anlagen_tab.html", context)
             return redirect("projekt_detail", pk=projekt.pk)
         form = BVProjectFileForm(request.POST, request.FILES)
     else:
