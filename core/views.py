@@ -3022,7 +3022,7 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
     """Speichert eine einzelne hochgeladene Datei."""
 
     uploaded = form.cleaned_data["upload"]
-    anlage_nr = form.cleaned_data["anlage_nr"]
+    anlage_nr = form.anlage_nr
     content = ""
     lower_name = uploaded.name.lower()
     if lower_name.endswith(".docx"):
@@ -3097,7 +3097,7 @@ def projekt_file_upload(request, pk):
         saved = []
         for f in files:
             nr = request.POST.get("anlage_nr")
-            form = BVProjectFileForm({"anlage_nr": nr}, {"upload": f})
+            form = BVProjectFileForm({}, {"upload": f}, anlage_nr=nr)
             if not form.is_valid():
                 continue
             try:
@@ -3117,15 +3117,15 @@ def projekt_file_upload(request, pk):
             return render(request, "partials/anlagen_tab.html", context)
         if saved:
             return redirect("projekt_detail", pk=projekt.pk)
-        form = BVProjectFileForm(request.POST, request.FILES)
+        form = BVProjectFileForm(request.POST, request.FILES, anlage_nr=request.POST.get("anlage_nr"))
     else:
         anlage_param = request.GET.get("anlage_nr")
-        initial = {}
+        nr_val = None
         if anlage_param and anlage_param.isdigit():
-            nr_val = int(anlage_param)
-            if 1 <= nr_val <= 6:
-                initial["anlage_nr"] = nr_val
-        form = BVProjectFileForm(initial=initial)
+            val = int(anlage_param)
+            if 1 <= val <= 6:
+                nr_val = val
+        form = BVProjectFileForm(anlage_nr=nr_val)
     return render(
         request,
         "projekt_file_form.html",

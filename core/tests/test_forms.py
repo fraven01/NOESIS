@@ -242,20 +242,21 @@ class Anlage5ReviewFormTests(NoesisTestCase):
 class BVProjectFileFormTests(NoesisTestCase):
     def test_extension_validation(self):
         form = BVProjectFileForm(
-            {"anlage_nr": 1}, {"upload": SimpleUploadedFile("Anlage_1.pdf", b"d")}
+            {}, {"upload": SimpleUploadedFile("Anlage_1.pdf", b"d")}, anlage_nr=1
         )
         self.assertFalse(form.is_valid())
 
     def test_filename_pattern(self):
         form = BVProjectFileForm(
-            {"anlage_nr": 1}, {"upload": SimpleUploadedFile("foo.docx", b"d")}
+            {}, {"upload": SimpleUploadedFile("foo.docx", b"d")}, anlage_nr=1
         )
         self.assertTrue(form.is_valid())
 
     def test_max_size(self):
         form = BVProjectFileForm(
-            {"anlage_nr": 1},
+            {},
             {"upload": SimpleUploadedFile("Anlage_1.docx", b"x" * (settings.MAX_UPLOAD_SIZE + 1))},
+            anlage_nr=1,
         )
         self.assertFalse(form.is_valid())
 
@@ -269,7 +270,7 @@ class BVProjectFileFormTests(NoesisTestCase):
             upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
-        form = BVProjectFileForm({"anlage_nr": 2}, {"upload": upload})
+        form = BVProjectFileForm({}, {"upload": upload}, anlage_nr=2)
         self.assertTrue(form.is_valid())
         obj = form.save(commit=False)
         self.assertEqual(obj.anlage_nr, 2)
