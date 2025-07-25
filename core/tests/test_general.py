@@ -94,7 +94,7 @@ from ..llm_tasks import (
 )
 from ..views import _verification_to_initial, _build_row_data
 from ..reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, Mock
 from django.core.management import call_command
 from django.test import override_settings
 from django.conf import settings
@@ -655,7 +655,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        with patch("core.views.async_task", return_value="tid1") as mock_async:
+        with patch("core.views.async_task") as mock_async:
+            mock_async.return_value = Mock(id="tid1")
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
