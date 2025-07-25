@@ -57,7 +57,7 @@
     }
 
     // --- Vorschau-Logik aus 'main' ---
-    function createPreview(file, container, onRemove) {
+    function createPreview(file, container, onRemove, anlageNr) {
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-item flex flex-col mb-2 border p-2 rounded';
         const thumb = document.createElement('div');
@@ -66,6 +66,18 @@
         const fileNameSpan = document.createElement('span');
         fileNameSpan.className = "font-bold text-sm mb-2 block";
         fileNameSpan.textContent = file.name;
+
+        const select = document.createElement('select');
+        select.className = 'anlage-select ml-2 border rounded p-1';
+        for (let i = 1; i <= 6; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = String(i);
+            select.appendChild(opt);
+        }
+        if (anlageNr) {
+            select.value = String(anlageNr);
+        }
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -77,7 +89,11 @@
         });
 
         wrapper.appendChild(removeBtn);
-        wrapper.appendChild(fileNameSpan);
+        const nameWrapper = document.createElement('div');
+        nameWrapper.className = 'flex items-center mb-1';
+        nameWrapper.appendChild(fileNameSpan);
+        nameWrapper.appendChild(select);
+        wrapper.appendChild(nameWrapper);
         wrapper.appendChild(thumb);
         container.appendChild(wrapper);
 
@@ -105,15 +121,18 @@
         barContainer.appendChild(bar);
         wrapper.appendChild(barContainer);
 
-        return { bar, wrapper };
+        return { bar, wrapper, select };
     }
     
     // --- Logik zum Senden der Datei aus 'main' ---
-    function sendFile(form, file, bar) {
+    function sendFile(form, file, bar, anlageNr) {
         return new Promise((resolve, reject) => {
              const url = form.getAttribute('hx-post') || form.action;
              const formData = new FormData(form);
              formData.set('upload', file); // 'upload' anpassen, falls nötig
+             if (anlageNr) {
+                 formData.set('anlage_nr', String(anlageNr));
+             }
              const xhr = new XMLHttpRequest();
              xhr.open('POST', url, true);
 
@@ -200,13 +219,18 @@
                     input.value = ''; // Input zurücksetzen bei Fehler
                     return; // Stoppt bei erstem Fehler
                 }
+                const detectedNr = getAnlageNrFromName(file.name);
                 const preview = createPreview(file, container, () => {
                     const idx = currentFiles.findIndex(it => it.file === file);
                     if (idx !== -1) currentFiles.splice(idx, 1);
                     updateDuplicateStatus();
+                }, detectedNr);
+                const item = { file, bar: preview.bar, wrapper: preview.wrapper, select: preview.select, anlageNr: detectedNr };
+                currentFiles.push(item);
+                preview.select.addEventListener('change', () => {
+                    item.anlageNr = parseInt(preview.select.value, 10);
+                    updateDuplicateStatus();
                 });
-                const anlageNr = getAnlageNrFromName(file.name);
-                currentFiles.push({ file, bar: preview.bar, wrapper: preview.wrapper, anlageNr });
             }
 
             updateDuplicateStatus();
@@ -240,7 +264,7 @@
 
             for (const item of currentFiles) {
                 try {
-                    const resp = await sendFile(form, item.file, item.bar);
+                    const resp = await sendFile(form, item.file, item.bar, item.anlageNr);
                     if (target) {
                         target.innerHTML = resp;
                         if (window.htmx) { htmx.process(target); }
