@@ -876,11 +876,11 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     )
 
     save_fields = ["processing_status"]
+    data: dict = {}
     try:
         parsed = parse_anlage1_questions(anlage.text_content)
         answers: dict[str, str | list | None]
         found_nums: dict[str, str | None] = {}
-        data: dict
 
         if parsed:
             anlage1_logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
@@ -1007,9 +1007,11 @@ def check_anlage1(projekt_id: int, model_name: str | None = None) -> dict:
     except Exception:
         anlage.processing_status = BVProjectFile.FAILED
         anlage1_logger.exception("Fehler bei der Analyse von Anlage 1")
-        raise
     finally:
-        anlage.save(update_fields=save_fields)
+        try:
+            anlage.save(update_fields=save_fields)
+        except DatabaseError:
+            anlage1_logger.exception("Fehler beim Speichern des Analyseergebnisses")
 
     return data
 
