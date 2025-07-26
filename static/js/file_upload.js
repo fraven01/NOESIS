@@ -106,11 +106,22 @@
             thumb.textContent = '📄 PDF Vorschau';
         } else if (acceptedDocxTypes.includes(file.type)) {
             const docxContainer = document.createElement('div');
-            docxContainer.className = 'preview-docx';
+            docxContainer.className = 'preview-docx flex items-center justify-center';
+            docxContainer.innerHTML = '<span class="spinner"></span> wird geladen...';
             thumb.appendChild(docxContainer);
-            loadScript('/static/vendor/jszip.min.js')
-                .then(() => loadScript('/static/vendor/docx-preview.min.js'))
-                .then(() => docx.renderAsync(file, docxContainer))
+
+            const token = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value;
+            const formData = new FormData();
+            formData.append('docx', file);
+            fetch(window.DOCX_PREVIEW_URL, {
+                method: 'POST',
+                headers: token ? { 'X-CSRFToken': token } : {},
+                body: formData
+            })
+                .then(r => r.json())
+                .then(data => {
+                    docxContainer.innerHTML = data.html || 'Keine Vorschau verfügbar';
+                })
                 .catch(() => {
                     docxContainer.textContent = 'Vorschau konnte nicht geladen werden';
                 });

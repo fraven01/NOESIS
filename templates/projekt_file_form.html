@@ -49,6 +49,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>window.MAX_UPLOAD_SIZE = {{ max_size|default:10485760 }};</script>
+<script>
+    window.MAX_UPLOAD_SIZE = {{ max_size|default:10485760 }};
+    window.DOCX_PREVIEW_URL = "{% url 'ajax_docx_preview' %}";
+</script>
 <script src="{% static 'js/file_upload.js' %}"></script>
 {% endblock %}
