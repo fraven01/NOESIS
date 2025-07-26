@@ -49,13 +49,20 @@ falls keine Variable vorhanden ist.
 
 ## Tests und Checks
 
-Vor jedem Commit müssen laut `AGENTS.md` folgende Befehle erfolgreich laufen:
+Vor jedem Commit **muss** laut `AGENTS.md` folgender Befehl erfolgreich laufen:
 
 ```bash
 python manage.py makemigrations --check
-python manage.py migrate
-python manage.py test
 ```
+
+Im Anschluss empfiehlt es sich, noch `python manage.py migrate` und
+`python manage.py test` auszuführen.
+
+### Commit-Richtlinien
+
+- Verwende Präfixe wie `feat:`, `fix:` oder `docs:` in Commit-Botschaften.
+- Die erste Zeile besteht aus einer kurzen Zusammenfassung, gefolgt von einer
+  Leerzeile und einer optionalen genaueren Beschreibung.
 
 ## Logging
 
