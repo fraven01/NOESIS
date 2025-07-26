@@ -265,3 +265,43 @@ input[type="submit"]:hover {
     pointer-events: none;
 }
 
+/* Lesbares Styling für serverseitige DOCX-Vorschau */
+.preview-docx table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+}
+
+.preview-docx th,
+.preview-docx td {
+    border: 1px solid #d1d5db;
+    padding: 0.25rem 0.5rem;
+}
+
+.preview-docx h1,
+.preview-docx h2,
+.preview-docx h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.25;
+}
+
+.preview-docx p {
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
+
+.preview-docx ul,
+.preview-docx ol {
+    margin: 0.5rem 0 0.5rem 1.5rem;
+    padding-left: 1rem;
+}
+
+.preview-docx ul {
+    list-style-type: disc;
+}
+
+.preview-docx ol {
+    list-style-type: decimal;
+}
+
