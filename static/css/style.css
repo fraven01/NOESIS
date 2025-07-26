@@ -204,10 +204,15 @@ input[type="submit"]:hover {
 }
 
 .preview-thumb img,
-.preview-pdf,
-.preview-docx {
+.preview-pdf {
     max-height: 6rem;
     object-fit: contain;
+}
+
+.preview-docx {
+    overflow: auto;
+    max-height: 20rem;
+    text-align: left;
 }
 
 .progress-container {
@@ -269,6 +274,7 @@ input[type="submit"]:hover {
 .preview-docx table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin: 0.5rem 0;
 }
 
@@ -276,6 +282,7 @@ input[type="submit"]:hover {
 .preview-docx td {
     border: 1px solid #d1d5db;
     padding: 0.25rem 0.5rem;
+    word-break: break-word;
 }
 
 .preview-docx h1,
