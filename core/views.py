@@ -4536,6 +4536,40 @@ def hx_project_anlage_tab(request, pk: int, nr: int):
 
 
 @login_required
+def hx_project_software_tab(request, pk: int, tab: str):
+    """Rendert die Software-Tab-Inhalte per HTMX."""
+
+    projekt = get_object_or_404(BVProject, pk=pk)
+
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    software_list = projekt.software_list
+    knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
+    knowledge_rows = []
+    checked = 0
+    for name in software_list:
+        entry = knowledge_map.get(name)
+        if entry and entry.last_checked:
+            checked += 1
+        knowledge_rows.append({"name": name, "entry": entry})
+
+    template = (
+        "partials/software_tab_basic.html"
+        if tab == "tech"
+        else "partials/software_tab_gutachten.html"
+    )
+
+    context = {
+        "projekt": projekt,
+        "knowledge_rows": knowledge_rows,
+        "knowledge_checked": checked,
+        "total_software": len(software_list),
+    }
+    return render(request, template, context)
+
+
+@login_required
 @require_POST
 def trigger_file_analysis(request, pk: int):
     """L\u00F6st die Analyse f\u00FCr eine bestehende Datei erneut aus."""

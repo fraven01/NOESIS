@@ -58,75 +58,17 @@
 
 <div class="bg-white rounded-lg shadow p-4">
 <h2 class="text-xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h2>
-<div class="overflow-x-auto">
-<table id="knowledge-table" class="mb-4 w-full text-left">
-    <thead>
-        <tr>
-            <th class="px-2 py-1">Software</th>
-            <th class="px-2 py-1 text-center">Bekannt?</th>
-            <th class="px-2 py-1">Beschreibung</th>
-            <th class="px-2 py-1 text-center">Aktionen</th>
-            <th class="px-2 py-1 text-center">Gutachten</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for row in knowledge_rows %}
-        <tr class="border-t" data-id="{{ row.entry.id|default:'' }}">
-            <td class="px-2 py-1">{{ row.name }}</td>
-            <td class="px-2 py-1 text-center">
-                {% if row.entry and row.entry.is_known_by_llm is True %}
-                    <span class="badge status-ja">✓ Bekannt</span>
-                {% elif row.entry and row.entry.is_known_by_llm is False %}
-                    <span class="badge status-nein">✗ Nicht bekannt</span>
-                {% else %}
-                    <span class="badge status-unbekannt">? Ungeprüft</span>
-                {% endif %}
-            </td>
-            <td class="px-2 py-1">
-                {% if row.entry and row.entry.is_known_by_llm is True %}
-                    <div class="prose max-w-none">
-                        {{ row.entry.description|markdownify }}
-                    </div>
-                {% elif row.entry and row.entry.is_known_by_llm is False %}
-                    <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren.</p>
-                {% else %}
-                {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center space-x-2">
-            {% if row.entry and row.entry.is_known_by_llm is True %}
-                <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="btn-action">Bearbeiten</a>
-                <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
-                <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
-            {% elif row.entry and row.entry.is_known_by_llm is False %}
-                <button type="button" class="btn btn-warning btn-sm retry-check-btn"
-                        data-knowledge-id="{{ row.entry.id }}">
-                    Erneut prüfen
-                </button>
-            {% else %}
-                <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" 
-                         data-knowledge-id="{{ row.entry.id|default:'' }}">
-                    Prüfung starten
-                </button>
-            {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center">
-            {% if row.entry %}
-                {% if row.entry.gutachten %}
-                    <a href="{% url 'gutachten_view' row.entry.gutachten.id %}">Anzeigen</a> |
-                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
-                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
-                {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
-                {% endif %}
-                <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
-            {% endif %}
-            </td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-</div>
-<button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
+<nav class="flex space-x-2 mb-4">
+  <button class="software-tab-btn px-3 py-1 border-b-2 border-blue-600 text-blue-600"
+          hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
+          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
+          data-tab="tech">Technische Prüfung</button>
+  <button class="software-tab-btn px-3 py-1 border-b-2 border-transparent text-gray-600"
+          hx-get="{% url 'hx_project_software_tab' projekt.pk 'gutachten' %}"
+          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
+          data-tab="gutachten">Gutachten</button>
+</nav>
+<div id="software-tab-content" hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}" hx-trigger="load"></div>
 </div>
 </div>
 <div class="lg:w-1/3 mt-4 lg:mt-0">
@@ -200,14 +142,72 @@ function attachHandlers(){
      if(ctxInput.value){sendCheck({additional_context:ctxInput.value});}
    });
  }
- const toggle=document.getElementById('toggle');
- if(toggle){
-  toggle.addEventListener('click',()=>{
-    document.getElementById('output').classList.toggle('hidden');
-  });
+const toggle=document.getElementById('toggle');
+if(toggle){
+ toggle.addEventListener('click',()=>{
+   document.getElementById('output').classList.toggle('hidden');
+ });
 }
- const recheck=document.getElementById('recheck');
- if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
+const recheck=document.getElementById('recheck');
+if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
+
+ const start=document.getElementById('start-checks');
+ if(start){start.addEventListener('click',startChecks);}
+
+ document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
+   button.addEventListener('click',function(event){
+     event.preventDefault();
+     const knowledgeId=this.dataset.knowledgeId;
+     const url='{% url 'ajax_start_gutachten_generation' projekt.pk %}';
+     const body=new FormData();
+     body.append('knowledge_id',knowledgeId);
+     this.classList.add('disabled');
+     const status=document.getElementById('gutachten-status-'+knowledgeId);
+     showSpinner(this, 'Erstelle...');
+     fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+       .then(r=>r.json()).then(data=>{
+         const tid=data.task_id;
+         const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+         const iv=setInterval(()=>{
+           fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+             if(d.status==='SUCCESS'){
+               clearInterval(iv);location.reload();
+             }else if(d.status==='FAIL'){
+               clearInterval(iv);
+               if(status){status.textContent='Fehler';}
+               hideSpinner(button);
+               button.classList.remove('disabled');
+             }
+           });
+         },3000);
+       }).catch(()=>{
+         if(status){status.textContent='Fehler';}
+         hideSpinner(button);
+         button.classList.remove('disabled');
+       });
+   });
+ });
+
+ document.querySelectorAll('.retry-check-btn, .start-initial-check-btn').forEach(btn=>{
+   btn.addEventListener('click',function(){
+     const knowledgeId=this.dataset.knowledgeId;
+     const body=new FormData();
+     body.append('knowledge_id',knowledgeId);
+     showSpinner(btn, 'Prüfung...');
+     fetch('{% url "ajax_rerun_initial_check" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+       .then(r=>r.json()).then(data=>{
+         const tid=data.task_id;
+         const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+         const iv=setInterval(()=>{
+           fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+             if(d.status==='SUCCESS'||d.status==='FAIL'){
+               clearInterval(iv);window.location.reload();
+             }
+           });
+         },3000);
+       }).catch(()=>{hideSpinner(btn);});
+   });
+ });
 
 }
 
@@ -235,69 +235,10 @@ function startChecks(){
 }
 
 document.addEventListener('DOMContentLoaded',loadKnowledge);
-document.addEventListener('DOMContentLoaded',function(){
- const btn=document.getElementById('start-checks');
- if(btn){btn.addEventListener('click',startChecks);}
-});
+document.addEventListener('DOMContentLoaded',attachHandlers);
 
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
-    button.addEventListener('click',function(event){
-      event.preventDefault();
-      const knowledgeId=this.dataset.knowledgeId;
-      const url='{% url 'ajax_start_gutachten_generation' projekt.pk %}';
-      const body=new FormData();
-      body.append('knowledge_id',knowledgeId);
-
-      this.classList.add('disabled');
-      const status=document.getElementById('gutachten-status-'+knowledgeId);
-      showSpinner(this, 'Erstelle...');
-
-      fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
-        .then(r=>r.json()).then(data=>{
-          const tid=data.task_id;
-          const tmpl='{% url "ajax_check_task_status" "dummy" %}';
-          const iv=setInterval(()=>{
-            fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
-              if(d.status==='SUCCESS'){
-                clearInterval(iv);location.reload();
-              }else if(d.status==='FAIL'){
-                clearInterval(iv);
-                if(status){status.textContent='Fehler';}
-                hideSpinner(button);
-                button.classList.remove('disabled');
-              }
-            });
-          },3000);
-        }).catch(()=>{
-          if(status){status.textContent='Fehler';}
-          hideSpinner(button);
-          button.classList.remove('disabled');
-        });
-  });
-});
-
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.retry-check-btn, .start-initial-check-btn').forEach(btn=>{
-    btn.addEventListener('click',function(){
-      const knowledgeId=this.dataset.knowledgeId;
-      const body=new FormData();
-      body.append('knowledge_id',knowledgeId);
-      showSpinner(btn, 'Prüfung...');
-      fetch('{% url "ajax_rerun_initial_check" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
-        .then(r=>r.json()).then(data=>{
-          const tid=data.task_id;
-          const tmpl='{% url "ajax_check_task_status" "dummy" %}';
-          const iv=setInterval(()=>{
-            fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
-              if(d.status==='SUCCESS'||d.status==='FAIL'){
-                clearInterval(iv);window.location.reload();
-              }
-            });
-          },3000);
-        }).catch(()=>{hideSpinner(btn);});
-    });
-  });
+document.addEventListener('htmx:afterSwap',function(){
+  attachHandlers();
 });
 
 document.addEventListener('htmx:beforeRequest',function(e){
@@ -312,7 +253,14 @@ document.addEventListener('htmx:beforeRequest',function(e){
     const link=document.getElementById('upload-link');
     if(link){link.href=`${link.dataset.baseUrl}?anlage_nr=${t.dataset.nr}`;}
   }
-});
+  if(t.classList.contains('software-tab-btn')){
+    document.querySelectorAll('.software-tab-btn').forEach(b=>{
+      b.classList.remove('border-blue-600','text-blue-600');
+      b.classList.add('border-transparent','text-gray-600');
+    });
+    t.classList.remove('border-transparent','text-gray-600');
+    t.classList.add('border-blue-600','text-blue-600');
+  }
 });
 </script>
 {% endblock %}

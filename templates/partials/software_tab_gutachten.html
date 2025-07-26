@@ -1,0 +1,29 @@
+<div class="overflow-x-auto">
+<table class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Software</th>
+            <th class="px-2 py-1 text-center">Gutachten</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in knowledge_rows %}
+        <tr class="border-t">
+            <td class="px-2 py-1">{{ row.name }}</td>
+            <td class="px-2 py-1 text-center">
+            {% if row.entry %}
+                {% if row.entry.gutachten %}
+                    <a href="{% url 'gutachten_view' row.entry.gutachten.id %}">Anzeigen</a> |
+                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
+                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
+                {% else %}
+                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
+                {% endif %}
+                <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
+            {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>

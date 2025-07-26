@@ -576,6 +576,14 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertContains(resp, "a.txt")
         self.assertContains(resp, "hx-trigger")
 
+    def test_hx_project_software_tab(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        SoftwareKnowledge.objects.create(projekt=projekt, software_name="A")
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_project_software_tab", args=[projekt.pk, "tech"])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Prüfung starten")
+
     def test_trigger_file_analysis_starts_tasks(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(

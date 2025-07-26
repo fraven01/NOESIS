@@ -1,0 +1,50 @@
+<div class="overflow-x-auto">
+<table id="knowledge-table" class="mb-4 w-full text-left">
+    <thead>
+        <tr>
+            <th class="px-2 py-1">Software</th>
+            <th class="px-2 py-1 text-center">Bekannt?</th>
+            <th class="px-2 py-1">Beschreibung</th>
+            <th class="px-2 py-1 text-center">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in knowledge_rows %}
+        <tr class="border-t" data-id="{{ row.entry.id|default:'' }}">
+            <td class="px-2 py-1">{{ row.name }}</td>
+            <td class="px-2 py-1 text-center">
+                {% if row.entry and row.entry.is_known_by_llm is True %}
+                    <span class="badge status-ja">✓ Bekannt</span>
+                {% elif row.entry and row.entry.is_known_by_llm is False %}
+                    <span class="badge status-nein">✗ Nicht bekannt</span>
+                {% else %}
+                    <span class="badge status-unbekannt">? Ungeprüft</span>
+                {% endif %}
+            </td>
+            <td class="px-2 py-1">
+                {% if row.entry and row.entry.is_known_by_llm is True %}
+                    <div class="prose max-w-none">
+                        {{ row.entry.description|markdownify }}
+                    </div>
+                {% elif row.entry and row.entry.is_known_by_llm is False %}
+                    <p class="text-sm text-gray-500">Die automatische Prüfung konnte diese Software nicht eindeutig identifizieren.</p>
+                {% else %}
+                {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center space-x-2">
+            {% if row.entry and row.entry.is_known_by_llm is True %}
+                <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="btn-action">Bearbeiten</a>
+                <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
+                <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
+            {% elif row.entry and row.entry.is_known_by_llm is False %}
+                <button type="button" class="btn btn-warning btn-sm retry-check-btn" data-knowledge-id="{{ row.entry.id }}">Erneut prüfen</button>
+            {% else %}
+                <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" data-knowledge-id="{{ row.entry.id|default:'' }}">Prüfung starten</button>
+            {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+<button id="start-checks" class="bg-green-600 text-white px-4 py-2 rounded">Prüfung starten</button>
