@@ -29,6 +29,8 @@ import subprocess
 import whisper
 import torch
 import json
+import asyncio
+import tempfile
 from django_q.tasks import async_task, fetch, result, Task
 
 from .forms import (
@@ -5096,6 +5098,34 @@ def ajax_rerun_initial_check(request) -> JsonResponse:
         knowledge_id,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
+
+
+@login_required
+@require_POST
+async def ajax_docx_preview(request) -> JsonResponse:
+    """Konvertiert eine DOCX-Datei in HTML für die Vorschau."""
+
+    upload = request.FILES.get("docx")
+    if not upload:
+        return JsonResponse({"error": "no file"}, status=400)
+
+    def _convert() -> str:
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+        try:
+            return pypandoc.convert_file(tmp_path, "html")
+        finally:
+            os.unlink(tmp_path)
+
+    try:
+        html = await asyncio.to_thread(_convert)
+    except Exception as exc:  # pragma: no cover - Conversion kann fehlschlagen
+        logger.exception("Fehler bei der DOCX-Vorschau: %s", exc)
+        return JsonResponse({"error": "conversion failed"}, status=500)
+
+    return JsonResponse({"html": html})
 
 
 @login_required

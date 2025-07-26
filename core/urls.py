@@ -488,6 +488,11 @@ urlpatterns = [
         name="ajax_rerun_initial_check",
     ),
     path(
+        "ajax/docx-preview/",
+        views.ajax_docx_preview,
+        name="ajax_docx_preview",
+    ),
+    path(
         "knowledge/<int:knowledge_id>/edit/",
         views.edit_knowledge_description,
         name="edit_knowledge_description",
