@@ -3020,11 +3020,39 @@ def extract_anlage_nr(filename: str) -> int:
     raise ValueError("Dateiname muss eine Anlagen-Nummer enthalten")
 
 
-def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProjectFile:
-    """Speichert eine einzelne hochgeladene Datei."""
+def _save_project_file(
+    projekt: BVProject,
+    form: BVProjectFileForm | None = None,
+    *,
+    upload=None,
+    anlage_nr: int | None = None,
+) -> BVProjectFile:
+    """Speichert eine einzelne hochgeladene Datei.
 
-    uploaded = form.cleaned_data["upload"]
-    anlage_nr = form.anlage_nr
+    Kann entweder mit einem bereits validierten Formular oder direkt mit Datei
+    und Anlagen-Nummer aufgerufen werden.
+    """
+
+    if form is not None:
+        uploaded = form.cleaned_data["upload"]
+        anlage_nr = form.anlage_nr
+    else:
+        if upload is None or anlage_nr is None:
+            raise ValueError("missing params")
+        uploaded = upload
+
+    obj = form.save(commit=False) if form is not None else BVProjectFile(upload=uploaded)
+
+    ext = Path(uploaded.name).suffix.lower()
+    if uploaded.size > settings.MAX_UPLOAD_SIZE:
+        raise ValueError("Datei \u00FCberschreitet die maximale Gr\u00F6\u00DFe")
+    if anlage_nr == 3:
+        if ext not in [".docx", ".pdf"]:
+            raise ValueError("Nur .docx oder .pdf erlaubt f\u00FCr Anlage 3")
+    else:
+        if ext != ".docx":
+            raise ValueError("Nur .docx Dateien erlaubt")
+
     content = ""
     lower_name = uploaded.name.lower()
     if lower_name.endswith(".docx"):
@@ -3048,7 +3076,6 @@ def _save_project_file(projekt: BVProject, form: BVProjectFileForm) -> BVProject
             logger.error("Datei konnte nicht als UTF-8 dekodiert werden: %s", exc)
             raise ValueError("invalid")
 
-    obj = form.save(commit=False)
     obj.projekt = projekt
     obj.anlage_nr = anlage_nr
     obj.text_content = content
@@ -3098,56 +3125,33 @@ def projekt_file_upload(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
 
     if request.method == "POST":
-        # Nimmt die eine Datei entgegen, die vom asynchronen JS-Request gesendet wird
         upload = request.FILES.get("upload")
-        if not upload:
-            return HttpResponseBadRequest("Keine Datei übermittelt.")
+        anlage_nr_raw = request.POST.get("anlage_nr")
 
-        # Nimmt die anlage_nr entgegen, die für DIESE EINE Datei vom JS gesendet wurde
-        anlage_nr_str = request.POST.get("anlage_nr")
-        
-        # Formular mit POST-Daten und Datei erstellen. Die Anlagen-Nummer
-        # muss separat an den Konstruktor übergeben werden, damit
-        # ``BVProjectFileForm`` korrekt initialisiert wird.
-        anlage_nr = (
-            int(anlage_nr_str) if anlage_nr_str and anlage_nr_str.isdigit() else None
-        )
-        form = BVProjectFileForm(
-            request.POST,
-            request.FILES,
-            anlage_nr=anlage_nr,
-        )
+        if not upload or not anlage_nr_raw or not anlage_nr_raw.isdigit():
+            return HttpResponseBadRequest("invalid")
 
-        if form.is_valid():
-            try:
-                # Die _save_project_file-Hilfsfunktion kümmert sich um die Speicherung
-                saved_file = _save_project_file(projekt, form)
-            except ValueError as e:
-                # Fehler bei Duplikaten oder anderen Validierungen abfangen
-                return HttpResponseBadRequest(str(e))
+        anlage_nr = int(anlage_nr_raw)
+        if not 1 <= anlage_nr <= 6:
+            return HttpResponseBadRequest("invalid")
 
-            # Bei einem erfolgreichen htmx-Request wird das Tabellen-Partial neu geladen
-            if request.headers.get("HX-Request"):
-                # Korrekt gefilterte Liste für den Response holen
-                files_qs = projekt.anlagen.filter(anlage_nr=saved_file.anlage_nr).order_by("-version")
-                context = {
-                    "projekt": projekt,
-                    "anlagen": files_qs,
-                    "page_obj": None,
-                    "anlage_nr": saved_file.anlage_nr,
-                    "show_nr": False,
-                }
-                return render(request, "partials/anlagen_tab.html", context)
-            
-            # Fallback für Non-JS-Uploads
-            return redirect("projekt_detail", pk=projekt.pk)
-        
-        else:
-            # Wenn das Formular nicht gültig ist (z.B. Dateityp falsch)
-            # Im htmx-Kontext einen Fehler zurückgeben
-            if request.headers.get("HX-Request"):
-                return HttpResponseBadRequest(form.errors.as_text())
-            # Ansonsten das volle Formular mit Fehlern rendern (für Non-JS)
+        try:
+            saved_file = _save_project_file(projekt, upload=upload, anlage_nr=anlage_nr)
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+
+        if request.headers.get("HX-Request"):
+            files_qs = projekt.anlagen.filter(anlage_nr=saved_file.anlage_nr).order_by("-version")
+            context = {
+                "projekt": projekt,
+                "anlagen": files_qs,
+                "page_obj": None,
+                "anlage_nr": saved_file.anlage_nr,
+                "show_nr": False,
+            }
+            return render(request, "partials/anlagen_tab.html", context)
+
+        return redirect("projekt_detail", pk=projekt.pk)
 
     # Logik für den initialen GET-Request (Anzeige des leeren Formulars)
     anlage_param = request.GET.get("anlage_nr")
