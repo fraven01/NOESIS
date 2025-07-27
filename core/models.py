@@ -240,6 +240,7 @@ class BVProjectFile(models.Model):
         choices=[(i, str(i)) for i in range(1, 7)],
     )
     upload = models.FileField("Upload", upload_to="bv_files")
+    created_at = models.DateTimeField(auto_now_add=True)
     anlage4_config = models.ForeignKey(
         "Anlage4Config", on_delete=models.SET_NULL, null=True, blank=True
     )

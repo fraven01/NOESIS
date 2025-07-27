@@ -5,7 +5,8 @@
     <thead>
         <tr>
             {% if show_nr %}<th class="px-2 py-1">Nr.</th>{% endif %}
-            <th class="px-2 py-1">Datei</th>
+            <th class="px-2 py-1">Bezeichnung</th>
+            <th class="px-2 py-1">Hochgeladen am</th>
             <th class="px-2 py-1">Version</th>
             <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
             <th class="px-2 py-1 text-center">Vergleich</th>
@@ -17,7 +18,7 @@
     {% for a in anlagen %}
         {% include 'partials/anlagen_row.html' with anlage=a show_nr=show_nr %}
     {% empty %}
-        <tr><td colspan="{% if show_nr %}7{% else %}6{% endif %}">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="{% if show_nr %}8{% else %}7{% endif %}">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -35,7 +36,7 @@
 </div>
 
 <div id="anlage-dropzone" data-upload-url="{% url 'projekt_file_upload' projekt.pk %}"
-     data-colspan="{% if show_nr %}7{% else %}6{% endif %}"
+     data-colspan="{% if show_nr %}8{% else %}7{% endif %}"
      class="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer mt-4">
     Dateien hierher ziehen oder klicken zum Auswählen
     <input type="file" class="hidden" multiple>

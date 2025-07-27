@@ -1,7 +1,7 @@
 {% load recording_extras %}
 {% if form %}
 <tr>
-    <td colspan="{% if show_nr %}7{% else %}6{% endif %}">
+    <td colspan="{% if show_nr %}8{% else %}7{% endif %}">
         <form method="post" enctype="multipart/form-data" action="{% url 'hx_project_file_upload' projekt.pk %}">
             {% csrf_token %}
             <input type="hidden" name="anlage_nr" value="{{ form.anlage_nr }}">
@@ -24,7 +24,8 @@
 {% else %}
 <tr class="border-t">
     {% if show_nr %}<td class="px-2 py-1">{{ anlage.anlage_nr }}</td>{% endif %}
-    <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-blue-700 underline">{{ anlage.upload.name|clean_filename }}</a></td>
+    <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-blue-700 underline" title="{{ anlage.upload.name|clean_filename }}">Anlage {{ anlage.anlage_nr }}</a></td>
+    <td class="px-2 py-1">{{ anlage.created_at|date:"d.m.Y H:i" }}</td>
     <td class="px-2 py-1">{{ anlage.version }}</td>
     <td class="px-2 py-1 text-center" id="anlage-edit-{{ anlage.pk }}">
         {% include 'partials/anlage_status.html' with anlage=anlage %}
