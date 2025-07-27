@@ -2782,6 +2782,8 @@ def projekt_detail(request, pk):
     activities = activities[:5]
 
     cockpit_ctx = get_cockpit_context(projekt)
+    last_anlagen_files = {nr: projekt.anlagen.filter(anlage_nr=nr).last() for nr in range(1, 7)}
+
 
 
     context = {
@@ -2794,6 +2796,7 @@ def projekt_detail(request, pk):
         "is_verhandlungsfaehig": projekt.is_verhandlungsfaehig,
         "is_admin": is_admin,
         "anlage_numbers": list(range(1, 7)),
+        "last_anlagen_files": last_anlagen_files,
 
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
