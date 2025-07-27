@@ -17,7 +17,7 @@
     }
 
     function getAnlageNrFromName(name) {
-        const m = name.toLowerCase().match(/anlage_(\d)/);
+        const m = name.toLowerCase().match(/anlage[\s_-]?(\d)/i);
         return m ? parseInt(m[1], 10) : null;
     }
 
@@ -65,6 +65,10 @@
 
         const select = document.createElement('select');
         select.className = 'anlage-select ml-2 border rounded p-1';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-';
+        select.appendChild(placeholder);
         for (let i = 1; i <= 6; i++) {
             const opt = document.createElement('option');
             opt.value = String(i);
@@ -73,6 +77,8 @@
         }
         if (anlageNr) {
             select.value = String(anlageNr);
+        } else {
+            select.value = '';
         }
 
         const removeBtn = document.createElement('button');
@@ -197,12 +203,15 @@
 
         let currentFiles = [];
 
-        // Prüft auf doppelte Anlagennummern und aktualisiert UI
+        // Prüft auf fehlende oder doppelte Anlagennummern und aktualisiert UI
         function checkDuplicates() {
             const counts = {};
+            let hasMissing = false;
             currentFiles.forEach(it => {
                 if (it.anlageNr) {
                     counts[it.anlageNr] = (counts[it.anlageNr] || 0) + 1;
+                } else {
+                    hasMissing = true;
                 }
             });
 
@@ -211,13 +220,18 @@
                 if (it.anlageNr && counts[it.anlageNr] > 1) {
                     it.wrapper.classList.add('border-red-600');
                     hasDup = true;
+                } else if (!it.anlageNr) {
+                    it.wrapper.classList.add('border-red-600');
                 } else {
                     it.wrapper.classList.remove('border-red-600');
                 }
             });
 
-            if (hasDup) {
+            if (hasDup || hasMissing) {
                 dupWarning.classList.remove('hidden');
+                dupWarning.textContent = hasMissing
+                    ? 'Bitte jeder Datei eine eindeutige Nummer zuweisen.'
+                    : 'Mehrere Dateien besitzen dieselbe Anlage-Nummer.';
                 if (submitButton) submitButton.disabled = true;
             } else {
                 dupWarning.classList.add('hidden');
@@ -248,7 +262,8 @@
                 const item = { file, bar: preview.bar, wrapper: preview.wrapper, select: preview.select, anlageNr: detectedNr };
                 currentFiles.push(item);
                 preview.select.addEventListener('change', () => {
-                    item.anlageNr = parseInt(preview.select.value, 10);
+                    const val = parseInt(preview.select.value, 10);
+                    item.anlageNr = isNaN(val) ? null : val;
                     checkDuplicates();
                 });
             }

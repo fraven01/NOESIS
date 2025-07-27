@@ -3012,7 +3012,7 @@ def extract_anlage_nr(filename: str) -> int:
     Erwartet Muster wie "Anlage_3_..." oder "anlage_3_...".
     """
 
-    match = re.search(r"anlage_(\d)", filename, re.IGNORECASE)
+    match = re.search(r"anlage[\s_-]?(\d)", filename, re.IGNORECASE)
     if match:
         nr = int(match.group(1))
         if 1 <= nr <= 6:
