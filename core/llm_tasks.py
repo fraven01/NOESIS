@@ -654,24 +654,25 @@ def worker_generate_gutachten(
 
 
 @updates_file_status
-def analyse_anlage3(file_id: int, projekt_id: int, model_name: str | None = None) -> dict:
+def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
     """Analysiert die dritte Anlage hinsichtlich der Seitenzahl.
 
     Erkennt automatisch ein kleines Dokument (eine Seite oder weniger) und
     markiert die Anlage als verhandlungsf\xe4hig. Bei mehr Seiten wird ein
     manueller Check erforderlich.
 
-    :param projekt_id: ID des Projekts
+    :param file_id: ID der analysierten Datei
     :param model_name: Optionaler Name des LLM-Modells (wird aktuell
         nicht verwendet)
     """
 
     anlage3_logger.debug(
-        "Starte analyse_anlage3 für Projekt %s mit Modell %s",
-        projekt_id,
+        "Starte analyse_anlage3 für Datei %s mit Modell %s",
+        file_id,
         model_name,
     )
-    projekt = BVProject.objects.get(pk=projekt_id)
+    pf = BVProjectFile.objects.get(pk=file_id)
+    projekt = pf.projekt
     anlagen = list(projekt.anlagen.filter(anlage_nr=3))
     if not anlagen:
         raise ValueError("Anlage 3 fehlt")
