@@ -3,19 +3,31 @@
     <thead>
         <tr>
             <th class="px-2 py-1">Software</th>
-            <th class="px-2 py-1 text-center">Gutachten</th>
+            <th class="px-2 py-1">Gutachten-Inhalt</th>
+            <th class="px-2 py-1 text-center">Aktionen</th>
         </tr>
     </thead>
     <tbody>
     {% for row in knowledge_rows %}
-        <tr class="border-t">
+        <tr class="border-t align-top">
             <td class="px-2 py-1">{{ row.name }}</td>
-            <td class="px-2 py-1 text-center">
+            <td class="px-2 py-1">
+            {% if row.entry and row.entry.gutachten %}
+                <details>
+                    <summary class="cursor-pointer text-blue-600">Text anzeigen</summary>
+                    <div class="prose max-w-none mt-2">
+                        {{ row.entry.gutachten.text|markdownify }}
+                    </div>
+                </details>
+            {% elif row.entry %}
+                <span class="text-sm text-gray-500">Noch kein Gutachten vorhanden</span>
+            {% endif %}
+            </td>
+            <td class="px-2 py-1 text-center space-x-2">
             {% if row.entry %}
                 {% if row.entry.gutachten %}
-                    <a href="{% url 'gutachten_view' row.entry.gutachten.id %}">Anzeigen</a> |
-                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}">Bearbeiten</a> |
-                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}">Download</a>
+                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}" class="btn-action">Bearbeiten</a>
+                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}" class="btn-action">Download</a>
                 {% else %}
                     <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
                 {% endif %}
