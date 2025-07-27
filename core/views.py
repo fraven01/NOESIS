@@ -3148,15 +3148,12 @@ def projekt_file_upload(request, pk):
             return HttpResponseBadRequest(str(e))
 
         if request.headers.get("HX-Request"):
-            files_qs = projekt.anlagen.filter(anlage_nr=saved_file.anlage_nr).order_by("-version")
             context = {
                 "projekt": projekt,
-                "anlagen": files_qs,
-                "page_obj": None,
-                "anlage_nr": saved_file.anlage_nr,
+                "anlage": saved_file,
                 "show_nr": False,
             }
-            return render(request, "partials/anlagen_tab.html", context)
+            return render(request, "partials/anlagen_row.html", context)
 
         return redirect("projekt_detail", pk=projekt.pk)
 

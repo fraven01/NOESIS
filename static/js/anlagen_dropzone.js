@@ -1,55 +1,50 @@
-// Modul zur Handhabung von Datei-Uploads direkt im Anlagen-Tab
-import { getCookie } from './utils.js';
-
+// Aktiviert die Dropzone im Anlagen-Tab
 function initDropzone() {
-    const dropzone = document.getElementById('anlage-dropzone');
-    if (!dropzone) return;
-    const input = dropzone.querySelector('input[type=file]');
-    const uploadUrl = dropzone.dataset.uploadUrl;
-    const anlageNr = dropzone.dataset.anlageNr;
+    const zone = document.getElementById('anlage-dropzone');
+    const tableBody = document.getElementById('anlage-table-body');
+    if (!zone || !tableBody) return;
 
-    const sendFile = (file) => {
-        const formData = new FormData();
-        formData.append('upload', file);
-        formData.append('anlage_nr', anlageNr);
-        fetch(uploadUrl, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken') || '',
-                'HX-Request': 'true'
-            }
-        })
-        .then(r => r.text())
-        .then(html => {
-            document.getElementById('anlage-tab-content').innerHTML = html;
+    const input = zone.querySelector('input[type=file]');
+    const uploadUrl = zone.dataset.uploadUrl;
+    const anlageNr = zone.dataset.anlageNr;
+    const colspan = parseInt(zone.dataset.colspan || '6', 10);
+
+    function uploadFile(file) {
+        const rowId = 'upl-' + Math.random().toString(36).slice(2);
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.innerHTML = `<td colspan="${colspan}"><span class="spinner"></span> ${file.name}</td>`;
+        tableBody.prepend(row);
+
+        const data = new FormData();
+        data.append('upload', file);
+        if (anlageNr) data.append('anlage_nr', anlageNr);
+
+        htmx.ajax('POST', uploadUrl, {
+            target: '#' + rowId,
+            swap: 'outerHTML',
+            body: data
         });
-    };
-
-    const handleFiles = (files) => {
-        Array.from(files).forEach(sendFile);
-        if (input) input.value = '';
-    };
-
-    dropzone.addEventListener('click', () => input && input.click());
-    dropzone.addEventListener('dragover', e => {
-        e.preventDefault();
-        dropzone.classList.add('bg-gray-100');
-    });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('bg-gray-100'));
-    dropzone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropzone.classList.remove('bg-gray-100');
-        if (e.dataTransfer.files.length) {
-            handleFiles(e.dataTransfer.files);
-        }
-    });
-    if (input) {
-        input.addEventListener('change', e => handleFiles(e.target.files));
     }
+
+    function handleFiles(files) {
+        Array.from(files).forEach(uploadFile);
+        if (input) input.value = '';
+    }
+
+    zone.addEventListener('click', () => input && input.click());
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('bg-gray-100');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('bg-gray-100'));
+    zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('bg-gray-100');
+        if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+    });
+    if (input) input.addEventListener('change', (e) => handleFiles(e.target.files));
 }
 
 document.addEventListener('DOMContentLoaded', initDropzone);
-
-// Bei HTMX-Austausch neu initialisieren
 document.body.addEventListener('htmx:afterSwap', initDropzone);
