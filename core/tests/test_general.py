@@ -93,7 +93,12 @@ from ..llm_tasks import (
     parse_anlage1_questions,
     _parse_anlage2,
 )
-from ..views import _verification_to_initial, _build_row_data, _save_project_file
+from ..views import (
+    _verification_to_initial,
+    _build_row_data,
+    _save_project_file,
+    extract_anlage_nr,
+)
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock
 from django.core.management import call_command
@@ -373,6 +378,15 @@ class NoesisTestCase(TestCase):
         cls.superuser = User.objects.create_superuser(
             "basesuper", "admin@example.com", password="pass"
         )
+
+
+class ExtractAnlageNrTests(TestCase):
+    """Tests für die Erkennung der Anlagen-Nummer aus Dateinamen."""
+
+    def test_variants(self):
+        self.assertEqual(extract_anlage_nr("Anlage 1.docx"), 1)
+        self.assertEqual(extract_anlage_nr("Anlage-2.pdf"), 2)
+        self.assertEqual(extract_anlage_nr("Anlage3.docx"), 3)
 
 
 class BVProjectFileTests(NoesisTestCase):
@@ -719,6 +733,26 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertTrue(form.is_valid())
         pf = _save_project_file(self.projekt, form)
         self.assertEqual(pf.anlage_nr, 1)
+
+    def test_save_multiple_files_unique_numbers(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        for nr in range(1, 7):
+            doc = Document()
+            doc.add_paragraph(str(nr))
+            tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+            doc.save(tmp.name)
+            tmp.close()
+            with open(tmp.name, "rb") as fh:
+                upload = SimpleUploadedFile(f"Anlage_{nr}.docx", fh.read())
+            Path(tmp.name).unlink(missing_ok=True)
+            _save_project_file(projekt, upload=upload, anlage_nr=nr)
+
+        qs = BVProjectFile.objects.filter(projekt=projekt)
+        self.assertEqual(qs.count(), 6)
+        self.assertListEqual(
+            sorted(qs.values_list("anlage_nr", flat=True)),
+            [1, 2, 3, 4, 5, 6],
+        )
 
 
 class AutoApprovalTests(NoesisTestCase):
