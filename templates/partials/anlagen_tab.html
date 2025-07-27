@@ -33,3 +33,10 @@
 </div>
 {% endif %}
 </div>
+
+<div id="anlage-dropzone" data-upload-url="{% url 'projekt_file_upload' projekt.pk %}"
+     data-anlage-nr="{{ anlage_nr }}"
+     class="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer mt-4">
+    Dateien hierher ziehen oder klicken zum Auswählen
+    <input type="file" class="hidden" multiple>
+</div>

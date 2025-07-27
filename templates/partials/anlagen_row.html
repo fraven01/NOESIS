@@ -1,4 +1,27 @@
 {% load recording_extras %}
+{% if form %}
+<tr>
+    <td colspan="{% if show_nr %}7{% else %}6{% endif %}">
+        <form hx-post="{% url 'hx_project_file_upload' projekt.pk %}" hx-target="closest tr" hx-swap="outerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="anlage_nr" value="{{ form.anlage_nr }}">
+            {{ form.non_field_errors }}
+            {{ form.upload }} {{ form.upload.errors }}
+            {% if form.parser_mode %}
+            <div class="mt-2">
+                {{ form.parser_mode.label_tag }} {{ form.parser_mode }}
+                {{ form.parser_mode.errors }}
+            </div>
+            <div class="mt-2">
+                {{ form.parser_order.label_tag }} {{ form.parser_order }}
+                {{ form.parser_order.errors }}
+            </div>
+            {% endif %}
+            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded mt-2">Speichern</button>
+        </form>
+    </td>
+</tr>
+{% else %}
 <tr class="border-t">
     {% if show_nr %}<td class="px-2 py-1">{{ anlage.anlage_nr }}</td>{% endif %}
     <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-blue-700 underline">{{ anlage.upload.name|clean_filename }}</a></td>
@@ -38,3 +61,6 @@
         </form>
     </td>
 </tr>
+
+{% endif %}
+
