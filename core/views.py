@@ -3128,10 +3128,17 @@ def projekt_file_upload(request, pk):
         upload = request.FILES.get("upload")
         anlage_nr_raw = request.POST.get("anlage_nr")
 
-        if not upload or not anlage_nr_raw or not anlage_nr_raw.isdigit():
+        if not upload:
             return HttpResponseBadRequest("invalid")
 
-        anlage_nr = int(anlage_nr_raw)
+        if not anlage_nr_raw or not anlage_nr_raw.isdigit():
+            try:
+                anlage_nr = extract_anlage_nr(upload.name)
+            except ValueError:
+                return HttpResponseBadRequest("invalid")
+        else:
+            anlage_nr = int(anlage_nr_raw)
+
         if not 1 <= anlage_nr <= 6:
             return HttpResponseBadRequest("invalid")
 
