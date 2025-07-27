@@ -1,0 +1,55 @@
+<div class="bg-gray-100 p-4 rounded space-y-4">
+  <section>
+    <h3 class="font-semibold mb-2">Projekt-Steckbrief</h3>
+    <p class="text-lg font-semibold">{{ projekt.title }}</p>
+    <span class="status-badge status-badge-{{ projekt.status.key|lower }}">{{ projekt.status.name }}</span>
+    <p class="mt-1 text-sm"><strong>Software:</strong> {{ projekt.software_string }}</p>
+    <p class="mt-1 text-sm"><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
+  </section>
+
+  <section>
+    <h3 class="font-semibold mb-2">Status &amp; Nächste Schritte</h3>
+    <p class="text-sm">Geprüft: {{ num_reviewed }} / {{ num_attachments }}</p>
+    <p class="text-sm">Initial-Prüfung: <span id="knowledge-progress">{{ knowledge_checked }} / {{ total_software }}</span> Komponenten analysiert</p>
+    <ul class="list-disc pl-5 text-sm mt-2">
+      {% if num_reviewed < num_attachments %}
+      <li>Offene Anlagen prüfen</li>
+      {% endif %}
+      {% if knowledge_checked < total_software %}
+      <li>Initial-Prüfung abschließen</li>
+      {% endif %}
+      {% if not projekt.gutachten_file %}
+      <li>Gutachten erstellen</li>
+      {% endif %}
+    </ul>
+  </section>
+
+  <section>
+    <h3 class="font-semibold mb-2">Anlagen-Übersicht</h3>
+    <ul class="space-y-1 text-sm">
+      {% for nr in anlage_numbers %}
+      {% with file=projekt.anlagen.filter(anlage_nr=nr).last %}
+      <li>
+        Anlage {{ nr }}:
+        {% if file %}
+          <a href="{{ file.upload.url }}" class="underline" title="{{ file.upload.name|clean_filename }}">{{ file.upload.name|clean_filename }}</a>
+          {% if file.processing_status == 'COMPLETE' %}<i class="fas fa-check text-green-600"></i>{% elif file.processing_status == 'FAILED' %}<i class="fas fa-times text-red-600"></i>{% elif file.processing_status == 'PROCESSING' %}<span class="spinner"></span>{% else %}<i class="fas fa-clock text-gray-500"></i>{% endif %}
+          {% if file.verhandlungsfaehig %}<i class="fas fa-handshake text-green-600 ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fas fa-handshake-slash text-gray-400 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
+        {% else %}
+          <span class="text-gray-500">fehlt</span>
+        {% endif %}
+      </li>
+      {% endwith %}
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h3 class="font-semibold mb-2">Letzte Aktivitäten</h3>
+    <ul class="list-disc pl-5 text-sm">
+      {% for a in activities %}
+      <li>{{ a.time|date:"d.m.Y H:i" }} - {{ a.text }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
