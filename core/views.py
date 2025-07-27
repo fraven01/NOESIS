@@ -360,10 +360,9 @@ def _verification_to_initial(_data: dict | None) -> dict:
             dest = target.setdefault("subquestions", {}).setdefault(
                 str(res.subquestion_id), {}
             )
-        pf = _data if isinstance(_data, BVProjectFile) else get_project_file(res.projekt, 2)
         latest = (
             FunktionsErgebnis.objects.filter(
-                anlage_datei=pf,
+                projekt=res.projekt,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",

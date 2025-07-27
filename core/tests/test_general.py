@@ -100,7 +100,7 @@ from ..views import (
     extract_anlage_nr,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
-from unittest.mock import patch, ANY, Mock
+from unittest.mock import patch, ANY, Mock, call
 from django.core.management import call_command
 from django.test import override_settings
 from django.conf import settings
@@ -729,6 +729,47 @@ class ProjektFileUploadTests(NoesisTestCase):
             "core.llm_tasks.run_conditional_anlage2_check",
             pf.pk,
         )
+
+    def test_second_anlage2_version_skips_ai_check(self):
+        func = Anlage2Function.objects.create(name="Login")
+        first = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("v1.docx", b"x"),
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=self.projekt,
+            anlage_datei=first,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=True,
+        )
+
+        doc = Document()
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
+        with patch("core.views.async_task") as mock_async:
+            resp = self.client.post(
+                url,
+                {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
+                format="multipart",
+                HTTP_HX_REQUEST="true",
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(
+            any(
+                call.args[0] == "core.llm_tasks.run_conditional_anlage2_check"
+                for call in mock_async.call_args_list
+            )
+        )
+        pf_latest = self.projekt.anlagen.filter(anlage_nr=2, is_active=True).first()
+        self.assertEqual(pf_latest.version, 2)
 
     def test_upload_stores_posted_anlage_nr(self):
         doc = Document()
