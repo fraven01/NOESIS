@@ -2007,8 +2007,8 @@ class LLMTasksTests(NoesisTestCase):
         with patch(
             "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
         ):
-            data = check_anlage1(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=1)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            data = check_anlage1(file_obj.pk)
         answers = [
             ["ACME"],
             ["IT"],
@@ -2047,7 +2047,8 @@ class LLMTasksTests(NoesisTestCase):
         )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
         with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            data = check_anlage1(projekt.pk)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            data = check_anlage1(file_obj.pk)
         answers = {
             "1": "A1",
             "2": "A2",
@@ -2090,7 +2091,8 @@ class LLMTasksTests(NoesisTestCase):
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
         nums = [q.num for q in Anlage1Question.objects.order_by("num")]
         with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * len(nums)):
-            data = check_anlage1(projekt.pk)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            data = check_anlage1(file_obj.pk)
         q_data = data["questions"]
         self.assertEqual(q_data["10"]["answer"], "A10")
 
@@ -2185,7 +2187,8 @@ class LLMTasksTests(NoesisTestCase):
         )
         eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
         with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            analysis = check_anlage1(projekt.pk)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            analysis = check_anlage1(file_obj.pk)
         hint = analysis["questions"]["1"]["hinweis"]
         self.assertIn("Frage 1.2 statt 1", hint)
 
@@ -2201,7 +2204,8 @@ class LLMTasksTests(NoesisTestCase):
         )
         eval_reply = json.dumps({"status": "ok", "hinweis": "Basis", "vorschlag": ""})
         with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            analysis = check_anlage1(projekt.pk)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            analysis = check_anlage1(file_obj.pk)
         hint = analysis["questions"]["1"]["hinweis"]
         self.assertIn("Basis", hint)
         self.assertIn("Frage 1.2 statt 1", hint)
@@ -2235,7 +2239,8 @@ class LLMTasksTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=['{"task": "check_anlage1"}'] + [eval_reply] * enabled_count,
         ) as mock_q:
-            data = check_anlage1(projekt.pk)
+            file_obj = projekt.anlagen.get(anlage_nr=1)
+            data = check_anlage1(file_obj.pk)
         prompt = mock_q.call_args_list[0].args[0].text
         self.assertNotIn("Frage 1", prompt)
         self.assertIn("1", data["questions"])
