@@ -1,7 +1,9 @@
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 import tempfile
 import os
 import re
+import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group, Permission
@@ -13,6 +15,7 @@ from django.http import (
 )
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.http import require_http_methods, require_POST
@@ -30,7 +33,6 @@ import whisper
 import torch
 import json
 import asyncio
-import tempfile
 from django_q.tasks import async_task, fetch, result, Task
 
 from .forms import (
@@ -3125,37 +3127,80 @@ def projekt_file_upload(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
 
     if request.method == "POST":
+        if not _user_can_edit_project(request.user, projekt):
+            return HttpResponseForbidden("Nicht berechtigt")
+
+        temp_id = request.POST.get("temp_id")
         upload = request.FILES.get("upload")
-        anlage_nr_raw = request.POST.get("anlage_nr")
 
-        if not upload:
-            return HttpResponseBadRequest("invalid")
-
-        if not anlage_nr_raw or not anlage_nr_raw.isdigit():
+        if temp_id and not upload:
+            temp_map = request.session.get("pending_uploads", {})
+            info = temp_map.get(temp_id)
+            if not info:
+                return HttpResponseBadRequest("invalid")
+            path = info.get("path")
+            name = info.get("name")
+            try:
+                with open(path, "rb") as fh:
+                    upload = SimpleUploadedFile(name, fh.read())
+            finally:
+                Path(path).unlink(missing_ok=True)
+                temp_map.pop(temp_id, None)
+                request.session["pending_uploads"] = temp_map
+                request.session.modified = True
+            anlage_nr_raw = request.POST.get("anlage_nr")
+            if not anlage_nr_raw or not anlage_nr_raw.isdigit():
+                return HttpResponseBadRequest("invalid")
+            anlage_nr = int(anlage_nr_raw)
+        else:
+            if not upload:
+                return HttpResponseBadRequest("invalid")
             try:
                 anlage_nr = extract_anlage_nr(upload.name)
             except ValueError:
-                return HttpResponseBadRequest("invalid")
-        else:
-            anlage_nr = int(anlage_nr_raw)
+                temp_id = uuid.uuid4().hex
+                tmp = NamedTemporaryFile(delete=False)
+                for chunk in upload.chunks():
+                    tmp.write(chunk)
+                tmp.close()
+                temp_map = request.session.get("pending_uploads", {})
+                temp_map[temp_id] = {"path": tmp.name, "name": upload.name}
+                request.session["pending_uploads"] = temp_map
+                request.session.modified = True
+                context = {
+                    "projekt": projekt,
+                    "filename": upload.name,
+                    "temp_id": temp_id,
+                    "numbers": list(range(1, 7)),
+                    "show_nr": False,
+                }
+                resp = render(request, "partials/anlagen_assign_row.html", context)
+                resp["X-Upload-Status"] = "manual"
+                return resp
 
         if not 1 <= anlage_nr <= 6:
             return HttpResponseBadRequest("invalid")
 
         try:
-            saved_file = _save_project_file(projekt, upload=upload, anlage_nr=anlage_nr)
+            _save_project_file(projekt, upload=upload, anlage_nr=anlage_nr)
         except ValueError as e:
             return HttpResponseBadRequest(str(e))
 
-        if request.headers.get("HX-Request"):
-            context = {
-                "projekt": projekt,
-                "anlage": saved_file,
-                "show_nr": False,
-            }
-            return render(request, "partials/anlagen_row.html", context)
-
-        return redirect("projekt_detail", pk=projekt.pk)
+        files_qs = projekt.anlagen.filter(anlage_nr=anlage_nr).order_by("-version")
+        page_obj = None
+        if anlage_nr == 3:
+            page_obj = Paginator(files_qs, 10).get_page(1)
+        context = {
+            "projekt": projekt,
+            "anlagen": page_obj or files_qs,
+            "page_obj": page_obj,
+            "anlage_nr": anlage_nr,
+            "show_nr": False,
+        }
+        resp = render(request, "partials/anlagen_tab.html", context)
+        resp["X-Upload-Status"] = "assigned"
+        resp["X-Anlage-Nr"] = str(anlage_nr)
+        return resp
 
     # Logik für den initialen GET-Request (Anzeige des leeren Formulars)
     anlage_param = request.GET.get("anlage_nr")

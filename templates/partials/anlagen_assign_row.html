@@ -1,0 +1,15 @@
+<tr>
+    <td colspan="{% if show_nr %}7{% else %}6{% endif %}">
+        <form hx-post="{% url 'projekt_file_upload' projekt.pk %}" hx-target="closest tr" hx-swap="outerHTML" class="space-x-2">
+            {% csrf_token %}
+            <input type="hidden" name="temp_id" value="{{ temp_id }}">
+            <span>Zu welcher Anlage gehört '{{ filename }}'?</span>
+            <select name="anlage_nr" class="border rounded p-1 mx-2">
+                {% for n in numbers %}
+                <option value="{{ n }}">{{ n }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Speichern</button>
+        </form>
+    </td>
+</tr>

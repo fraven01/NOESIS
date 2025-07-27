@@ -2,12 +2,24 @@
 function initDropzone() {
     const zone = document.getElementById('anlage-dropzone');
     const tableBody = document.getElementById('anlage-table-body');
-    if (!zone || !tableBody) return;
+    if (!zone || !tableBody || zone.dataset.initialized) return;
+    zone.dataset.initialized = '1';
 
     const input = zone.querySelector('input[type=file]');
     const uploadUrl = zone.dataset.uploadUrl;
-    const anlageNr = zone.dataset.anlageNr;
     const colspan = parseInt(zone.dataset.colspan || '6', 10);
+
+    function setActiveTab(nr) {
+        document.querySelectorAll('.anlage-tab-btn').forEach(btn => {
+            if (btn.dataset.nr === String(nr)) {
+                btn.classList.add('border-blue-600', 'text-blue-600');
+                btn.classList.remove('border-transparent', 'text-gray-600');
+            } else {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-600');
+            }
+        });
+    }
 
     function uploadFile(file) {
         const rowId = 'upl-' + Math.random().toString(36).slice(2);
@@ -18,7 +30,6 @@ function initDropzone() {
 
         const data = new FormData();
         data.append('upload', file);
-        if (anlageNr) data.append('anlage_nr', anlageNr);
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', uploadUrl);
@@ -26,10 +37,21 @@ function initDropzone() {
         const token = window.getCookie ? window.getCookie('csrftoken') : null;
         if (token) xhr.setRequestHeader('X-CSRFToken', token);
         xhr.onload = function () {
+            const status = xhr.getResponseHeader('X-Upload-Status');
             if (xhr.status >= 200 && xhr.status < 300) {
-                const target = document.getElementById(rowId);
-                if (target && window.htmx) {
-                    htmx.swap(target, xhr.responseText, { swapStyle: 'outerHTML' });
+                if (status === 'assigned') {
+                    const nr = xhr.getResponseHeader('X-Anlage-Nr');
+                    const container = document.getElementById('anlage-tab-content');
+                    if (container) {
+                        container.innerHTML = xhr.responseText;
+                        if (nr) setActiveTab(nr);
+                        if (window.htmx) htmx.process(container);
+                    }
+                } else if (status === 'manual') {
+                    const target = document.getElementById(rowId);
+                    if (target && window.htmx) {
+                        htmx.swap(target, xhr.responseText, { swapStyle: 'outerHTML' });
+                    }
                 }
             } else {
                 row.innerHTML = `<td colspan="${colspan}" class="text-red-600">Upload fehlgeschlagen</td>`;

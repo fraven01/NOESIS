@@ -794,6 +794,59 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(pf.anlage_nr, 4)
 
 
+class DropzoneUploadTests(NoesisTestCase):
+    """Tests für den neuen Datei-Upload-Workflow."""
+
+    def setUp(self):
+        self.user = User.objects.create_user("dz", password="pass")
+        self.client.login(username="dz", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_number_from_filename(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get("X-Upload-Status"), "assigned")
+        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=2).exists())
+
+    def test_manual_assignment_flow(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("foo.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get("X-Upload-Status"), "manual")
+        self.assertIn("form", resp.content.decode())
+        session = self.client.session
+        temp_id = next(iter(session.get("pending_uploads", {})))
+
+        resp2 = self.client.post(
+            url,
+            {"temp_id": temp_id, "anlage_nr": 3},
+            format="multipart",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(resp2.headers.get("X-Upload-Status"), "assigned")
+        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=3).exists())
+
+
 
 class AutoApprovalTests(NoesisTestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
