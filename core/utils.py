@@ -33,18 +33,7 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
     Nicht vorhandene Anlagen werden ignoriert.
     """
 
-    task_map: dict[int, list[tuple[str, int]]] = {
-        1: [("core.llm_tasks.check_anlage1", file_obj.pk)],
-        2: [
-            ("core.llm_tasks.worker_run_anlage2_analysis", file_obj.pk),
-            ("core.llm_tasks.run_conditional_anlage2_check", file_obj.pk),
-        ],
-        3: [("core.llm_tasks.analyse_anlage3", file_obj.projekt.pk)],
-        4: [("core.llm_tasks.analyse_anlage4_async", file_obj.projekt.pk)],
-        5: [("core.llm_tasks.check_anlage5", file_obj.projekt.pk)],
-    }
-
-    tasks = task_map.get(file_obj.anlage_nr)
+    tasks = file_obj.get_analysis_tasks()
     if not tasks:
         return
 
