@@ -4,7 +4,7 @@
     <thead>
         <tr>
             <th class="px-2 py-1">Software</th>
-            <th class="px-2 py-1">Gutachten-Inhalt</th>
+            <th class="px-2 py-1">Gutachten</th>
             <th class="px-2 py-1 text-center">Aktionen</th>
         </tr>
     </thead>
@@ -14,12 +14,9 @@
             <td class="px-2 py-1">{{ row.name }}</td>
             <td class="px-2 py-1">
             {% if row.entry and row.entry.gutachten %}
-                <details>
-                    <summary class="cursor-pointer text-blue-600">Text anzeigen</summary>
-                    <div class="prose max-w-none mt-2">
-                        {{ row.entry.gutachten.text|markdownify }}
-                    </div>
-                </details>
+                <div class="prose max-w-none">
+                    {{ row.entry.gutachten.text|markdownify }}
+                </div>
             {% elif row.entry %}
                 <span class="text-sm text-gray-500">Noch kein Gutachten vorhanden</span>
             {% endif %}
