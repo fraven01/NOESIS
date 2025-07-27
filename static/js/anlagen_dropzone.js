@@ -20,11 +20,25 @@ function initDropzone() {
         data.append('upload', file);
         if (anlageNr) data.append('anlage_nr', anlageNr);
 
-        htmx.ajax('POST', uploadUrl, {
-            target: '#' + rowId,
-            swap: 'outerHTML',
-            body: data
-        });
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl);
+        xhr.setRequestHeader('HX-Request', 'true');
+        const token = window.getCookie ? window.getCookie('csrftoken') : null;
+        if (token) xhr.setRequestHeader('X-CSRFToken', token);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                const target = document.getElementById(rowId);
+                if (target && window.htmx) {
+                    htmx.swap(target, xhr.responseText, { swapStyle: 'outerHTML' });
+                }
+            } else {
+                row.innerHTML = `<td colspan="${colspan}" class="text-red-600">Upload fehlgeschlagen</td>`;
+            }
+        };
+        xhr.onerror = function () {
+            row.innerHTML = `<td colspan="${colspan}" class="text-red-600">Upload fehlgeschlagen</td>`;
+        };
+        xhr.send(data);
     }
 
     function handleFiles(files) {
