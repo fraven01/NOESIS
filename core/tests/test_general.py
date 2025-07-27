@@ -643,13 +643,15 @@ class ProjektFileUploadTests(NoesisTestCase):
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         file_obj = self.projekt.anlagen.first()
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
@@ -664,13 +666,15 @@ class ProjektFileUploadTests(NoesisTestCase):
             upload = SimpleUploadedFile("Anlage_3.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         file_obj = self.projekt.anlagen.get(anlage_nr=3)
         self.assertEqual(file_obj.text_content, "")
 
@@ -690,15 +694,17 @@ class ProjektFileUploadTests(NoesisTestCase):
 
         Anlage2Function.objects.create(name="Login")
 
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         with patch("core.views.async_task") as mock_async:
             mock_async.return_value = Mock(id="tid1")
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
                 format="multipart",
+                HTTP_HX_REQUEST="true",
             )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         pf = self.projekt.anlagen.get(anlage_nr=2)
         self.assertIsNone(pf.analysis_json)
         self.assertEqual(pf.verification_task_id, "tid1")
@@ -707,11 +713,6 @@ class ProjektFileUploadTests(NoesisTestCase):
             "core.llm_tasks.run_conditional_anlage2_check",
             pf.pk,
         )
-
-    def test_upload_form_prefills_anlage_nr(self):
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        resp = self.client.get(f"{url}?anlage_nr=4")
-        self.assertEqual(resp.status_code, 200)
 
     def test_upload_stores_posted_anlage_nr(self):
         doc = Document()
@@ -722,13 +723,15 @@ class ProjektFileUploadTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         pf = self.projekt.anlagen.get()
         self.assertEqual(pf.anlage_nr, 2)
 
@@ -778,13 +781,15 @@ class ProjektFileUploadTests(NoesisTestCase):
             upload = SimpleUploadedFile("Anlage_4.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         pf = self.projekt.anlagen.get()
         self.assertEqual(pf.anlage_nr, 4)
 
@@ -806,13 +811,15 @@ class AutoApprovalTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         return self.projekt.anlagen.get(anlage_nr=1)
 
     def test_single_page_auto_approved(self):
@@ -888,13 +895,15 @@ class Anlage3AutomationTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
             {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
             format="multipart",
+            HTTP_HX_REQUEST="true",
         )
-        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.content.decode().count("<tr"), 1)
         return BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=3)
 
     def test_single_page_sets_negotiable(self):
