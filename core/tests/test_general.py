@@ -626,6 +626,22 @@ class BVProjectFileTests(NoesisTestCase):
         mock_start.assert_called_with(pf)
         self.assertRedirects(resp, reverse("projekt_detail", args=[projekt.pk]))
 
+    def test_get_analysis_tasks_returns_project_id_for_conditional_check(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        tasks = pf.get_analysis_tasks()
+        self.assertEqual(
+            tasks,
+            [
+                ("core.llm_tasks.worker_run_anlage2_analysis", pf.pk),
+                ("core.llm_tasks.run_conditional_anlage2_check", projekt.pk),
+            ],
+        )
+
 
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
