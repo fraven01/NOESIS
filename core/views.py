@@ -496,19 +496,10 @@ def _build_row_data(
         result_obj = result_map.get(parent_key)
 
     if result_obj:
-        pf = (
-            result_obj.anlage_datei.projekt.anlagen
-            .filter(anlage_nr=2)
-            .order_by("id")
-            .first()
-        )
+        pf = result_obj.anlage_datei
         parser_entry = (
             FunktionsErgebnis.objects.filter(
-
-
                 anlage_datei=pf,
-
-
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="parser",
@@ -518,10 +509,7 @@ def _build_row_data(
         )
         ai_entry = (
             FunktionsErgebnis.objects.filter(
-
-
                 anlage_datei=pf,
-
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
                 quelle="ki",

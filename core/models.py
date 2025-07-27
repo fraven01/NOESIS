@@ -949,13 +949,7 @@ class AnlagenFunktionsMetadaten(models.Model):
         if self.is_negotiable_manual_override is not None:
             return self.is_negotiable_manual_override
 
-        pf = (
-            self.anlage_datei.projekt.anlagen.filter(anlage_nr=2)
-            .order_by("id")
-            .first()
-        )
-        if not pf:
-            return False
+        pf = self.anlage_datei
 
         parser_entry = (
             FunktionsErgebnis.objects.filter(
