@@ -326,6 +326,23 @@ class BVProjectFile(models.Model):
             return "pending"
         return "parsed"
 
+    def get_analysis_tasks(self) -> list[tuple[str, int]]:
+        """Gibt die Aufgaben für die Analyse dieser Datei zurück."""
+        if self.anlage_nr == 1:
+            return [("core.llm_tasks.check_anlage1", self.pk)]
+        if self.anlage_nr == 2:
+            return [
+                ("core.llm_tasks.worker_run_anlage2_analysis", self.pk),
+                ("core.llm_tasks.run_conditional_anlage2_check", self.pk),
+            ]
+        if self.anlage_nr == 3:
+            return [("core.llm_tasks.analyse_anlage3", self.projekt.pk)]
+        if self.anlage_nr == 4:
+            return [("core.llm_tasks.analyse_anlage4_async", self.projekt.pk)]
+        if self.anlage_nr == 5:
+            return [("core.llm_tasks.check_anlage5", self.projekt.pk)]
+        return []
+
 
 class SoftwareKnowledge(models.Model):
     """Kenntnisstand des LLM zu einer Software in einem Projekt."""
