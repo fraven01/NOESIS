@@ -144,40 +144,7 @@
         return { bar, wrapper, select };
     }
     
-    // --- Logik zum Senden der Datei aus 'main' ---
-    function sendFile(form, file, bar, dropdown) {
-        return new Promise((resolve, reject) => {
-             const url = form.getAttribute('hx-post') || form.action;
-             const formData = new FormData();
-             formData.append('upload', file); // 'upload' anpassen, falls nötig
-             if (dropdown) {
-                 formData.append('anlage_nr', dropdown.value);
-             }
-             const xhr = new XMLHttpRequest();
-             xhr.open('POST', url, true);
-
-             const token = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value;
-             if (token) xhr.setRequestHeader('X-CSRFToken', token);
-             xhr.setRequestHeader('HX-Request', 'true');
-
-             xhr.upload.addEventListener('progress', e => {
-                 if (e.lengthComputable) {
-                     const percent = (e.loaded / e.total) * 100;
-                     bar.style.width = percent + '%';
-                 }
-             });
-             xhr.addEventListener('load', () => {
-                 bar.style.width = '100%';
-                 if (xhr.status >= 200 && xhr.status < 300) {
-                     resolve(xhr.responseText);
-                 } else {
-                     reject(xhr.responseText || 'Upload-Fehler');
-                 }
-             });
-             xhr.addEventListener('error', () => reject('Netzwerkfehler'));
-             xhr.send(formData);
-        });
-    }
+    // --- Upload-Logik entfernt. HTMX übernimmt den Dateiupload ---
 
 
     // --- Haupt-Initialisierungsfunktion ---
@@ -283,41 +250,7 @@
         });
         input.addEventListener('change', e => handleFiles(e.target.files));
 
-        form.addEventListener('submit', async function(ev) {
-            ev.preventDefault();
-            if (currentFiles.length === 0) {
-                 // Ggf. eine Meldung anzeigen, dass keine Datei gewählt wurde.
-                return;
-            }
-            
-            if(submitButton) submitButton.disabled = true;
-
-            const targetSel = form.getAttribute('hx-target');
-            const target = targetSel ? document.querySelector(targetSel) : null;
-
-            for (const item of currentFiles) {
-                try {
-                    await sendFile(form, item.file, item.bar, item.select);
-                    if (target && projectId) {
-                        const activeBtn = document.querySelector('.anlage-tab-btn.border-blue-600');
-                        const activeNr = activeBtn ? parseInt(activeBtn.dataset.nr, 10) : null;
-                        const nr = parseInt(item.select.value, 10);
-                        if (!activeNr || activeNr === nr) {
-                            htmx.ajax('GET', `/hx/project/${projectId}/anlage/${nr}/`, { target: '#anlage-tab-content' });
-                        }
-                    } else if (!target) {
-                        // Fallback, wenn kein htmx-Target da ist, z.B. Seite neu laden
-                        window.location.reload();
-                    }
-                } catch (e) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'text-red-600 mt-2 p-2 border border-red-400 rounded';
-                    errorDiv.textContent = `Fehler: ${e}`;
-                    item.bar.parentElement.appendChild(errorDiv);
-                    if(submitButton) submitButton.disabled = false;
-                }
-            }
-        });
+        // HTMX sendet das Formular. Eigene Upload-Logik ist nicht mehr nötig.
     }
 
     document.addEventListener('DOMContentLoaded', initFileUpload);
