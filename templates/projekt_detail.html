@@ -50,9 +50,6 @@
   {% endfor %}
 </nav>
 <div id="anlage-tab-content" hx-get="{% url 'hx_project_anlage_tab' projekt.pk 1 %}" hx-trigger="load"></div>
-<a id="upload-link" data-base-url="{% url 'projekt_file_upload' projekt.pk %}"
-   href="{% url 'projekt_file_upload' projekt.pk %}?anlage_nr=1"
-   class="bg-blue-600 text-white px-4 py-2 rounded mt-4 inline-block">Anlage hochladen</a>
 </div>
 
 
@@ -250,8 +247,6 @@ document.addEventListener('htmx:beforeRequest',function(e){
     });
     t.classList.remove('border-transparent','text-gray-600');
     t.classList.add('border-blue-600','text-blue-600');
-    const link=document.getElementById('upload-link');
-    if(link){link.href=`${link.dataset.baseUrl}?anlage_nr=${t.dataset.nr}`;}
   }
   if(t.classList.contains('software-tab-btn')){
     document.querySelectorAll('.software-tab-btn').forEach(b=>{
@@ -263,4 +258,5 @@ document.addEventListener('htmx:beforeRequest',function(e){
   }
 });
 </script>
+<script type="module" src="{% static 'js/anlagen_dropzone.js' %}"></script>
 {% endblock %}
