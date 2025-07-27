@@ -387,7 +387,7 @@ def _verification_to_initial(_data: dict | None) -> dict:
             )
         latest = (
             FunktionsErgebnis.objects.filter(
-                projekt=res.projekt,
+                projekt=res.anlage_datei.projekt,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",
