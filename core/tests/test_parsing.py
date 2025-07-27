@@ -1138,7 +1138,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             return_value='{"plausibilitaet":"hoch","score":0.8,"begruendung":"ok"}',
         ):
-            analyse_anlage4_async(projekt.pk)
+            analyse_anlage4_async(pf.pk)
 
         pf.refresh_from_db()
         results = pf.analysis_json["items"]
@@ -1168,7 +1168,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
         ) as m_std, patch("core.llm_tasks.async_task") as m_task, patch(
             "core.llm_tasks.query_llm", return_value="{}"
         ):
-            analyse_anlage4_async(projekt.pk)
+            analyse_anlage4_async(pf.pk)
         m_dual.assert_called_once_with(pf)
         m_std.assert_not_called()
 
@@ -1225,7 +1225,7 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             mock_func.return_value = {}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
-        mock_func.assert_called_with(self.projekt.pk)
+        mock_func.assert_called_with(self.file.pk)
 
     def test_post_runs_analysis_and_redirects(self):
         url = reverse("projekt_file_analyse_anlage4", args=[self.file.pk])
@@ -1233,7 +1233,7 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             mock_func.return_value = {}
             resp = self.client.post(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
-        mock_func.assert_called_with(self.projekt.pk)
+        mock_func.assert_called_with(self.file.pk)
 
 
 class WorkerAnlage4EvaluateTests(NoesisTestCase):

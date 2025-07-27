@@ -470,7 +470,7 @@ class BVProjectFileTests(NoesisTestCase):
         )
         Anlage2Function.objects.create(name="Login")
         with patch("core.llm_tasks.query_llm", return_value="{}"):
-            run_conditional_anlage2_check(projekt.pk)
+            run_conditional_anlage2_check(pf.pk)
         pf.refresh_from_db()
         self.assertEqual(pf.verification_task_id, "")
 
@@ -638,7 +638,7 @@ class BVProjectFileTests(NoesisTestCase):
             tasks,
             [
                 ("core.llm_tasks.worker_run_anlage2_analysis", pf.pk),
-                ("core.llm_tasks.run_conditional_anlage2_check", projekt.pk),
+                ("core.llm_tasks.run_conditional_anlage2_check", pf.pk),
             ],
         )
 
@@ -1348,7 +1348,7 @@ class LLMTasksTests(NoesisTestCase):
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": True})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply):
-            run_conditional_anlage2_check(projekt.pk)
+            run_conditional_anlage2_check(pf.pk)
 
         res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
         fe = FunktionsErgebnis.objects.filter(
@@ -1831,8 +1831,9 @@ class LLMTasksTests(NoesisTestCase):
             text_content="ignored",
         )
 
-        data = analyse_anlage3(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=3)
+        pf = projekt.anlagen.get(anlage_nr=3)
+        data = analyse_anlage3(pf.pk)
+        file_obj = pf
         self.assertTrue(data["auto_ok"])  # pages <= 1
         self.assertEqual(file_obj.analysis_json["auto_ok"], True)
         if hasattr(file_obj, "verhandlungsfaehig"):
@@ -1857,8 +1858,9 @@ class LLMTasksTests(NoesisTestCase):
             text_content="ignored",
         )
 
-        data = analyse_anlage3(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=3)
+        pf = projekt.anlagen.get(anlage_nr=3)
+        data = analyse_anlage3(pf.pk)
+        file_obj = pf
         self.assertTrue(data["manual_required"])  # pages > 1
         self.assertEqual(file_obj.analysis_json["manual_required"], True)
         if hasattr(file_obj, "verhandlungsfaehig"):
@@ -1881,8 +1883,9 @@ class LLMTasksTests(NoesisTestCase):
             text_content="ignored",
         )
 
-        data = analyse_anlage3(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=3)
+        pf = projekt.anlagen.get(anlage_nr=3)
+        data = analyse_anlage3(pf.pk)
+        file_obj = pf
         self.assertTrue(data["auto_ok"])  # pages <= 1
         self.assertEqual(file_obj.analysis_json["auto_ok"], True)
 
@@ -1904,8 +1907,9 @@ class LLMTasksTests(NoesisTestCase):
             text_content="ignored",
         )
 
-        data = analyse_anlage3(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=3)
+        pf = projekt.anlagen.get(anlage_nr=3)
+        data = analyse_anlage3(pf.pk)
+        file_obj = pf
         self.assertTrue(data["manual_required"])  # pages > 1
         self.assertEqual(file_obj.analysis_json["manual_required"], True)
 
@@ -1944,7 +1948,7 @@ class LLMTasksTests(NoesisTestCase):
             text_content="y",
         )
 
-        analyse_anlage3(projekt.pk)
+        analyse_anlage3(pf1.pk)
         pf1.refresh_from_db()
         pf2.refresh_from_db()
         self.assertIsNotNone(pf1.analysis_json)
@@ -2314,7 +2318,7 @@ class CheckAnlage5Tests(NoesisTestCase):
         cat2 = ZweckKategorieA.objects.create(beschreibung="B")
         text = f"{cat1.beschreibung} {cat2.beschreibung}"
         with patch("core.llm_tasks.extract_text", return_value=text):
-            data = check_anlage5(projekt.pk)
+            data = check_anlage5(pf.pk)
         pf.refresh_from_db()
         review = pf.anlage5review
         self.assertEqual(set(data["purposes"]), {cat1.pk, cat2.pk})
@@ -2334,7 +2338,7 @@ class CheckAnlage5Tests(NoesisTestCase):
         cat = ZweckKategorieA.objects.create(beschreibung="A")
         text = f"{cat.beschreibung} Sonstige Zwecke zur Leistungs- oder und Verhaltenskontrolle Test"
         with patch("core.llm_tasks.extract_text", return_value=text):
-            data = check_anlage5(projekt.pk)
+            data = check_anlage5(pf.pk)
         pf.refresh_from_db()
         self.assertFalse(pf.verhandlungsfaehig)
         self.assertEqual(data["sonstige"], "Test")
@@ -3194,6 +3198,11 @@ class ModelSelectionTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
+        self.pf2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+        )
         LLMConfig.objects.create(
             default_model="d",
             gutachten_model="g",
@@ -3236,7 +3245,7 @@ class ModelSelectionTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         mock_task.assert_called_with(
             "core.llm_tasks.run_conditional_anlage2_check",
-            self.projekt.pk,
+            self.pf2.pk,
             "mf",
         )
 
@@ -3250,7 +3259,7 @@ class ModelSelectionTests(NoesisTestCase):
         )
         mock_task.assert_called_with(
             "core.llm_tasks.run_conditional_anlage2_check",
-            self.projekt.pk,
+            self.pf2.pk,
         )
 
 
@@ -4395,7 +4404,7 @@ class Anlage2ResetTests(NoesisTestCase):
             return {}
 
         with patch("core.llm_tasks.worker_verify_feature", side_effect=fake):
-            run_conditional_anlage2_check(projekt.pk)
+            run_conditional_anlage2_check(pf.pk)
         results = AnlagenFunktionsMetadaten.objects.filter(
             anlage_datei__projekt=projekt
         )

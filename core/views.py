@@ -3381,7 +3381,7 @@ def projekt_file_analyse_anlage4(request, pk):
     anlage = get_object_or_404(BVProjectFile, pk=pk)
     if anlage.anlage_nr != 4:
         raise Http404
-    analyse_anlage4_async(anlage.projekt_id)
+    analyse_anlage4_async(anlage.pk)
     return redirect("anlage4_review", pk=pk)
 
 
@@ -3884,11 +3884,13 @@ def projekt_functions_check(request, pk):
     """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
     model = request.POST.get("model")
     projekt = get_object_or_404(BVProject, pk=pk)
-    async_task(
-        "core.llm_tasks.run_conditional_anlage2_check",
-        projekt.pk,
-        model,
-    )
+    pf = BVProjectFile.objects.filter(projekt=projekt, anlage_nr=2).first()
+    if pf:
+        async_task(
+            "core.llm_tasks.run_conditional_anlage2_check",
+            pf.pk,
+            model,
+        )
     return JsonResponse({"status": "ok"})
 
 
