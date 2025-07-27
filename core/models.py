@@ -333,7 +333,10 @@ class BVProjectFile(models.Model):
         if self.anlage_nr == 2:
             return [
                 ("core.llm_tasks.worker_run_anlage2_analysis", self.pk),
-                ("core.llm_tasks.run_conditional_anlage2_check", self.pk),
+                (
+                    "core.llm_tasks.run_conditional_anlage2_check",
+                    self.projekt.pk,
+                ),
             ]
         if self.anlage_nr == 3:
             return [("core.llm_tasks.analyse_anlage3", self.projekt.pk)]
