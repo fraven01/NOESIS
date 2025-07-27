@@ -197,6 +197,31 @@ def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
     return False
 
 
+def get_cockpit_context(projekt: BVProject) -> dict:
+    """Ermittelt Kennzahlen für das Projektcockpit."""
+
+    all_files = projekt.anlagen.all()
+    reviewed = all_files.filter(manual_reviewed=True).count()
+
+    software_list = projekt.software_list
+    knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
+    checked = 0
+    for name in software_list:
+        entry = knowledge_map.get(name)
+        if entry and entry.last_checked:
+            checked += 1
+
+    return {
+        "projekt": projekt,
+        "history": projekt.status_history.all(),
+        "num_attachments": all_files.count(),
+        "num_reviewed": reviewed,
+        "is_verhandlungsfaehig": projekt.is_verhandlungsfaehig,
+        "knowledge_checked": checked,
+        "total_software": len(software_list),
+    }
+
+
 FIELD_RENAME = {
     "technisch_verfuegbar": "technisch_vorhanden",
     "einsatz_telefonica": "einsatz_bei_telefonica",
@@ -4609,7 +4634,9 @@ def hx_anlage_status(request, pk: int):
         return HttpResponseForbidden("Nicht berechtigt")
 
     context = {"anlage": anlage}
-    return render(request, "partials/anlage_status.html", context)
+    response = render(request, "partials/anlage_status.html", context)
+    response.headers["HX-Trigger"] = "refresh-cockpit"
+    return response
 
 
 @login_required
@@ -4681,6 +4708,15 @@ def hx_project_software_tab(request, pk: int, tab: str):
 
 
 @login_required
+def hx_project_cockpit(request, pk: int):
+    """Lädt die Cockpit-Ansicht eines Projekts per HTMX."""
+
+    projekt = get_object_or_404(BVProject, pk=pk)
+    context = get_cockpit_context(projekt)
+    return render(request, "projekt_cockpit.html", context)
+
+
+@login_required
 @require_POST
 def hx_project_file_upload(request, pk: int):
     """Lädt eine einzelne Datei per HTMX hoch."""
@@ -4710,14 +4746,18 @@ def hx_project_file_upload(request, pk: int):
             "anlage": saved_file,
             "show_nr": False,
         }
-        return render(request, "partials/anlagen_row.html", context)
+        response = render(request, "partials/anlagen_row.html", context)
+        response.headers["HX-Trigger"] = "refresh-cockpit"
+        return response
 
     context = {
         "projekt": projekt,
         "form": form,
         "show_nr": False,
     }
-    return render(request, "partials/anlagen_row.html", context, status=400)
+    response = render(request, "partials/anlagen_row.html", context, status=400)
+    response.headers["HX-Trigger"] = "refresh-cockpit"
+    return response
 
 
 @login_required
