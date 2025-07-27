@@ -332,6 +332,11 @@ urlpatterns = [
         name="hx_anlage_status",
     ),
     path(
+        "hx_anlage_row/<int:pk>/",
+        views.hx_anlage_row,
+        name="hx_anlage_row",
+    ),
+    path(
         "hx/project/<int:pk>/anlage/<int:nr>/",
         views.hx_project_anlage_tab,
         name="hx_project_anlage_tab",

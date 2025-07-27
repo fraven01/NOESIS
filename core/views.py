@@ -4525,6 +4525,18 @@ def hx_anlage_status(request, pk: int):
 
 
 @login_required
+def hx_anlage_row(request, pk: int):
+    """Rendert eine einzelne Zeile der Anlagenliste."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, anlage.projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    context = {"anlage": anlage, "show_nr": False}
+    return render(request, "partials/anlagen_row.html", context)
+
+
+@login_required
 def hx_project_anlage_tab(request, pk: int, nr: int):
     """Rendert die Dateiliste für eine Anlage als Tab-Inhalt."""
 
