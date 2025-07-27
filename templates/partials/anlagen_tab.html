@@ -13,7 +13,7 @@
             <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="anlage-table-body">
     {% for a in anlagen %}
         {% include 'partials/anlagen_row.html' with anlage=a show_nr=show_nr %}
     {% empty %}
@@ -35,7 +35,7 @@
 </div>
 
 <div id="anlage-dropzone" data-upload-url="{% url 'projekt_file_upload' projekt.pk %}"
-     data-anlage-nr="{{ anlage_nr }}"
+     data-anlage-nr="{{ anlage_nr }}" data-colspan="{% if show_nr %}7{% else %}6{% endif %}"
      class="border-2 border-dashed border-gray-400 p-6 text-center cursor-pointer mt-4">
     Dateien hierher ziehen oder klicken zum Auswählen
     <input type="file" class="hidden" multiple>
