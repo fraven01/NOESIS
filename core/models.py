@@ -135,10 +135,16 @@ class BVProject(models.Model):
         if is_new:
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
         elif old_prompt is not None and old_prompt != self.project_prompt:
-            async_task(
-                "core.llm_tasks.run_conditional_anlage2_check",
-                self.pk,
-            )
+            has_ai_results = FunktionsErgebnis.objects.filter(
+                projekt=self,
+                anlage_datei__anlage_nr=2,
+                quelle="ki",
+            ).exists()
+            if not has_ai_results:
+                async_task(
+                    "core.llm_tasks.run_conditional_anlage2_check",
+                    self.pk,
+                )
 
     def __str__(self) -> str:
         return self.title
@@ -331,10 +337,15 @@ class BVProjectFile(models.Model):
         if self.anlage_nr == 1:
             return [("core.llm_tasks.check_anlage1", self.pk)]
         if self.anlage_nr == 2:
-            return [
-                ("core.llm_tasks.worker_run_anlage2_analysis", self.pk),
-                ("core.llm_tasks.run_conditional_anlage2_check", self.pk),
-            ]
+            tasks = [("core.llm_tasks.worker_run_anlage2_analysis", self.pk)]
+            has_ai_results = FunktionsErgebnis.objects.filter(
+                projekt=self.projekt,
+                anlage_datei__anlage_nr=2,
+                quelle="ki",
+            ).exists()
+            if not has_ai_results:
+                tasks.append(("core.llm_tasks.run_conditional_anlage2_check", self.pk))
+            return tasks
         if self.anlage_nr == 3:
             return [("core.llm_tasks.analyse_anlage3", self.pk)]
         if self.anlage_nr == 4:
