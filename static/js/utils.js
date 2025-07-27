@@ -35,3 +35,9 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
     const token = getCookie('csrftoken');
     if (token) evt.detail.headers['X-CSRFToken'] = token;
 });
+
+document.body.addEventListener('refresh-cockpit', () => {
+    if (window.htmx) {
+        htmx.trigger('#projekt-cockpit', 'refresh-cockpit');
+    }
+});

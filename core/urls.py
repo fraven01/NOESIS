@@ -352,6 +352,11 @@ urlpatterns = [
         name="hx_project_file_upload",
     ),
     path(
+        "hx/project/<int:pk>/cockpit/",
+        views.hx_project_cockpit,
+        name="hx_project_cockpit",
+    ),
+    path(
         "anlage2/notizen/<int:result_id>/",
         views.edit_gap_notes,
         name="edit_gap_notes",
