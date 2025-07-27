@@ -2765,7 +2765,24 @@ def projekt_detail(request, pk):
         if entry and entry.last_checked:
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
+
+    # Letzte Aktivitäten aus Statusänderungen und Dateiuploads sammeln
+    activities = []
+    for h in projekt.status_history.order_by("-changed_at")[:5]:
+        activities.append({
+            "time": h.changed_at,
+            "text": f"Status geändert zu {h.status.name}",
+        })
+    for f in projekt.anlagen.order_by("-created_at")[:5]:
+        activities.append({
+            "time": f.created_at,
+            "text": f"Anlage {f.anlage_nr} hochgeladen",
+        })
+    activities.sort(key=lambda x: x["time"], reverse=True)
+    activities = activities[:5]
+
     cockpit_ctx = get_cockpit_context(projekt)
+
 
     context = {
         "projekt": projekt,
@@ -2782,6 +2799,7 @@ def projekt_detail(request, pk):
         "knowledge_checked": checked,
         "total_software": len(software_list),
         "software_list": software_list,
+        "activities": activities,
 
     }
     return render(request, "projekt_detail.html", context)
