@@ -720,6 +720,26 @@ class ProjektFileUploadTests(NoesisTestCase):
         pf = _save_project_file(self.projekt, form)
         self.assertEqual(pf.anlage_nr, 1)
 
+    def test_upload_uses_filename_when_no_anlage_nr(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_4.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("projekt_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"upload": upload, "manual_comment": ""},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 302)
+        pf = self.projekt.anlagen.get()
+        self.assertEqual(pf.anlage_nr, 4)
+
 
 class AutoApprovalTests(NoesisTestCase):
     """Tests für die automatische Genehmigung von Dokumenten."""
