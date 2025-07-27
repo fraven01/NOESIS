@@ -14,6 +14,7 @@ from django.utils import timezone
 from django_q.tasks import async_task
 
 from .utils import get_project_file, update_file_status
+from .decorators import updates_file_status
 
 from .models import (
     BVProject,
@@ -652,7 +653,8 @@ def worker_generate_gutachten(
     return str(path)
 
 
-def analyse_anlage3(projekt_id: int, model_name: str | None = None) -> dict:
+@updates_file_status
+def analyse_anlage3(file_id: int, projekt_id: int, model_name: str | None = None) -> dict:
     """Analysiert die dritte Anlage hinsichtlich der Seitenzahl.
 
     Erkennt automatisch ein kleines Dokument (eine Seite oder weniger) und
@@ -1217,14 +1219,12 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     return data
 
 
-def analyse_anlage4_async(projekt_id: int, model_name: str | None = None) -> dict:
+@updates_file_status
+def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
     """Startet die asynchrone Analyse von Anlage 4."""
 
-    projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage = projekt.anlagen.get(anlage_nr=4)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
-        raise ValueError("Anlage 4 fehlt") from exc
+    anlage = BVProjectFile.objects.get(pk=file_id)
+    projekt = anlage.projekt
 
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     parser_cfg = anlage.anlage4_parser_config or Anlage4ParserConfig.objects.first()
@@ -1334,17 +1334,17 @@ def check_anlage2_functions(
     return results
 
 
+@updates_file_status
 def run_conditional_anlage2_check(
-    projekt_id: int, model_name: str | None = None
+    file_id: int, model_name: str | None = None
 ) -> None:
     """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
 
-    projekt = BVProject.objects.get(pk=projekt_id)
-    pf = get_project_file(projekt, 2)
+    pf = BVProjectFile.objects.get(pk=file_id)
+    projekt = pf.projekt
     try:
-        if pf:
-            pf.processing_status = BVProjectFile.PROCESSING
-            pf.save(update_fields=["processing_status"])
+        pf.processing_status = BVProjectFile.PROCESSING
+        pf.save(update_fields=["processing_status"])
 
         # Alle bisherigen Prüfergebnisse entfernen
         AnlagenFunktionsMetadaten.objects.filter(
@@ -1355,10 +1355,10 @@ def run_conditional_anlage2_check(
             "anlage2subquestion_set"
         ).order_by("name"):
             worker_verify_feature(
-                projekt_id, "function", func.id, model_name
+                projekt.pk, "function", func.id, model_name
             )
             res = AnlagenFunktionsMetadaten.objects.filter(
-                anlage_datei__projekt_id=projekt_id,
+                anlage_datei__projekt_id=projekt.pk,
                 funktion=func,
                 subquestion__isnull=True,
             ).first()
@@ -1368,19 +1368,14 @@ def run_conditional_anlage2_check(
             if doc_ok:
                 for sub in func.anlage2subquestion_set.all():
                     worker_verify_feature(
-                        projekt_id, "subquestion", sub.id, model_name
+                        projekt.pk, "subquestion", sub.id, model_name
                     )
 
-        pf = get_project_file(projekt, 2)
-        if pf:
-            pf.verification_task_id = ""
-            pf.processing_status = BVProjectFile.COMPLETE
-            pf.save(update_fields=["verification_task_id", "processing_status"])
+        pf.verification_task_id = ""
+        pf.save(update_fields=["verification_task_id"])
     except Exception:
-        if pf:
-            pf.processing_status = BVProjectFile.FAILED
-            update_file_status(pf.pk, BVProjectFile.FAILED)
-            pf.save(update_fields=["processing_status"])
+        pf.verification_task_id = ""
+        pf.save(update_fields=["verification_task_id"])
         raise
 
 
@@ -1896,20 +1891,16 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
 
 
 
-def check_anlage5(projekt_id: int, model_name: str | None = None) -> dict:
+@updates_file_status
+def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
     """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke.
 
     Das optionale Argument ``model_name`` ist derzeit ohne Funktion und dient
     lediglich der Vereinheitlichung der API.\n    """
 
+    anlage = BVProjectFile.objects.get(pk=file_id)
+    projekt_id = anlage.projekt_id
     anlage5_logger.info("check_anlage5 gestartet f\u00fcr Projekt %s", projekt_id)
-
-    projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage = projekt.anlagen.get(anlage_nr=5)
-    except BVProjectFile.DoesNotExist as exc:
-        anlage5_logger.error("Anlage 5 fehlt f\u00fcr Projekt %s", projekt_id)
-        raise ValueError("Anlage 5 fehlt") from exc
 
     path = Path(anlage.upload.path)
     anlage5_logger.debug("Pfad der Anlage 5: %s", path)

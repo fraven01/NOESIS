@@ -7,10 +7,10 @@ class Command(BaseCommand):
     """Analysiert Anlage 4 eines BVProjects."""
 
     def add_arguments(self, parser):
-        parser.add_argument("projekt_id", type=int)
+        parser.add_argument("file_id", type=int)
         parser.add_argument("--model", dest="model", default=None)
 
-    def handle(self, projekt_id, model=None, **options):
-        data = analyse_anlage4_async(projekt_id, model_name=model)
+    def handle(self, file_id, model=None, **options):
+        data = analyse_anlage4_async(file_id, model_name=model)
         text = f"```json\n{json.dumps(data, indent=2, ensure_ascii=False)}\n```"
         print_markdown(text)

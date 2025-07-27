@@ -7,9 +7,9 @@ class Command(BaseCommand):
     """Prüft Anlage 5 eines BVProjects."""
 
     def add_arguments(self, parser):
-        parser.add_argument("projekt_id", type=int)
+        parser.add_argument("file_id", type=int)
 
-    def handle(self, projekt_id, **options):
-        data = check_anlage5(projekt_id)
+    def handle(self, file_id, **options):
+        data = check_anlage5(file_id)
         text = f"```json\n{json.dumps(data, indent=2, ensure_ascii=False)}\n```"
         print_markdown(text)
