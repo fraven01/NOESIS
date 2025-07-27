@@ -199,10 +199,11 @@
                 dupWarning.textContent = hasMissing
                     ? 'Bitte jeder Datei eine eindeutige Nummer zuweisen.'
                     : 'Mehrere Dateien besitzen dieselbe Anlage-Nummer.';
-                if (submitButton) submitButton.disabled = true;
+                // Der Submit-Button bleibt aktiv, Nutzer wird nur gewarnt
+                // if (submitButton) submitButton.disabled = true;
             } else {
                 dupWarning.classList.add('hidden');
-                if (submitButton) submitButton.disabled = false;
+                // if (submitButton) submitButton.disabled = false;
             }
         }
 
