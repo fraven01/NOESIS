@@ -4582,6 +4582,46 @@ def hx_project_software_tab(request, pk: int, tab: str):
 
 @login_required
 @require_POST
+def hx_project_file_upload(request, pk: int):
+    """Lädt eine einzelne Datei per HTMX hoch."""
+
+    projekt = get_object_or_404(BVProject, pk=pk)
+
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    upload = request.FILES.get("upload")
+    anlage_nr_raw = request.POST.get("anlage_nr")
+
+    if not upload:
+        return HttpResponseBadRequest("invalid")
+
+    try:
+        anlage_nr = int(anlage_nr_raw) if anlage_nr_raw else extract_anlage_nr(upload.name)
+    except (TypeError, ValueError):
+        anlage_nr = None
+
+    form = BVProjectFileForm(request.POST, request.FILES, anlage_nr=anlage_nr)
+
+    if form.is_valid() and anlage_nr:
+        saved_file = _save_project_file(projekt, form=form)
+        context = {
+            "projekt": projekt,
+            "anlage": saved_file,
+            "show_nr": False,
+        }
+        return render(request, "partials/anlagen_row.html", context)
+
+    context = {
+        "projekt": projekt,
+        "form": form,
+        "show_nr": False,
+    }
+    return render(request, "partials/anlagen_row.html", context, status=400)
+
+
+@login_required
+@require_POST
 def trigger_file_analysis(request, pk: int):
     """L\u00F6st die Analyse f\u00FCr eine bestehende Datei erneut aus."""
     file_obj = get_object_or_404(BVProjectFile, pk=pk)
