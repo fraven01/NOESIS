@@ -15,45 +15,7 @@
     </thead>
     <tbody>
     {% for a in anlagen %}
-        <tr class="border-t">
-            {% if show_nr %}<td class="px-2 py-1">{{ a.anlage_nr }}</td>{% endif %}
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|clean_filename }}</a></td>
-            <td class="px-2 py-1">{{ a.version }}</td>
-            <td class="px-2 py-1 text-center" id="anlage-edit-{{ a.pk }}">
-                {% include 'partials/anlage_status.html' with anlage=a %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                {% if a.parent %}
-                    <a href="{% url 'compare_versions' a.pk %}" class="table-action-btn table-action-primary">Mit Vorgänger vergleichen</a>
-                {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
-                    <button class="status-toggle-btn" title="Geprüft umschalten">
-                        {% if a.manual_reviewed %}
-                        <i class="fas fa-check text-green-600"></i>
-                        {% else %}
-                        <i class="fas fa-times text-gray-400"></i>
-                        {% endif %}
-                    </button>
-                </form>
-            </td>
-            <td class="px-2 py-1 text-center">
-                <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'verhandlungsfaehig' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="value" value="{{ a.verhandlungsfaehig|yesno:'0,1' }}">
-                    <button class="status-toggle-btn" title="Verhandlungsfähigkeit umschalten">
-                        {% if a.verhandlungsfaehig %}
-                        <i class="fas fa-check text-green-600"></i>
-                        {% else %}
-                        <i class="fas fa-times text-gray-400"></i>
-                        {% endif %}
-                    </button>
-                </form>
-            </td>
-        </tr>
+        {% include 'partials/anlagen_row.html' with anlage=a show_nr=show_nr %}
     {% empty %}
         <tr><td colspan="{% if show_nr %}7{% else %}6{% endif %}">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
