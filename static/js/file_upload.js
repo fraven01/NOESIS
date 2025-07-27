@@ -255,4 +255,63 @@
     }
 
     document.addEventListener('DOMContentLoaded', initFileUpload);
+    // -------- Neuer Inline Dropzone Upload ---------
+    function initInlineDropzone() {
+        const dz = document.getElementById('inline-dropzone');
+        const tableBody = document.getElementById('anlage-table-body');
+        const uploadUrl = dz ? dz.dataset.uploadUrl : null;
+        if (!dz || !uploadUrl || !tableBody) return;
+
+        dz.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dz.classList.add('bg-gray-100');
+        });
+        dz.addEventListener('dragleave', () => dz.classList.remove('bg-gray-100'));
+
+        dz.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dz.classList.remove('bg-gray-100');
+            const files = Array.from(e.dataTransfer.files || []);
+            for (const file of files) {
+                const placeholder = document.createElement('tr');
+                placeholder.innerHTML =
+                    `<td colspan="7"><span class="spinner"></span> ${file.name}</td>`;
+                tableBody.prepend(placeholder);
+                await sendInlineFile(file, placeholder);
+            }
+        });
+
+        async function sendInlineFile(file, placeholder) {
+            const formData = new FormData();
+            formData.append('upload', file);
+            const nr = getAnlageNrFromName(file.name);
+            if (nr) formData.append('anlage_nr', nr);
+            const headers = { 'HX-Request': 'true' };
+            const token = window.getCookie ? window.getCookie('csrftoken') : null;
+            if (token) headers['X-CSRFToken'] = token;
+
+            try {
+                const resp = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+                const html = await resp.text();
+                const tmp = document.createElement('tbody');
+                tmp.innerHTML = html.trim();
+                const newRow = tmp.firstElementChild;
+                if (newRow) {
+                    placeholder.replaceWith(newRow);
+                    if (window.htmx) htmx.process(newRow);
+                } else {
+                    placeholder.remove();
+                }
+            } catch (err) {
+                console.error('Upload fehlgeschlagen', err);
+                placeholder.remove();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initInlineDropzone);
 })();
