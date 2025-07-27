@@ -730,6 +730,42 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
     return groups
 
 
+def get_cockpit_context(projekt: BVProject) -> dict[str, Any]:
+    """Stellt alle Kontextinformationen für das Cockpit bereit."""
+
+    files = []
+    next_steps: list[str] = []
+    for f in projekt.anlagen.all():
+        files.append(
+            {
+                "id": f.id,
+                "anlage_nr": f.anlage_nr,
+                "name": os.path.basename(f.upload.name),
+                "processing_status": f.processing_status,
+                "verhandlungsfaehig": f.verhandlungsfaehig,
+            }
+        )
+        data = f.analysis_json if isinstance(f.analysis_json, dict) else {}
+        if data.get("manual_required"):
+            next_steps.append(f"Anlage {f.anlage_nr}: manuelle Prüfung notwendig")
+        elif f.processing_status != BVProjectFile.COMPLETE:
+            next_steps.append(f"Anlage {f.anlage_nr}: Analyse starten")
+
+    status_history = list(projekt.status_history.order_by("-changed_at")[:5])
+    recent_uploads = list(projekt.anlagen.order_by("-created_at")[:5])
+
+    return {
+        "title": projekt.title,
+        "status": projekt.status.name if projekt.status else "",
+        "software": projekt.software_string,
+        "created_at": projekt.created_at,
+        "files": files,
+        "next_steps": next_steps,
+        "status_history": status_history,
+        "recent_uploads": recent_uploads,
+    }
+
+
 @login_required
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
@@ -2729,6 +2765,7 @@ def projekt_detail(request, pk):
         if entry and entry.last_checked:
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
+
     # Letzte Aktivitäten aus Statusänderungen und Dateiuploads sammeln
     activities = []
     for h in projekt.status_history.order_by("-changed_at")[:5]:
@@ -2743,8 +2780,13 @@ def projekt_detail(request, pk):
         })
     activities.sort(key=lambda x: x["time"], reverse=True)
     activities = activities[:5]
+
+    cockpit_ctx = get_cockpit_context(projekt)
+
+
     context = {
         "projekt": projekt,
+        "cockpit": cockpit_ctx,
         "status_choices": ProjectStatus.objects.all(),
         "history": projekt.status_history.all(),
         "num_attachments": all_files.count(),
