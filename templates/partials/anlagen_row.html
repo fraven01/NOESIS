@@ -2,7 +2,7 @@
 {% if form %}
 <tr>
     <td colspan="{% if show_nr %}7{% else %}6{% endif %}">
-        <form hx-post="{% url 'hx_project_file_upload' projekt.pk %}" hx-target="closest tr" hx-swap="outerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" method="post">
+        <form method="post" enctype="multipart/form-data" action="{% url 'hx_project_file_upload' projekt.pk %}">
             {% csrf_token %}
             <input type="hidden" name="anlage_nr" value="{{ form.anlage_nr }}">
             {{ form.non_field_errors }}
