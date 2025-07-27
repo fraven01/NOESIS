@@ -183,6 +183,10 @@
         const anlageSelect = document.getElementById('id_anlage_nr');
         const submitButton = form ? form.querySelector('[type=submit]') : null;
 
+        const uploadUrl = form ? (form.getAttribute('hx-post') || form.action) : '';
+        const projMatch = uploadUrl.match(/projekte\/(\d+)\//);
+        const projectId = projMatch ? projMatch[1] : null;
+
         // Warnungselement für doppelte Anlagennummern
         const dupWarning = document.createElement('div');
         dupWarning.className = 'text-red-600 p-2 border border-red-400 rounded mb-2 hidden';
@@ -278,11 +282,15 @@
 
             for (const item of currentFiles) {
                 try {
-                    const resp = await sendFile(form, item.file, item.bar, item.select);
-                    if (target) {
-                        target.innerHTML = resp;
-                        if (window.htmx) { htmx.process(target); }
-                    } else {
+                    await sendFile(form, item.file, item.bar, item.select);
+                    if (target && projectId) {
+                        const activeBtn = document.querySelector('.anlage-tab-btn.border-blue-600');
+                        const activeNr = activeBtn ? parseInt(activeBtn.dataset.nr, 10) : null;
+                        const nr = parseInt(item.select.value, 10);
+                        if (!activeNr || activeNr === nr) {
+                            htmx.ajax('GET', `/hx/project/${projectId}/anlage/${nr}/`, { target: '#anlage-tab-content' });
+                        }
+                    } else if (!target) {
                         // Fallback, wenn kein htmx-Target da ist, z.B. Seite neu laden
                         window.location.reload();
                     }
