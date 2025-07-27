@@ -367,13 +367,13 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     return initial
 
 
-def _verification_to_initial(_data: dict | None) -> dict:
-    """Liest KI-Prüfergebnisse aus der Datenbank."""
+def _verification_to_initial(pf: BVProjectFile | None) -> dict:
+    """Liest KI-Prüfergebnisse einer Anlage aus der Datenbank."""
     initial = {"functions": {}}
 
     results = (
-        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=_data)
-        if isinstance(_data, BVProjectFile)
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+        if isinstance(pf, BVProjectFile)
         else []
     )
 
