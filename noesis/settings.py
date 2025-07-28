@@ -355,7 +355,7 @@ if sys.version_info >= (3, 12):
 # Django-Q Konfiguration
 Q_CLUSTER = {
     "name": "noesis_q",
-    "workers": 2,
+    "workers": 1,
     "recycle": 500,
     "timeout": 1200,
     "retry": 1300,
