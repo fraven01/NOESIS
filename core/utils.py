@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from django_q.tasks import async_task, Chain
+from django_q.tasks import async_task
 from django.db import transaction, connection
+from django.utils.module_loading import import_string
 
 from .models import BVProject, BVProjectFile
 
@@ -28,8 +29,8 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
     """Startet die Analyse f\xFCr ``file_obj``.
 
     Setzt den Status auf ``PROCESSING`` und plant die zugeh\xF6rigen
-    Hintergrund-Tasks. Bei SQLite werden die Tasks sequenziell in einer
-    ``Chain`` ausgef\xFChrt, um Sperrkonflikte zu vermeiden.
+    Hintergrund-Tasks. Bei SQLite werden die Tasks sequenziell direkt
+    ausgef\xFChrt, um Sperrkonflikte zu vermeiden.
     Nicht vorhandene Anlagen werden ignoriert.
     """
 
@@ -42,10 +43,8 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
 
     try:
         if connection.vendor == "sqlite":
-            chain = Chain()
             for func, arg in tasks:
-                chain.append(func, arg)
-            chain.run()
+                import_string(func)(arg)
         else:
             for func, arg in tasks:
                 async_task(func, arg)
