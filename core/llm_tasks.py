@@ -1253,28 +1253,23 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 
     if connection.vendor == "sqlite":
-        # Tasks seriell verketten, um Datenbank-Sperren zu vermeiden
-        task_list: list[tuple[str, tuple]] = []
         for idx, item in enumerate(items):
             if use_dual:
-                args = (
+                worker_a4_plausibility(
                     {**item["structured"], "kontext": projekt.title},
                     anlage.pk,
                     idx,
                     model_name,
                 )
-                task_list.append(("core.llm_tasks.worker_a4_plausibility", args))
             else:
-                args = (
+                worker_anlage4_evaluate(
                     item["text"],
                     anlage.pk,
                     idx,
                     model_name,
                 )
-                task_list.append(("core.llm_tasks.worker_anlage4_evaluate", args))
-            anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
-        if task_list:
-            async_chain(task_list)
+            anlage4_logger.debug("A4 Eval Task #%s ausgef\u00fchrt", idx)
+        anlage.refresh_from_db(fields=["analysis_json"])
     else:
         for idx, item in enumerate(items):
             if use_dual:

@@ -26,7 +26,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 import io
 import zipfile
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Q
 import subprocess
 import whisper
@@ -3455,7 +3455,10 @@ def projekt_file_analyse_anlage4(request, pk):
     anlage = get_object_or_404(BVProjectFile, pk=pk)
     if anlage.anlage_nr != 4:
         raise Http404
-    analyse_anlage4_async(anlage.pk)
+    if connection.vendor == "sqlite":
+        analyse_anlage4_async(anlage.pk)
+    else:
+        async_task("core.llm_tasks.analyse_anlage4_async", anlage.pk)
     return redirect("anlage4_review", pk=pk)
 
 
