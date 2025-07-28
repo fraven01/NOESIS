@@ -39,16 +39,8 @@
 </form>
 <form method="post" class="space-y-4" data-anlage-id="{{ anlage.pk }}">
     {% csrf_token %}
-    <div class="filter-controls mb-2">
-        <label>
-            <input type="checkbox" id="show-relevant-only-filter" class="form-check-input mr-2">
-            Nur als "vorhanden" markierte Funktionen anzeigen
-        </label>
-        <label class="ml-4">
-            <input type="checkbox" id="show-conflicts-only" class="form-check-input mr-2">
-            Nur Konflikte anzeigen
-        </label>
-        <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded ml-4">Alle Funktionen prüfen 🤖</button>
+    <div class="mb-2">
+        <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded">Alle Funktionen prüfen 🤖</button>
         <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     <div class="mb-3">
@@ -185,8 +177,6 @@ function initAnlage2Review() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
-    const filterCheckbox = document.getElementById('show-relevant-only-filter');
-    const conflictCheckbox = document.getElementById('show-conflicts-only');
 
     individualToggleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -370,20 +360,7 @@ function updateRowAppearance(row) {
     const indicator = row.querySelector('.text-danger.text-sm');
     if (indicator) indicator.style.display = needsReview ? '' : 'none';
 }
-    function applyFilters() {
-        const showAvailable = filterCheckbox && filterCheckbox.checked;
-        const showConflicts = conflictCheckbox && conflictCheckbox.checked;
-        document.querySelectorAll('tbody tr[data-parsed-status]').forEach(row => {
-            const isAvailable = row.dataset.parsedStatus === 'True';
-            const hasConflict = row.dataset.requiresReview === 'true';
-            let hide = false;
-            if (showAvailable && !isAvailable) hide = true;
-            if (showConflicts && !hasConflict) hide = true;
-            row.classList.toggle('filter-hidden', hide);
-        });
-    }
-    if (filterCheckbox) filterCheckbox.addEventListener('change', applyFilters);
-    if (conflictCheckbox) conflictCheckbox.addEventListener('change', applyFilters);
+
 
     const verifyAllBtn = document.getElementById('btn-verify-all');
     if (verifyAllBtn) {
@@ -497,7 +474,6 @@ function updateRowAppearance(row) {
         }
     });
     document.querySelectorAll("tbody tr[data-parsed-status]").forEach(r => updateRowAppearance(r));
-    applyFilters();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
