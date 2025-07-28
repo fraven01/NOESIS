@@ -9,9 +9,9 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
-from django.db import DatabaseError
+from django.db import DatabaseError, connection
 from django.utils import timezone
-from django_q.tasks import async_task
+from django_q.tasks import async_task, async_chain
 
 from .utils import get_project_file, update_file_status
 from .decorators import updates_file_status
@@ -1251,24 +1251,51 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
     anlage.save(update_fields=["analysis_json"])
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 
-    for idx, item in enumerate(items):
-        if use_dual:
-            async_task(
-                "core.llm_tasks.worker_a4_plausibility",
-                {**item["structured"], "kontext": projekt.title},
-                anlage.pk,
-                idx,
-                model_name,
-            )
-        else:
-            async_task(
-                "core.llm_tasks.worker_anlage4_evaluate",
-                item["text"],
-                anlage.pk,
-                idx,
-                model_name,
-            )
-        anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
+    if connection.vendor == "sqlite":
+        task_list: list[tuple] = []
+        for idx, item in enumerate(items):
+            if use_dual:
+                task_list.append(
+                    (
+                        "core.llm_tasks.worker_a4_plausibility",
+                        {**item["structured"], "kontext": projekt.title},
+                        anlage.pk,
+                        idx,
+                        model_name,
+                    )
+                )
+            else:
+                task_list.append(
+                    (
+                        "core.llm_tasks.worker_anlage4_evaluate",
+                        item["text"],
+                        anlage.pk,
+                        idx,
+                        model_name,
+                    )
+                )
+            anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
+        if task_list:
+            async_chain(task_list)
+    else:
+        for idx, item in enumerate(items):
+            if use_dual:
+                async_task(
+                    "core.llm_tasks.worker_a4_plausibility",
+                    {**item["structured"], "kontext": projekt.title},
+                    anlage.pk,
+                    idx,
+                    model_name,
+                )
+            else:
+                async_task(
+                    "core.llm_tasks.worker_anlage4_evaluate",
+                    item["text"],
+                    anlage.pk,
+                    idx,
+                    model_name,
+                )
+            anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
 
     return anlage.analysis_json
 
