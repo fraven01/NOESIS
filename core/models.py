@@ -1026,6 +1026,7 @@ class FunktionsErgebnis(models.Model):
     einsatz_bei_telefonica = models.BooleanField(null=True)
     zur_lv_kontrolle = models.BooleanField(null=True)
     ki_beteiligung = models.BooleanField(null=True)
+    ki_beteiligt_begruendung = models.TextField(blank=True, null=True)
     begruendung = models.TextField(blank=True, null=True)
     gap_begruendung_intern = models.TextField(blank=True, null=True)
     gap_begruendung_extern = models.TextField(blank=True, null=True)

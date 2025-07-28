@@ -551,11 +551,13 @@ def _build_row_data(
             "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
             "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
             "begruendung": parser_entry.begruendung if parser_entry else None,
+            "ki_beteiligt_begruendung": parser_entry.ki_beteiligt_begruendung if parser_entry else None,
         }
         ai_data = {
             "technisch_vorhanden": ai_entry.technisch_verfuegbar if ai_entry else None,
             "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
             "begruendung": ai_entry.begruendung if ai_entry else None,
+            "ki_beteiligt_begruendung": ai_entry.ki_beteiligt_begruendung if ai_entry else None,
         }
     else:
         doc_data = {}
@@ -712,7 +714,7 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
         "doc_val": doc_val,
         "doc_snippet": parser_entry.begruendung if parser_entry else "",
         "ai_val": ai_val,
-        "ai_reason": ai_entry.begruendung if ai_entry else "",
+        "ai_reason": ai_entry.ki_beteiligt_begruendung if ai_entry else "",
         "final_val": final_val,
         "notes": result.supervisor_notes or "",
         "has_discrepancy": doc_val is not None and ai_val is not None and doc_val != ai_val,
@@ -3598,13 +3600,15 @@ def projekt_file_edit_json(request, pk):
             ki_map: dict[tuple[str, str | None], str] = {}
             beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
             for res in FunktionsErgebnis.objects.filter(
-                anlage_datei=anlage, quelle="ki"
+                anlage_datei=anlage,
+                quelle="ki",
             ):
                 fid = str(res.funktion_id)
                 sid = str(res.subquestion_id) if res.subquestion_id else None
                 beteiligt = res.ki_beteiligung
-                if beteiligt is not None:
-                    beteilig_map[(fid, sid)] = (beteiligt, "")
+                begr = res.ki_beteiligt_begruendung
+                if beteiligt is not None or begr:
+                    beteilig_map[(fid, sid)] = (beteiligt, begr or "")
                 if res.begruendung:
                     ki_map[(fid, sid)] = res.begruendung
 
