@@ -1259,20 +1259,24 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
                 task_list.append(
                     (
                         "core.llm_tasks.worker_a4_plausibility",
-                        {**item["structured"], "kontext": projekt.title},
-                        anlage.pk,
-                        idx,
-                        model_name,
+                        (
+                            {**item["structured"], "kontext": projekt.title},
+                            anlage.pk,
+                            idx,
+                            model_name,
+                        ),
                     )
                 )
             else:
                 task_list.append(
                     (
                         "core.llm_tasks.worker_anlage4_evaluate",
-                        item["text"],
-                        anlage.pk,
-                        idx,
-                        model_name,
+                        (
+                            item["text"],
+                            anlage.pk,
+                            idx,
+                            model_name,
+                        ),
                     )
                 )
             anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
