@@ -1253,32 +1253,25 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
     anlage4_logger.debug("Async initiales JSON gespeichert: %s", anlage.analysis_json)
 
     if connection.vendor == "sqlite":
-        task_list: list[tuple] = []
+        # Tasks seriell verketten, um Datenbank-Sperren zu vermeiden
+        task_list: list[tuple[str, tuple]] = []
         for idx, item in enumerate(items):
             if use_dual:
-                task_list.append(
-                    (
-                        "core.llm_tasks.worker_a4_plausibility",
-                        (
-                            {**item["structured"], "kontext": projekt.title},
-                            anlage.pk,
-                            idx,
-                            model_name,
-                        ),
-                    )
+                args = (
+                    {**item["structured"], "kontext": projekt.title},
+                    anlage.pk,
+                    idx,
+                    model_name,
                 )
+                task_list.append(("core.llm_tasks.worker_a4_plausibility", args))
             else:
-                task_list.append(
-                    (
-                        "core.llm_tasks.worker_anlage4_evaluate",
-                        (
-                            item["text"],
-                            anlage.pk,
-                            idx,
-                            model_name,
-                        ),
-                    )
+                args = (
+                    item["text"],
+                    anlage.pk,
+                    idx,
+                    model_name,
                 )
+                task_list.append(("core.llm_tasks.worker_anlage4_evaluate", args))
             anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
         if task_list:
             async_chain(task_list)
