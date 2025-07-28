@@ -46,13 +46,13 @@
     <div class="mb-3">
         <button type="button" id="expand-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle aufklappen</button>
         <button type="button" id="collapse-all-subquestions" class="bg-gray-300 text-black px-2 py-1 rounded">Alle einklappen</button>
+        <button type="button" id="toggle-actions" class="bg-gray-300 text-black px-2 py-1 rounded ml-4">Aktionen einblenden</button>
     </div>
     <div class="overflow-x-auto">
-    <table class="table-auto w-full border">
+    <table id="anlage2-review-table" class="table-auto w-full border">
         <thead>
             <tr>
                 <th class="border px-2">Funktion</th>
-                <th class="border px-2">Aktion</th>
                 {% for field,label in field_pairs %}
                 {% if field == 'technisch_vorhanden' %}
                 <th class="border px-2">Status: Technisch verfügbar?</th>
@@ -64,6 +64,7 @@
                 {% endfor %}
                 <th class="border px-2">Verhandlungsfähig</th>
                 <th class="border px-2">Gap</th>
+                <th class="border px-2 action-column">Aktion</th>
             </tr>
         </thead>
         <tbody id="anlage2-table-body">
@@ -118,14 +119,6 @@
                     <span class="text-muted small source-indicator"><i class="fas fa-question"></i></span>
                     {% endif %}
                 </td>
-                <td class="border px-2 text-center">
-                    <button type="button" class="btn btn-sm btn-light review-cycle-btn"
-                        data-state="robot" title="KI-Prüfung starten"
-                        data-project-file-id="{{ anlage.pk }}"
-                        data-function-id="{{ row.func_id }}"
-                        data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                        {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
-                </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
                 {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
@@ -144,6 +137,14 @@
                     {% if row.requires_manual_review %}
                     <div class="text-danger text-sm">Manueller Review erforderlich</div>
                     {% endif %}
+                </td>
+                <td class="border px-2 text-center action-column">
+                    <button type="button" class="btn btn-sm btn-light review-cycle-btn"
+                        data-state="robot" title="KI-Prüfung starten"
+                        data-project-file-id="{{ anlage.pk }}"
+                        data-function-id="{{ row.func_id }}"
+                        data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
+                        {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
                 </td>
             </tr>
         {% endfor %}
@@ -177,6 +178,8 @@ function initAnlage2Review() {
     const expandAllBtn = document.getElementById('expand-all-subquestions');
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
+    const toggleActionsBtn = document.getElementById('toggle-actions');
+    const reviewTable = document.getElementById('anlage2-review-table');
 
     individualToggleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -199,6 +202,14 @@ function initAnlage2Review() {
         collapseAllBtn.addEventListener('click', () => {
             document.querySelectorAll('.subquestion-row').forEach(r => r.classList.add('hidden-row'));
             individualToggleButtons.forEach(b => b.textContent = '+');
+        });
+    }
+
+    if (toggleActionsBtn && reviewTable) {
+        toggleActionsBtn.addEventListener('click', () => {
+            reviewTable.classList.toggle('actions-visible');
+            const visible = reviewTable.classList.contains('actions-visible');
+            toggleActionsBtn.textContent = visible ? 'Aktionen ausblenden' : 'Aktionen einblenden';
         });
     }
 

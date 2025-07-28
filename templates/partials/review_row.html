@@ -41,14 +41,6 @@
         <span class="text-muted small source-indicator"><i class="fas fa-question"></i></span>
         {% endif %}
     </td>
-    <td class="border px-2 text-center">
-        <button type="button" class="btn btn-sm btn-light review-cycle-btn"
-            data-state="robot" title="KI-Prüfung starten"
-            data-project-file-id="{{ anlage.pk }}"
-            data-function-id="{{ row.func_id }}"
-            data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-            {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
-    </td>
     {% for field in fields %}
     {% with f=row.form_fields|get_item:field %}
     {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
@@ -65,5 +57,13 @@
         {% if row.requires_manual_review %}
         <div class="text-danger text-sm">Manueller Review erforderlich</div>
         {% endif %}
+    </td>
+    <td class="border px-2 text-center action-column">
+        <button type="button" class="btn btn-sm btn-light review-cycle-btn"
+            data-state="robot" title="KI-Prüfung starten"
+            data-project-file-id="{{ anlage.pk }}"
+            data-function-id="{{ row.func_id }}"
+            data-justification-url="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
+            {% if row.sub %}data-subquestion-id="{{ row.sub_id }}"{% endif %}>🤖</button>
     </td>
 </tr>
