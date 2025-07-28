@@ -67,6 +67,7 @@ anlage3_logger = logging.getLogger("anlage3_debug")
 anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
 result_logger = logging.getLogger("anlage2_ergebnis")
+ki_logger = logging.getLogger("ki_involvement")
 
 # Standard-Prompt für die Prüfung von Anlage 4
 _DEFAULT_A4_PROMPT = (
@@ -1569,6 +1570,11 @@ def worker_verify_feature(
                     use_system_role=False,
                 )
             context["software_name"] = software_list[idx]
+            involvement_prompt = ai_check_obj.text.format(
+                software_name=context["software_name"],
+                function_name=name,
+            )
+            ki_logger.debug("[%s] Prompt KI-Beteiligung: %s", project_id, involvement_prompt)
             ai_reply = (
                 query_llm(
                     ai_check_obj,
@@ -1581,6 +1587,7 @@ def worker_verify_feature(
                 .strip()
                 .lower()
             )
+            ki_logger.debug("[%s] Antwort KI-Beteiligung: %s", project_id, ai_reply)
             if ai_reply.startswith("ja"):
                 ai_involved = True
             elif ai_reply.startswith("nein"):
@@ -1602,18 +1609,25 @@ def worker_verify_feature(
                         ),
                         use_system_role=False,
                     )
-                ai_reason = query_llm(
-                    ai_just_obj,
-                    {
-                        "software_name": context["software_name"],
-                        "function_name": name,
-                        "subquestion_text": context.get("subquestion_text", ""),
-                    },
-                    model_name=model_name,
-                    model_type="anlagen",
-                    temperature=0.1,
-                    project_prompt=projekt.project_prompt if ai_just_obj.use_project_context else None,
-                ).strip()
+            involvement_reason_prompt = ai_just_obj.text.format(
+                software_name=context["software_name"],
+                function_name=name,
+                subquestion_text=context.get("subquestion_text", ""),
+            )
+            ki_logger.debug("[%s] Prompt KI-Begründung: %s", project_id, involvement_reason_prompt)
+            ai_reason = query_llm(
+                ai_just_obj,
+                {
+                    "software_name": context["software_name"],
+                    "function_name": name,
+                    "subquestion_text": context.get("subquestion_text", ""),
+                },
+                model_name=model_name,
+                model_type="anlagen",
+                temperature=0.1,
+                project_prompt=projekt.project_prompt if ai_just_obj.use_project_context else None,
+            ).strip()
+            ki_logger.debug("[%s] Antwort KI-Begründung: %s", project_id, ai_reason)
 
     # Ergebnisdictionary für Datenbank und Rückgabewert
     verification_result = {
@@ -1622,6 +1636,7 @@ def worker_verify_feature(
         "ki_beteiligt": ai_involved,
         "ki_beteiligt_begruendung": ai_reason,
     }
+    ki_logger.debug("[%s] Ergebnis-Objekt: %s", project_id, json.dumps(verification_result, ensure_ascii=False))
     workflow_logger.info(
         "[%s] - KI-CHECK ERGEBNIS - Objekt [ID: %s] -> result: %s",
         project_id,

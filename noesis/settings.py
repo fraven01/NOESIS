@@ -267,6 +267,13 @@ LOGGING = {
             "formatter": "verbose",
             "encoding": "utf-8",
         },
+        "ki_involvement_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "llm-kibeteiligung.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
     },
     "loggers": {
         "": {  # Dies ist der Root-Logger. Er fängt alle Meldungen ab, die nicht von spezifischeren Loggern behandelt werden.
@@ -331,6 +338,11 @@ LOGGING = {
         },
         "workflow_debug": {
             "handlers": ["workflow_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "ki_involvement": {
+            "handlers": ["ki_involvement_file"],
             "level": "DEBUG",
             "propagate": False,
         },
