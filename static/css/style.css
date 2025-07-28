@@ -59,6 +59,16 @@
     display: none;
 }
 
+/* Spalte für Aktionsbuttons standardmäßig verstecken */
+.action-column {
+    display: none;
+}
+
+/* Tabelle zeigt Aktionsspalte an, wenn Klasse actions-visible gesetzt ist */
+.actions-visible .action-column {
+    display: table-cell;
+}
+
 /* Status-Badges für Projektübersichten */
 .status-badge-new,
 .status-badge-classified {
