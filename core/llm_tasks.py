@@ -1666,6 +1666,7 @@ def worker_verify_feature(
             technisch_verfuegbar=tv,
             ki_beteiligung=ki_bet,
             begruendung=justification,
+            ki_beteiligt_begruendung=ai_reason,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("Begr\u00fcndung konnte nicht gespeichert werden: %s", exc)

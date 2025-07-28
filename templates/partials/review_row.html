@@ -43,7 +43,38 @@
     </td>
     {% for field in fields %}
     {% with f=row.form_fields|get_item:field %}
-    {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
+        {% if field == 'ki_beteiligung' %}
+        <td class="border px-2 text-center">
+            {% if row.result_id %}
+            <button class="tri-state-icon" data-field-name="{{ field }}" data-is-manual="{{ row.manual_flags|get_item:field|yesno:'true,false' }}" hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}" hx-target="closest tr" hx-swap="outerHTML">
+                {% if row.initial|get_item:field == True %}
+                ✓ Vorhanden
+                {% elif row.initial|get_item:field == False %}
+                ✗ Nicht vorhanden
+                {% else %}
+                ? Ungeprüft
+                {% endif %}
+            </button>
+            <span class="source-icon" title="{{ f.source }}">
+                {% if f.source == 'Manuell' %}
+                <i class="fas fa-user"></i>
+                {% elif f.source == 'KI-Check' %}
+                <i class="fas fa-robot"></i>
+                {% else %}
+                <i class="fas fa-file-alt"></i>
+                {% endif %}
+            </span>
+            {% if row.ki_beteiligt_begruendung %}
+            <span class="ms-1" data-popover-content="{{ row.ki_beteiligt_begruendung|escape }}">ℹ️</span>
+            {% endif %}
+            {% else %}
+            <span>-</span>
+            {% endif %}
+            {{ f.widget }}
+        </td>
+        {% else %}
+        {% include 'partials/review_cell.html' with row=row field_name=field state=row.initial|get_item:field source=f.source is_manual=row.manual_flags|get_item:field widget=f.widget %}
+        {% endif %}
     {% endwith %}
     {% endfor %}
     {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
