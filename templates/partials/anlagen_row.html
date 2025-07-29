@@ -42,9 +42,9 @@
             <input type="hidden" name="value" value="{{ anlage.manual_reviewed|yesno:'0,1' }}">
             <button class="status-toggle-btn" title="Geprüft umschalten">
                 {% if anlage.manual_reviewed %}
-                <i class="fas fa-check text-green-600"></i>
+                <span class="text-green-600">✓</span>
                 {% else %}
-                <i class="fas fa-times text-gray-400"></i>
+                <span class="text-gray-400">✗</span>
                 {% endif %}
             </button>
         </form>
@@ -56,9 +56,9 @@
             <input type="hidden" name="value" value="{{ anlage.verhandlungsfaehig|yesno:'0,1' }}">
             <button class="status-toggle-btn" title="Verhandlungsfähigkeit umschalten">
                 {% if anlage.verhandlungsfaehig %}
-                <i class="fas fa-check text-green-600"></i>
+                <span class="text-green-600">✓</span>
                 {% else %}
-                <i class="fas fa-times text-gray-400"></i>
+                <span class="text-gray-400">✗</span>
                 {% endif %}
             </button>
         </form>
