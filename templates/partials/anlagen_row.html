@@ -36,7 +36,8 @@
         {% endif %}
     </td>
     <td class="px-2 py-1 text-center">
-        <form method="post" action="{% url 'project_file_toggle_flag' anlage.pk 'manual_reviewed' %}">
+        <form hx-post="{% url 'hx_toggle_project_file_flag' anlage.pk 'manual_reviewed' %}"
+              hx-target="closest tr" hx-swap="outerHTML" method="post">
             {% csrf_token %}
             <input type="hidden" name="value" value="{{ anlage.manual_reviewed|yesno:'0,1' }}">
             <button class="status-toggle-btn" title="Geprüft umschalten">
@@ -49,7 +50,8 @@
         </form>
     </td>
     <td class="px-2 py-1 text-center">
-        <form method="post" action="{% url 'project_file_toggle_flag' anlage.pk 'verhandlungsfaehig' %}">
+        <form hx-post="{% url 'hx_toggle_project_file_flag' anlage.pk 'verhandlungsfaehig' %}"
+              hx-target="closest tr" hx-swap="outerHTML" method="post">
             {% csrf_token %}
             <input type="hidden" name="value" value="{{ anlage.verhandlungsfaehig|yesno:'0,1' }}">
             <button class="status-toggle-btn" title="Verhandlungsfähigkeit umschalten">

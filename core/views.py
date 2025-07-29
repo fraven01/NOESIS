@@ -4877,6 +4877,35 @@ def project_file_toggle_flag(request, pk: int, field: str):
 
 
 @login_required
+@require_POST
+def hx_toggle_project_file_flag(request, pk: int, field: str):
+    """Wie :func:`project_file_toggle_flag`, gibt aber die Zeile als Partial zurück."""
+    if field not in {"manual_reviewed", "verhandlungsfaehig"}:
+        return HttpResponseBadRequest("invalid")
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    value = request.POST.get("value")
+    new_val = value in ("1", "true", "True", "on")
+    setattr(project_file, field, new_val)
+    project_file.save(update_fields=[field])
+
+    if (
+        field == "manual_reviewed"
+        and project_file.anlage_nr == 3
+        and project_file.projekt.anlagen.filter(anlage_nr=3).count()
+        == project_file.projekt.anlagen.filter(anlage_nr=3, manual_reviewed=True).count()
+    ):
+        try:
+            set_project_status(project_file.projekt, "ENDGEPRUEFT")
+        except ValueError:
+            pass
+
+    response = hx_anlage_row(request, pk)
+    response.headers["HX-Trigger"] = "refresh-cockpit"
+    return response
+
+
+@login_required
 @require_http_methods(["POST"])
 def projekt_file_delete_result(request, pk: int):
     """Löscht Analyse- und Review-Ergebnisse einer Anlage."""
