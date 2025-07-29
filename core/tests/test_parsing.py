@@ -1256,3 +1256,23 @@ class WorkerAnlage4EvaluateTests(NoesisTestCase):
         item = pf.analysis_json["items"][0]
         self.assertEqual(item["structured"]["name_der_auswertung"], "A")
         self.assertEqual(item["plausibility"]["plausibilitaet"], "hoch")
+
+    def test_worker_handles_code_fences(self):
+        projekt = BVProject.objects.create(software_typen="A")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="",
+        )
+
+        with patch(
+            "core.llm_tasks.query_llm",
+            return_value="```json\n{\"plausibilitaet\":\"hoch\",\"score\":0.9,\"begruendung\":\"ok\"}\n```",
+        ):
+            worker_anlage4_evaluate("A", pf.pk, 0)
+
+        pf.refresh_from_db()
+        item = pf.analysis_json["items"][0]
+        self.assertEqual(item["plausibility"]["score"], 0.9)
+
