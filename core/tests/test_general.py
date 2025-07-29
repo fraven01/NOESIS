@@ -1752,19 +1752,15 @@ class LLMTasksTests(NoesisTestCase):
         )
         cfg = Anlage2Config.get_instance()
         cfg.parser_mode = "auto"
-        cfg.parser_order = ["exact", "text"]
+        cfg.parser_order = ["exact", "table"]
         cfg.save()
         with (
-            patch("core.parsers.parse_anlage2_table", return_value=[]),
+            patch("core.parsers.parse_anlage2_table", return_value=[{"funktion": "Login"}]) as m_table,
             patch("core.parsers.ExactParser.parse", return_value=[]) as m_exact,
-            patch(
-                "core.text_parser.parse_anlage2_text",
-                return_value=[{"funktion": "Login"}],
-            ) as m_text,
         ):
             result = parser_manager.parse_anlage2(pf)
         m_exact.assert_called_once()
-        m_text.assert_called_once()
+        m_table.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
 
     def test_run_anlage2_analysis_includes_missing_functions(self):
@@ -3888,8 +3884,8 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         payload = json.dumps(
             {
                 "config": {
-                    "parser_mode": "text_only",
-                    "parser_order": ["text"],
+                "parser_mode": "text_only",
+                "parser_order": ["exact"],
                     "enforce_subquestion_override": True,
                     "text_technisch_verfuegbar_true": ["ja"],
                 },
@@ -3919,7 +3915,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         self.assertEqual(a4_cfg.delimiter_phrase, "Y")
         self.cfg.refresh_from_db()
         self.assertEqual(self.cfg.parser_mode, "text_only")
-        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertEqual(self.cfg.parser_order, ["exact"])
         self.assertTrue(self.cfg.enforce_subquestion_override)
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja"])
 
@@ -3945,14 +3941,14 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             url,
             self._build_general_data(
                 parser_mode="text_only",
-                parser_order=["text"],
+                parser_order=["exact"],
                 action="save_general",
                 active_tab="general",
             ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertEqual(self.cfg.parser_order, ["exact"])
 
     def test_update_parser_order(self):
         url = reverse("anlage2_config")
@@ -3960,14 +3956,14 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             url,
             self._build_general_data(
                 parser_mode=self.cfg.parser_mode,
-                parser_order=["text"],
+                parser_order=["exact"],
                 action="save_general",
                 active_tab="general",
             ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["text"])
+        self.assertEqual(self.cfg.parser_order, ["exact"])
 
     def test_save_table_tab(self):
         url = reverse("anlage2_config")
