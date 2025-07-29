@@ -708,10 +708,9 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
     ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
     final_val = manual_entry.technisch_verfuegbar if manual_entry else None
 
-    if manual_entry is not None:
-        has_discrepancy = doc_val != final_val
-    else:
-        has_discrepancy = doc_val != ai_val
+    has_discrepancy = (doc_val != ai_val) or (
+        final_val is not None and final_val != doc_val
+    )
 
     return {
         "result_id": result.id,
