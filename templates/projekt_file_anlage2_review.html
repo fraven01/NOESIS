@@ -260,10 +260,16 @@ function updatePopoverContent(icon, input) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
     }
+    if (manualVal !== null) {
+        icon.removeAttribute('data-popover-content');
+        icon.title = 'Manuell ge\u00e4ndert';
+        return;
+    }
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
                  `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
                  `Manuell: ${manualVal}`;
     icon.dataset.popoverContent = html;
+    icon.removeAttribute('title');
     if (window.attachCustomPopover) {
         window.attachCustomPopover(icon);
     }
@@ -310,7 +316,11 @@ function updateRowAppearance(row) {
         }
         icon.classList.add(cls);
         updatePopoverContent(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
-        if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
+        if (manual !== null) {
+            if (docVal !== undefined && docVal !== manual) {
+                needsReview = true;
+            }
+        } else if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal) {
             needsReview = true;
         }
     });
