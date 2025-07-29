@@ -15,6 +15,8 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    # Für Entwicklungs- und Testwerkzeuge:
    pip install -r requirements-dev.txt
    ```
+   Selbst für die Test-Suite wird Selenium benötigt, das über
+   `requirements-dev.txt` installiert wird.
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 4. Installiere zusätzliche Systempakete wie `pandoc`, damit der Export nach
    DOCX funktioniert. Unter Debian/Ubuntu lautet der Befehl beispielsweise
@@ -39,6 +41,7 @@ und `python manage.py test` fehl:
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
+Selenium für die Browser-Tests wird durch diese zweite Datei installiert.
 
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
