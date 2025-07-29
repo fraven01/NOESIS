@@ -176,6 +176,19 @@ def _split_lines(text: str) -> list[str]:
     return cleaned
 
 
+def _parse_llm_json(reply: str) -> dict:
+    """Parst ein JSON-Objekt aus einer LLM-Antwort."""
+
+    if "```json" in reply:
+        reply = reply.split("```json", 1)[1].split("```", 1)[0]
+    elif "```" in reply:
+        reply = reply.split("```", 1)[1].split("```", 1)[0]
+    try:
+        return json.loads(reply)
+    except Exception:  # noqa: BLE001
+        return {"raw": reply}
+
+
 def parse_anlage1_questions(
     text_content: str,
 ) -> dict[str, dict[str, str | None]] | None:
@@ -1109,12 +1122,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
         anlage4_logger.debug("A4 Sync Raw Response #%s: %s", idx, reply)
-        if "```json" in reply:
-            reply = reply.split("```json", 1)[1].split("```")[0]
-        try:
-            result = json.loads(reply)
-        except Exception:  # noqa: BLE001
-            result = {"raw": reply}
+        result = _parse_llm_json(reply)
         anlage4_logger.debug("A4 Sync Parsed JSON #%s: %s", idx, result)
         items.append({"structured": structured, "plausibility": result})
 
@@ -1156,10 +1164,7 @@ def worker_anlage4_evaluate(
         project_prompt=pf.projekt.project_prompt,
     )
     anlage4_logger.debug("Anlage4 Raw Response #%s: %s", index, reply)
-    try:
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        data = {"raw": reply}
+    data = _parse_llm_json(reply)
     anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
     anlage4_logger.debug("Ergebnis f\u00fcr Auswertung #%s: %s", index, data)
 
@@ -1203,10 +1208,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
         project_prompt=pf.projekt.project_prompt,
     )
     anlage4_logger.debug("A4 Plausi Raw Response #%s: %s", index, reply)
-    try:
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        data = {"raw": reply}
+    data = _parse_llm_json(reply)
     anlage4_logger.debug("A4 Plausi Parsed JSON #%s: %s", index, data)
 
     analysis = pf.analysis_json or {"items": []}

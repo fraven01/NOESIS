@@ -10,7 +10,7 @@
   <h4 class="font-semibold mt-2">Status-Historie</h4>
   <ul class="list-disc pl-5">
   {% for h in history %}
-    <li>{{ h.status.name }} - {{ h.changed_at|date:"d.m.Y H:i" }}</li>
+    <li>{{ h.status.name }} - {{ h.changed_at|date:"d.m.Y" }}</li>
   {% endfor %}
   </ul>
 </div>
