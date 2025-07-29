@@ -49,7 +49,7 @@
     <h3 class="font-semibold mb-2">Letzte Aktivitäten</h3>
     <ul class="list-disc pl-5 text-sm">
       {% for a in activities %}
-      <li>{{ a.time|date:"d.m.Y H:i" }} - {{ a.text }}</li>
+      <li>{{ a.time|date:"d.m.Y" }} - {{ a.text }}</li>
       {% endfor %}
     </ul>
   </section>
