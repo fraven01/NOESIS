@@ -1183,23 +1183,23 @@ class Anlage4ReviewViewTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             analysis_json={"items": [{"text": "A"}, {"text": "B"}]},
-            manual_analysis_json={"functions": {}},
+            manual_analysis_json={
+                "0": {"ok": True, "nego": False, "note": "alt"},
+                "1": {"ok": False, "nego": True, "note": "vorher"},
+            },
             verification_json={"functions": {}},
         )
 
     def test_post_saves_manual_review(self):
         url = reverse("anlage4_review", args=[self.file.pk])
-        resp = self.client.post(
-            url,
-            {"item0_ok": "on", "item0_note": "gut", "item1_note": "schlecht"},
-        )
+        resp = self.client.post(url, {"item1_note": "neu"})
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
         self.file.refresh_from_db()
         self.assertEqual(
             self.file.manual_analysis_json,
             {
-                "0": {"ok": True, "nego": False, "note": "gut"},
-                "1": {"ok": False, "nego": False, "note": "schlecht"},
+                "0": {"ok": True, "nego": False, "note": "alt"},
+                "1": {"ok": False, "nego": True, "note": "neu"},
             },
         )
 
