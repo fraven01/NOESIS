@@ -708,6 +708,10 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
     ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
     final_val = manual_entry.technisch_verfuegbar if manual_entry else None
 
+    has_discrepancy = (doc_val != ai_val) or (
+        final_val is not None and final_val != doc_val
+    )
+
     return {
         "result_id": result.id,
         "name": result.get_lookup_key(),
@@ -717,7 +721,7 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
         "ai_reason": ai_entry.ki_beteiligt_begruendung if ai_entry else "",
         "final_val": final_val,
         "notes": result.supervisor_notes or "",
-        "has_discrepancy": doc_val is not None and ai_val is not None and doc_val != ai_val,
+        "has_discrepancy": has_discrepancy,
     }
 
 
@@ -732,9 +736,11 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
 
     grouped: dict[int, dict] = {}
     for r in results:
+        row_data = _build_supervision_row(r, pf)
+        if not row_data["has_discrepancy"]:
+            continue
         key = r.funktion_id
         grouped.setdefault(key, {"function": None, "subrows": [], "name": r.funktion.name})
-        row_data = _build_supervision_row(r, pf)
         if r.subquestion_id:
             grouped[key]["subrows"].append(row_data)
         else:
@@ -743,14 +749,17 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
     groups: list[dict] = []
     for g in grouped.values():
         func = g.get("function")
-        if not func:
+        subrows = g.get("subrows", [])
+        if not func and not subrows:
             continue
-        present = func["final_val"]
-        if present is None:
+        if not subrows and func and not func["has_discrepancy"]:
+            continue
+        present = func["final_val"] if func else None
+        if present is None and func:
             present = func["doc_val"] if func["doc_val"] is not None else func["ai_val"]
         groups.append({
             "function": func,
-            "subrows": g.get("subrows", []),
+            "subrows": subrows,
             "show_subs": bool(present),
         })
     return groups

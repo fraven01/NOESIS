@@ -44,7 +44,6 @@
                 {% endif %}
                 {% endfor %}
                 <th class="border px-2">Verhandlungsfähig</th>
-                <th class="border px-2">Gap</th>
                 <th class="border px-2 action-column">Aktion</th>
             </tr>
         </thead>
@@ -98,19 +97,6 @@
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
-                <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}"
-                    class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
-                    {% if row.result_id %}
-                    <a href="{% url 'edit_gap_notes' row.result_id %}"
-                       class="gap-note-icon {% if row.has_notes %}text-blue-600{% endif %}">🗒️</a>
-                    <button type="button" class="gap-summary-btn" data-result-id="{{ row.result_id }}" title="Gap-Zusammenfassung generieren">↻</button>
-                    {% else %}
-                    <span class="gap-note-icon">🗒️</span>
-                    {% endif %}
-                    {% if row.requires_manual_review %}
-                    <div class="text-danger text-sm">Manueller Review erforderlich</div>
-                    {% endif %}
-                </td>
                 <td class="border px-2 text-center action-column">
                     <button type="button" class="btn btn-sm btn-light review-cycle-btn"
                         data-state="robot" title="KI-Prüfung starten"
@@ -337,11 +323,6 @@ function updateRowAppearance(row) {
         setSubRowsEnabled(row.dataset.funcId, techState === true);
         let aiVal = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        const gapCell = row.querySelector('[id^="gap-cell-"]');
-        if (gapCell) {
-            if (aiVal !== undefined && techState !== null && aiVal !== techState) gapCell.classList.add('has-gap');
-            else gapCell.classList.remove('has-gap');
-        }
     }
     const negCell = row.querySelector('.negotiable-cell');
     if (negCell) {
@@ -434,19 +415,6 @@ function updateRowAppearance(row) {
         }).catch(() => { btn.textContent = '⚠️'; });
     }
 
-    function generateGapSummary(btn) {
-        showSpinner(btn, '');
-        const resultId = btn.dataset.resultId;
-        fetch(`/ajax/generate-gap-summary/${resultId}/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') }
-        }).then(() => {
-            hideSpinner(btn);
-        }).catch(() => {
-            btn.textContent = '⚠️';
-            btn.disabled = false;
-        });
-    }
 
     document.querySelectorAll('.review-cycle-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -463,11 +431,6 @@ function updateRowAppearance(row) {
         });
     });
 
-    document.querySelectorAll('.gap-summary-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            generateGapSummary(this);
-        });
-    });
 
     document.body.addEventListener('htmx:beforeSwap', () => {
         if (window.removeCustomPopovers) removeCustomPopovers();
