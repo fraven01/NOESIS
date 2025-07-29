@@ -4539,3 +4539,57 @@ class Anlage2ResetTests(NoesisTestCase):
                 technisch_verfuegbar=True,
             ).exists()
         )
+
+    def test_hx_update_review_cell_toggles_manual_entry(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        result = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            projekt=projekt,
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_update_review_cell", args=[result.pk, "technisch_vorhanden"])
+
+        resp = self.client.post(url, HTTP_HX_REQUEST="true")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=func,
+                quelle="manuell",
+            ).exists()
+        )
+        pf.refresh_from_db()
+        self.assertTrue(pf.manual_analysis_json["functions"][str(func.id)]["technisch_vorhanden"])
+
+        resp = self.client.post(url, HTTP_HX_REQUEST="true")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=func,
+                quelle="manuell",
+            ).exists()
+        )
+        pf.refresh_from_db()
+        self.assertIsNone(pf.manual_analysis_json)

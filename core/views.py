@@ -4497,6 +4497,26 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
     if manual_entry:
         manual_entry.delete()
+        manual_data = pf.manual_analysis_json or {"functions": {}}
+        f_entry = manual_data.get("functions", {}).get(str(result.funktion_id))
+        if f_entry:
+            if sub_id:
+                sub_map = f_entry.get("subquestions", {}).get(str(sub_id))
+                if sub_map and field_name in sub_map:
+                    del sub_map[field_name]
+                    if not sub_map:
+                        f_entry.get("subquestions", {}).pop(str(sub_id), None)
+                        if not f_entry.get("subquestions"):
+                            f_entry.pop("subquestions", None)
+            else:
+                f_entry.pop(field_name, None)
+            if not f_entry:
+                manual_data["functions"].pop(str(result.funktion_id), None)
+        if manual_data.get("functions"):
+            pf.manual_analysis_json = manual_data
+        else:
+            pf.manual_analysis_json = None
+        pf.save(update_fields=["manual_analysis_json"])
     else:
         parser_entry = (
             FunktionsErgebnis.objects.filter(
@@ -4532,6 +4552,17 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
             quelle="manuell",
             **{attr: new_state},
         )
+        manual_data = pf.manual_analysis_json or {"functions": {}}
+        f_entry = manual_data.setdefault("functions", {}).setdefault(
+            str(result.funktion_id), {}
+        )
+        if sub_id:
+            sub_map = f_entry.setdefault("subquestions", {}).setdefault(str(sub_id), {})
+            sub_map[field_name] = new_state
+        else:
+            f_entry[field_name] = new_state
+        pf.manual_analysis_json = manual_data
+        pf.save(update_fields=["manual_analysis_json"])
 
     lookup_key = result.get_lookup_key()
     display_name = (
