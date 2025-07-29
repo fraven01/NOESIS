@@ -1616,20 +1616,20 @@ def worker_verify_feature(
             else:
                 ai_involved = None
 
-            if ai_involved:
-                try:
-                    ai_just_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
-                except Prompt.DoesNotExist:
-                    ai_just_obj = Prompt(
-                        text=(
-                            "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
-                            "(oder die Unterfrage '{subquestion_text}') der Software "
-                            "'{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, "
-                            "insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten "
-                            "oder nicht-deterministischer Ergebnisse."
-                        ),
-                        use_system_role=False,
-                    )
+        if ai_involved:
+            try:
+                ai_just_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
+            except Prompt.DoesNotExist:
+                ai_just_obj = Prompt(
+                    text=(
+                        "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+                        "(oder die Unterfrage '{subquestion_text}') der Software "
+                        "'{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, "
+                        "insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten "
+                        "oder nicht-deterministischer Ergebnisse."
+                    ),
+                    use_system_role=False,
+                )
             involvement_reason_prompt = ai_just_obj.text.format(
                 software_name=context["software_name"],
                 function_name=name,
