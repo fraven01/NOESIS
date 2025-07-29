@@ -2926,7 +2926,11 @@ def anlage4_review(request, pk):
         items = project_file.analysis_json.get("items") or []
 
     if request.method == "POST":
-        form = Anlage4ReviewForm(request.POST, items=items)
+        form = Anlage4ReviewForm(
+            request.POST,
+            items=items,
+            initial=project_file.manual_analysis_json,
+        )
         if form.is_valid():
             project_file.manual_analysis_json = form.get_json()
             project_file.save(update_fields=["manual_analysis_json"])
