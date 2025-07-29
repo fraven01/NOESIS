@@ -603,6 +603,26 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertContains(resp, "a.txt")
         self.assertContains(resp, "hx-trigger")
 
+    def test_hx_toggle_project_file_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_toggle_project_file_flag", args=[pf.pk, "manual_reviewed"])
+        resp = self.client.post(
+            url,
+            {"value": "1"},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        pf.refresh_from_db()
+        self.assertTrue(pf.manual_reviewed)
+        self.assertContains(resp, "<tr")
+        self.assertContains(resp, "fa-check")
+
     def test_hx_project_software_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         SoftwareKnowledge.objects.create(projekt=projekt, software_name="A")

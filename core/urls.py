@@ -307,6 +307,11 @@ urlpatterns = [
         name="hx_toggle_negotiable",
     ),
     path(
+        "hx/anlage/<int:pk>/toggle/<str:field>/",
+        views.hx_toggle_project_file_flag,
+        name="hx_toggle_project_file_flag",
+    ),
+    path(
         "hx/supervision/confirm/<int:result_id>/",
         views.hx_supervision_confirm,
         name="hx_supervision_confirm",
