@@ -22,21 +22,6 @@
 </div>
 {% else %}
 <div class="bg-white rounded-lg shadow p-4 space-y-4">
-<form method="post" class="space-y-4 mb-4">
-    {% csrf_token %}
-    {{ parser_form.non_field_errors }}
-    <div>
-        {{ parser_form.parser_mode.label_tag }}<br>
-        {{ parser_form.parser_mode }}
-        {{ parser_form.parser_mode.errors }}
-    </div>
-    <div>
-        {{ parser_form.parser_order.label_tag }}<br>
-        {{ parser_form.parser_order }}
-        {{ parser_form.parser_order.errors }}
-    </div>
-    <button type="submit" name="save_parser_settings" class="bg-blue-600 text-white px-3 py-1 rounded">Einstellungen speichern</button>
-</form>
 <form method="post" class="space-y-4" data-anlage-id="{{ anlage.pk }}">
     {% csrf_token %}
     <div class="mb-3">
@@ -148,6 +133,24 @@
         <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
 </form>
+<details>
+    <summary>Erweiterte Parser-Einstellungen</summary>
+    <form method="post" class="space-y-4 mb-4">
+        {% csrf_token %}
+        {{ parser_form.non_field_errors }}
+        <div>
+            {{ parser_form.parser_mode.label_tag }}<br>
+            {{ parser_form.parser_mode }}
+            {{ parser_form.parser_mode.errors }}
+        </div>
+        <div>
+            {{ parser_form.parser_order.label_tag }}<br>
+            {{ parser_form.parser_order }}
+            {{ parser_form.parser_order.errors }}
+        </div>
+        <button type="submit" name="save_parser_settings" class="bg-blue-600 text-white px-3 py-1 rounded">Einstellungen speichern</button>
+    </form>
+</details>
 </div>
 {% endif %}
 {% endblock %}
