@@ -14,12 +14,12 @@
     {% endif %}
   </div>
   <div class="border rounded bg-gray-50 p-2 space-y-1">
-    <h3 class="font-semibold">Final</h3>
+    <h3 class="font-semibold">Manuell</h3>
     <p>{{ row.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
   </div>
   <div class="border rounded bg-white p-2 space-y-2">
     <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
-      <button class="bg-green-600 text-white px-2 py-1 rounded" type="submit">Als GAP markieren</button>
+      <button class="bg-green-600 text-white px-2 py-1 rounded" type="submit">GAP bestätigen</button>
     </form>
     <div class="space-x-2">
       {% for note in standard_notes %}
@@ -40,7 +40,7 @@
                 hx-post="{% url 'hx_supervision_revert_to_document' row.result_id %}"
                 hx-target="closest details" hx-swap="outerHTML"
                 class="bg-gray-300 px-2 py-1 rounded">
-          Auf Dokumenten-Wert zurücksetzen
+          GAP auflösen
         </button>
       </div>
     </form>
