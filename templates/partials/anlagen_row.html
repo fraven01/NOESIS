@@ -25,7 +25,7 @@
 <tr class="border-t">
     {% if show_nr %}<td class="px-2 py-1">{{ anlage.anlage_nr }}</td>{% endif %}
     <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-blue-700 underline" title="{{ anlage.upload.name|clean_filename }}">Anlage {{ anlage.anlage_nr }}</a></td>
-    <td class="px-2 py-1">{{ anlage.created_at|date:"d.m.Y H:i" }}</td>
+    <td class="px-2 py-1">{{ anlage.created_at|date:"d.m.Y" }}</td>
     <td class="px-2 py-1">{{ anlage.version }}</td>
     <td class="px-2 py-1 text-center" id="anlage-edit-{{ anlage.pk }}">
         {% include 'partials/anlage_status.html' with anlage=anlage %}
