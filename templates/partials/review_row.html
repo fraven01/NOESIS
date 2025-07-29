@@ -72,17 +72,6 @@
     {% endwith %}
     {% endfor %}
     {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
-    <td id="gap-cell-{{ row.func_id }}{% if row.sub %}-{{ row.sub_id }}{% endif %}" class="border px-2 text-center {% if row.has_preliminary_gap %}has-gap{% endif %}">
-        {% if row.result_id %}
-        <a href="{% url 'edit_gap_notes' row.result_id %}" class="gap-note-icon {% if row.has_notes %}text-blue-600{% endif %}">🗒️</a>
-        <button type="button" class="gap-summary-btn" data-result-id="{{ row.result_id }}" title="Gap-Zusammenfassung generieren">↻</button>
-        {% else %}
-        <span class="gap-note-icon">🗒️</span>
-        {% endif %}
-        {% if row.requires_manual_review %}
-        <div class="text-danger text-sm">Manueller Review erforderlich</div>
-        {% endif %}
-    </td>
     <td class="border px-2 text-center action-column">
         <button type="button" class="btn btn-sm btn-light review-cycle-btn"
             data-state="robot" title="KI-Prüfung starten"
