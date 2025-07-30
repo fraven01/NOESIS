@@ -41,6 +41,7 @@ from .forms import (
     BVProjectUploadForm,
     BVProjectFileForm,
     BVProjectFileJSONForm,
+    BVGapNotesForm,
     Anlage1ReviewForm,
     Anlage2ReviewForm,
     Anlage4ReviewForm,
@@ -2918,15 +2919,19 @@ def anlage3_file_review(request, pk):
 
     if request.method == "POST":
         form = Anlage3MetadataForm(request.POST, instance=meta)
-        if form.is_valid():
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if form.is_valid() and gap_form.is_valid():
             form.save()
+            gap_form.save()
             return redirect("projekt_detail", pk=project_file.projekt.pk)
     else:
         form = Anlage3MetadataForm(instance=meta)
+        gap_form = BVGapNotesForm(instance=project_file)
 
     context = {
         "anlage": project_file,
         "form": form,
+        "gap_form": gap_form,
         "versions": versions,
         "current_version": project_file.version,
     }
@@ -2971,13 +2976,16 @@ def anlage4_review(request, pk):
             items=items,
             initial=project_file.manual_analysis_json,
         )
-        if form.is_valid():
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if form.is_valid() and gap_form.is_valid():
             project_file.manual_analysis_json = form.get_json()
+            gap_form.save()
             project_file.save(update_fields=["manual_analysis_json"])
             anlage4_logger.info("Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items))
             return redirect("projekt_detail", pk=project_file.projekt.pk)
     else:
         form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
+        gap_form = BVGapNotesForm(instance=project_file)
 
     rows = []
     for idx, item in enumerate(items):
@@ -3002,6 +3010,7 @@ def anlage4_review(request, pk):
     context = {
         "anlage": project_file,
         "rows": rows,
+        "gap_form": gap_form,
         "versions": versions,
         "current_version": project_file.version,
     }
@@ -3048,7 +3057,8 @@ def anlage5_review(request, pk):
 
     if request.method == "POST":
         form = Anlage5ReviewForm(request.POST)
-        if form.is_valid():
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if form.is_valid() and gap_form.is_valid():
             if review is None:
                 review = Anlage5Review.objects.create(project_file=project_file)
             review.sonstige_zwecke = form.cleaned_data["sonstige"]
@@ -3058,14 +3068,17 @@ def anlage5_review(request, pk):
                 review.found_purposes.count() == ZweckKategorieA.objects.count()
                 and not review.sonstige_zwecke
             )
+            gap_form.save()
             project_file.save(update_fields=["verhandlungsfaehig"])
             return redirect("projekt_detail", pk=project_file.projekt.pk)
     else:
         form = Anlage5ReviewForm(initial=initial)
+        gap_form = BVGapNotesForm(instance=project_file)
 
     context = {
         "anlage": project_file,
         "form": form,
+        "gap_form": gap_form,
         "versions": versions,
         "current_version": project_file.version,
     }
@@ -3514,6 +3527,9 @@ def projekt_file_edit_json(request, pk):
         anlage = BVProjectFile.objects.get(pk=pk)
     except BVProjectFile.DoesNotExist:
         raise Http404
+    gap_form = BVGapNotesForm(
+        request.POST if request.method == "POST" else None, instance=anlage
+    )
     versions = list(
         BVProjectFile.objects.filter(
             projekt=anlage.projekt,
@@ -3549,9 +3565,10 @@ def projekt_file_edit_json(request, pk):
     if anlage.anlage_nr == 1:
         if request.method == "POST":
             form = Anlage1ReviewForm(request.POST)
-            if form.is_valid():
+            if form.is_valid() and gap_form.is_valid():
                 data = form.get_json()
                 anlage.question_review = data
+                gap_form.save()
                 anlage.save(update_fields=["question_review"])
                 logger.info(
                     "Anlage1 Review gespeichert: %s Einträge",
@@ -3606,17 +3623,20 @@ def projekt_file_edit_json(request, pk):
         if request.method == "POST":
             if "save_parser_settings" in request.POST:
                 form = Anlage2ReviewForm(initial=analysis_init)
-                if parser_form.is_valid():
+                if parser_form.is_valid() and gap_form.is_valid():
                     parser_form.save()
+                    gap_form.save()
                     messages.success(request, "Parser-Einstellungen gespeichert")
                     return redirect("projekt_file_edit_json", pk=pk)
             elif "run_parser" in request.POST:
                 run_anlage2_analysis(anlage)
                 anlage.refresh_from_db()
+                if gap_form.is_valid():
+                    gap_form.save()
                 return redirect("projekt_file_edit_json", pk=pk)
             else:
                 form = Anlage2ReviewForm(request.POST)
-                if form.is_valid():
+                if form.is_valid() and gap_form.is_valid():
                     cfg_rule = Anlage2Config.get_instance()
                     functions_to_override: set[int] = set()
                     if cfg_rule.enforce_subquestion_override:
@@ -3628,6 +3648,7 @@ def projekt_file_edit_json(request, pk):
 
                 data = form.get_json()
                 anlage.manual_analysis_json = data
+                gap_form.save()
                 anlage.save(update_fields=["manual_analysis_json"])
                 logger.info(
                     "Anlage2 Review gespeichert: %s Funktionen",
@@ -3897,6 +3918,7 @@ def projekt_file_edit_json(request, pk):
     context = {
         "form": form,
         "anlage": anlage,
+        "gap_form": gap_form,
         "versions": versions,
         "current_version": anlage.version,
     }
@@ -5633,11 +5655,14 @@ def anlage6_review(request, pk):
 
     if request.method == "POST":
         form = Anlage6ReviewForm(request.POST, instance=project_file)
-        if form.is_valid():
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if form.is_valid() and gap_form.is_valid():
             form.save()
+            gap_form.save()
             return redirect("projekt_detail", pk=project_file.projekt.pk)
     else:
         form = Anlage6ReviewForm(instance=project_file)
+        gap_form = BVGapNotesForm(instance=project_file)
 
-    context = {"anlage": project_file, "form": form}
+    context = {"anlage": project_file, "form": form, "gap_form": gap_form}
     return render(request, "projekt_file_anlage6_review.html", context)
