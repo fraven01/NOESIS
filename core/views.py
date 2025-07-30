@@ -611,6 +611,16 @@ def _build_row_data(
     auto_val = _calc_auto_negotiable(
         doc_data.get("technisch_vorhanden"), ai_data.get("technisch_vorhanden")
     )
+    manual_val = manual_lookup.get(lookup_key, {}).get("technisch_vorhanden")
+    if (
+        manual_val is not None
+        and doc_data.get("technisch_vorhanden") is not None
+        and ai_data.get("technisch_vorhanden") is not None
+        and doc_data.get("technisch_vorhanden") == ai_data.get("technisch_vorhanden")
+        and manual_val != doc_data.get("technisch_vorhanden")
+    ):
+        auto_val = False
+
     is_negotiable = override_val if override_val is not None else auto_val
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
