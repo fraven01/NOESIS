@@ -10,6 +10,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import DatabaseError, connection
+from django.db.models import Q
 from django.utils import timezone
 from django_q.tasks import async_task, async_chain
 
@@ -2015,3 +2016,67 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
     }
     anlage5_logger.info("check_anlage5 beendet f\u00fcr Projekt %s mit %s", projekt_id, result)
     return result
+
+def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) -> str:
+    """Fasst die GAP-Notizen aus Anlage 1 zusammen."""
+    pf = get_project_file(projekt, 1)
+    if not pf or not pf.question_review:
+        return ""
+    entries: list[dict[str, str]] = []
+    for num, data in sorted(pf.question_review.items(), key=lambda x: int(x[0])):
+        if not isinstance(data, dict):
+            continue
+        hinweis = data.get("hinweis") or ""
+        vorschlag = data.get("vorschlag") or ""
+        if hinweis or vorschlag:
+            entries.append({"nr": str(num), "hinweis": hinweis, "vorschlag": vorschlag})
+    if not entries:
+        return ""
+    prompt = Prompt.objects.filter(name="gap_report_anlage1").first()
+    if not prompt:
+        prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 1 zusammen: {fragen}")
+    text = query_llm(
+        prompt,
+        {"fragen": entries},
+        model_name=model_name or LLMConfig.get_default("gutachten"),
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt if prompt.use_project_context else None,
+    ).strip()
+    return text
+
+def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) -> str:
+    """Fasst die GAP-Notizen aus Anlage 2 zusammen."""
+    pf = get_project_file(projekt, 2)
+    if not pf:
+        return ""
+    qs = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+        .filter(
+            (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
+            | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
+        )
+        .select_related("funktion", "subquestion")
+    )
+    entries: list[dict[str, str]] = []
+    for r in qs:
+        entries.append(
+            {
+                "funktion": r.funktion.name,
+                "unterfrage": r.subquestion.frage_text if r.subquestion else "",
+                "intern": r.gap_notiz or "",
+                "extern": r.gap_summary or "",
+            }
+        )
+    if not entries:
+        return ""
+    prompt = Prompt.objects.filter(name="gap_report_anlage2").first()
+    if not prompt:
+        prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 2 zusammen: {funktionen}")
+    text = query_llm(
+        prompt,
+        {"funktionen": entries},
+        model_name=model_name or LLMConfig.get_default("gutachten"),
+        model_type="gutachten",
+        project_prompt=projekt.project_prompt if prompt.use_project_context else None,
+    ).strip()
+    return text
