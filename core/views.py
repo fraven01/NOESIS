@@ -73,6 +73,7 @@ from .forms import (
     ProjectImportForm,
     Anlage2ParserRuleImportForm,
     ZweckKategorieAForm,
+    SupervisionStandardNoteForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
     ParserSettingsForm,
@@ -5293,6 +5294,39 @@ class ZweckKategorieADeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteVi
     model = ZweckKategorieA
     template_name = "core/zweckkategoriea_confirm_delete.html"
     success_url = reverse_lazy("zweckkategoriea_list")
+
+
+class SupervisionNoteListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
+    """Listet alle Standardnotizen für die Supervision auf."""
+
+    model = SupervisionStandardNote
+    template_name = "core/supervisionnote_list.html"
+
+
+class SupervisionNoteCreateView(LoginRequiredMixin, StaffRequiredMixin, CreateView):
+    """Erstellt eine neue Standardnotiz."""
+
+    model = SupervisionStandardNote
+    form_class = SupervisionStandardNoteForm
+    template_name = "core/supervisionnote_form.html"
+    success_url = reverse_lazy("supervisionnote_list")
+
+
+class SupervisionNoteUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
+    """Bearbeitet eine vorhandene Standardnotiz."""
+
+    model = SupervisionStandardNote
+    form_class = SupervisionStandardNoteForm
+    template_name = "core/supervisionnote_form.html"
+    success_url = reverse_lazy("supervisionnote_list")
+
+
+class SupervisionNoteDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+    """Löscht eine Standardnotiz nach Bestätigung."""
+
+    model = SupervisionStandardNote
+    template_name = "core/supervisionnote_confirm_delete.html"
+    success_url = reverse_lazy("supervisionnote_list")
 
 
 @login_required
