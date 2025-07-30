@@ -498,6 +498,28 @@ def _get_display_data(
     }
 
 
+def _has_manual_gap(
+    doc_data: dict, ai_data: dict, manual_data: dict
+) -> bool:
+    """Prüft, ob ein manueller Wert einen neuen GAP erzeugt."""
+
+    for field, _ in get_anlage2_fields():
+        doc_val = _extract_bool(doc_data.get(field))
+        ai_val = _extract_bool(ai_data.get(field))
+        man_val = manual_data.get(field)
+        if man_val is not None:
+            man_val = _extract_bool(man_val)
+        if (
+            man_val is not None
+            and doc_val is not None
+            and ai_val is not None
+            and doc_val == ai_val
+            and man_val != doc_val
+        ):
+            return True
+    return False
+
+
 def _build_row_data(
     display_name: str,
     lookup_key: str,
@@ -611,7 +633,11 @@ def _build_row_data(
     auto_val = _calc_auto_negotiable(
         doc_data.get("technisch_vorhanden"), ai_data.get("technisch_vorhanden")
     )
-    is_negotiable = override_val if override_val is not None else auto_val
+    manual_gap = _has_manual_gap(doc_data, ai_data, manual_data)
+    if override_val is not None:
+        is_negotiable = override_val
+    else:
+        is_negotiable = False if manual_gap else auto_val
     gap_widget = form[f"{form_prefix}gap_summary"]
     note_widget = form[f"{form_prefix}gap_notiz"]
     begr_md = ki_map.get((str(func_id), str(sub_id) if sub_id else None))
@@ -4620,6 +4646,23 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         )
         if m_entry is not None:
             manual_data[f_key] = getattr(m_entry, db_key)
+
+    auto_val = _calc_auto_negotiable(
+        doc_data.get("technisch_vorhanden"), ai_data.get("technisch_vorhanden")
+    )
+    manual_gap = _has_manual_gap(doc_data, ai_data, manual_data)
+    if manual_gap:
+        result.is_negotiable_manual_override = False
+        result.is_negotiable = False
+        result.save(update_fields=["is_negotiable_manual_override", "is_negotiable"])
+    else:
+        if result.is_negotiable_manual_override is not None:
+            result.is_negotiable_manual_override = None
+            result.is_negotiable = auto_val
+            result.save(update_fields=["is_negotiable_manual_override", "is_negotiable"])
+        elif result.is_negotiable != auto_val:
+            result.is_negotiable = auto_val
+            result.save(update_fields=["is_negotiable"])
 
     manual_lookup = {lookup_key: manual_data}
     analysis_lookup = {lookup_key: doc_data}
