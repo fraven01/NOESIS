@@ -477,6 +477,11 @@ urlpatterns = [
         name="gap_report_view",
     ),
     path(
+        "work/projekte/<int:pk>/gap-report/delete/",
+        views.delete_gap_report,
+        name="delete_gap_report",
+    ),
+    path(
         "work/projekte/<int:pk>/anlage3-review/",
         views.anlage3_review,
         name="anlage3_review",
