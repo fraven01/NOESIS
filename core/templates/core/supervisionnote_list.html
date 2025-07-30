@@ -1,0 +1,36 @@
+{% extends 'admin_base.html' %}
+{% block title %}Supervision-Notizen{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">Supervision-Notizen</h1>
+<a href="{% url 'supervisionnote_add' %}" class="inline-block mb-4 px-4 py-2 bg-blue-600 text-white rounded">Neue Notiz hinzufügen</a>
+<div class="overflow-x-auto">
+<table class="min-w-full">
+    <thead>
+        <tr class="border-b text-left">
+            <th class="py-2">Text</th>
+            <th class="py-2">Aktiv</th>
+            <th class="py-2">Reihenfolge</th>
+            <th class="py-2 text-center">Bearbeiten</th>
+            <th class="py-2 text-center">Löschen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for n in object_list %}
+        <tr class="border-b text-sm">
+            <td class="py-1">{{ n.note_text }}</td>
+            <td class="py-1">{{ n.is_active|yesno:"ja,nein" }}</td>
+            <td class="py-1">{{ n.display_order }}</td>
+            <td class="py-1 text-center">
+                <a href="{% url 'supervisionnote_edit' n.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
+            </td>
+            <td class="py-1 text-center">
+                <a href="{% url 'supervisionnote_delete' n.id %}" class="px-2 py-1 bg-red-600 text-white rounded">Löschen</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5" class="py-2">Keine Notizen vorhanden.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
