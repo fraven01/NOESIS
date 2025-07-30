@@ -1,0 +1,24 @@
+{% extends 'admin_base.html' %}
+{% block title %}{% if object %}Notiz bearbeiten{% else %}Neue Notiz{% endif %}{% endblock %}
+{% block admin_content %}
+<h1 class="text-2xl font-semibold mb-4">{% if object %}Notiz bearbeiten{% else %}Neue Notiz{% endif %}</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+        {{ form.note_text.label_tag }}<br>
+        {{ form.note_text }}
+        {{ form.note_text.errors }}
+    </div>
+    <div>
+        {{ form.is_active }} {{ form.is_active.label_tag }}
+        {{ form.is_active.errors }}
+    </div>
+    <div>
+        {{ form.display_order.label_tag }}<br>
+        {{ form.display_order }}
+        {{ form.display_order.errors }}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+</form>
+{% endblock %}

@@ -28,6 +28,7 @@ from .models import (
     Anlage4Config,
     Anlage4ParserConfig,
     ZweckKategorieA,
+    SupervisionStandardNote,
 
     PARSER_MODE_CHOICES,
     Anlage3Metadata,
@@ -872,6 +873,24 @@ class ZweckKategorieAForm(forms.ModelForm):
             "beschreibung": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 3}
             )
+        }
+
+
+class SupervisionStandardNoteForm(forms.ModelForm):
+    """Formular für eine Standardnotiz zur Supervision."""
+
+    class Meta:
+        model = SupervisionStandardNote
+        fields = ["note_text", "is_active", "display_order"]
+        labels = {
+            "note_text": "Text der Notiz",
+            "is_active": "Aktiv",
+            "display_order": "Reihenfolge",
+        }
+        widgets = {
+            "note_text": forms.TextInput(attrs={"class": "border rounded p-2"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "mr-2"}),
+            "display_order": forms.NumberInput(attrs={"class": "border rounded p-2"}),
         }
 
 
