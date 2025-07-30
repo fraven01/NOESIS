@@ -69,6 +69,7 @@ anlage4_logger = logging.getLogger("anlage4_debug")
 workflow_logger = logging.getLogger("workflow_debug")
 result_logger = logging.getLogger("anlage2_ergebnis")
 ki_logger = logging.getLogger("ki_involvement")
+llm_logger = logging.getLogger("llm_debugger")
 
 # Standard-Prompt für die Prüfung von Anlage 4
 _DEFAULT_A4_PROMPT = (
@@ -2041,9 +2042,17 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
+    prompt_text = prompt.text.format(**context)
+    llm_logger.debug("summarize_anlage1_gaps Prompt:\n%s", prompt_text)
+    prompt_obj = Prompt(
+        name="tmp",
+        text=prompt_text,
+        role=prompt.role,
+        use_project_context=prompt.use_project_context,
+    )
     text = query_llm(
-        prompt,
-        context,
+        prompt_obj,
+        {},
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt.use_project_context else None,
@@ -2084,9 +2093,17 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
+    prompt_text = prompt.text.format(**context)
+    llm_logger.debug("summarize_anlage2_gaps Prompt:\n%s", prompt_text)
+    prompt_obj = Prompt(
+        name="tmp",
+        text=prompt_text,
+        role=prompt.role,
+        use_project_context=prompt.use_project_context,
+    )
     text = query_llm(
-        prompt,
-        context,
+        prompt_obj,
+        {},
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt.use_project_context else None,
