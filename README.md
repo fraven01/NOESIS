@@ -383,3 +383,7 @@ Beim Hochladen einer DOCX-Datei werden alle eingebetteten Bilder mit `python-doc
 
 Das Vision-Modell kann im Admin-Bereich unter `/projects-admin/vision/` konfiguriert werden. Dort lassen sich die verfügbaren Modelle und deren Einstellungen verwalten. Die Konfiguration wird in der Datenbank gespeichert und kann jederzeit angepasst werden.
 Standardmäßig nutzt NOESIS das Modell `gpt-4o`, das sowohl Texte als auch Bilder verarbeiten kann. Für den Betrieb muss die Umgebungsvariable `OPENAI_API_KEY` gesetzt sein. Alternativ kann ein Gemini-Modell über `GOOGLE_API_KEY` verwendet werden. Die verfügbaren Namen finden sich in `GOOGLE_AVAILABLE_MODELS` in `noesis/settings.py`.
+
+## Weitere Dokumentation
+
+Eine ausführliche Spezifikation für den Anlage-2-Workflow findet sich in [docs/anlage2_workflow_final.md](docs/anlage2_workflow_final.md).
