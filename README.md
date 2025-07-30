@@ -115,6 +115,12 @@ Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
 3. Über `/work/projekte/<pk>/gutachten/edit/` kann der Text im Browser bearbeitet und erneut gespeichert werden.
 4. Ein POST-Request an `/work/projekte/<pk>/gutachten/delete/` entfernt das Dokument wieder aus dem Projekt.
 
+### GAP-Berichts-Assistent
+
+1. Sobald in Anlage 1 oder Anlage 2 GAPs vorliegen, erscheint in der Projekt-Detailansicht der Button **GAP-Bericht f\u00fcr Fachbereich erstellen**.
+2. Nach dem Klick erzeugt das LLM zwei Zusammenfassungen der offenen Punkte aus beiden Anlagen.
+3. Die Texte lassen sich bearbeiten und werden beim Speichern in den jeweiligen Anlagen hinterlegt.
+
 ### Anlage 1 prüfen
 
 Der Aufruf
