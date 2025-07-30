@@ -5,13 +5,17 @@
 {% block title %}GAP-Bericht{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">GAP-Bericht f\u00fcr Fachbereich</h1>
-<form method="post" class="space-y-4">
+<form method="post" class="space-y-4 inline-block mr-2">
     {% csrf_token %}
     <label class="font-semibold" for="id_text1">Anlage 1</label>
     <textarea id="id_text1" name="text1" rows="10" class="w-full border rounded p-2">{{ text1 }}</textarea>
     <label class="font-semibold" for="id_text2">Anlage 2</label>
     <textarea id="id_text2" name="text2" rows="10" class="w-full border rounded p-2">{{ text2 }}</textarea>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+<form method="post" action="{% url 'delete_gap_report' projekt.pk %}" class="inline-block">
+    {% csrf_token %}
+    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Bericht verwerfen &amp; neu generieren</button>
 </form>
 {% endblock %}
 {% block extra_js %}

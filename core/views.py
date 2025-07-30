@@ -5143,6 +5143,28 @@ def gap_report_view(request, pk):
 
 
 @login_required
+@require_http_methods(["POST"])
+def delete_gap_report(request, pk):
+    """Verwirft vorhandene GAP-Berichte."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf1 = get_project_file(projekt, 1)
+    pf2 = get_project_file(projekt, 2)
+
+    if pf1:
+        pf1.gap_summary = ""
+        pf1.save(update_fields=["gap_summary"])
+    if pf2:
+        pf2.gap_summary = ""
+        pf2.save(update_fields=["gap_summary"])
+
+    messages.success(request, "GAP-Bericht verworfen")
+    return redirect("projekt_detail", pk=projekt.pk)
+
+
+@login_required
 @require_POST
 def ajax_start_gutachten_generation(request, project_id):
     """Startet die Gutachten-Erstellung als Hintergrund-Task."""
