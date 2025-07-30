@@ -36,6 +36,13 @@
     |
     <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>
 </p>
+<p class="mb-4">
+    {% if can_gap_report %}
+    <a href="{% url 'gap_report_view' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">GAP-Bericht f\u00fcr Fachbereich erstellen</a>
+    {% else %}
+    <button class="bg-gray-300 text-gray-500 px-4 py-2 rounded" disabled>GAP-Bericht f\u00fcr Fachbereich erstellen</button>
+    {% endif %}
+</p>
 </div>
 
 <div class="bg-white rounded-lg shadow p-4">

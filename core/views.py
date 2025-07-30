@@ -130,6 +130,8 @@ from .llm_tasks import (
     ANLAGE1_QUESTIONS,
     _calc_auto_negotiable,
     _extract_bool,
+    summarize_anlage1_gaps,
+    summarize_anlage2_gaps,
 )
 from .parser_manager import parser_manager
 
@@ -2851,6 +2853,23 @@ def projekt_detail(request, pk):
     cockpit_ctx = get_cockpit_context(projekt)
     last_anlagen_files = {nr: projekt.anlagen.filter(anlage_nr=nr).last() for nr in range(1, 7)}
 
+    can_gap_report = False
+    pf1 = get_project_file(projekt, 1)
+    if pf1 and pf1.question_review:
+        for val in pf1.question_review.values():
+            if isinstance(val, dict) and (val.get("hinweis") or val.get("vorschlag")):
+                can_gap_report = True
+                break
+    if not can_gap_report:
+        pf2 = get_project_file(projekt, 2)
+        if pf2 and AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei=pf2
+        ).filter(
+            (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
+            | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
+        ).exists():
+            can_gap_report = True
+
 
 
     context = {
@@ -2870,6 +2889,7 @@ def projekt_detail(request, pk):
         "total_software": len(software_list),
         "software_list": software_list,
         "activities": activities,
+        "can_gap_report": can_gap_report,
 
     }
     return render(request, "projekt_detail.html", context)
@@ -5088,6 +5108,38 @@ def projekt_management_summary(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     path = generate_management_summary(projekt)
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name)
+
+
+@login_required
+def gap_report_view(request, pk):
+    """Erzeugt einen GAP-Bericht f\u00fcr den Fachbereich."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf1 = get_project_file(projekt, 1)
+    pf2 = get_project_file(projekt, 2)
+
+    if request.method == "POST":
+        if pf1:
+            pf1.gap_summary = request.POST.get("text1", "")
+            pf1.save(update_fields=["gap_summary"])
+        if pf2:
+            pf2.gap_summary = request.POST.get("text2", "")
+            pf2.save(update_fields=["gap_summary"])
+        messages.success(request, "Bericht gespeichert")
+        return redirect("projekt_detail", pk=projekt.pk)
+
+    text1 = summarize_anlage1_gaps(projekt)
+    text2 = summarize_anlage2_gaps(projekt)
+
+    if pf1 and pf1.gap_summary:
+        text1 = pf1.gap_summary
+    if pf2 and pf2.gap_summary:
+        text2 = pf2.gap_summary
+
+    context = {"projekt": projekt, "text1": text1, "text2": text2}
+    return render(request, "gap_report.html", context)
 
 
 @login_required

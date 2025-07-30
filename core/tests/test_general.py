@@ -87,6 +87,8 @@ from ..llm_tasks import (
     worker_run_anlage3_vision,
     worker_anlage4_evaluate,
     worker_generate_gap_summary,
+    summarize_anlage1_gaps,
+    summarize_anlage2_gaps,
     get_prompt,
     generate_gutachten,
     run_anlage2_analysis,
@@ -4593,3 +4595,53 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         pf.refresh_from_db()
         self.assertIsNone(pf.manual_analysis_json)
+
+
+class GapReportTests(NoesisTestCase):
+    def setUp(self):
+        self.client.login(username=self.superuser.username, password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.pf1 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            question_review={"1": {"hinweis": "Hinweis", "vorschlag": "V"}},
+        )
+        self.pf2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+        )
+        self.func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=self.pf2,
+            funktion=self.func,
+            gap_summary="Extern",
+            gap_notiz="Intern",
+        )
+
+    def test_tasks_return_text(self):
+        with patch("core.llm_tasks.query_llm", return_value="T1") as mock_q:
+            text = summarize_anlage1_gaps(self.projekt)
+        self.assertEqual(text, "T1")
+        self.assertTrue(mock_q.called)
+
+        with patch("core.llm_tasks.query_llm", return_value="T2") as mock_q:
+            text = summarize_anlage2_gaps(self.projekt)
+        self.assertEqual(text, "T2")
+        self.assertTrue(mock_q.called)
+
+    def test_view_saves_text(self):
+        url = reverse("gap_report_view", args=[self.projekt.pk])
+        with patch("core.views.summarize_anlage1_gaps", return_value="A1"), patch(
+            "core.views.summarize_anlage2_gaps", return_value="A2"
+        ):
+            resp = self.client.get(url)
+            self.assertContains(resp, "A1")
+            self.assertContains(resp, "A2")
+            resp = self.client.post(url, {"text1": "E1", "text2": "E2"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.pf1.refresh_from_db()
+        self.pf2.refresh_from_db()
+        self.assertEqual(self.pf1.gap_summary, "E1")
+        self.assertEqual(self.pf2.gap_summary, "E2")

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+{% endblock %}
+{% block title %}GAP-Bericht{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">GAP-Bericht f\u00fcr Fachbereich</h1>
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <label class="font-semibold" for="id_text1">Anlage 1</label>
+    <textarea id="id_text1" name="text1" rows="10" class="w-full border rounded p-2">{{ text1 }}</textarea>
+    <label class="font-semibold" for="id_text2">Anlage 2</label>
+    <textarea id="id_text2" name="text2" rows="10" class="w-full border rounded p-2">{{ text2 }}</textarea>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script>
+  new EasyMDE({ element: document.getElementById('id_text1') });
+  new EasyMDE({ element: document.getElementById('id_text2') });
+</script>
+{% endblock %}
