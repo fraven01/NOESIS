@@ -6,6 +6,16 @@
 <form method="post" class="space-y-4">
     {% csrf_token %}
     {{ form.as_p }}
+    <div>
+        {{ gap_form.gap_summary.label_tag }}<br>
+        {{ gap_form.gap_summary }}
+        {{ gap_form.gap_summary.errors }}
+    </div>
+    <div>
+        {{ gap_form.gap_notiz.label_tag }}<br>
+        {{ gap_form.gap_notiz }}
+        {{ gap_form.gap_notiz.errors }}
+    </div>
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
 </form>
 {% endblock %}

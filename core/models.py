@@ -280,6 +280,8 @@ class BVProjectFile(models.Model):
     manual_comment = models.TextField("Kommentar", blank=True)
     anlage6_note = models.TextField("Pr\u00fcfnotiz", blank=True)
     question_review = models.JSONField(blank=True, null=True)
+    gap_summary = models.TextField(blank=True, null=True)
+    gap_notiz = models.TextField(blank=True, null=True)
     verification_json = models.JSONField(
         blank=True,
         null=True,

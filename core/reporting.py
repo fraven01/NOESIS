@@ -7,7 +7,8 @@ import uuid
 from django.conf import settings
 from docx import Document
 
-from .models import BVProject
+from django.db.models import Q
+from .models import BVProject, AnlagenFunktionsMetadaten
 
 
 def _get_value(obj):
@@ -47,6 +48,37 @@ def generate_gap_analysis(project: BVProject) -> Path:
         data = anlage.manual_analysis_json or anlage.analysis_json
         if data:
             _add_json_section(doc, f"Anlage {anlage.anlage_nr}", data)
+        notes = []
+        if anlage.gap_notiz:
+            notes.append(("Intern", anlage.gap_notiz))
+        if anlage.gap_summary:
+            notes.append(("Extern", anlage.gap_summary))
+        if notes:
+            doc.add_heading(f"GAP-Notizen Anlage {anlage.anlage_nr}", level=2)
+            for label, text in notes:
+                doc.add_heading(label, level=3)
+                for line in text.splitlines():
+                    doc.add_paragraph(line)
+        if anlage.anlage_nr == 2:
+            results = AnlagenFunktionsMetadaten.objects.filter(
+                anlage_datei=anlage
+            ).filter(
+                Q(gap_summary__isnull=False) & ~Q(gap_summary="")
+                | Q(gap_notiz__isnull=False) & ~Q(gap_notiz="")
+            ).select_related("funktion", "subquestion")
+            if results:
+                doc.add_heading(
+                    f"Detailnotizen Anlage {anlage.anlage_nr}", level=2
+                )
+                for r in results:
+                    title = r.funktion.name
+                    if r.subquestion:
+                        title += f" - {r.subquestion.frage_text}"
+                    doc.add_heading(title, level=3)
+                    if r.gap_notiz:
+                        doc.add_paragraph(f"Intern: {r.gap_notiz}")
+                    if r.gap_summary:
+                        doc.add_paragraph(f"Extern: {r.gap_summary}")
 
     path = _output_path("gap")
     doc.save(path)
