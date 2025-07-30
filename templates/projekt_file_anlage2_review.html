@@ -114,16 +114,7 @@
         <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     </div>
-    <div>
-        {{ gap_form.gap_summary.label_tag }}<br>
-        {{ gap_form.gap_summary }}
-        {{ gap_form.gap_summary.errors }}
-    </div>
-    <div>
-        {{ gap_form.gap_notiz.label_tag }}<br>
-        {{ gap_form.gap_notiz }}
-        {{ gap_form.gap_notiz.errors }}
-    </div>
+    <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     <div class="space-x-2 mt-2">
         <button type="reset" id="reset-fields" class="bg-gray-300 text-black px-4 py-2 rounded">Reset</button>
         <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
