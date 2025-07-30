@@ -128,6 +128,16 @@ def get_prompt(name: str, default: str) -> str:
         return default
 
 
+def _format_prompt(text: str, context: dict) -> str:
+    """Ersetzt Platzhalter innerhalb eines Prompts."""
+
+    cleaned = re.sub(r"{\s*([a-zA-Z0-9_]+)\s*}", r"{\1}", text)
+    try:
+        return cleaned.format(**context)
+    except Exception:  # noqa: BLE001
+        return cleaned
+
+
 def _collect_text(projekt: BVProject) -> str:
     """Fasst die Textinhalte aller Anlagen zusammen."""
     parts: list[str] = []
@@ -2042,7 +2052,7 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
-    prompt_text = prompt.text.format(**context)
+    prompt_text = _format_prompt(prompt.text, context)
     llm_logger.debug("summarize_anlage1_gaps Prompt:\n%s", prompt_text)
     prompt_obj = Prompt(
         name="tmp",
@@ -2093,7 +2103,7 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
-    prompt_text = prompt.text.format(**context)
+    prompt_text = _format_prompt(prompt.text, context)
     llm_logger.debug("summarize_anlage2_gaps Prompt:\n%s", prompt_text)
     prompt_obj = Prompt(
         name="tmp",
