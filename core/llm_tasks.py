@@ -2046,9 +2046,14 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
     prompt = Prompt.objects.filter(name="gap_report_anlage1").first()
     if not prompt:
         prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 1 zusammen: {fragen}")
+    gap_list_string = ""
+    for entry in entries:
+        gap_list_string += (
+            f"- Frage {entry['nr']}: {entry['vorschlag']} (Intern: {entry['hinweis']})\n"
+        )
     context = {
         "fragen": entries,
-        "gap_list": entries,
+        "gap_list": gap_list_string,
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
@@ -2097,9 +2102,16 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
     prompt = Prompt.objects.filter(name="gap_report_anlage2").first()
     if not prompt:
         prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 2 zusammen: {funktionen}")
+    gap_list_string = ""
+    for entry in entries:
+        line = f"- Funktion {entry['funktion']}"
+        if entry['unterfrage']:
+            line += f" ({entry['unterfrage']})"
+        line += f": {entry['extern']} (Intern: {entry['intern']})\n"
+        gap_list_string += line
     context = {
         "funktionen": entries,
-        "gap_list": entries,
+        "gap_list": gap_list_string,
         "system_name": projekt.software_string,
         "project_title": projekt.title,
     }
