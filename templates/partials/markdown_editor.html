@@ -1,0 +1,13 @@
+{% load recording_extras %}
+<div id="{{ id_prefix }}-wrapper" class="markdown-editor space-y-2">
+  {% if label %}
+  <label for="{{ id_prefix }}-textarea" class="font-semibold">{{ label }}</label>
+  {% endif %}
+  <div id="{{ id_prefix }}-view" class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
+  <textarea id="{{ id_prefix }}-textarea" name="{{ name }}" rows="10" class="hidden w-full border rounded p-2">{{ text }}</textarea>
+  <div class="flex space-x-2">
+    <button type="button" id="{{ id_prefix }}-edit" class="bg-blue-600 text-white px-4 py-2 rounded">Bearbeiten</button>
+    <button type="submit" id="{{ id_prefix }}-save" class="hidden bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    <button type="button" id="{{ id_prefix }}-cancel" class="hidden bg-gray-300 text-black px-4 py-2 rounded">Abbrechen</button>
+  </div>
+</div>

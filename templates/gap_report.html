@@ -1,30 +1,13 @@
 {% extends 'base.html' %}
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-{% endblock %}
+{% block extra_head %}{% endblock %}
 {% block title %}GAP-Bericht{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">GAP-Bericht für Fachbereich</h1>
 
-<div id="view-mode" class="space-y-4 mb-4">
-    <div>
-        <label class="font-semibold">Anlage 1</label>
-        <div id="view-text1" class="prose max-w-none bg-gray-100 p-2 rounded">{{ text1|markdownify }}</div>
-    </div>
-    <div>
-        <label class="font-semibold">Anlage 2</label>
-        <div id="view-text2" class="prose max-w-none bg-gray-100 p-2 rounded">{{ text2|markdownify }}</div>
-    </div>
-    <button type="button" id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Bearbeiten</button>
-</div>
-
-<form id="edit-form" method="post" class="space-y-4 inline-block mr-2 hidden">
+<form method="post" class="space-y-4 inline-block mr-2">
     {% csrf_token %}
-    <label class="font-semibold" for="id_text1">Anlage 1</label>
-    <textarea id="id_text1" name="text1" rows="10" class="w-full border rounded p-2">{{ text1 }}</textarea>
-    <label class="font-semibold" for="id_text2">Anlage 2</label>
-    <textarea id="id_text2" name="text2" rows="10" class="w-full border rounded p-2">{{ text2 }}</textarea>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    {% include 'partials/markdown_editor.html' with id_prefix='text1' text=text1 name='text1' label='Anlage 1' %}
+    {% include 'partials/markdown_editor.html' with id_prefix='text2' text=text2 name='text2' label='Anlage 2' %}
 </form>
 
 <form method="post" action="{% url 'delete_gap_report' projekt.pk %}" class="inline-block">
@@ -33,14 +16,10 @@
 </form>
 {% endblock %}
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
-    document.getElementById('edit-btn').addEventListener('click', function() {
-        document.getElementById('view-mode').classList.add('hidden');
-        const form = document.getElementById('edit-form');
-        form.classList.remove('hidden');
-        new EasyMDE({ element: document.getElementById('id_text1') });
-        new EasyMDE({ element: document.getElementById('id_text2') });
+    document.addEventListener('DOMContentLoaded', function() {
+        initMarkdownEditor('text1');
+        initMarkdownEditor('text2');
     });
 </script>
 {% endblock %}

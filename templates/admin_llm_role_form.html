@@ -1,8 +1,5 @@
 {% extends 'admin_base.html' %}
-{% block extra_head %}
-{{ block.super }}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-{% endblock %}
+{% block extra_head %}{{ block.super }}{% endblock %}
 {% block title %}{% if role %}Rolle bearbeiten{% else %}Neue Rolle{% endif %}{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">{% if role %}Rolle bearbeiten{% else %}Neue Rolle{% endif %}</h1>
@@ -15,8 +12,7 @@
         {{ form.name.errors }}
     </div>
     <div>
-        {{ form.role_prompt.label_tag }}<br>
-        {{ form.role_prompt }}
+        {% include 'partials/markdown_editor.html' with id_prefix='roleprompt' text=form.role_prompt.value name=form.role_prompt.name label=form.role_prompt.label %}
         {{ form.role_prompt.errors }}
     </div>
     <div>
@@ -28,13 +24,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const el = document.getElementById('id_role_prompt');
-    if (el) {
-        new EasyMDE({ element: el });
-    }
+    initMarkdownEditor('roleprompt');
 });
 </script>
 {% endblock %}
