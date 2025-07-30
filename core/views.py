@@ -1518,8 +1518,24 @@ def admin_project_cleanup(request, pk):
             )
             messages.success(request, "Summary gelöscht")
             return redirect("admin_project_cleanup", pk=projekt.pk)
+        if action == "delete_gap_report":
+            pf1 = get_project_file(projekt, 1)
+            pf2 = get_project_file(projekt, 2)
+            if pf1:
+                pf1.gap_summary = ""
+                pf1.save(update_fields=["gap_summary"])
+            if pf2:
+                pf2.gap_summary = ""
+                pf2.save(update_fields=["gap_summary"])
+            messages.success(request, "GAP-Bericht gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
 
-    context = {"projekt": projekt, "files": projekt.anlagen.all()}
+    gap_report_exists = projekt.anlagen.filter(anlage_nr__in=[1, 2]).exclude(gap_summary="").exists()
+    context = {
+        "projekt": projekt,
+        "files": projekt.anlagen.all(),
+        "gap_report_exists": gap_report_exists,
+    }
     return render(request, "admin_project_cleanup.html", context)
 
 

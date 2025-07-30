@@ -56,5 +56,16 @@
 <p class="mb-4">Keine Bewertung vorhanden.</p>
 {% endif %}
 
+<h2 class="text-xl font-semibold mt-4">GAP-Bericht</h2>
+{% if gap_report_exists %}
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_gap_report">
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('GAP-Bericht wirklich löschen?');">GAP-Bericht löschen</button>
+</form>
+{% else %}
+<p class="mb-4">Kein GAP-Bericht vorhanden.</p>
+{% endif %}
+
 
 {% endblock %}

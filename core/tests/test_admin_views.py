@@ -72,6 +72,25 @@ class AdminProjectCleanupTests(NoesisTestCase):
         resp = self.client.post(url, {"action": "delete_classification"})
         self.assertRedirects(resp, url)
         self.projekt.refresh_from_db()
+
+    def test_delete_gap_report(self):
+        self.file.gap_summary = "foo"
+        self.file.save()
+        pf2 = BVProjectFile.objects.create(
+            projekt=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+            text_content="Text",
+        )
+        pf2.gap_summary = "bar"
+        pf2.save()
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_gap_report"})
+        self.assertRedirects(resp, url)
+        self.file.refresh_from_db()
+        pf2.refresh_from_db()
+        self.assertEqual(self.file.gap_summary, "")
+        self.assertEqual(pf2.gap_summary, "")
 class AdminPromptsViewTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
