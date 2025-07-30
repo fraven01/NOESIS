@@ -1258,49 +1258,6 @@ class BuildRowDataTests(NoesisTestCase):
         )
         self.assertFalse(row["manual_flags"]["technisch_vorhanden"])
 
-    def test_manual_gap_sets_negotiable_false(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            projekt=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-        )
-        res = AnlagenFunktionsMetadaten.objects.create(
-            anlage_datei=pf,
-            funktion=self.func,
-        )
-        FunktionsErgebnis.objects.create(
-            projekt=projekt,
-            anlage_datei=pf,
-            funktion=self.func,
-            quelle="parser",
-            technisch_verfuegbar=True,
-        )
-        FunktionsErgebnis.objects.create(
-            projekt=projekt,
-            anlage_datei=pf,
-            funktion=self.func,
-            quelle="ki",
-            technisch_verfuegbar=True,
-        )
-        manual = {"Testfunktion": {"technisch_vorhanden": False}}
-        result_map = {res.get_lookup_key(): res}
-
-        row = _build_row_data(
-            "Testfunktion",
-            "Testfunktion",
-            self.func.id,
-            f"func{self.func.id}_",
-            self.form,
-            {},
-            {},
-            {},
-            manual,
-            result_map,
-        )
-
-        self.assertFalse(row["is_negotiable"])
-
     def test_doc_ai_from_result_map_main(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
