@@ -2035,9 +2035,15 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
     prompt = Prompt.objects.filter(name="gap_report_anlage1").first()
     if not prompt:
         prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 1 zusammen: {fragen}")
+    context = {
+        "fragen": entries,
+        "gap_list": entries,
+        "system_name": projekt.software_string,
+        "project_title": projekt.title,
+    }
     text = query_llm(
         prompt,
-        {"fragen": entries},
+        context,
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt.use_project_context else None,
@@ -2072,9 +2078,15 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
     prompt = Prompt.objects.filter(name="gap_report_anlage2").first()
     if not prompt:
         prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 2 zusammen: {funktionen}")
+    context = {
+        "funktionen": entries,
+        "gap_list": entries,
+        "system_name": projekt.software_string,
+        "project_title": projekt.title,
+    }
     text = query_llm(
         prompt,
-        {"funktionen": entries},
+        context,
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt.use_project_context else None,
