@@ -4899,21 +4899,12 @@ def trigger_file_analysis(request, pk: int):
 
 @login_required
 def edit_gap_notes(request, result_id: int):
-    """Bearbeitet die Gap-Notizen für ein Ergebnis."""
+    """Zeigt einen Hinweis für automatisch erzeugte Gap-Notizen."""
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
     if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
         return HttpResponseForbidden("Nicht berechtigt")
-
-    if request.method == "POST":
-        result.gap_summary = request.POST.get("gap_summary", "")
-        result.gap_notiz = request.POST.get("gap_notiz", "")
-        result.save(update_fields=["gap_summary", "gap_notiz"])
-        pf = get_project_file(result.anlage_datei.projekt, 2)
-        if pf:
-            return redirect("projekt_file_edit_json", pk=pf.pk)
-        return redirect("projekt_detail", pk=result.anlage_datei.projekt.pk)
 
     pf = get_project_file(result.anlage_datei.projekt, 2)
     context = {"result": result, "project_file": pf}
