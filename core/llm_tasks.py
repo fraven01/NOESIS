@@ -2030,9 +2030,11 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
 
 def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) -> str:
     """Fasst die GAP-Notizen aus Anlage 1 zusammen."""
+
     pf = get_project_file(projekt, 1)
     if not pf or not pf.question_review:
         return ""
+
     entries: list[dict[str, str]] = []
     for num, data in sorted(pf.question_review.items(), key=lambda x: int(x[0])):
         if not isinstance(data, dict):
@@ -2040,45 +2042,66 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
         hinweis = data.get("hinweis") or ""
         vorschlag = data.get("vorschlag") or ""
         if hinweis or vorschlag:
-            entries.append({"nr": str(num), "hinweis": hinweis, "vorschlag": vorschlag})
+            try:
+                question_text = Anlage1Question.objects.get(num=int(num)).text
+            except Anlage1Question.DoesNotExist:
+                question_text = f"Frage {num}"
+            entries.append({"frage": question_text, "hinweis": hinweis, "vorschlag": vorschlag})
+
     if not entries:
         return ""
-    prompt = Prompt.objects.filter(name="gap_report_anlage1").first()
-    if not prompt:
-        prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 1 zusammen: {fragen}")
+
     gap_list_string = ""
     for entry in entries:
-        gap_list_string += (
-            f"- Frage {entry['nr']}: {entry['vorschlag']} (Intern: {entry['hinweis']})\n"
-        )
+        gap_list_string += f"- **{entry['frage']}**\n"
+        if entry["vorschlag"]:
+            gap_list_string += f"  - Anmerkung (extern): {entry['vorschlag']}\n"
+        if entry["hinweis"]:
+            gap_list_string += f"  - Notiz (intern): {entry['hinweis']}\n"
+
+    prompt_template = Prompt.objects.filter(name="gap_report_anlage1").first()
+    if not prompt_template:
+        return "[FEHLER: Prompt 'gap_report_anlage1' nicht gefunden]"
+
     context = {
-        "fragen": entries,
-        "gap_list": gap_list_string,
-        "system_name": projekt.software_string,
-        "project_title": projekt.title,
+        "system_name": projekt.title or projekt.software_string,
+        "gap_list": gap_list_string.strip(),
     }
-    prompt_text = _format_prompt(prompt.text, context)
-    llm_logger.debug("summarize_anlage1_gaps Prompt:\n%s", prompt_text)
-    prompt_obj = Prompt(
-        name="tmp",
-        text=prompt_text,
-        role=prompt.role,
-        use_project_context=prompt.use_project_context,
+
+    try:
+        final_prompt_text = prompt_template.text.format(**context)
+    except KeyError as e:
+        return f"[FEHLER: Platzhalter {e} im Prompt nicht gefunden]"
+
+    llm_logger.debug(
+        "Finaler Prompt f\u00fcr summarize_anlage1_gaps:\n%s",
+        final_prompt_text,
     )
+
+    prompt_obj = Prompt(
+        name="tmp_gap_report_a1",
+        text=final_prompt_text,
+        role=prompt_template.role,
+        use_project_context=prompt_template.use_project_context,
+    )
+
     text = query_llm(
         prompt_obj,
         {},
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt.use_project_context else None,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
+
     return text
 
 def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) -> str:
     """Fasst die GAP-Notizen aus Anlage 2 zusammen."""
+
     pf = get_project_file(projekt, 2)
     if not pf:
         return ""
+
     qs = (
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
         .filter(
@@ -2087,6 +2110,7 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
         )
         .select_related("funktion", "subquestion")
     )
+
     entries: list[dict[str, str]] = []
     for r in qs:
         entries.append(
@@ -2097,37 +2121,50 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
                 "extern": r.gap_summary or "",
             }
         )
+
     if not entries:
         return ""
-    prompt = Prompt.objects.filter(name="gap_report_anlage2").first()
-    if not prompt:
-        prompt = Prompt(name="tmp", text="Fasse die Notizen aus Anlage 2 zusammen: {funktionen}")
+
     gap_list_string = ""
     for entry in entries:
-        line = f"- Funktion {entry['funktion']}"
-        if entry['unterfrage']:
-            line += f" ({entry['unterfrage']})"
-        line += f": {entry['extern']} (Intern: {entry['intern']})\n"
-        gap_list_string += line
+        gap_list_string += f"- **{entry['funktion']}" + (f" ({entry['unterfrage']})" if entry['unterfrage'] else "") + "**\n"
+        if entry["extern"]:
+            gap_list_string += f"  - Anmerkung (extern): {entry['extern']}\n"
+        if entry["intern"]:
+            gap_list_string += f"  - Notiz (intern): {entry['intern']}\n"
+
+    prompt_template = Prompt.objects.filter(name="gap_report_anlage2").first()
+    if not prompt_template:
+        return "[FEHLER: Prompt 'gap_report_anlage2' nicht gefunden]"
+
     context = {
-        "funktionen": entries,
-        "gap_list": gap_list_string,
-        "system_name": projekt.software_string,
-        "project_title": projekt.title,
+        "system_name": projekt.title or projekt.software_string,
+        "gap_list": gap_list_string.strip(),
     }
-    prompt_text = _format_prompt(prompt.text, context)
-    llm_logger.debug("summarize_anlage2_gaps Prompt:\n%s", prompt_text)
-    prompt_obj = Prompt(
-        name="tmp",
-        text=prompt_text,
-        role=prompt.role,
-        use_project_context=prompt.use_project_context,
+
+    try:
+        final_prompt_text = prompt_template.text.format(**context)
+    except KeyError as e:
+        return f"[FEHLER: Platzhalter {e} im Prompt nicht gefunden]"
+
+    llm_logger.debug(
+        "Finaler Prompt f\u00fcr summarize_anlage2_gaps:\n%s",
+        final_prompt_text,
     )
+
+    prompt_obj = Prompt(
+        name="tmp_gap_report_a2",
+        text=final_prompt_text,
+        role=prompt_template.role,
+        use_project_context=prompt_template.use_project_context,
+    )
+
     text = query_llm(
         prompt_obj,
         {},
         model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt.use_project_context else None,
+        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
+
     return text
