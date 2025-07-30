@@ -1518,8 +1518,24 @@ def admin_project_cleanup(request, pk):
             )
             messages.success(request, "Summary gelöscht")
             return redirect("admin_project_cleanup", pk=projekt.pk)
+        if action == "delete_gap_report":
+            pf1 = get_project_file(projekt, 1)
+            pf2 = get_project_file(projekt, 2)
+            if pf1:
+                pf1.gap_summary = ""
+                pf1.save(update_fields=["gap_summary"])
+            if pf2:
+                pf2.gap_summary = ""
+                pf2.save(update_fields=["gap_summary"])
+            messages.success(request, "GAP-Bericht gelöscht")
+            return redirect("admin_project_cleanup", pk=projekt.pk)
 
-    context = {"projekt": projekt, "files": projekt.anlagen.all()}
+    gap_report_exists = projekt.anlagen.filter(anlage_nr__in=[1, 2]).exclude(gap_summary="").exists()
+    context = {
+        "projekt": projekt,
+        "files": projekt.anlagen.all(),
+        "gap_report_exists": gap_report_exists,
+    }
     return render(request, "admin_project_cleanup.html", context)
 
 
@@ -5140,6 +5156,28 @@ def gap_report_view(request, pk):
 
     context = {"projekt": projekt, "text1": text1, "text2": text2}
     return render(request, "gap_report.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_gap_report(request, pk):
+    """Verwirft vorhandene GAP-Berichte."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf1 = get_project_file(projekt, 1)
+    pf2 = get_project_file(projekt, 2)
+
+    if pf1:
+        pf1.gap_summary = ""
+        pf1.save(update_fields=["gap_summary"])
+    if pf2:
+        pf2.gap_summary = ""
+        pf2.save(update_fields=["gap_summary"])
+
+    messages.success(request, "GAP-Bericht verworfen")
+    return redirect("projekt_detail", pk=projekt.pk)
 
 
 @login_required

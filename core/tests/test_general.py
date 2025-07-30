@@ -4645,3 +4645,16 @@ class GapReportTests(NoesisTestCase):
         self.pf2.refresh_from_db()
         self.assertEqual(self.pf1.gap_summary, "E1")
         self.assertEqual(self.pf2.gap_summary, "E2")
+
+    def test_delete_gap_report(self):
+        self.pf1.gap_summary = "E1"
+        self.pf2.gap_summary = "E2"
+        self.pf1.save(update_fields=["gap_summary"])
+        self.pf2.save(update_fields=["gap_summary"])
+        url = reverse("delete_gap_report", args=[self.projekt.pk])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.pf1.refresh_from_db()
+        self.pf2.refresh_from_db()
+        self.assertEqual(self.pf1.gap_summary, "")
+        self.assertEqual(self.pf2.gap_summary, "")
