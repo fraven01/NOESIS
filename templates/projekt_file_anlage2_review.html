@@ -260,9 +260,12 @@ function updatePopoverContent(icon, input) {
         const st = input.dataset.state;
         manualVal = st === 'true' ? true : st === 'false' ? false : null;
     }
+    const manualHtml = manualVal !== null ?
+        `<span class="popover-manual">Manuell: ${manualVal}</span>` :
+        `Manuell: ${manualVal}`;
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
                  `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
-                 `Manuell: ${manualVal}`;
+                 manualHtml;
     icon.dataset.popoverContent = html;
     if (window.attachCustomPopover) {
         window.attachCustomPopover(icon);
