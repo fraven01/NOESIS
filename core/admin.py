@@ -9,20 +9,9 @@ from django.contrib.admin.widgets import (
 )
 from django.urls import URLPattern, URLResolver, get_resolver
 from .models import (
-    Recording,
-    Prompt,
     Tile,
     UserTileAccess,
     Area,
-    BVProjectFile,
-    Anlage2Function,
-    AnlagenFunktionsMetadaten,
-    FunktionsErgebnis,
-    FormatBParserRule,
-    AntwortErkennungsRegel,
-    Anlage3ParserRule,
-    Anlage5Review,
-    SupervisionStandardNote,
 )
 
 
@@ -124,16 +113,6 @@ class TileAdminForm(forms.ModelForm):
         return tile
 
 
-@admin.register(Recording)
-class RecordingAdmin(admin.ModelAdmin):
-    list_display = ("user", "bereich", "audio_file", "created_at", "duration")
-
-
-@admin.register(Prompt)
-class PromptAdmin(admin.ModelAdmin):
-    list_display = ("name", "use_system_role", "use_project_context")
-
-
 class TileAdmin(admin.ModelAdmin):
     form = TileAdminForm
     list_display = ("name", "image_thumb", "areas_display")
@@ -179,80 +158,6 @@ admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
 
-@admin.register(Anlage2Function)
-class Anlage2FunctionAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-
-
-@admin.register(AnlagenFunktionsMetadaten)
-class AnlagenFunktionsMetadatenAdmin(admin.ModelAdmin):
-    list_display = (
-        "anlage_datei",
-        "funktion",
-        "is_negotiable",
-    )
-
-
-@admin.register(FunktionsErgebnis)
-class FunktionsErgebnisAdmin(admin.ModelAdmin):
-    list_display = (
-        "projekt",
-        "funktion",
-        "subquestion",
-        "quelle",
-        "technisch_verfuegbar",
-        "ki_beteiligung",
-        "einsatz_bei_telefonica",
-        "zur_lv_kontrolle",
-        "created_at",
-    )
-
-
-@admin.register(BVProjectFile)
-class BVProjectFileAdmin(admin.ModelAdmin):
-    list_display = (
-        "projekt",
-        "anlage_nr",
-        "manual_reviewed",
-        "verhandlungsfaehig",
-    )
-    list_editable = ("manual_reviewed", "verhandlungsfaehig")
-
-
-@admin.register(FormatBParserRule)
-class FormatBParserRuleAdmin(admin.ModelAdmin):
-    list_display = ("key", "target_field", "ordering")
-    list_editable = ("target_field", "ordering")
-
-
-
-
-@admin.register(AntwortErkennungsRegel)
-class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
-    list_display = (
-        "regel_name",
-        "regel_anwendungsbereich",
-        "prioritaet",
-        "actions_json",
-    )
-    list_editable = ("regel_anwendungsbereich", "prioritaet")
-
-
-
-
-
-# Registrierung der Modelle
-
-
-@admin.register(Anlage5Review)
-class Anlage5ReviewAdmin(admin.ModelAdmin):
-    list_display = ("project_file", "sonstige_zwecke")
-
-
-@admin.register(SupervisionStandardNote)
-class SupervisionStandardNoteAdmin(admin.ModelAdmin):
-    list_display = ("note_text", "is_active", "display_order")
-    list_editable = ("is_active", "display_order")
 
 
 # Registrierung der Modelle
