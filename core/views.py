@@ -78,6 +78,7 @@ from .forms import (
     Anlage4ParserConfigForm,
     ParserSettingsForm,
     ActionForm,
+    Anlage3ParserRuleForm,
 
 )
 from .text_parser import PHRASE_TYPE_CHOICES
@@ -108,6 +109,7 @@ from .models import (
     Anlage4ParserConfig,
     ZweckKategorieA,
     Anlage5Review,
+    Anlage3ParserRule,
     Anlage3Metadata,
     SupervisionStandardNote,
 )
@@ -5327,6 +5329,39 @@ class SupervisionNoteDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteVi
     model = SupervisionStandardNote
     template_name = "core/supervisionnote_confirm_delete.html"
     success_url = reverse_lazy("supervisionnote_list")
+
+
+class Anlage3ParserRuleListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
+    """Listet alle Parser-Regeln für Anlage 3 auf."""
+
+    model = Anlage3ParserRule
+    template_name = "core/anlage3_rule_list.html"
+
+
+class Anlage3ParserRuleCreateView(LoginRequiredMixin, StaffRequiredMixin, CreateView):
+    """Erstellt eine neue Parser-Regel für Anlage 3."""
+
+    model = Anlage3ParserRule
+    form_class = Anlage3ParserRuleForm
+    template_name = "core/anlage3_rule_form.html"
+    success_url = reverse_lazy("anlage3_rule_list")
+
+
+class Anlage3ParserRuleUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
+    """Bearbeitet eine vorhandene Parser-Regel für Anlage 3."""
+
+    model = Anlage3ParserRule
+    form_class = Anlage3ParserRuleForm
+    template_name = "core/anlage3_rule_form.html"
+    success_url = reverse_lazy("anlage3_rule_list")
+
+
+class Anlage3ParserRuleDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+    """Löscht eine Parser-Regel für Anlage 3 nach Bestätigung."""
+
+    model = Anlage3ParserRule
+    template_name = "core/anlage3_rule_confirm_delete.html"
+    success_url = reverse_lazy("anlage3_rule_list")
 
 
 @login_required
