@@ -262,8 +262,8 @@ erzeugt
 ### Anlage 4 Parser konfigurieren
 
 Der optionale Parser für die vierte Anlage arbeitet ohne LLM-Extraktion. Er
-durchsucht den Freitext anhand konfigurierbarer Phrasen, die im Admin-Bereich
-bearbeitet werden können. Folgende Felder bestimmen das Parsing:
+durchsucht den Freitext anhand konfigurierbarer Phrasen, die unter
+`/projects-admin/anlage4/config/` angepasst werden können. Folgende Felder bestimmen das Parsing:
 
 - `delimiter_phrase`: Regulärer Ausdruck, der den Beginn einer neuen Auswertung markiert.
 - `gesellschaften_phrase`: Phrase, die den Wert für „Gesellschaften“ einleitet.
