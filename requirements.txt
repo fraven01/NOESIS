@@ -16,4 +16,5 @@ pyMuPdf
 fpdf
 thefuzz[speedup]
 thefuzz
+psycopg2-binary
 
