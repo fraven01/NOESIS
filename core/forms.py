@@ -27,6 +27,7 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
+    Anlage3ParserRule,
     ZweckKategorieA,
     SupervisionStandardNote,
 
@@ -1165,5 +1166,35 @@ class ActionForm(forms.Form):
         label="Feld",
     )
     value = forms.BooleanField(label="Wert", required=False)
+
+
+class Anlage3ParserRuleForm(forms.ModelForm):
+    """Formular für eine Parser-Regel von Anlage 3."""
+
+    aliases = forms.CharField(widget=Textarea(attrs={"rows": 3}), required=False)
+
+    class Meta:
+        model = Anlage3ParserRule
+        fields = ["field_name", "aliases", "ordering"]
+        labels = {
+            "field_name": "Feldname",
+            "aliases": "Alias-Phrasen (eine pro Zeile)",
+            "ordering": "Reihenfolge",
+        }
+        widgets = {
+            "field_name": forms.Select(attrs={"class": "border rounded p-2"}),
+            "ordering": forms.NumberInput(attrs={"class": "border rounded p-2"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and not self.is_bound:
+            self.initial["aliases"] = "\n".join(self.instance.aliases or [])
+
+    def save(self, commit: bool = True) -> Anlage3ParserRule:
+        aliases_raw = self.cleaned_data.get("aliases", "")
+        alias_list = [v.strip() for v in aliases_raw.splitlines() if v.strip()]
+        self.instance.aliases = alias_list
+        return super().save(commit=commit)
 
 

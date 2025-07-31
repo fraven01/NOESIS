@@ -110,7 +110,9 @@ class BVProject(models.Model):
         related_name="projects",
     )
     created_at = models.DateTimeField("Erstellt am", auto_now_add=True)
-    classification_json = models.JSONField("Klassifizierung", null=True, blank=True)
+    classification_json = models.JSONField(
+        "Klassifizierung", default=dict, null=True, blank=True
+    )
     gutachten_file = models.FileField("Gutachten", upload_to="gutachten", blank=True)
     gutachten_function_note = models.TextField("LLM-Hinweis Gutachten", blank=True)
 
@@ -275,14 +277,15 @@ class BVProjectFile(models.Model):
         related_name="children",
     )
     text_content = models.TextField("Textinhalt", blank=True)
-    analysis_json = models.JSONField("Analyse", null=True, blank=True)
-    manual_analysis_json = models.JSONField(blank=True, null=True)
+    analysis_json = models.JSONField("Analyse", default=dict, null=True, blank=True)
+    manual_analysis_json = models.JSONField(default=dict, blank=True, null=True)
     manual_comment = models.TextField("Kommentar", blank=True)
     anlage6_note = models.TextField("Pr\u00fcfnotiz", blank=True)
-    question_review = models.JSONField(blank=True, null=True)
+    question_review = models.JSONField(default=dict, blank=True, null=True)
     gap_summary = models.TextField(blank=True, null=True)
     gap_notiz = models.TextField(blank=True, null=True)
     verification_json = models.JSONField(
+        default=dict,
         blank=True,
         null=True,
         help_text="Ergebnis der KI-gestützten Verifizierung der Funktionen.",
@@ -512,7 +515,7 @@ class LLMConfig(models.Model):
     gutachten_model = models.CharField(max_length=100, blank=True)
     anlagen_model = models.CharField(max_length=100, blank=True)
     vision_model = models.CharField(max_length=100, blank=True)
-    available_models = models.JSONField(null=True, blank=True)
+    available_models = models.JSONField(default=list, null=True, blank=True)
     models_changed = models.BooleanField(default=False)
 
     class Meta:
@@ -672,7 +675,7 @@ class Anlage2Config(models.Model):
         return ["exact"]
 
     parser_order = models.JSONField(
-        default=default_parser_order,
+        default=list,
         help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
