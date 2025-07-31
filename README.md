@@ -205,6 +205,15 @@ Das Django-Admin wurde optisch überarbeitet. Eine Seitenleiste listet alle
 Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
 `static/css/admin.css` steuert das Layout.
 
+### Admin-Bereiche
+
+NOESIS unterscheidet zwei Verwaltungsoberflächen:
+
+* **Projekt-Admin** unter `/projects-admin/` – hier werden projektspezifische
+  Daten wie Funktionskatalog oder Parser-Regeln bearbeitet.
+* **System-Admin** unter `/admin/` – das klassische Django-Admin für globale
+  Einstellungen, Benutzer und Gruppen.
+
 ### Funktionskatalog verwalten
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
@@ -262,8 +271,8 @@ erzeugt
 ### Anlage 4 Parser konfigurieren
 
 Der optionale Parser für die vierte Anlage arbeitet ohne LLM-Extraktion. Er
-durchsucht den Freitext anhand konfigurierbarer Phrasen, die im Admin-Bereich
-bearbeitet werden können. Folgende Felder bestimmen das Parsing:
+durchsucht den Freitext anhand konfigurierbarer Phrasen, die unter
+`/projects-admin/anlage4/config/` angepasst werden können. Folgende Felder bestimmen das Parsing:
 
 - `delimiter_phrase`: Regulärer Ausdruck, der den Beginn einer neuen Auswertung markiert.
 - `gesellschaften_phrase`: Phrase, die den Wert für „Gesellschaften“ einleitet.
