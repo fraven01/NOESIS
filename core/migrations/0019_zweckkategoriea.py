@@ -3,6 +3,44 @@
 from django.db import migrations, models
 
 
+def seed_zweckkategoriea(apps, schema_editor):
+    """Füllt die Tabelle ZweckKategorieA mit Standardwerten."""
+    ZweckKategorieA = apps.get_model("core", "ZweckKategorieA")
+    ZweckKategorieA.objects.bulk_create(
+        [
+            ZweckKategorieA(
+                beschreibung="Leistungsvergleiche von Mitarbeitern oder Mitarbeitergruppen (wenn eine der Gruppen nicht größer als 5 Personen ist)."
+            ),
+            ZweckKategorieA(
+                beschreibung="Abgleich von Verhalten oder Leistung eines Mitarbeiters oder einer Mitarbeitergruppe (wenn eine der Gruppen nicht größer als 5 Personen ist) mit bestimmten Durchschnittsleistungen von Mitarbeitergruppen."
+            ),
+            ZweckKategorieA(
+                beschreibung="Messung der Qualität oder Quantität der Leistung eines Mitarbeiters oder von Kenntnissen oder Fähigkeiten, um das Ergebnis der Messung mit einem Sollwert oder Vorgaben (z. B. betriebliche Ziele) abzugleichen."
+            ),
+            ZweckKategorieA(beschreibung="Messung der Auslastung von Mitarbeitern."),
+            ZweckKategorieA(
+                beschreibung="Feststellung der vergangenheitsbezogenen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit eines Mitarbeiters."
+            ),
+            ZweckKategorieA(
+                beschreibung="Feststellung der Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
+            ),
+            ZweckKategorieA(
+                beschreibung="Feststellung der zukünftigen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
+            ),
+            ZweckKategorieA(
+                beschreibung="Erstellung von Bewertungen von Leistung oder Verhalten von Mitarbeitern (z. B. Zeugnisse, Scorecards etc.)."
+            ),
+            ZweckKategorieA(
+                beschreibung="Identifikation von Mitarbeitern nach bestimmten Skills (Kenntnisse, Fähigkeiten und Erfahrungen)."
+            ),
+            ZweckKategorieA(beschreibung="Erstellung von Persönlichkeitsprofilen."),
+            ZweckKategorieA(
+                beschreibung="Ermittlung des aktuellen Arbeitsortes/Aufenthaltsortes."
+            ),
+        ]
+    )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("core", "0018_bvprojectfile_verification_task_id"),
@@ -29,46 +67,5 @@ class Migration(migrations.Migration):
                 "ordering": ["id"],
             },
         ),
-        migrations.RunPython(
-            lambda apps, schema_editor: apps.get_model(
-                "core", "ZweckKategorieA"
-            ).objects.bulk_create(
-                [
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Leistungsvergleiche von Mitarbeitern oder Mitarbeitergruppen (wenn eine der Gruppen nicht größer als 5 Personen ist)."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Abgleich von Verhalten oder Leistung eines Mitarbeiters oder einer Mitarbeitergruppe (wenn eine der Gruppen nicht größer als 5 Personen ist) mit bestimmten Durchschnittsleistungen von Mitarbeitergruppen."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Messung der Qualität oder Quantität der Leistung eines Mitarbeiters oder von Kenntnissen oder Fähigkeiten, um das Ergebnis der Messung mit einem Sollwert oder Vorgaben (z. B. betriebliche Ziele) abzugleichen."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Messung der Auslastung von Mitarbeitern."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Feststellung der vergangenheitsbezogenen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit eines Mitarbeiters."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Feststellung der Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Feststellung der zukünftigen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Erstellung von Bewertungen von Leistung oder Verhalten von Mitarbeitern (z. B. Zeugnisse, Scorecards etc.)."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Identifikation von Mitarbeitern nach bestimmten Skills (Kenntnisse, Fähigkeiten und Erfahrungen)."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Erstellung von Persönlichkeitsprofilen."
-                    ),
-                    apps.get_model("core", "ZweckKategorieA")(
-                        beschreibung="Ermittlung des aktuellen Arbeitsortes/Aufenthaltsortes."
-                    ),
-                ]
-            ),
-            reverse_code=migrations.RunPython.noop,
-        ),
+        migrations.RunPython(seed_zweckkategoriea, reverse_code=migrations.RunPython.noop),
     ]

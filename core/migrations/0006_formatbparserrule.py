@@ -3,6 +3,19 @@
 from django.db import migrations, models
 
 
+def create_initial_formatb_rules(apps, schema_editor):
+    """Legt die Standard-Parser-Regeln für Format B an."""
+    FormatBParserRule = apps.get_model("core", "FormatBParserRule")
+    FormatBParserRule.objects.bulk_create(
+        [
+            FormatBParserRule(key="tv", target_field="technisch_verfuegbar", ordering=1),
+            FormatBParserRule(key="tel", target_field="einsatz_telefonica", ordering=2),
+            FormatBParserRule(key="lv", target_field="zur_lv_kontrolle", ordering=3),
+            FormatBParserRule(key="ki", target_field="ki_beteiligung", ordering=4),
+        ]
+    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -41,14 +54,5 @@ class Migration(migrations.Migration):
                 "ordering": ["ordering", "key"],
             },
         ),
-        migrations.RunPython(
-            lambda apps, schema_editor: apps.get_model("core", "FormatBParserRule").objects.bulk_create(
-                [
-                    apps.get_model("core", "FormatBParserRule")(key="tv", target_field="technisch_verfuegbar", ordering=1),
-                    apps.get_model("core", "FormatBParserRule")(key="tel", target_field="einsatz_telefonica", ordering=2),
-                    apps.get_model("core", "FormatBParserRule")(key="lv", target_field="zur_lv_kontrolle", ordering=3),
-                    apps.get_model("core", "FormatBParserRule")(key="ki", target_field="ki_beteiligung", ordering=4),
-                ]
-            )
-        ),
+        migrations.RunPython(create_initial_formatb_rules),
     ]
