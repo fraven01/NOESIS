@@ -1900,27 +1900,8 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         "ki_begruendung": getattr(ai_entry, "begruendung", ""),
     }
 
-    prompt_internal = Prompt.objects.filter(name="gap_summary_internal").first()
-    if not prompt_internal:
-        prompt_internal = Prompt(name="tmp", text="Formuliere eine technische Zusammenfassung des Konflikts.")
-    internal = query_llm(
-        prompt_internal,
-        context,
-        model_name=model_name,
-        model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt_internal.use_project_context else None,
-    ).strip()
-
-    prompt_external = Prompt.objects.filter(name="gap_communication_external").first()
-    if not prompt_external:
-        prompt_external = Prompt(name="tmp", text="Formuliere eine freundliche Rückfrage an den Fachbereich.")
-    external = query_llm(
-        prompt_external,
-        context,
-        model_name=model_name,
-        model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt_external.use_project_context else None,
-    ).strip()
+    internal = ""
+    external = ""
 
     res.gap_notiz = internal
     res.gap_summary = external
@@ -1932,8 +1913,6 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         funktion=res.funktion,
         subquestion=res.subquestion,
         quelle="gap",
-        gap_begruendung_intern=internal,
-        gap_begruendung_extern=external,
     )
 
     logger.info("worker_generate_gap_summary beendet für Result %s", result_id)

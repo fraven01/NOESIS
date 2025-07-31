@@ -4117,25 +4117,18 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             self.assertEqual(name, "core.llm_tasks.worker_generate_gap_summary")
             worker_generate_gap_summary(*args)
 
-        with (
-            patch("core.views.async_task", side_effect=immediate),
-            patch(
-                "core.llm_tasks.query_llm",
-                side_effect=["Intern", "Extern"],
-            ),
-        ):
+        with patch("core.views.async_task", side_effect=immediate):
             resp = self.client.post(gap_url)
         self.assertEqual(resp.status_code, 200)
         res.refresh_from_db()
-        self.assertEqual(res.gap_notiz, "Intern")
-        self.assertEqual(res.gap_summary, "Extern")
+        self.assertEqual(res.gap_notiz, "")
+        self.assertEqual(res.gap_summary, "")
         gap_entry = FunktionsErgebnis.objects.filter(
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="gap",
         ).latest("created_at")
-        self.assertEqual(gap_entry.gap_begruendung_intern, "Intern")
-        self.assertEqual(gap_entry.gap_begruendung_extern, "Extern")
+        self.assertIsNotNone(gap_entry)
 
     def test_manual_sets_negotiable(self):
         AnlagenFunktionsMetadaten.objects.create(
