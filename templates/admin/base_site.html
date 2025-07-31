@@ -16,48 +16,10 @@
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="admin-nav space-y-4 text-sm">
             <div>
-                {% with open_proj=request.resolver_match.url_name %}
-                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
-                    <span>Projekt-Konfiguration</span>
-                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_proj in 'admin_projects admin_project_statuses' %}rotate-180{% endif %}"></i>
-                </h3>
-                <div class="accordion-content pl-2 space-y-1 {% if open_proj in 'admin_projects admin_project_statuses' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_projects' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_projects' %}active-nav-link{% endif %}">
-                        <i class="fas fa-list-alt fa-fw mr-2"></i>
-                        Projekt-Liste
-                    </a>
-                    <a href="{% url 'admin_project_statuses' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_project_statuses' %}active-nav-link{% endif %}">
-                        <i class="fas fa-flag fa-fw mr-2"></i>
-                        Projekt-Status
-                    </a>
-                </div>
-                {% endwith %}
-            </div>
-            <div>
-                {% with open_anl=request.resolver_match.url_name %}
-                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
-                    <span>Anlagen-Konfiguration</span>
-                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config zweckkategoriea_list' %}rotate-180{% endif %}"></i>
-                </h3>
-                <div class="accordion-content pl-2 space-y-1 {% if open_anl in 'admin_anlage1 anlage2_function_list anlage2_config zweckkategoriea_list' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_anlage1' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_anlage1' %}active-nav-link{% endif %}">
-                        <i class="fas fa-question-circle fa-fw mr-2"></i>
-                        Anlage 1 Fragen
-                    </a>
-                    <a href="{% url 'anlage2_function_list' %}" class="nav-link {% if request.resolver_match.url_name == 'anlage2_function_list' %}active-nav-link{% endif %}">
-                        <i class="fas fa-cogs fa-fw mr-2"></i>
-                        Anlage 2 Funktionen
-                    </a>
-                    <a href="{% url 'anlage2_config' %}" class="nav-link {% if request.resolver_match.url_name == 'anlage2_config' %}active-nav-link{% endif %}">
-                        <i class="fas fa-globe fa-fw mr-2"></i>
-                        Anlage 2 Globale Phrasen
-                    </a>
-                    <a href="{% url 'zweckkategoriea_list' %}" class="nav-link {% if request.resolver_match.url_name == 'zweckkategoriea_list' %}active-nav-link{% endif %}">
-                        <i class="fas fa-list fa-fw mr-2"></i>
-                        Anlage 5 Konfiguration
-                    </a>
-                </div>
-                {% endwith %}
+                <a href="/projects-admin/" class="nav-link bg-blue-600 text-white font-bold">
+                    <i class="fas fa-project-diagram fa-fw mr-2"></i>
+                    Projekt-Admin
+                </a>
             </div>
             <div>
                 {% with open_ki=request.resolver_match.url_name %}
