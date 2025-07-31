@@ -31,7 +31,7 @@
                 <a href="/" class="hover:underline">Startseite</a>
                 {% if user.is_authenticated %}
                     <a href="/account/" class="hover:underline">Mein Konto</a>
-                    {% if user.is_superuser or user.groups.filter(name='admin').exists %}
+                    {% if user.is_superuser or is_admin %}
                         <a href="/projects-admin/" class="hover:underline">Projekt-Admin</a>
                     {% endif %}
                     {% if user.is_staff %}
