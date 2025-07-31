@@ -603,7 +603,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['funktion__name'],
-                'unique_together': {('projekt', 'funktion')},
             },
         ),
         migrations.AddField(
@@ -846,10 +845,6 @@ class Migration(migrations.Migration):
             name='subquestion',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='core.anlage2subquestion'),
         ),
-        migrations.AlterUniqueTogether(
-            name='anlage2functionresult',
-            unique_together={('projekt', 'funktion', 'subquestion')},
-        ),
         migrations.CreateModel(
             name='Anlage3Metadata',
             fields=[
@@ -957,7 +952,7 @@ class Migration(migrations.Migration):
                 ('funktion', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.anlage2function')),
                 ('projekt', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.bvproject')),
                 ('subquestion', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='core.anlage2subquestion')),
-                ('anlage_datei', models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, related_name='funktions_ergebnisse', to='core.bvprojectfile')),
+                ('anlage_datei', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='funktions_ergebnisse', to='core.bvprojectfile')),
                 ('begruendung', models.TextField(blank=True, null=True)),
             ],
             options={
