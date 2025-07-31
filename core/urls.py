@@ -179,6 +179,26 @@ urlpatterns = [
         name="anlage2_parser_rule_import",
     ),
     path(
+        "projects-admin/anlage3/rules/",
+        views.Anlage3ParserRuleListView.as_view(),
+        name="anlage3_rule_list",
+    ),
+    path(
+        "projects-admin/anlage3/rules/add/",
+        views.Anlage3ParserRuleCreateView.as_view(),
+        name="anlage3_rule_add",
+    ),
+    path(
+        "projects-admin/anlage3/rules/<int:pk>/edit/",
+        views.Anlage3ParserRuleUpdateView.as_view(),
+        name="anlage3_rule_edit",
+    ),
+    path(
+        "projects-admin/anlage3/rules/<int:pk>/delete/",
+        views.Anlage3ParserRuleDeleteView.as_view(),
+        name="anlage3_rule_delete",
+    ),
+    path(
         "projects-admin/anlage2/",
         views.anlage2_function_list,
         name="anlage2_function_list",

@@ -227,10 +227,6 @@ class FormatBParserRuleAdmin(admin.ModelAdmin):
     list_editable = ("target_field", "ordering")
 
 
-@admin.register(Anlage3ParserRule)
-class Anlage3ParserRuleAdmin(admin.ModelAdmin):
-    list_display = ("field_name", "ordering")
-    list_editable = ("ordering",)
 
 
 @admin.register(AntwortErkennungsRegel)
