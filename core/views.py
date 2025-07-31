@@ -335,7 +335,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         field_names = [f[0] for f in get_anlage2_fields()]
         for item in funcs:
             name = item.get("funktion") or item.get("name")
-            func = Anlage2Function.objects.filter(name=name).first()
+            func = Anlage2Function.objects.filter(name__iexact=name).first()
             if not func:
                 continue
             fid = str(func.id)
@@ -860,7 +860,7 @@ def home(request):
 
 @login_required
 def work(request):
-    is_admin = request.user.groups.filter(name="admin").exists()
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
     tiles = get_user_tiles(request.user, Tile.WORK)
     context = {
         "is_admin": is_admin,
@@ -871,7 +871,7 @@ def work(request):
 
 @login_required
 def personal(request):
-    is_admin = request.user.groups.filter(name="admin").exists()
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
     tiles = get_user_tiles(request.user, Tile.PERSONAL)
     context = {
         "is_admin": is_admin,
@@ -1177,7 +1177,7 @@ def talkdiary(request, bereich):
         "bereich": bereich,
         "recordings": recordings,
         "is_recording": is_recording(),
-        "is_admin": request.user.groups.filter(name="admin").exists(),
+        "is_admin": request.user.groups.filter(name__iexact="admin").exists(),
     }
     return render(request, "talkdiary.html", context)
 
@@ -2825,7 +2825,7 @@ def projekt_list(request):
 
     context = {
         "projekte": projekte,
-        "is_admin": request.user.groups.filter(name="admin").exists(),
+        "is_admin": request.user.groups.filter(name__iexact="admin").exists(),
         "search_query": search_query,
         "status_filter": status_filter,
         "software_filter": software_filter,
@@ -2841,7 +2841,7 @@ def projekt_detail(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     all_files = projekt.anlagen.all()
     reviewed = all_files.filter(manual_reviewed=True).count()
-    is_admin = request.user.groups.filter(name="admin").exists()
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
     software_list = projekt.software_list
     knowledge_map = {k.software_name: k for k in projekt.softwareknowledge.all()}
     knowledge_rows = []
@@ -4001,7 +4001,7 @@ def _run_llm_check(name: str, additional: str | None = None, project_prompt: str
     prompt_text = base.format(name=name)
     if additional:
         prompt_text += " " + additional
-    base_obj = Prompt.objects.filter(name="initial_llm_check").first()
+    base_obj = Prompt.objects.filter(name__iexact="initial_llm_check").first()
     prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
 
     logger.debug("Starte LLM-Check für %s", name)

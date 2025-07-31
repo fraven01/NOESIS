@@ -11,7 +11,7 @@ class LLMConfigNoticeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated and request.user.groups.filter(name="admin").exists():
+        if request.user.is_authenticated and request.user.groups.filter(name__iexact="admin").exists():
             try:
                 cfg = LLMConfig.objects.first()
             except DatabaseError:
