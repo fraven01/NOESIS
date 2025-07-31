@@ -1,3 +1,4 @@
+
 """Seeding der initialen Daten per Management-Befehl."""
 
 from django.core.management.base import BaseCommand
@@ -233,3 +234,4 @@ class Command(BaseCommand):
     def handle(self, **options):
         create_initial_data(django_apps)
         self.stdout.write(self.style.SUCCESS("Initiale Daten wurden angelegt."))
+
