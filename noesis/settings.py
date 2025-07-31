@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import sys
+import secrets
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
@@ -93,9 +94,12 @@ WSGI_APPLICATION = "noesis.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        "TIMEOUT": 20,  # Timeout für Datenbankabfragen auf 20 Sekunden setzen
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME", "noesis_db"),
+        "USER": os.environ.get("DB_USER", secrets.token_hex(8)),
+        "PASSWORD": os.environ.get("DB_PASSWORD", secrets.token_hex(16)),
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
     }
 }
 
