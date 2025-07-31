@@ -55,6 +55,13 @@ templates/: HTML-Vorlagen, inklusive eines admin-Unterordners zum Überschreiben
 llm-debug.log: Dediziertes Logfile für alle LLM-Prompts und -Antworten.
 Procfile: Definiert die Prozesse (web, worker) für den Start mit honcho.
 
+## Admin-Bereiche
+
+- `/projects-admin/` – Projekt-Admin für alle projektbezogenen Modelle und
+  Einstellungen (z.B. Funktionskatalog, Parser-Regeln).
+- `/admin/` – System-Admin (das reguläre Django-Admin) für globale
+  Konfiguration wie Benutzer und Gruppen.
+
 ## Tests und Checks
 - Vor jedem Commit `python manage.py makemigrations --check` ausführen.
 
