@@ -47,6 +47,7 @@ Datenbank: SQLite für die Entwicklung, für den Produktivbetrieb ist PostgreSQL
 ## Projektstruktur
 core/: Zentrale Django-App mit Modellen, Views, Formularen und den meisten Geschäftslogiken.
 migrations/: Django-Migrationsdateien, inklusive Daten-Migrationen für Standard-Prompts und -Rollen.
+Nach `python manage.py migrate` füllt `python manage.py seed_initial_data` die Datenbank mit Standarddaten.
 templatetags/: Eigene Template-Erweiterungen (z.B. für Markdown-Rendering).
 management/commands/: Eigene manage.py-Befehle.
 noesis/: Projekteinstellungen und URL-Konfiguration.

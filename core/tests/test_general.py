@@ -163,15 +163,13 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     Anlage4Config.objects.all().delete()
     LLMConfig.objects.all().delete()
     from django.apps import apps as django_apps
-    from importlib import import_module
-
-    create_initial_data = import_module(
-        "core.migrations.0002_seed_initial_data"
-    ).create_initial_data
+    from core.management.commands.seed_initial_data import (
+        create_initial_data,
+    )
     from ..llm_tasks import ANLAGE1_QUESTIONS
 
     try:
-        create_initial_data(django_apps, None)
+        create_initial_data(django_apps)
     except LookupError:
         # Falls die Migrationsfunktion wegen entfernter Modelle
         # fehlschlägt, legen wir die benötigten Objekte manuell an.

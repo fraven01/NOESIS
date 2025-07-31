@@ -3,6 +3,31 @@
 from django.db import migrations, models
 
 
+def seed_anlage3_parser_rules(apps, schema_editor):
+    """Erzeugt die Standardregeln für Anlage 3."""
+    Anlage3ParserRule = apps.get_model("core", "Anlage3ParserRule")
+    Anlage3ParserRule.objects.create(
+        field_name="name",
+        aliases=["name der auswertung", "name", "bezeichnung"],
+        ordering=1,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="beschreibung",
+        aliases=["beschreibung", "kurzbeschreibung"],
+        ordering=2,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="zeitraum",
+        aliases=["zeitraum", "auswertungszeitraum"],
+        ordering=3,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="art",
+        aliases=["art der auswertung", "auswertungsart", "typ"],
+        ordering=4,
+    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -43,29 +68,5 @@ class Migration(migrations.Migration):
                 "ordering": ["ordering", "id"],
             },
         ),
-        migrations.RunPython(
-            lambda apps, schema_editor: [
-                apps.get_model("core", "Anlage3ParserRule").objects.create(
-                    field_name="name",
-                    aliases=["name der auswertung", "name", "bezeichnung"],
-                    ordering=1,
-                ),
-                apps.get_model("core", "Anlage3ParserRule").objects.create(
-                    field_name="beschreibung",
-                    aliases=["beschreibung", "kurzbeschreibung"],
-                    ordering=2,
-                ),
-                apps.get_model("core", "Anlage3ParserRule").objects.create(
-                    field_name="zeitraum",
-                    aliases=["zeitraum", "auswertungszeitraum"],
-                    ordering=3,
-                ),
-                apps.get_model("core", "Anlage3ParserRule").objects.create(
-                    field_name="art",
-                    aliases=["art der auswertung", "auswertungsart", "typ"],
-                    ordering=4,
-                ),
-            ],
-            reverse_code=migrations.RunPython.noop,
-        ),
+        migrations.RunPython(seed_anlage3_parser_rules, reverse_code=migrations.RunPython.noop),
     ]
