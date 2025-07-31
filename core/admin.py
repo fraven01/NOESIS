@@ -22,7 +22,6 @@ from .models import (
     AntwortErkennungsRegel,
     Anlage4ParserConfig,
     Anlage3ParserRule,
-    Anlage3Metadata,
     Anlage5Review,
     SupervisionStandardNote,
 )
@@ -268,11 +267,6 @@ class Anlage4ParserConfigAdmin(admin.ModelAdmin):
 @admin.register(Anlage5Review)
 class Anlage5ReviewAdmin(admin.ModelAdmin):
     list_display = ("project_file", "sonstige_zwecke")
-
-
-@admin.register(Anlage3Metadata)
-class Anlage3MetadataAdmin(admin.ModelAdmin):
-    list_display = ("project_file", "name", "zeitraum")
 
 
 @admin.register(SupervisionStandardNote)
