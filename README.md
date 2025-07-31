@@ -49,6 +49,7 @@ Für alle Django-Managementbefehle muss die Umgebungsvariable
 `DJANGO_SECRET_KEY` gesetzt sein. Beim Aufruf von
 `python manage.py test` wird automatisch `dummy_test_key` verwendet,
 falls keine Variable vorhanden ist.
+Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.txt` ausgeführt worden sein, damit alle benötigten Module verfügbar sind.
 
 ## Tests und Checks
 
@@ -58,8 +59,9 @@ Vor jedem Commit **muss** laut `AGENTS.md` folgender Befehl erfolgreich laufen:
 python manage.py makemigrations --check
 ```
 
-Im Anschluss empfiehlt es sich, noch `python manage.py migrate` und
-`python manage.py test` auszuführen.
+Im Anschluss empfiehlt es sich, noch `python manage.py migrate`,
+`python manage.py seed_initial_data` und `python manage.py test`
+auszuführen.
 
 ### Commit-Richtlinien
 
@@ -83,7 +85,7 @@ Projektordner bestehen.
 
 ## Datenbankmigrationen
 
-Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Mit
+Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Anschließend legt `python manage.py seed_initial_data` die Standarddaten erneut an. Mit
 
 ```bash
 python manage.py showmigrations
