@@ -841,10 +841,6 @@ class Migration(migrations.Migration):
             name='anlage6_note',
             field=models.TextField(blank=True, verbose_name='Prüfnotiz'),
         ),
-        migrations.AlterUniqueTogether(
-            name='anlage2functionresult',
-            unique_together=set(),
-        ),
         migrations.AddField(
             model_name='anlage2functionresult',
             name='subquestion',
