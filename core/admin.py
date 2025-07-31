@@ -20,7 +20,6 @@ from .models import (
     FunktionsErgebnis,
     FormatBParserRule,
     AntwortErkennungsRegel,
-    Anlage4ParserConfig,
     Anlage3ParserRule,
     Anlage5Review,
     SupervisionStandardNote,
@@ -239,22 +238,7 @@ class AntwortErkennungsRegelAdmin(admin.ModelAdmin):
     list_editable = ("regel_anwendungsbereich", "prioritaet")
 
 
-@admin.register(Anlage4ParserConfig)
-class Anlage4ParserConfigAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (
-            "Text-Parsing Regeln",
-            {
-                "fields": (
-                    "delimiter_phrase",
-                    "gesellschaften_phrase",
-                    "fachbereiche_phrase",
-                )
-            },
-        ),
-        ("Tabellen-Spalten", {"fields": ("table_columns",)}),
-        ("Prompts", {"fields": ("prompt_plausibility",)}),
-    )
+
 
 
 # Registrierung der Modelle
