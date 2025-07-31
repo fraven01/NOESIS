@@ -8,22 +8,255 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-# Functions from the following migrations need manual copying.
-# Move them and any dependencies into this file, then update the
-# RunPython operations to refer to the local versions:
-# core.migrations.0005_auto_20250701_2038
-# core.migrations.0006_formatbparserrule
-# core.migrations.0017_anlage2functionresult_result_fields
-# core.migrations.0019_zweckkategoriea
-# core.migrations.0027_add_anlage2_prompts
-# core.migrations.0031_anlage3_parser_rule
-# core.migrations.0033_migrate_actions_json
-# core.migrations.0034_add_subquestion_possibility_prompt
-# core.migrations.0035_actions_json_list
-# core.migrations.0037_add_anlage_datei_begruendung
-# core.migrations.0040_gap_prompts_and_fields
-# core.migrations.0042_supervision_standard_note
-# core.migrations.0047_remove_involvement_justification_prompt
+def grant_superuser_all_permissions(apps, schema_editor):
+    """Weist allen Superusern sämtliche Berechtigungen zu."""
+    User = apps.get_model("auth", "User")
+    Permission = apps.get_model("auth", "Permission")
+
+    all_permissions = list(Permission.objects.all())
+    superusers = User.objects.filter(is_superuser=True)
+    for user in superusers:
+        user.user_permissions.set(all_permissions)
+
+
+def create_initial_formatb_rules(apps, schema_editor):
+    """Legt die Standard-Parser-Regeln für Format B an."""
+    FormatBParserRule = apps.get_model("core", "FormatBParserRule")
+    FormatBParserRule.objects.bulk_create(
+        [
+            FormatBParserRule(key="tv", target_field="technisch_verfuegbar", ordering=1),
+            FormatBParserRule(key="tel", target_field="einsatz_telefonica", ordering=2),
+            FormatBParserRule(key="lv", target_field="zur_lv_kontrolle", ordering=3),
+            FormatBParserRule(key="ki", target_field="ki_beteiligung", ordering=4),
+        ]
+    )
+
+
+def copy_to_manual(apps, schema_editor):
+    Result = apps.get_model("core", "Anlage2FunctionResult")
+    for res in Result.objects.all():
+        res.manual_result = {
+            "technisch_vorhanden": res.technisch_verfuegbar,
+            "ki_beteiligung": res.ki_beteiligung,
+        }
+        res.save(update_fields=["manual_result"])
+
+
+def noop(apps, schema_editor):
+    pass
+
+
+def seed_zweckkategoriea(apps, schema_editor):
+    """Füllt die Tabelle ZweckKategorieA mit Standardwerten."""
+    ZweckKategorieA = apps.get_model("core", "ZweckKategorieA")
+    ZweckKategorieA.objects.bulk_create(
+        [
+            ZweckKategorieA(
+                beschreibung="Leistungsvergleiche von Mitarbeitern oder Mitarbeitergruppen (wenn eine der Gruppen nicht größer als 5 Personen ist)."
+            ),
+            ZweckKategorieA(
+                beschreibung="Abgleich von Verhalten oder Leistung eines Mitarbeiters oder einer Mitarbeitergruppe (wenn eine der Gruppen nicht größer als 5 Personen ist) mit bestimmten Durchschnittsleistungen von Mitarbeitergruppen."
+            ),
+            ZweckKategorieA(
+                beschreibung="Messung der Qualität oder Quantität der Leistung eines Mitarbeiters oder von Kenntnissen oder Fähigkeiten, um das Ergebnis der Messung mit einem Sollwert oder Vorgaben (z. B. betriebliche Ziele) abzugleichen."
+            ),
+            ZweckKategorieA(beschreibung="Messung der Auslastung von Mitarbeitern."),
+            ZweckKategorieA(
+                beschreibung="Feststellung der vergangenheitsbezogenen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit eines Mitarbeiters."
+            ),
+            ZweckKategorieA(
+                beschreibung="Feststellung der Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
+            ),
+            ZweckKategorieA(
+                beschreibung="Feststellung der zukünftigen Termine bzw. Erreichbarkeit oder persönlichen Verfügbarkeit des Mitarbeiters in Echtzeit."
+            ),
+            ZweckKategorieA(
+                beschreibung="Erstellung von Bewertungen von Leistung oder Verhalten von Mitarbeitern (z. B. Zeugnisse, Scorecards etc.)."
+            ),
+            ZweckKategorieA(
+                beschreibung="Identifikation von Mitarbeitern nach bestimmten Skills (Kenntnisse, Fähigkeiten und Erfahrungen)."
+            ),
+            ZweckKategorieA(beschreibung="Erstellung von Persönlichkeitsprofilen."),
+            ZweckKategorieA(
+                beschreibung="Ermittlung des aktuellen Arbeitsortes/Aufenthaltsortes."
+            ),
+        ]
+    )
+
+
+def add_prompts(apps, schema_editor):
+    Prompt = apps.get_model("core", "Prompt")
+    prompts = [
+        (
+            "anlage2_subquestion_justification_check",
+            " [SYSTEM]\nDu bist Fachautor*in für IT-Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG).\n"
+            "Antworte Unterfrage prägnant in **maximal zwei Sätzen** (insgesamt ≤ 65 Wörter) und erfülle folgende Regeln :\n\n"
+            "1. Starte Teil A mit „Typischer Zweck: …“  \n2. Starte Teil B mit „Kontrolle: Ja, …“ oder „Kontrolle: Nein, …“.  \n"
+            "3. Nenne exakt die übergebene Funktion/Eigenschaft, erfinde nichts dazu.  \n"
+            "4. Erkläre knapp *warum* mit der Funktion die Unterfrage (oder warum nicht) eine Leistungs- oder Verhaltenskontrolle möglich ist.  \n"
+            "5. Verwende Alltagssprache, keine Marketing-Floskeln.\n\n"
+            " [USER]\nSoftware: {{software_name}}  \nFunktion/Eigenschaft: {{function_name}}  \nUnterfrage: \"{{subquestion_text}}\"",
+        ),
+        (
+            "anlage2_ai_verification_prompt",
+            "Gib eine kurze Begründung, warum die Funktion '{function_name}' (oder die Unterfrage '{subquestion_text}') der Software '{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten oder nicht-deterministischer Ergebnisse.",
+        ),
+    ]
+    for name, text in prompts:
+        Prompt.objects.update_or_create(name=name, defaults={"text": text})
+
+
+def seed_anlage3_parser_rules(apps, schema_editor):
+    """Erzeugt die Standardregeln für Anlage 3."""
+    Anlage3ParserRule = apps.get_model("core", "Anlage3ParserRule")
+    Anlage3ParserRule.objects.create(
+        field_name="name",
+        aliases=["name der auswertung", "name", "bezeichnung"],
+        ordering=1,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="beschreibung",
+        aliases=["beschreibung", "kurzbeschreibung"],
+        ordering=2,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="zeitraum",
+        aliases=["zeitraum", "auswertungszeitraum"],
+        ordering=3,
+    )
+    Anlage3ParserRule.objects.create(
+        field_name="art",
+        aliases=["art der auswertung", "auswertungsart", "typ"],
+        ordering=4,
+    )
+
+
+def migrate_actions_json_forwards(apps, schema_editor):
+    Rule = apps.get_model("core", "AntwortErkennungsRegel")
+    for rule in Rule.objects.all():
+        if not rule.actions_json and getattr(rule, "ziel_feld", None):
+            rule.actions_json = {rule.ziel_feld: rule.wert}
+            rule.save(update_fields=["actions_json"])
+
+
+def migrate_actions_json_noop(apps, schema_editor):
+    pass
+
+
+def add_prompt(apps, schema_editor):
+    Prompt = apps.get_model("core", "Prompt")
+    Prompt.objects.update_or_create(
+        name="anlage2_subquestion_possibility_check",
+        defaults={
+            "text": (
+                "Im Kontext der Funktion '{function_name}' der Software '{software_name}': "
+                "Ist die spezifische Anforderung '{subquestion_text}' technisch möglich? "
+                "Antworte nur mit 'Ja', 'Nein' oder 'Unsicher'."
+            )
+        },
+    )
+
+
+def actions_json_list_forwards(apps, schema_editor):
+    Rule = apps.get_model("core", "AntwortErkennungsRegel")
+    for rule in Rule.objects.all():
+        data = rule.actions_json
+        if isinstance(data, dict):
+            rule.actions_json = [{"field": k, "value": v} for k, v in data.items()]
+            rule.save(update_fields=["actions_json"])
+
+
+def actions_json_list_backwards(apps, schema_editor):
+    Rule = apps.get_model("core", "AntwortErkennungsRegel")
+    for rule in Rule.objects.all():
+        data = rule.actions_json
+        if isinstance(data, list):
+            out = {}
+            for obj in data:
+                field = obj.get("field")
+                if not field:
+                    continue
+                out[field] = obj.get("value")
+            rule.actions_json = out
+            rule.save(update_fields=["actions_json"])
+
+
+def set_anlage_datei_for_existing_results(apps, schema_editor):
+    FunktionsErgebnis = apps.get_model("core", "FunktionsErgebnis")
+    BVProjectFile = apps.get_model("core", "BVProjectFile")
+    for res in FunktionsErgebnis.objects.all():
+        pf = (
+            BVProjectFile.objects.filter(projekt=res.projekt, anlage_nr=2)
+            .order_by("id")
+            .first()
+        )
+        if pf:
+            res.anlage_datei_id = pf.id
+            res.save(update_fields=["anlage_datei"])
+
+
+def add_gap_prompts(apps, schema_editor):
+    Prompt = apps.get_model("core", "Prompt")
+    prompts = [
+        (
+            "gap_summary_internal",
+            "**INTERNE GAP-ANALYSE**\n\n**Funktion/Unterfrage:** \"{funktion} {unterfrage}\"\n\n**Konflikt:**\n- Dokumenten-Analyse: {dokument_wert}\n- KI-Einschätzung: {ki_wert}\n- Manuelle Bewertung durch Prüfer: {manueller_wert}\n\n**Ursprüngliche KI-Begründung:**\n{ki_begruendung}\n\n**Deine Aufgabe:**\nFormuliere eine prägnante, technische Zusammenfassung des Gaps für die interne Akte. Begründe den Kern des Konflikts zwischen den Bewertungen."
+        ),
+        (
+            "gap_communication_external",
+            "**RÜCKFRAGE AN FACHBEREICH**\n\n**Funktion/Unterfrage:** \"{funktion}\"\n\n**Kontext der automatisierten Prüfung:**\nUnsere automatisierte Analyse der eingereichten Unterlagen hat für diese Funktion ein Gap ergeben. Eine automatisierte Einschätzung kommt zu dem Ergebnis \"{ki_wert}\".\n\n**Deine Aufgabe:**\nFormuliere eine freundliche und kollaborative Rückfrage an den Fachbereich. Erkläre höflich, dass es hier eine Abweichung zur manuellen Prüfung gibt und bitte um eine kurze Überprüfung oder zusätzliche Erläuterung der Funktion, um das Missverständnis aufzuklären. Füge keine Einleitung oder Abschlußworte hinzu."
+        ),
+    ]
+    for name, text in prompts:
+        Prompt.objects.update_or_create(name=name, defaults={"text": text, "use_system_role": True})
+
+
+def remove_gap_prompts(apps, schema_editor):
+    Prompt = apps.get_model("core", "Prompt")
+    Prompt.objects.filter(name__in=["gap_summary_internal", "gap_communication_external"]).delete()
+
+
+def add_default_notes(apps, schema_editor):
+    Note = apps.get_model("core", "SupervisionStandardNote")
+    defaults = [
+        "Kein mitbest. relevanter Einsatz",
+        "Lizenz-/kostenpflichtig",
+        "Geplant, aber nicht aktiv",
+    ]
+    for order, text in enumerate(defaults, start=1):
+        Note.objects.get_or_create(note_text=text, defaults={"display_order": order})
+
+
+def remove_default_notes(apps, schema_editor):
+    Note = apps.get_model("core", "SupervisionStandardNote")
+    Note.objects.filter(
+        note_text__in=[
+            "Kein mitbest. relevanter Einsatz",
+            "Lizenz-/kostenpflichtig",
+            "Geplant, aber nicht aktiv",
+        ]
+    ).delete()
+
+
+def forwards_func(apps, schema_editor):
+    """Löscht den ungenutzten Prompt."""
+    Prompt = apps.get_model("core", "Prompt")
+    Prompt.objects.filter(name="anlage2_ai_involvement_justification").delete()
+
+
+def reverse_func(apps, schema_editor):
+    """Stellt den gelöschten Prompt wieder her."""
+    Prompt = apps.get_model("core", "Prompt")
+    text = (
+        "Gib eine kurze Begründung, warum die Funktion '{function_name}' "
+        "(oder die Unterfrage '{subquestion_text}') der Software '{software_name}' "
+        "eine KI-Komponente beinhaltet oder beinhalten kann, insbesondere im "
+        "Hinblick auf die Verarbeitung unstrukturierter Daten oder nicht-deterministischer "
+        "Ergebnisse."
+    )
+    Prompt.objects.update_or_create(
+        name="anlage2_ai_involvement_justification", defaults={"text": text}
+    )
 
 class Migration(migrations.Migration):
 
@@ -384,7 +617,7 @@ class Migration(migrations.Migration):
             field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='auth.permission', verbose_name='Benötigte Berechtigung'),
         ),
         migrations.RunPython(
-            code=core.migrations.0005_auto_20250701_2038.grant_superuser_all_permissions,
+            code=grant_superuser_all_permissions,
         ),
         migrations.CreateModel(
             name='FormatBParserRule',
@@ -399,7 +632,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0006_formatbparserrule.create_initial_formatb_rules,
+            code=create_initial_formatb_rules,
         ),
         migrations.AddField(
             model_name='anlage2function',
@@ -497,8 +730,8 @@ class Migration(migrations.Migration):
             field=models.JSONField(blank=True, null=True),
         ),
         migrations.RunPython(
-            code=core.migrations.0017_anlage2functionresult_result_fields.copy_to_manual,
-            reverse_code=core.migrations.0017_anlage2functionresult_result_fields.noop,
+            code=copy_to_manual,
+            reverse_code=noop,
         ),
         migrations.AddField(
             model_name='bvprojectfile',
@@ -518,7 +751,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0019_zweckkategoriea.seed_zweckkategoriea,
+            code=seed_zweckkategoriea,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AddField(
@@ -600,7 +833,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0027_add_anlage2_prompts.add_prompts,
+            code=add_prompts,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AddField(
@@ -651,7 +884,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0031_anlage3_parser_rule.seed_anlage3_parser_rules,
+            code=seed_anlage3_parser_rules,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AddField(
@@ -675,8 +908,8 @@ class Migration(migrations.Migration):
             field=models.CharField(choices=[('auto', 'Automatisch'), ('table_only', 'Nur Tabellen'), ('text_only', 'Nur Text'), ('exact_only', 'Nur Exakt')], default='auto', max_length=20),
         ),
         migrations.RunPython(
-            code=core.migrations.0033_migrate_actions_json.forwards,
-            reverse_code=core.migrations.0033_migrate_actions_json.noop,
+            code=migrate_actions_json_forwards,
+            reverse_code=migrate_actions_json_noop,
         ),
         migrations.RemoveField(
             model_name='antworterkennungsregel',
@@ -687,7 +920,7 @@ class Migration(migrations.Migration):
             name='wert',
         ),
         migrations.RunPython(
-            code=core.migrations.0034_add_subquestion_possibility_prompt.add_prompt,
+            code=add_prompt,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AlterField(
@@ -696,8 +929,8 @@ class Migration(migrations.Migration):
             field=models.JSONField(blank=True, default=list, help_text='Aktionen als Liste von Objekten.'),
         ),
         migrations.RunPython(
-            code=core.migrations.0035_actions_json_list.forwards,
-            reverse_code=core.migrations.0035_actions_json_list.backwards,
+            code=actions_json_list_forwards,
+            reverse_code=actions_json_list_backwards,
         ),
         migrations.RemoveField(
             model_name='anlage2functionresult',
@@ -736,7 +969,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0037_add_anlage_datei_begruendung.set_anlage_datei_for_existing_results,
+            code=set_anlage_datei_for_existing_results,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.RenameModel(
@@ -797,8 +1030,8 @@ class Migration(migrations.Migration):
             field=models.TextField(blank=True, null=True),
         ),
         migrations.RunPython(
-            code=core.migrations.0040_gap_prompts_and_fields.add_gap_prompts,
-            reverse_code=core.migrations.0040_gap_prompts_and_fields.remove_gap_prompts,
+            code=add_gap_prompts,
+            reverse_code=remove_gap_prompts,
         ),
         migrations.AddField(
             model_name='anlagenfunktionsmetadaten',
@@ -820,8 +1053,8 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=core.migrations.0042_supervision_standard_note.add_default_notes,
-            reverse_code=core.migrations.0042_supervision_standard_note.remove_default_notes,
+            code=add_default_notes,
+            reverse_code=remove_default_notes,
         ),
         migrations.AddField(
             model_name='bvprojectfile',
@@ -855,8 +1088,8 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.RunPython(
-            code=core.migrations.0047_remove_involvement_justification_prompt.forwards_func,
-            reverse_code=core.migrations.0047_remove_involvement_justification_prompt.reverse_func,
+            code=forwards_func,
+            reverse_code=reverse_func,
         ),
         migrations.AddField(
             model_name='funktionsergebnis',
