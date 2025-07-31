@@ -298,7 +298,7 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
         ("|" in line and line.count("|") >= 1) or "\t" in line for line in lines
     )
     if table_like:
-        base_obj = Prompt.objects.filter(name="anlage2_table").first()
+        base_obj = Prompt.objects.filter(name__iexact="anlage2_table").first()
         prompt_text = (
             base_obj.text
             if base_obj
@@ -540,7 +540,7 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
 def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
-    base_obj = Prompt.objects.filter(name="classify_system").first()
+    base_obj = Prompt.objects.filter(name__iexact="classify_system").first()
     prefix = (
         base_obj.text
         if base_obj
@@ -578,7 +578,7 @@ def generate_gutachten(
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
     if text is None:
-        base_obj = Prompt.objects.filter(name="generate_gutachten").first()
+        base_obj = Prompt.objects.filter(name__iexact="generate_gutachten").first()
         prefix = (
             base_obj.text
             if base_obj
@@ -641,7 +641,7 @@ def worker_generate_gutachten(
         return ""
     model = LLMConfig.get_default("gutachten")
 
-    base_obj = Prompt.objects.filter(name="generate_gutachten").first()
+    base_obj = Prompt.objects.filter(name__iexact="generate_gutachten").first()
     prefix = (
         base_obj.text
         if base_obj
@@ -766,7 +766,7 @@ def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict
     if not anlagen:
         raise ValueError("Anlage 3 fehlt")
 
-    prompt_obj = Prompt.objects.filter(name="check_anlage3_vision").first()
+    prompt_obj = Prompt.objects.filter(name__iexact="check_anlage3_vision").first()
     prompt = (
         prompt_obj.text
         if prompt_obj
@@ -819,7 +819,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     ) as exc:  # pragma: no cover - Test deckt Abwesenheit nicht ab
         raise ValueError(f"Anlage {nr} fehlt") from exc
 
-    base_obj = Prompt.objects.filter(name=f"check_anlage{nr}").first()
+    base_obj = Prompt.objects.filter(name__iexact=f"check_anlage{nr}").first()
     prefix = (
         base_obj.text
         if base_obj
@@ -1822,7 +1822,7 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
         raise ValueError("kein Gutachten")
     path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
     text = extract_text(path)
-    base_obj = Prompt.objects.filter(name="check_gutachten_functions").first()
+    base_obj = Prompt.objects.filter(name__iexact="check_gutachten_functions").first()
     prefix = (
         base_obj.text
         if base_obj
@@ -1900,27 +1900,10 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         "ki_begruendung": getattr(ai_entry, "begruendung", ""),
     }
 
-    prompt_internal = Prompt.objects.filter(name="gap_summary_internal").first()
-    if not prompt_internal:
-        prompt_internal = Prompt(name="tmp", text="Formuliere eine technische Zusammenfassung des Konflikts.")
-    internal = query_llm(
-        prompt_internal,
-        context,
-        model_name=model_name,
-        model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt_internal.use_project_context else None,
-    ).strip()
 
-    prompt_external = Prompt.objects.filter(name="gap_communication_external").first()
-    if not prompt_external:
-        prompt_external = Prompt(name="tmp", text="Formuliere eine freundliche Rückfrage an den Fachbereich.")
-    external = query_llm(
-        prompt_external,
-        context,
-        model_name=model_name,
-        model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt_external.use_project_context else None,
-    ).strip()
+    internal = ""
+    external = ""
+
 
     res.gap_notiz = internal
     res.gap_summary = external
@@ -1932,8 +1915,6 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
         funktion=res.funktion,
         subquestion=res.subquestion,
         quelle="gap",
-        gap_begruendung_intern=internal,
-        gap_begruendung_extern=external,
     )
 
     logger.info("worker_generate_gap_summary beendet für Result %s", result_id)
@@ -2059,7 +2040,7 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
         if entry["hinweis"]:
             gap_list_string += f"  - Notiz (intern): {entry['hinweis']}\n"
 
-    prompt_template = Prompt.objects.filter(name="gap_report_anlage1").first()
+    prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage1").first()
     if not prompt_template:
         return "[FEHLER: Prompt 'gap_report_anlage1' nicht gefunden]"
 
@@ -2133,7 +2114,7 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
         if entry["intern"]:
             gap_list_string += f"  - Notiz (intern): {entry['intern']}\n"
 
-    prompt_template = Prompt.objects.filter(name="gap_report_anlage2").first()
+    prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage2").first()
     if not prompt_template:
         return "[FEHLER: Prompt 'gap_report_anlage2' nicht gefunden]"
 

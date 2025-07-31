@@ -4,18 +4,14 @@
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }} bearbeiten</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
-    <textarea id="gutachten-text" name="text" rows="20" class="w-full border rounded p-2">{{ text }}</textarea>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    {% include 'partials/markdown_editor.html' with id_prefix='gutachten' text=text name='text' %}
 </form>
 {% endblock %}
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-{% endblock %}
+{% block extra_head %}{% endblock %}
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    new EasyMDE({ element: document.getElementById('gutachten-text') });
+    initMarkdownEditor('gutachten');
   });
 </script>
 {% endblock %}
