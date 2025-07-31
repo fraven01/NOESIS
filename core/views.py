@@ -1674,12 +1674,11 @@ def admin_prompts(request):
         "anlage3": [],
         "anlage4": [],
     }
-    anlage2_extra = {"gap_summary_internal", "gap_communication_external"}
     for p in prompts:
         name = p.name.lower()
         if "anlage1" in name:
             groups["anlage1"].append(p)
-        elif "anlage2" in name or p.name in anlage2_extra:
+        elif "anlage2" in name:
             groups["anlage2"].append(p)
         elif "anlage3" in name:
             groups["anlage3"].append(p)

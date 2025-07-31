@@ -1033,8 +1033,6 @@ class FunktionsErgebnis(models.Model):
     ki_beteiligung = models.BooleanField(null=True)
     ki_beteiligt_begruendung = models.TextField(blank=True, null=True)
     begruendung = models.TextField(blank=True, null=True)
-    gap_begruendung_intern = models.TextField(blank=True, null=True)
-    gap_begruendung_extern = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
