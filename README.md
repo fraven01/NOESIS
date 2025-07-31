@@ -49,6 +49,7 @@ Für alle Django-Managementbefehle muss die Umgebungsvariable
 `DJANGO_SECRET_KEY` gesetzt sein. Beim Aufruf von
 `python manage.py test` wird automatisch `dummy_test_key` verwendet,
 falls keine Variable vorhanden ist.
+Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.txt` ausgeführt worden sein, damit alle benötigten Module verfügbar sind.
 
 ## Tests und Checks
 
