@@ -58,8 +58,9 @@ Vor jedem Commit **muss** laut `AGENTS.md` folgender Befehl erfolgreich laufen:
 python manage.py makemigrations --check
 ```
 
-Im Anschluss empfiehlt es sich, noch `python manage.py migrate` und
-`python manage.py test` auszuführen.
+Im Anschluss empfiehlt es sich, noch `python manage.py migrate`,
+`python manage.py seed_initial_data` und `python manage.py test`
+auszuführen.
 
 ### Commit-Richtlinien
 
@@ -83,7 +84,7 @@ Projektordner bestehen.
 
 ## Datenbankmigrationen
 
-Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Mit
+Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Anschließend legt `python manage.py seed_initial_data` die Standarddaten erneut an. Mit
 
 ```bash
 python manage.py showmigrations
