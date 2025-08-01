@@ -10,6 +10,7 @@ def admin_required(view_func):
         if user.is_superuser or user.groups.filter(name="admin").exists():
             return view_func(request, *args, **kwargs)
         return HttpResponseForbidden("Nicht berechtigt")
+
     return _wrapped
 
 
@@ -28,10 +29,15 @@ def tile_required(slug: str):
                 return HttpResponseForbidden("Nicht berechtigt")
 
             if tile.permission:
-                perm = f"{tile.permission.content_type.app_label}.{tile.permission.codename}"
+                perm = (
+                    f"{tile.permission.content_type.app_label}"
+                    f".{tile.permission.codename}"
+                )
                 if user.has_perm(perm):
                     return view_func(request, *args, **kwargs)
             if tile.users.filter(pk=user.pk).exists():
+                return view_func(request, *args, **kwargs)
+            if tile.groups.filter(id__in=request.user.groups.all()).exists():
                 return view_func(request, *args, **kwargs)
             return HttpResponseForbidden("Nicht berechtigt")
 
