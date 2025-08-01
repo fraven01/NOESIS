@@ -13,7 +13,6 @@
             <th class="py-2">Name</th>
             <th class="py-2">E-Mail</th>
             <th class="py-2">Gruppen</th>
-            <th class="py-2">Areas</th>
             <th class="py-2">Tiles</th>
             <th class="py-2 text-center">Aktion</th>
         </tr>
@@ -24,7 +23,6 @@
             <td class="py-1">{{ u.get_full_name|default:u.username }}</td>
             <td class="py-1">{{ u.email }}</td>
             <td class="py-1">{{ u.groups.all|join:", " }}</td>
-            <td class="py-1">{{ u.areas.all|join:", " }}</td>
             <td class="py-1">{{ u.tiles.all|join:", " }}</td>
             <td class="py-1 text-center">
                 <a href="{% url 'admin_edit_user_permissions' u.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Berechtigungen bearbeiten</a>

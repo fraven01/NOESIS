@@ -898,12 +898,6 @@ class SupervisionStandardNoteForm(forms.ModelForm):
 class UserPermissionsForm(forms.Form):
     """Formular zur Bearbeitung von Benutzerrechten."""
 
-    areas = forms.ModelMultipleChoiceField(
-        queryset=Area.objects.none(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False,
-        label="Areas",
-    )
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.none(),
         widget=forms.CheckboxSelectMultiple,
@@ -921,11 +915,9 @@ class UserPermissionsForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["groups"].queryset = Group.objects.all()
         self.fields["tiles"].queryset = Tile.objects.all()
-        self.fields["areas"].queryset = Area.objects.all()
         if user is not None:
             self.fields["groups"].initial = user.groups.all()
             self.fields["tiles"].initial = user.tiles.all()
-            self.fields["areas"].initial = user.areas.all()
 
 
 class UserImportForm(forms.Form):
