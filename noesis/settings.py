@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import sys
 import secrets
+from typing import Any, Dict
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
@@ -92,8 +93,12 @@ WSGI_APPLICATION = "noesis.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
+POSTGRES_VARS = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST"]
+
+def _postgres_config() -> Dict[str, Any]:
+    """Liefert die Einstellungen für PostgreSQL."""
+
+    return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("DB_NAME", "noesis_db"),
         "USER": os.environ.get("DB_USER", secrets.token_hex(8)),
@@ -101,7 +106,18 @@ DATABASES = {
         "HOST": os.environ.get("DB_HOST", "localhost"),
         "PORT": os.environ.get("DB_PORT", "5432"),
     }
-}
+
+if all(os.environ.get(var) for var in POSTGRES_VARS):
+    # Verwendung der konfigurierten PostgreSQL-Datenbank
+    DATABASES = {"default": _postgres_config()}
+else:
+    # Fallback auf SQLite in der Entwicklungsumgebung
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
