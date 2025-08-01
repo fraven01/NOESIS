@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
 
-from core.migrations.0002_seed_initial_data import (
+from core.initial_data_constants import (
     INITIAL_AREAS,
     INITIAL_PROJECT_STATUSES,
     INITIAL_LLM_ROLES,
