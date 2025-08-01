@@ -88,13 +88,15 @@ class TileAdminForm(forms.ModelForm):
     )
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.all(),
+
         required=False,
         widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
     )
     users = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
+
         required=False,
-        widget=FilteredSelectMultiple("Benutzer", is_stacked=False),
+        widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
     )
     url_name = forms.ChoiceField(choices=[])  # wird im __init__ befüllt
 
@@ -110,6 +112,7 @@ class TileAdminForm(forms.ModelForm):
             self.fields["areas"].initial = self.instance.areas.all()
             self.fields["groups"].initial = self.instance.groups.all()
             self.fields["users"].initial = self.instance.users.all()
+
 
     def save(self, commit=True):
         tile = super().save(commit)
