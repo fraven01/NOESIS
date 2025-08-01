@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
 from django.db import models
 from django_q.tasks import async_task, fetch
@@ -493,12 +493,11 @@ class Area(models.Model):
         help_text="Einzigartiger Name des Bereichs, z.B. 'work' oder 'personal'",
     )
     image = models.ImageField(upload_to="area_images/", blank=True, null=True)
-    users = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="UserAreaAccess",
+    groups = models.ManyToManyField(
+        Group,
         related_name="areas",
         blank=True,
-        help_text="Benutzer mit Zugriff auf diesen Bereich.",
+        help_text="Gruppen mit Zugriff auf diesen Bereich.",
     )
 
     class Meta:
@@ -888,6 +887,12 @@ class Tile(models.Model):
         through="UserTileAccess",
         related_name="tiles",
     )
+    groups = models.ManyToManyField(
+        Group,
+        related_name="tiles",
+        blank=True,
+        help_text="Gruppen mit Zugriff auf diese Kachel.",
+    )
 
     class Meta:
         ordering = ["slug"]
@@ -909,17 +914,6 @@ class UserTileAccess(models.Model):
         return f"{self.user} -> {self.tile}"
 
 
-class UserAreaAccess(models.Model):
-    """Verknüpfung zwischen Benutzer und Bereich."""
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    area = models.ForeignKey(Area, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = [("user", "area")]
-
-    def __str__(self) -> str:  # pragma: no cover - trivial
-        return f"{self.user} -> {self.area}"
 
 
 class Anlage2Function(models.Model):

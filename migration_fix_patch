@@ -1,0 +1,14 @@
+--- a/core/migrations/0001_squashed_0050_remove_funktionsergebnis_gap_begruendung_extern_and_more.py
++++ b/core/migrations/0001_squashed_0050_remove_funktionsergebnis_gap_begruendung_extern_and_more.py
+@@ -874,10 +874,6 @@
+             model_name='anlage2functionresult',
+             name='anlage6_note',
+             field=models.TextField(blank=True, verbose_name='Prüfnotiz'),
+         ),
+-        migrations.AlterUniqueTogether(
+-            name='anlage2functionresult',
+-            unique_together=set(),
+-        ),
+         migrations.AddField(
+             model_name='anlage2functionresult',
+             name='subquestion',
