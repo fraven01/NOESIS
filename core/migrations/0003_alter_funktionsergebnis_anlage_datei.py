@@ -5,9 +5,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("core", "0001_initial"),
+        ("core", "0002_group_access_relations"),
     ]
 
     operations = [
