@@ -88,6 +88,13 @@ class TileAdminForm(forms.ModelForm):
     )
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.all(),
+
+        required=False,
+        widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
+    )
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+
         required=False,
         widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
     )
@@ -104,12 +111,15 @@ class TileAdminForm(forms.ModelForm):
         if self.instance.pk:
             self.fields["areas"].initial = self.instance.areas.all()
             self.fields["groups"].initial = self.instance.groups.all()
+            self.fields["users"].initial = self.instance.users.all()
+
 
     def save(self, commit=True):
         tile = super().save(commit)
         if commit:
             tile.areas.set(self.cleaned_data["areas"])
             tile.groups.set(self.cleaned_data["groups"])
+            tile.users.set(self.cleaned_data["users"])
         return tile
 
 
