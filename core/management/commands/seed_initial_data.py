@@ -44,33 +44,22 @@ def create_initial_data(apps) -> None:
     Anlage3ParserRule = apps.get_model("core", "Anlage3ParserRule")
     Prompt = apps.get_model("core", "Prompt")
     SupervisionStandardNote = apps.get_model("core", "SupervisionStandardNote")
-    User = apps.get_model("auth", "User")
-
-    all_users = User.objects.all()
-
-    users_group, _ = Group.objects.get_or_create(name="users")
-    admin_group, _ = Group.objects.get_or_create(name="admin")
-
-    for u in all_users:
-        users_group.user_set.add(u)
-        if u.is_superuser:
-            admin_group.user_set.add(u)
+    standard_group, _ = Group.objects.get_or_create(name="Standard-Benutzer")
+    admin_group, _ = Group.objects.get_or_create(name="Projekt-Admins")
 
     print("\n--- Start: Erstelle initiale Daten ---")
 
     # 1. Bereiche und Kacheln
     print("\n[1] Verarbeite Bereiche und Kacheln...")
-    if not all_users.exists():
-        print("WARNUNG: Keine Benutzer gefunden. Kacheln werden erstellt, aber niemandem zugewiesen.")
     for area_slug, area_data in INITIAL_AREAS.items():
         area, _ = Area.objects.update_or_create(slug=area_slug, defaults={"name": area_data["name"]})
         if area_slug == "work":
-            allowed_users = list(users_group.user_set.all()) + list(admin_group.user_set.all())
+            allowed_groups = [standard_group, admin_group]
         elif area_slug == "personal":
-            allowed_users = list(admin_group.user_set.all())
+            allowed_groups = [admin_group]
         else:
-            allowed_users = list(all_users)
-        area.users.set(allowed_users)
+            allowed_groups = [standard_group, admin_group]
+        area.groups.set(allowed_groups)
         for tile_data in area_data["tiles"]:
             tile, _ = Tile.objects.update_or_create(
                 slug=tile_data["slug"],
@@ -81,7 +70,7 @@ def create_initial_data(apps) -> None:
                 },
             )
             tile.areas.add(area)
-            tile.users.add(*allowed_users)
+            tile.groups.add(*allowed_groups)
 
     # 2. Projekt-Status
     print("\n[2] Verarbeite Projekt-Status...")
