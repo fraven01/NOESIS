@@ -59,10 +59,8 @@ from .forms import (
     get_parser_choices,
     EditJustificationForm,
     JustificationForm,
-
     KnowledgeDescriptionForm,
     ProjectContextForm,
-
     ProjectStatusForm,
     ProjectStatusImportForm,
     LLMRoleForm,
@@ -79,7 +77,6 @@ from .forms import (
     ParserSettingsForm,
     ActionForm,
     Anlage3ParserRuleForm,
-
 )
 from .text_parser import PHRASE_TYPE_CHOICES
 from .models import (
@@ -150,6 +147,7 @@ class StaffRequiredMixin(UserPassesTestMixin):
     def test_func(self) -> bool:
         return self.request.user.is_staff
 
+
 import logging
 import sys
 import copy
@@ -198,7 +196,10 @@ def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
         return True
     if hasattr(projekt, "user") and projekt.user_id == user.id:
         return True
-    if hasattr(projekt, "team_members") and projekt.team_members.filter(pk=user.pk).exists():
+    if (
+        hasattr(projekt, "team_members")
+        and projekt.team_members.filter(pk=user.pk).exists()
+    ):
         return True
     return False
 
@@ -259,8 +260,6 @@ def _normalize_fields(data: dict | str | None) -> dict:
     if not isinstance(data, dict):
         return {}
     return {FIELD_RENAME.get(k, k): v for k, v in data.items()}
-
-
 
 
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
@@ -415,7 +414,9 @@ def _initial_to_lookup(data: dict) -> dict[str, dict]:
     """Wandelt das Initialformat in ein Lookup nach Namen um."""
     lookup: dict[str, dict] = {}
     fields = get_anlage2_fields()
-    for func in Anlage2Function.objects.prefetch_related("anlage2subquestion_set").order_by("name"):
+    for func in Anlage2Function.objects.prefetch_related(
+        "anlage2subquestion_set"
+    ).order_by("name"):
         fid = str(func.id)
         func_data = data.get("functions", {}).get(fid)
         if isinstance(func_data, dict):
@@ -504,9 +505,7 @@ def _get_display_data(
     }
 
 
-def _has_manual_gap(
-    doc_data: dict, ai_data: dict, manual_data: dict
-) -> bool:
+def _has_manual_gap(doc_data: dict, ai_data: dict, manual_data: dict) -> bool:
     """Prüft, ob ein manueller Wert einen neuen GAP erzeugt."""
 
     for field, _ in get_anlage2_fields():
@@ -579,13 +578,17 @@ def _build_row_data(
             "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
             "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
             "begruendung": parser_entry.begruendung if parser_entry else None,
-            "ki_beteiligt_begruendung": parser_entry.ki_beteiligt_begruendung if parser_entry else None,
+            "ki_beteiligt_begruendung": parser_entry.ki_beteiligt_begruendung
+            if parser_entry
+            else None,
         }
         ai_data = {
             "technisch_vorhanden": ai_entry.technisch_verfuegbar if ai_entry else None,
             "ki_beteiligung": ai_entry.ki_beteiligung if ai_entry else None,
             "begruendung": ai_entry.begruendung if ai_entry else None,
-            "ki_beteiligt_begruendung": ai_entry.ki_beteiligt_begruendung if ai_entry else None,
+            "ki_beteiligt_begruendung": ai_entry.ki_beteiligt_begruendung
+            if ai_entry
+            else None,
         }
     else:
         doc_data = {}
@@ -609,7 +612,9 @@ def _build_row_data(
         state = (
             "true"
             if initial_value is True
-            else "false" if initial_value is False else "unknown"
+            else "false"
+            if initial_value is False
+            else "unknown"
         )
         origin_val = "none"
         if field == "technisch_vorhanden":
@@ -627,14 +632,19 @@ def _build_row_data(
             "data-origin": origin_val,
         }
         if field == "technisch_vorhanden" and sub_id is not None:
-            attrs.update({"disabled": True, "class": "disabled-field", "data-initial-state": "unknown"})
+            attrs.update(
+                {
+                    "disabled": True,
+                    "class": "disabled-field",
+                    "data-initial-state": "unknown",
+                }
+            )
         bf.field.widget.attrs.update(attrs)
         form_fields_map[field] = {
             "widget": bf,
             "source": disp["sources"][field],
             "origin": rev_origin.get(field),
         }
-
 
     auto_val = _calc_auto_negotiable(
         doc_data.get("technisch_vorhanden"), ai_data.get("technisch_vorhanden")
@@ -684,7 +694,9 @@ def _build_row_data(
         "gap_notiz_widget": note_widget,
         "gap_notiz": result_obj.gap_notiz if result_obj else "",
         "gap_summary": result_obj.gap_summary if result_obj else "",
-        "has_notes": bool(result_obj and (result_obj.gap_notiz or result_obj.gap_summary)),
+        "has_notes": bool(
+            result_obj and (result_obj.gap_notiz or result_obj.gap_summary)
+        ),
         "sub": sub_id is not None,
         "func_id": func_id,
         "sub_id": sub_id,
@@ -702,7 +714,9 @@ def _build_row_data(
     }
 
 
-def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile) -> dict:
+def _build_supervision_row(
+    result: AnlagenFunktionsMetadaten, pf: BVProjectFile
+) -> dict:
     """Erzeugt eine einfache Datenstruktur für die Supervisions-Ansicht."""
 
     parser_entry = (
@@ -744,9 +758,7 @@ def _build_supervision_row(result: AnlagenFunktionsMetadaten, pf: BVProjectFile)
         has_discrepancy = doc_val is not None and final_val != doc_val
     else:
         has_discrepancy = (
-            doc_val is not None
-            and ai_val is not None
-            and doc_val != ai_val
+            doc_val is not None and ai_val is not None and doc_val != ai_val
         )
 
     return {
@@ -777,7 +789,9 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
         if not row_data["has_discrepancy"]:
             continue
         key = r.funktion_id
-        grouped.setdefault(key, {"function": None, "subrows": [], "name": r.funktion.name})
+        grouped.setdefault(
+            key, {"function": None, "subrows": [], "name": r.funktion.name}
+        )
         if r.subquestion_id:
             grouped[key]["subrows"].append(row_data)
         else:
@@ -794,11 +808,13 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
         present = func["final_val"] if func else None
         if present is None and func:
             present = func["doc_val"] if func["doc_val"] is not None else func["ai_val"]
-        groups.append({
-            "function": func,
-            "subrows": subrows,
-            "show_subs": bool(present),
-        })
+        groups.append(
+            {
+                "function": func,
+                "subrows": subrows,
+                "show_subs": bool(present),
+            }
+        )
     return groups
 
 
@@ -1434,7 +1450,9 @@ def admin_projects(request):
 
     software_filter = request.GET.get("software", "")
     if software_filter:
-        projects = projects.filter(bvsoftware__name__icontains=software_filter).distinct()
+        projects = projects.filter(
+            bvsoftware__name__icontains=software_filter
+        ).distinct()
 
     context = {
         "projects": projects,
@@ -1533,7 +1551,9 @@ def admin_project_cleanup(request, pk):
             messages.success(request, "GAP-Bericht gelöscht")
             return redirect("admin_project_cleanup", pk=projekt.pk)
 
-    gap_report_exists = projekt.anlagen.filter(anlage_nr__in=[1, 2]).exclude(gap_summary="").exists()
+    gap_report_exists = (
+        projekt.anlagen.filter(anlage_nr__in=[1, 2]).exclude(gap_summary="").exists()
+    )
     context = {
         "projekt": projekt,
         "files": projekt.anlagen.all(),
@@ -1614,13 +1634,17 @@ def admin_project_import(request):
             items = json.loads(raw)
             with transaction.atomic():
                 for entry in items:
-                    status = ProjectStatus.objects.filter(key=entry.get("status")).first()
+                    status = ProjectStatus.objects.filter(
+                        key=entry.get("status")
+                    ).first()
                     proj = BVProject.objects.create(
                         title=entry.get("title", ""),
                         beschreibung=entry.get("beschreibung", ""),
                         status=status,
                         classification_json=entry.get("classification_json"),
-                        gutachten_function_note=entry.get("gutachten_function_note", ""),
+                        gutachten_function_note=entry.get(
+                            "gutachten_function_note", ""
+                        ),
                     )
                     if entry.get("gutachten_file"):
                         content = zf.read(entry["gutachten_file"])
@@ -1709,10 +1733,21 @@ def admin_prompts(request):
             elif action == "save":
                 prompt.text = request.POST.get("text", "")
                 role_id = request.POST.get("role")
-                prompt.role = LLMRole.objects.filter(pk=role_id).first() if role_id else None
+                prompt.role = (
+                    LLMRole.objects.filter(pk=role_id).first() if role_id else None
+                )
                 prompt.use_system_role = bool(request.POST.get("use_system_role"))
-                prompt.use_project_context = bool(request.POST.get("use_project_context"))
-                prompt.save(update_fields=["text", "role", "use_system_role", "use_project_context"])
+                prompt.use_project_context = bool(
+                    request.POST.get("use_project_context")
+                )
+                prompt.save(
+                    update_fields=[
+                        "text",
+                        "role",
+                        "use_system_role",
+                        "use_project_context",
+                    ]
+                )
         return redirect("admin_prompts")
 
     labels = [
@@ -1848,9 +1883,7 @@ def admin_anlage1(request):
 def admin_anlage1_export(request):
     """Exportiert alle Anlage-1-Fragen als JSON-Datei."""
     questions = (
-        Anlage1Question.objects.all()
-        .prefetch_related("variants")
-        .order_by("num")
+        Anlage1Question.objects.all().prefetch_related("variants").order_by("num")
     )
     items = [
         {
@@ -2326,7 +2359,9 @@ def anlage2_config(request):
             admin_a2_logger.debug("Speichere Tabellen-Parser Konfiguration")
             for h in aliases:
                 if request.POST.get(f"delete{h.id}"):
-                    admin_a2_logger.debug("Lösche Überschrift %s -> %s", h.field_name, h.text)
+                    admin_a2_logger.debug(
+                        "Lösche Überschrift %s -> %s", h.field_name, h.text
+                    )
                     h.delete()
             new_field = request.POST.get("new_field")
             new_text = request.POST.get("new_text")
@@ -2376,7 +2411,11 @@ def anlage2_config(request):
                 a_prefix = f"{f.prefix}-actions"
                 action_formsets[f.prefix] = ActionFormSet(data, prefix=a_prefix)
 
-            if action == "save_rules_fb" and formset.is_valid() and all(fs.is_valid() for fs in action_formsets.values()):
+            if (
+                action == "save_rules_fb"
+                and formset.is_valid()
+                and all(fs.is_valid() for fs in action_formsets.values())
+            ):
                 ordered = formset.ordered_forms
                 for idx, form in enumerate(ordered):
                     if form.cleaned_data.get("DELETE"):
@@ -2390,7 +2429,9 @@ def anlage2_config(request):
                     for ad in afs.cleaned_data:
                         if ad.get("DELETE"):
                             continue
-                        actions.append({"field": ad.get("field"), "value": ad.get("value")})
+                        actions.append(
+                            {"field": ad.get("field"), "value": ad.get("value")}
+                        )
                     obj.actions_json = actions
                     obj.save()
                 for form in formset.deleted_forms:
@@ -2399,7 +2440,9 @@ def anlage2_config(request):
                 return redirect(f"{reverse('anlage2_config')}?tab=rules2")
             else:
                 if action == "save_rules_fb":
-                    messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
+                    messages.error(
+                        request, "Bitte korrigieren Sie die markierten Felder."
+                    )
                 rule_formset_fb = formset
                 rule_action_formsets = action_formsets
                 active_tab = "rules2"
@@ -2418,8 +2461,6 @@ def anlage2_config(request):
             messages.error(request, "Bitte korrigieren Sie die markierten Felder.")
             active_tab = "general"
 
-
-
         if action == "save_a4":
             admin_a2_logger.debug("Speichere Anlage4 Parser Konfiguration")
             form = Anlage4ParserConfigForm(request.POST, instance=a4_parser_cfg)
@@ -2430,8 +2471,7 @@ def anlage2_config(request):
             a4_parser_form = form
             active_tab = "a4"
 
-
-    cfg_form = cfg_form if 'cfg_form' in locals() else Anlage2ConfigForm(instance=cfg)
+    cfg_form = cfg_form if "cfg_form" in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     for f in rule_formset:
         parse_exact_logger.debug(
@@ -2497,7 +2537,9 @@ def anlage2_rule_add(request):
         can_order=True,
         extra=0,
     )
-    formset = RuleFormSet(queryset=AntwortErkennungsRegel.objects.none(), prefix="rules")
+    formset = RuleFormSet(
+        queryset=AntwortErkennungsRegel.objects.none(), prefix="rules"
+    )
     form = formset.empty_form
     form.prefix = f"rules-{index}"
     context = {"form": form}
@@ -2728,7 +2770,9 @@ class AntwortErkennungsRegelListView(LoginRequiredMixin, StaffRequiredMixin, Lis
     context_object_name = "rules"
 
 
-class AntwortErkennungsRegelCreateView(LoginRequiredMixin, StaffRequiredMixin, CreateView):
+class AntwortErkennungsRegelCreateView(
+    LoginRequiredMixin, StaffRequiredMixin, CreateView
+):
     """Erstellt eine neue Antwortregel."""
 
     model = AntwortErkennungsRegel
@@ -2740,7 +2784,9 @@ class AntwortErkennungsRegelCreateView(LoginRequiredMixin, StaffRequiredMixin, C
         return super().get_context_data(**kwargs)
 
 
-class AntwortErkennungsRegelUpdateView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):
+class AntwortErkennungsRegelUpdateView(
+    LoginRequiredMixin, StaffRequiredMixin, UpdateView
+):
     """Bearbeitet eine bestehende Antwortregel."""
 
     model = AntwortErkennungsRegel
@@ -2752,7 +2798,9 @@ class AntwortErkennungsRegelUpdateView(LoginRequiredMixin, StaffRequiredMixin, U
         return super().get_context_data(**kwargs)
 
 
-class AntwortErkennungsRegelDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class AntwortErkennungsRegelDeleteView(
+    LoginRequiredMixin, StaffRequiredMixin, DeleteView
+):
     """Löscht eine Antwortregel."""
 
     model = AntwortErkennungsRegel
@@ -2797,7 +2845,9 @@ def anlage2_parser_rule_import(request):
                 regel_name=r.get("regel_name"),
                 defaults={
                     "erkennungs_phrase": r.get("erkennungs_phrase", ""),
-                    "regel_anwendungsbereich": r.get("regel_anwendungsbereich", "Hauptfunktion"),
+                    "regel_anwendungsbereich": r.get(
+                        "regel_anwendungsbereich", "Hauptfunktion"
+                    ),
                     "actions_json": r.get("actions", []),
                     "prioritaet": r.get("prioritaet", 0),
                 },
@@ -2808,7 +2858,7 @@ def anlage2_parser_rule_import(request):
 
 
 @login_required
-@tile_required("projektverwaltung")
+@tile_required("projekt-verwaltung")
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
 
@@ -2818,7 +2868,9 @@ def projekt_list(request):
 
     software_filter = request.GET.get("software", "")
     if software_filter:
-        projekte = projekte.filter(bvsoftware__name__icontains=software_filter).distinct()
+        projekte = projekte.filter(
+            bvsoftware__name__icontains=software_filter
+        ).distinct()
 
     status_filter = request.GET.get("status", "")
     if status_filter:
@@ -2856,20 +2908,26 @@ def projekt_detail(request, pk):
     # Letzte Aktivitäten aus Statusänderungen und Dateiuploads sammeln
     activities = []
     for h in projekt.status_history.order_by("-changed_at")[:5]:
-        activities.append({
-            "time": h.changed_at,
-            "text": f"Status geändert zu {h.status.name}",
-        })
+        activities.append(
+            {
+                "time": h.changed_at,
+                "text": f"Status geändert zu {h.status.name}",
+            }
+        )
     for f in projekt.anlagen.order_by("-created_at")[:5]:
-        activities.append({
-            "time": f.created_at,
-            "text": f"Anlage {f.anlage_nr} hochgeladen",
-        })
+        activities.append(
+            {
+                "time": f.created_at,
+                "text": f"Anlage {f.anlage_nr} hochgeladen",
+            }
+        )
     activities.sort(key=lambda x: x["time"], reverse=True)
     activities = activities[:5]
 
     cockpit_ctx = get_cockpit_context(projekt)
-    last_anlagen_files = {nr: projekt.anlagen.filter(anlage_nr=nr).last() for nr in range(1, 7)}
+    last_anlagen_files = {
+        nr: projekt.anlagen.filter(anlage_nr=nr).last() for nr in range(1, 7)
+    }
 
     can_gap_report = False
     pf1 = get_project_file(projekt, 1)
@@ -2880,15 +2938,16 @@ def projekt_detail(request, pk):
                 break
     if not can_gap_report:
         pf2 = get_project_file(projekt, 2)
-        if pf2 and AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei=pf2
-        ).filter(
-            (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
-            | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
-        ).exists():
+        if (
+            pf2
+            and AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf2)
+            .filter(
+                (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
+                | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
+            )
+            .exists()
+        ):
             can_gap_report = True
-
-
 
     context = {
         "projekt": projekt,
@@ -2901,14 +2960,12 @@ def projekt_detail(request, pk):
         "is_admin": is_admin,
         "anlage_numbers": list(range(1, 7)),
         "last_anlagen_files": last_anlagen_files,
-
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
         "total_software": len(software_list),
         "software_list": software_list,
         "activities": activities,
         "can_gap_report": can_gap_report,
-
     }
     return render(request, "projekt_detail.html", context)
 
@@ -2933,13 +2990,11 @@ def anlage3_file_review(request, pk):
 
     version = request.GET.get("version")
     if version and version.isdigit():
-        alt = (
-            BVProjectFile.objects.filter(
-                projekt=project_file.projekt,
-                anlage_nr=project_file.anlage_nr,
-                version=int(version),
-            ).first()
-        )
+        alt = BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+            version=int(version),
+        ).first()
         if alt:
             project_file = alt
 
@@ -2985,13 +3040,11 @@ def anlage4_review(request, pk):
 
     version = request.GET.get("version")
     if version and version.isdigit():
-        alt = (
-            BVProjectFile.objects.filter(
-                projekt=project_file.projekt,
-                anlage_nr=project_file.anlage_nr,
-                version=int(version),
-            ).first()
-        )
+        alt = BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+            version=int(version),
+        ).first()
         if alt:
             project_file = alt
 
@@ -3019,7 +3072,9 @@ def anlage4_review(request, pk):
             project_file.manual_analysis_json = form.get_json()
             gap_form.save()
             project_file.save(update_fields=["manual_analysis_json"])
-            anlage4_logger.info("Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items))
+            anlage4_logger.info(
+                "Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items)
+            )
             return redirect("projekt_detail", pk=project_file.projekt.pk)
     else:
         form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
@@ -3066,13 +3121,11 @@ def anlage5_review(request, pk):
 
     version = request.GET.get("version")
     if version and version.isdigit():
-        alt = (
-            BVProjectFile.objects.filter(
-                projekt=project_file.projekt,
-                anlage_nr=project_file.anlage_nr,
-                version=int(version),
-            ).first()
-        )
+        alt = BVProjectFile.objects.filter(
+            projekt=project_file.projekt,
+            anlage_nr=project_file.anlage_nr,
+            version=int(version),
+        ).first()
         if alt:
             project_file = alt
 
@@ -3212,14 +3265,16 @@ def _save_project_file(
             raise ValueError("missing params")
         uploaded = upload
 
-    obj = form.save(commit=False) if form is not None else BVProjectFile(upload=uploaded)
+    obj = (
+        form.save(commit=False) if form is not None else BVProjectFile(upload=uploaded)
+    )
 
     ext = Path(uploaded.name).suffix.lower()
     if uploaded.size > settings.MAX_UPLOAD_SIZE:
-        raise ValueError("Datei \u00FCberschreitet die maximale Gr\u00F6\u00DFe")
+        raise ValueError("Datei \u00fcberschreitet die maximale Gr\u00f6\u00dfe")
     if anlage_nr == 3:
         if ext not in [".docx", ".pdf"]:
-            raise ValueError("Nur .docx oder .pdf erlaubt f\u00FCr Anlage 3")
+            raise ValueError("Nur .docx oder .pdf erlaubt f\u00fcr Anlage 3")
     else:
         if ext != ".docx":
             raise ValueError("Nur .docx Dateien erlaubt")
@@ -3272,7 +3327,9 @@ def _save_project_file(
 
             meta = parse_anlage3(obj)
             if meta:
-                Anlage3Metadata.objects.update_or_create(project_file=obj, defaults=meta)
+                Anlage3Metadata.objects.update_or_create(
+                    project_file=obj, defaults=meta
+                )
         except Exception:
             logger.exception("Fehler beim Anlage3 Parser")
 
@@ -3290,7 +3347,7 @@ def _save_project_file(
 @login_required
 def projekt_file_upload(request, pk):
     """
-    Lädt eine oder mehrere Dateien zu einem Projekt hoch. 
+    Lädt eine oder mehrere Dateien zu einem Projekt hoch.
     Verarbeitet pro Anfrage genau eine Datei, wie vom Frontend gesendet.
     """
     projekt = get_object_or_404(BVProject, pk=pk)
@@ -3378,8 +3435,8 @@ def projekt_file_upload(request, pk):
         val = int(anlage_param)
         if 1 <= val <= 6:
             nr_val = val
-            
-    form = BVProjectFileForm(initial={'anlage_nr': nr_val})
+
+    form = BVProjectFileForm(initial={"anlage_nr": nr_val})
 
     return render(
         request,
@@ -3398,10 +3455,12 @@ def projekt_file_check(request, pk, nr):
         return JsonResponse({"error": "invalid"}, status=400)
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+
     def parse_only(pid: int, model_name: str | None = None):
         pf = BVProjectFile.objects.filter(projekt_id=pid, anlage_nr=2).first()
         if pf:
             run_anlage2_analysis(pf)
+
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else parse_only,
@@ -3415,9 +3474,7 @@ def projekt_file_check(request, pk, nr):
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        anlage = BVProjectFile.objects.filter(
-            projekt_id=pk, anlage_nr=nr_int
-        ).first()
+        anlage = BVProjectFile.objects.filter(projekt_id=pk, anlage_nr=nr_int).first()
         if not anlage:
             return JsonResponse({"error": "not found"}, status=404)
         func(anlage.pk, model_name=model)
@@ -3445,8 +3502,10 @@ def projekt_file_check_pk(request, pk):
         return JsonResponse({"error": "not found"}, status=404)
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+
     def parse_only(_pid: int, model_name: str | None = None):
         run_anlage2_analysis(anlage)
+
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else parse_only,
@@ -3483,13 +3542,11 @@ def projekt_file_check_view(request, pk):
 
     version_param = request.GET.get("version")
     if version_param and version_param.isdigit():
-        alt = (
-            BVProjectFile.objects.filter(
-                projekt=anlage.projekt,
-                anlage_nr=anlage.anlage_nr,
-                version=int(version_param),
-            ).first()
-        )
+        alt = BVProjectFile.objects.filter(
+            projekt=anlage.projekt,
+            anlage_nr=anlage.anlage_nr,
+            version=int(version_param),
+        ).first()
         if alt:
             anlage = alt
 
@@ -3501,8 +3558,10 @@ def projekt_file_check_view(request, pk):
     )
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
+
     def parse_only(_pid: int, model_name: str | None = None):
         run_anlage2_analysis(anlage)
+
     funcs = {
         1: check_anlage1,
         2: check_anlage2 if use_llm else parse_only,
@@ -3576,29 +3635,39 @@ def projekt_file_edit_json(request, pk):
     )
 
     if request.method == "GET" and anlage.anlage_nr == 2:
-        results = (
-            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
-            .select_related("funktion", "subquestion")
-        )
+        results = AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei=anlage
+        ).select_related("funktion", "subquestion")
         for res in results:
             name = res.get_lookup_key()
-            parser_res = FunktionsErgebnis.objects.filter(
-                anlage_datei=anlage,
-                funktion=res.funktion,
-                subquestion=res.subquestion,
-                quelle="parser",
-            ).order_by("-created_at").first()
-            ki_res = FunktionsErgebnis.objects.filter(
-                anlage_datei=anlage,
-                funktion=res.funktion,
-                subquestion=res.subquestion,
-                quelle="ki",
-            ).order_by("-created_at").first()
-            doc_str = json.dumps(parser_res.technisch_verfuegbar if parser_res else None, ensure_ascii=False)
-            ai_str = json.dumps(ki_res.technisch_verfuegbar if ki_res else None, ensure_ascii=False)
+            parser_res = (
+                FunktionsErgebnis.objects.filter(
+                    anlage_datei=anlage,
+                    funktion=res.funktion,
+                    subquestion=res.subquestion,
+                    quelle="parser",
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            ki_res = (
+                FunktionsErgebnis.objects.filter(
+                    anlage_datei=anlage,
+                    funktion=res.funktion,
+                    subquestion=res.subquestion,
+                    quelle="ki",
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            doc_str = json.dumps(
+                parser_res.technisch_verfuegbar if parser_res else None,
+                ensure_ascii=False,
+            )
+            ai_str = json.dumps(
+                ki_res.technisch_verfuegbar if ki_res else None, ensure_ascii=False
+            )
             ergebnis_logger.info("%s\nDOC: %s\nAI: %s", name, doc_str, ai_str)
-
-
 
     if anlage.anlage_nr == 1:
         if request.method == "POST":
@@ -3655,7 +3724,9 @@ def projekt_file_edit_json(request, pk):
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
         parser_form = ParserSettingsForm(
-            request.POST if request.method == "POST" and "save_parser_settings" in request.POST else None,
+            request.POST
+            if request.method == "POST" and "save_parser_settings" in request.POST
+            else None,
             instance=anlage,
         )
         if request.method == "POST":
@@ -3745,7 +3816,9 @@ def projekt_file_edit_json(request, pk):
             }
 
             manual_init = (
-                anlage.manual_analysis_json if isinstance(anlage.manual_analysis_json, dict) else {}
+                anlage.manual_analysis_json
+                if isinstance(anlage.manual_analysis_json, dict)
+                else {}
             )
 
             fields_def = get_anlage2_fields()
@@ -3888,16 +3961,16 @@ def projekt_file_edit_json(request, pk):
             )
             for sub in func.anlage2subquestion_set.all().order_by("id"):
                 lookup_key = f"{func.name}: {sub.frage_text}"
-                if not (func.name == "Anwesenheitsüberwachung" and func_status is not True):
+                if not (
+                    func.name == "Anwesenheitsüberwachung" and func_status is not True
+                ):
                     debug_logger.info(
                         "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
                     )
                     if answers.get(lookup_key):
                         debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
                     else:
-                        debug_logger.info(
-                            "-> Ergebnis: Nicht im Dokument gefunden."
-                        )
+                        debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
                 rows.append(
                     _build_row_data(
                         sub.frage_text,
@@ -3922,7 +3995,10 @@ def projekt_file_edit_json(request, pk):
         if not items:
             items = []
         if request.method == "POST":
-            if "analysis_json" in request.POST or "manual_analysis_json" in request.POST:
+            if (
+                "analysis_json" in request.POST
+                or "manual_analysis_json" in request.POST
+            ):
                 json_form = BVProjectFileJSONForm(request.POST, instance=anlage)
                 if json_form.is_valid():
                     json_form.save()
@@ -3938,7 +4014,8 @@ def projekt_file_edit_json(request, pk):
             form = Anlage4ReviewForm(initial=anlage.manual_analysis_json, items=items)
         template = "projekt_file_anlage4_review.html"
         rows = [
-            (text, form[f"item{idx}_ok"], form[f"item{idx}_note"]) for idx, text in enumerate(items)
+            (text, form[f"item{idx}_ok"], form[f"item{idx}_note"])
+            for idx, text in enumerate(items)
         ]
     else:
         if request.method == "POST":
@@ -3979,8 +4056,6 @@ def projekt_file_edit_json(request, pk):
     return render(request, template, context)
 
 
-
-
 def _validate_llm_output(text: str) -> tuple[bool, str]:
     """Prüfe, ob die LLM-Antwort technisch brauchbar ist."""
     if not text:
@@ -3990,7 +4065,9 @@ def _validate_llm_output(text: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _run_llm_check(name: str, additional: str | None = None, project_prompt: str | None = None) -> tuple[str, bool]:
+def _run_llm_check(
+    name: str, additional: str | None = None, project_prompt: str | None = None
+) -> tuple[str, bool]:
     """Führt die LLM-Abfrage für eine einzelne Software durch."""
     base = get_prompt(
         "initial_llm_check",
@@ -4003,7 +4080,9 @@ def _run_llm_check(name: str, additional: str | None = None, project_prompt: str
     if additional:
         prompt_text += " " + additional
     base_obj = Prompt.objects.filter(name__iexact="initial_llm_check").first()
-    prompt_obj = Prompt(name="tmp", text=prompt_text, role=base_obj.role if base_obj else None)
+    prompt_obj = Prompt(
+        name="tmp", text=prompt_text, role=base_obj.role if base_obj else None
+    )
 
     logger.debug("Starte LLM-Check für %s", name)
     reply = query_llm(prompt_obj, {}, project_prompt=project_prompt)
@@ -4044,8 +4123,6 @@ def project_detail_api(request, pk):
         "total": len(software_list),
     }
     return JsonResponse(data)
-
-
 
 
 @login_required
@@ -4277,9 +4354,7 @@ def hx_supervision_revert_to_document(request, result_id: int):
 
     groups = _build_supervision_groups(pf)
     if main_result:
-        group = next(
-            g for g in groups if g["function"]["result_id"] == main_result.id
-        )
+        group = next(g for g in groups if g["function"]["result_id"] == main_result.id)
         return render(request, "partials/supervision_group.html", {"group": group})
     return HttpResponse("Not found", status=404)
 
@@ -4385,11 +4460,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         }
 
         prev_manual = None
-        if (
-            field_name == "technisch_vorhanden"
-            and sub_id is None
-            and status_provided
-        ):
+        if field_name == "technisch_vorhanden" and sub_id is None and status_provided:
             prev = (
                 FunktionsErgebnis.objects.filter(
                     anlage_datei=anlage,
@@ -4449,11 +4520,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
             .order_by("-created_at")
             .first()
         )
-        kb_res = (
-            qs.exclude(ki_beteiligung__isnull=True)
-            .order_by("-created_at")
-            .first()
-        )
+        kb_res = qs.exclude(ki_beteiligung__isnull=True).order_by("-created_at").first()
         auto_val = _calc_auto_negotiable(
             tv_res.technisch_verfuegbar if tv_res else None,
             kb_res.ki_beteiligung if kb_res else None,
@@ -4540,12 +4607,14 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                             sub.id,
                         )
 
-        return JsonResponse({
-            "status": "success",
-            "gap_summary": gap_text,
-            "is_negotiable": res.negotiable,
-            "is_negotiable_override": res.is_negotiable_manual_override,
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "gap_summary": gap_text,
+                "is_negotiable": res.negotiable,
+                "is_negotiable_override": res.is_negotiable_manual_override,
+            }
+        )
     except Exception as exc:  # pragma: no cover - Schutz vor unerwarteten Fehlern
         logger.error(
             "Fehler beim Speichern des manuellen Reviews: %s",
@@ -4576,12 +4645,16 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
     pf = get_project_file(result.anlage_datei.projekt, 2)
 
-    manual_qs = FunktionsErgebnis.objects.filter(
-        anlage_datei=pf,
-        funktion=result.funktion,
-        subquestion_id=sub_id,
-        quelle="manuell",
-    ).exclude(**{attr: None}).order_by("-created_at")
+    manual_qs = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle="manuell",
+        )
+        .exclude(**{attr: None})
+        .order_by("-created_at")
+    )
 
     manual_entry = manual_qs.first()
 
@@ -4681,8 +4754,12 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     )
 
     doc_data = {
-        "technisch_vorhanden": parser_entry.technisch_verfuegbar if parser_entry else None,
-        "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica if parser_entry else None,
+        "technisch_vorhanden": parser_entry.technisch_verfuegbar
+        if parser_entry
+        else None,
+        "einsatz_bei_telefonica": parser_entry.einsatz_bei_telefonica
+        if parser_entry
+        else None,
         "zur_lv_kontrolle": parser_entry.zur_lv_kontrolle if parser_entry else None,
         "ki_beteiligung": parser_entry.ki_beteiligung if parser_entry else None,
     }
@@ -4719,7 +4796,9 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         if result.is_negotiable_manual_override is not None:
             result.is_negotiable_manual_override = None
             result.is_negotiable = auto_val
-            result.save(update_fields=["is_negotiable_manual_override", "is_negotiable"])
+            result.save(
+                update_fields=["is_negotiable_manual_override", "is_negotiable"]
+            )
         elif result.is_negotiable != auto_val:
             result.is_negotiable = auto_val
             result.save(update_fields=["is_negotiable"])
@@ -4895,7 +4974,9 @@ def hx_project_file_upload(request, pk: int):
         return HttpResponseBadRequest("invalid")
 
     try:
-        anlage_nr = int(anlage_nr_raw) if anlage_nr_raw else extract_anlage_nr(upload.name)
+        anlage_nr = (
+            int(anlage_nr_raw) if anlage_nr_raw else extract_anlage_nr(upload.name)
+        )
     except (TypeError, ValueError):
         anlage_nr = None
 
@@ -4925,7 +5006,7 @@ def hx_project_file_upload(request, pk: int):
 @login_required
 @require_POST
 def trigger_file_analysis(request, pk: int):
-    """L\u00F6st die Analyse f\u00FCr eine bestehende Datei erneut aus."""
+    """L\u00f6st die Analyse f\u00fcr eine bestehende Datei erneut aus."""
     file_obj = get_object_or_404(BVProjectFile, pk=pk)
 
     if not _user_can_edit_project(request.user, file_obj.projekt):
@@ -4978,9 +5059,9 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         return JsonResponse({"error": "invalid"}, status=400)
 
     # Nur manuelle Änderungen entfernen, automatische Ergebnisse beibehalten
-    AnlagenFunktionsMetadaten.objects.filter(
-        anlage_datei=project_file
-    ).update(is_negotiable_manual_override=None)
+    AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).update(
+        is_negotiable_manual_override=None
+    )
     FunktionsErgebnis.objects.filter(
         anlage_datei=project_file, quelle="manuell"
     ).delete()
@@ -5006,7 +5087,9 @@ def project_file_toggle_flag(request, pk: int, field: str):
         field == "manual_reviewed"
         and project_file.anlage_nr == 3
         and project_file.projekt.anlagen.filter(anlage_nr=3).count()
-        == project_file.projekt.anlagen.filter(anlage_nr=3, manual_reviewed=True).count()
+        == project_file.projekt.anlagen.filter(
+            anlage_nr=3, manual_reviewed=True
+        ).count()
     ):
         try:
             set_project_status(project_file.projekt, "ENDGEPRUEFT")
@@ -5036,7 +5119,9 @@ def hx_toggle_project_file_flag(request, pk: int, field: str):
         field == "manual_reviewed"
         and project_file.anlage_nr == 3
         and project_file.projekt.anlagen.filter(anlage_nr=3).count()
-        == project_file.projekt.anlagen.filter(anlage_nr=3, manual_reviewed=True).count()
+        == project_file.projekt.anlagen.filter(
+            anlage_nr=3, manual_reviewed=True
+        ).count()
     ):
         try:
             set_project_status(project_file.projekt, "ENDGEPRUEFT")
@@ -5055,12 +5140,9 @@ def projekt_file_delete_result(request, pk: int):
     project_file = get_object_or_404(BVProjectFile, pk=pk)
 
     if project_file.anlage_nr == 2:
-        AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei=project_file
-        ).delete()
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).delete()
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).update(
-            is_negotiable=False,
-            is_negotiable_manual_override=None
+            is_negotiable=False, is_negotiable_manual_override=None
         )
 
     project_file.analysis_json = None
@@ -5097,7 +5179,9 @@ def delete_project_file_version(request, pk: int):
         successor = BVProjectFile.objects.filter(parent=project_file).first()
 
         if project_file.upload:
-            (Path(settings.MEDIA_ROOT) / project_file.upload.name).unlink(missing_ok=True)
+            (Path(settings.MEDIA_ROOT) / project_file.upload.name).unlink(
+                missing_ok=True
+            )
 
         project_file.delete()
 
@@ -5192,7 +5276,9 @@ def ajax_start_gutachten_generation(request, project_id):
     except (TypeError, ValueError):
         return JsonResponse({"error": "invalid"}, status=400)
 
-    if not SoftwareKnowledge.objects.filter(pk=knowledge_id, projekt_id=project_id).exists():
+    if not SoftwareKnowledge.objects.filter(
+        pk=knowledge_id, projekt_id=project_id
+    ).exists():
         return JsonResponse({"error": "invalid"}, status=400)
 
     task_id = async_task(
@@ -5244,9 +5330,9 @@ def gutachten_download(request, pk):
                 docx_file.read(),
                 content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
-            response[
-                "Content-Disposition"
-            ] = f'attachment; filename="Gutachten_{projekt.title}.docx"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="Gutachten_{projekt.title}.docx"'
+            )
             return response
 
     except (IOError, OSError) as e:
@@ -5374,7 +5460,9 @@ def gutachten_edit(request, pk):
         gutachten.save(update_fields=["text"])
         messages.success(request, "Gutachten gespeichert")
         return redirect("gutachten_view", pk=gutachten.pk)
-    return render(request, "gutachten_edit.html", {"projekt": projekt, "text": gutachten.text})
+    return render(
+        request, "gutachten_edit.html", {"projekt": projekt, "text": gutachten.text}
+    )
 
 
 @login_required
@@ -5586,6 +5674,7 @@ def justification_delete(request, file_id, function_key):
 
     return redirect("projekt_file_edit_json", pk=anlage.pk)
 
+
 @login_required
 @require_POST
 def ajax_start_initial_checks(request, project_id):
@@ -5709,7 +5798,9 @@ def download_knowledge_as_word(request, knowledge_id):
     knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
     if not knowledge.description:
         raise Http404
-    temp_file_path = os.path.join(tempfile.gettempdir(), f"knowledge_{knowledge_id}.docx")
+    temp_file_path = os.path.join(
+        tempfile.gettempdir(), f"knowledge_{knowledge_id}.docx"
+    )
     try:
         extensions = ["extra", "admonition", "toc"]
         html_content = markdown.markdown(knowledge.description, extensions=extensions)
@@ -5776,7 +5867,10 @@ def compare_versions(request, pk):
 
     parent_gaps = (
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=parent)
-        .filter(Q(gap_summary__isnull=False) & ~Q(gap_summary="") | Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
+        .filter(
+            Q(gap_summary__isnull=False) & ~Q(gap_summary="")
+            | Q(gap_notiz__isnull=False) & ~Q(gap_notiz="")
+        )
         .select_related("funktion", "subquestion")
     )
 
@@ -5790,7 +5884,7 @@ def compare_versions(request, pk):
 
 @login_required
 def anlage5_dummy(request):
-    """Zeigt einen Platzhalter f\xFCr Anlage 5."""
+    """Zeigt einen Platzhalter f\xfcr Anlage 5."""
     return render(request, "anlage5_dummy.html")
 
 
