@@ -2553,24 +2553,16 @@ def admin_role_editor(request):
 
     if request.method == "POST" and selected_group:
         selected_tiles = Tile.objects.filter(pk__in=request.POST.getlist("tiles"))
-        tile_perms = Permission.objects.filter(tile__isnull=False)
-        selected_group.permissions.remove(*tile_perms)
-        perms = Permission.objects.filter(tile__in=selected_tiles)
-        selected_group.permissions.add(*perms)
-        messages.success(request, "Berechtigungen gespeichert")
+        selected_group.tile_set.set(selected_tiles)
+        messages.success(request, "Kachel-Zuordnung gespeichert")
         return redirect(f"{reverse('admin_role_editor')}?group={selected_group.id}")
 
     if selected_group:
-        group_perms = set(selected_group.permissions.values_list("id", flat=True))
+        group_tile_ids = set(selected_group.tile_set.values_list("id", flat=True))
         for area in Area.objects.all():
             tile_items = []
-            for tile in Tile.objects.filter(areas=area).select_related("permission"):
-                tile_items.append(
-                    {
-                        "tile": tile,
-                        "checked": tile.permission_id in group_perms,
-                    }
-                )
+            for tile in Tile.objects.filter(areas=area):
+                tile_items.append({"tile": tile, "checked": tile.id in group_tile_ids})
             tiles_by_area[area] = tile_items
 
     context = {
