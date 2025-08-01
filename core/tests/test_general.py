@@ -100,6 +100,7 @@ from ..views import (
     _build_row_data,
     _save_project_file,
     extract_anlage_nr,
+    get_user_tiles,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -3045,6 +3046,7 @@ class TileVisibilityTests(NoesisTestCase):
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("tileuser", password="pass")
         self.user.groups.add(admin_group)
+        self.group = Group.objects.create(name="role")
         work = Area.objects.get_or_create(slug="work", defaults={"name": "Work"})[0]
         self.personal = Area.objects.get_or_create(
             slug="personal", defaults={"name": "Personal"}
@@ -3057,6 +3059,8 @@ class TileVisibilityTests(NoesisTestCase):
             },
         )[0]
         self.talkdiary.areas.add(self.personal)
+        self.group.areas.add(self.personal)
+        self.group.tiles.add(self.talkdiary)
         self.projekt = Tile.objects.get_or_create(
             slug="projektverwaltung",
             defaults={
@@ -3065,6 +3069,7 @@ class TileVisibilityTests(NoesisTestCase):
             },
         )[0]
         self.projekt.areas.add(work)
+        self.group.areas.add(work)
         self.cfg = LLMConfig.objects.first() or LLMConfig.objects.create(
             models_changed=False
         )
@@ -3076,6 +3081,11 @@ class TileVisibilityTests(NoesisTestCase):
 
     def test_personal_with_access(self):
         UserTileAccess.objects.create(user=self.user, tile=self.talkdiary)
+        resp = self.client.get(reverse("personal"))
+        self.assertContains(resp, "TalkDiary")
+
+    def test_personal_with_group_access(self):
+        self.user.groups.add(self.group)
         resp = self.client.get(reverse("personal"))
         self.assertContains(resp, "TalkDiary")
 
@@ -3785,10 +3795,13 @@ class UserImportExportTests(NoesisTestCase):
         ]
         self.tile = Tile.objects.create(slug="t1", name="T", url_name="tile")
         self.tile.areas.add(self.area)
+        self.group.areas.add(self.area)
+        self.group.tiles.add(self.tile)
 
     def test_export_json(self):
         self.user.groups.add(self.group)
-        self.user.tiles.add(self.tile)
+
+
         url = reverse("admin_export_users_permissions")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -3804,7 +3817,7 @@ class UserImportExportTests(NoesisTestCase):
                     "username": "neu",
                     "email": "a@b.c",
                     "groups": ["testgroup"],
-                    "tiles": ["tile"],
+
                 }
             ]
         )
@@ -3814,7 +3827,7 @@ class UserImportExportTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("admin_user_list"))
         user = User.objects.get(username="neu")
         self.assertTrue(user.groups.filter(name="testgroup").exists())
-        self.assertTrue(user.tiles.filter(url_name="tile").exists())
+
 
 
 class Anlage1ImportTests(NoesisTestCase):

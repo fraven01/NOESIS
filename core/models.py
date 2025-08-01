@@ -1,5 +1,7 @@
 from django.conf import settings
-from django.contrib.auth.models import Group, Permission
+
+from django.contrib.auth.models import Permission, Group
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django_q.tasks import async_task, fetch
@@ -499,6 +501,13 @@ class Area(models.Model):
         blank=True,
         help_text="Gruppen mit Zugriff auf diesen Bereich.",
     )
+    groups = models.ManyToManyField(
+        Group,
+        through="GroupAreaAccess",
+        related_name="areas",
+        blank=True,
+        help_text="Gruppen mit Zugriff auf diesen Bereich.",
+    )
 
     class Meta:
         ordering = ["slug"]
@@ -889,9 +898,11 @@ class Tile(models.Model):
     )
     groups = models.ManyToManyField(
         Group,
+
+        through="GroupTileAccess",
         related_name="tiles",
         blank=True,
-        help_text="Gruppen mit Zugriff auf diese Kachel.",
+
     )
 
     class Meta:
@@ -914,6 +925,45 @@ class UserTileAccess(models.Model):
         return f"{self.user} -> {self.tile}"
 
 
+
+class GroupTileAccess(models.Model):
+    """Verknüpfung zwischen Gruppe und Tile."""
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    tile = models.ForeignKey(Tile, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("group", "tile")]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.group} -> {self.tile}"
+
+
+class UserAreaAccess(models.Model):
+    """Verknüpfung zwischen Benutzer und Bereich."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    area = models.ForeignKey(Area, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("user", "area")]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.user} -> {self.area}"
+
+
+
+class GroupAreaAccess(models.Model):
+    """Verknüpfung zwischen Gruppe und Bereich."""
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    area = models.ForeignKey(Area, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("group", "area")]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"{self.group} -> {self.area}"
 
 
 class Anlage2Function(models.Model):
