@@ -2124,9 +2124,9 @@ def admin_edit_user_permissions(request, user_id):
 def admin_export_users_permissions(request):
     """Exportiert Benutzer, Gruppen und Tile-Zuordnungen als JSON."""
     users = (
-        User.objects.all()
-        .prefetch_related("groups", "tiles")
-        .order_by("username")
+
+        User.objects.all().prefetch_related("groups", "tiles").order_by("username")
+
     )
     data = []
     for user in users:
