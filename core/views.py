@@ -185,14 +185,12 @@ def _get_whisper_model():
 
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
-
     """Gibt alle Tiles zurück, auf die ``user`` in ``bereich`` Zugriff hat."""
 
     qs = Tile.objects.filter(areas__slug=bereich).filter(
         Q(groups__in=user.groups.all()) | Q(users=user)
     )
     return list(qs.distinct())
-
 
 
 def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
@@ -2125,11 +2123,7 @@ def admin_edit_user_permissions(request, user_id):
 @admin_required
 def admin_export_users_permissions(request):
     """Exportiert Benutzer, Gruppen und Tile-Zuordnungen als JSON."""
-    users = (
-
-        User.objects.all().prefetch_related("groups", "tiles").order_by("username")
-
-    )
+    users = User.objects.all().prefetch_related("groups", "tiles").order_by("username")
     data = []
     for user in users:
         group_tiles = Tile.objects.filter(groups__in=user.groups.all()).values_list(
@@ -2149,10 +2143,8 @@ def admin_export_users_permissions(request):
                 "is_active": user.is_active,
                 "is_staff": user.is_staff,
                 "groups": [g.name for g in user.groups.all()],
-
                 "areas": sorted(areas),
                 "tiles": sorted(tiles),
-
             }
         )
     content = json.dumps(data, ensure_ascii=False, indent=2)
@@ -2864,7 +2856,7 @@ def anlage2_parser_rule_import(request):
 
 
 @login_required
-@tile_required("projekt-verwaltung")
+# @tile_required("projekt-verwaltung")
 def projekt_list(request):
     projekte = BVProject.objects.all().order_by("-created_at")
 

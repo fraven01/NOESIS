@@ -100,6 +100,9 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD", secrets.token_hex(16)),
         "HOST": os.environ.get("DB_HOST", "localhost"),
         "PORT": os.environ.get("DB_PORT", "5432"),
+        "OPTIONS": {  # <-- DIESEN BLOCK HINZUFÜGEN
+            "client_encoding": "UTF8",
+        },
     }
 }
 
