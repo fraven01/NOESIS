@@ -3789,14 +3789,12 @@ class UserImportExportTests(NoesisTestCase):
     def test_export_json(self):
         self.user.groups.add(self.group)
         self.user.tiles.add(self.tile)
-        self.user.areas.add(self.area)
         url = reverse("admin_export_users_permissions")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
         entry = next(u for u in data if u["username"] == "uadmin")
         self.assertIn("testgroup", entry["groups"])
-        self.assertIn("work", entry["areas"])
         self.assertIn("tile", entry["tiles"])
 
     def test_import_creates_user(self):
@@ -3806,7 +3804,6 @@ class UserImportExportTests(NoesisTestCase):
                     "username": "neu",
                     "email": "a@b.c",
                     "groups": ["testgroup"],
-                    "areas": ["work"],
                     "tiles": ["tile"],
                 }
             ]
@@ -3817,7 +3814,6 @@ class UserImportExportTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("admin_user_list"))
         user = User.objects.get(username="neu")
         self.assertTrue(user.groups.filter(name="testgroup").exists())
-        self.assertTrue(user.areas.filter(slug="work").exists())
         self.assertTrue(user.tiles.filter(url_name="tile").exists())
 
 

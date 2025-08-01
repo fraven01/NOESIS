@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django import forms
 from django.utils.html import format_html
 from django.contrib.admin.widgets import (
@@ -54,27 +54,27 @@ class AdminImagePreviewWidget(AdminFileWidget):
 
 
 class AreaAdminForm(forms.ModelForm):
-    """Formular für Area mit Benutzerzuweisung."""
+    """Formular für Area mit Gruppen-Zuweisung."""
 
-    users = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(),
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
         required=False,
-        widget=FilteredSelectMultiple("Benutzer", is_stacked=False),
+        widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
     )
 
     class Meta:
         model = Area
-        fields = ["slug", "name", "image", "users"]
+        fields = ["slug", "name", "image", "groups"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
-            self.fields["users"].initial = self.instance.users.all()
+            self.fields["groups"].initial = self.instance.groups.all()
 
     def save(self, commit=True):
         area = super().save(commit)
         if commit:
-            area.users.set(self.cleaned_data["users"])
+            area.groups.set(self.cleaned_data["groups"])
         return area
 
 
@@ -85,6 +85,11 @@ class TileAdminForm(forms.ModelForm):
         queryset=Area.objects.all(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        widget=FilteredSelectMultiple("Gruppen", is_stacked=False),
     )
     users = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
@@ -103,12 +108,14 @@ class TileAdminForm(forms.ModelForm):
         self.fields["url_name"].choices = get_url_choices()
         if self.instance.pk:
             self.fields["areas"].initial = self.instance.areas.all()
+            self.fields["groups"].initial = self.instance.groups.all()
             self.fields["users"].initial = self.instance.users.all()
 
     def save(self, commit=True):
         tile = super().save(commit)
         if commit:
             tile.areas.set(self.cleaned_data["areas"])
+            tile.groups.set(self.cleaned_data["groups"])
             tile.users.set(self.cleaned_data["users"])
         return tile
 
