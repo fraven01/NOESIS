@@ -3,6 +3,7 @@
 
 from django.core.management.base import BaseCommand
 from django.apps import apps as django_apps
+from django.contrib.auth.models import Group
 
 from core.migrations.0002_seed_initial_data import (
     INITIAL_AREAS,
@@ -47,6 +48,14 @@ def create_initial_data(apps) -> None:
 
     all_users = User.objects.all()
 
+    users_group, _ = Group.objects.get_or_create(name="users")
+    admin_group, _ = Group.objects.get_or_create(name="admin")
+
+    for u in all_users:
+        users_group.user_set.add(u)
+        if u.is_superuser:
+            admin_group.user_set.add(u)
+
     print("\n--- Start: Erstelle initiale Daten ---")
 
     # 1. Bereiche und Kacheln
@@ -55,7 +64,13 @@ def create_initial_data(apps) -> None:
         print("WARNUNG: Keine Benutzer gefunden. Kacheln werden erstellt, aber niemandem zugewiesen.")
     for area_slug, area_data in INITIAL_AREAS.items():
         area, _ = Area.objects.update_or_create(slug=area_slug, defaults={"name": area_data["name"]})
-        area.users.add(*all_users)
+        if area_slug == "work":
+            allowed_users = list(users_group.user_set.all()) + list(admin_group.user_set.all())
+        elif area_slug == "personal":
+            allowed_users = list(admin_group.user_set.all())
+        else:
+            allowed_users = list(all_users)
+        area.users.set(allowed_users)
         for tile_data in area_data["tiles"]:
             tile, _ = Tile.objects.update_or_create(
                 slug=tile_data["slug"],
@@ -66,7 +81,7 @@ def create_initial_data(apps) -> None:
                 },
             )
             tile.areas.add(area)
-            tile.users.add(*all_users)
+            tile.users.add(*allowed_users)
 
     # 2. Projekt-Status
     print("\n[2] Verarbeite Projekt-Status...")
