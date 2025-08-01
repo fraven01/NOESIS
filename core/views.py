@@ -185,8 +185,12 @@ def _get_whisper_model():
 
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
-    """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
-    return list(Tile.objects.filter(areas__slug=bereich, users=user))
+    """Gibt alle Tiles zurück, auf die ``user`` in ``bereich`` Zugriff hat."""
+
+    qs = Tile.objects.filter(areas__slug=bereich).filter(
+        Q(groups__in=user.groups.all()) | Q(users=user)
+    )
+    return list(qs.distinct())
 
 
 def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
@@ -866,9 +870,10 @@ def home(request):
     if tiles_work and not tiles_personal:
         return redirect("work")
 
-    # Logic from main
-    work_area = Area.objects.filter(slug="work").first()
-    personal_area = Area.objects.filter(slug="personal").first()
+    work_area = Area.objects.filter(slug="work").first() if tiles_work else None
+    personal_area = (
+        Area.objects.filter(slug="personal").first() if tiles_personal else None
+    )
     context = {
         "work_area": work_area,
         "personal_area": personal_area,
