@@ -4,6 +4,8 @@
 from django.core.management.base import BaseCommand
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
+import secrets
 
 from core.initial_data_constants import (
     INITIAL_AREAS,
@@ -70,7 +72,7 @@ def create_initial_data(apps) -> None:
                 },
             )
             tile.areas.add(area)
-            tile.groups.add(*allowed_groups)
+            tile.groups.set(allowed_groups)
 
     # 2. Projekt-Status
     print("\n[2] Verarbeite Projekt-Status...")
@@ -228,6 +230,19 @@ def create_initial_data(apps) -> None:
             note_text=text,
             defaults={"display_order": order, "is_active": True},
         )
+
+    # 12. Standard-Benutzer
+    print("\n[12] Erstelle Standard-Benutzer...")
+    User = get_user_model()
+    user, created = User.objects.get_or_create(username="frank")
+    if created:
+        password = secrets.token_urlsafe(12)
+        user.is_staff = True
+        user.is_superuser = True
+        user.set_password(password)
+        user.save()
+        print(f"Benutzer 'frank' erstellt. Passwort: {password}")
+    user.groups.add(standard_group, admin_group)
 
     print("\n--- Ende: Initiale Daten erfolgreich erstellt. ---")
 
