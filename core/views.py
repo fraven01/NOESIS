@@ -188,7 +188,11 @@ def _get_whisper_model():
 
 def get_user_tiles(user, bereich: str) -> list[Tile]:
     """Gibt alle Tiles zurueck, auf die ``user`` in ``bereich`` Zugriff hat."""
-    return list(Tile.objects.filter(areas__slug=bereich, users=user))
+    return list(
+        Tile.objects.filter(areas__slug=bereich)
+        .filter(models.Q(users=user) | models.Q(groups__in=user.groups.all()))
+        .distinct()
+    )
 
 
 def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
@@ -2093,6 +2097,14 @@ def admin_export_users_permissions(request):
     )
     data = []
     for user in users:
+        group_tiles = Tile.objects.filter(groups__in=user.groups.all()).values_list(
+            "url_name", flat=True
+        )
+        group_areas = Area.objects.filter(groups__in=user.groups.all()).values_list(
+            "slug", flat=True
+        )
+        tiles = set(user.tiles.values_list("url_name", flat=True)) | set(group_tiles)
+        areas = set(user.areas.values_list("slug", flat=True)) | set(group_areas)
         data.append(
             {
                 "username": user.username,
@@ -2102,8 +2114,8 @@ def admin_export_users_permissions(request):
                 "is_active": user.is_active,
                 "is_staff": user.is_staff,
                 "groups": [g.name for g in user.groups.all()],
-                "areas": [a.slug for a in user.areas.all()],
-                "tiles": [t.url_name for t in user.tiles.all()],
+                "areas": sorted(areas),
+                "tiles": sorted(tiles),
             }
         )
     content = json.dumps(data, ensure_ascii=False, indent=2)
