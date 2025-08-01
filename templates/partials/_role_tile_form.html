@@ -2,6 +2,7 @@
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+    <p class="text-gray-700">Wähle die sichtbaren Kacheln für diese Rolle aus.</p>
     {% for area, items in tiles_by_area.items %}
         <h2 class="text-xl font-semibold mt-4">{{ area.name }}-Dashboard</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">

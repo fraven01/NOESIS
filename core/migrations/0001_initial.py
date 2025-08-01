@@ -1486,10 +1486,6 @@ class Migration(migrations.Migration):
                 to="core.anlage2subquestion",
             ),
         ),
-        migrations.AlterUniqueTogether(
-            name="anlage2functionresult",
-            unique_together={("projekt", "funktion", "subquestion")},
-        ),
         migrations.CreateModel(
             name="Anlage3Metadata",
             fields=[
@@ -1746,10 +1742,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name="anlagenfunktionsmetadaten",
             name="created_at",
-        ),
-        migrations.AlterUniqueTogether(
-            name="anlagenfunktionsmetadaten",
-            unique_together={("anlage_datei", "funktion", "subquestion")},
         ),
         migrations.AlterField(
             model_name="anlage2config",

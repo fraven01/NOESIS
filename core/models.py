@@ -1,5 +1,7 @@
 from django.conf import settings
+
 from django.contrib.auth.models import Permission, Group
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django_q.tasks import async_task, fetch
@@ -493,12 +495,11 @@ class Area(models.Model):
         help_text="Einzigartiger Name des Bereichs, z.B. 'work' oder 'personal'",
     )
     image = models.ImageField(upload_to="area_images/", blank=True, null=True)
-    users = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="UserAreaAccess",
+    groups = models.ManyToManyField(
+        Group,
         related_name="areas",
         blank=True,
-        help_text="Benutzer mit Zugriff auf diesen Bereich.",
+        help_text="Gruppen mit Zugriff auf diesen Bereich.",
     )
     groups = models.ManyToManyField(
         Group,
@@ -897,9 +898,11 @@ class Tile(models.Model):
     )
     groups = models.ManyToManyField(
         Group,
+
         through="GroupTileAccess",
         related_name="tiles",
         blank=True,
+
     )
 
     class Meta:
@@ -920,6 +923,7 @@ class UserTileAccess(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.user} -> {self.tile}"
+
 
 
 class GroupTileAccess(models.Model):
@@ -946,6 +950,7 @@ class UserAreaAccess(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"{self.user} -> {self.area}"
+
 
 
 class GroupAreaAccess(models.Model):

@@ -8,13 +8,13 @@ INITIAL_AREAS = {
         "tiles": [
             {
                 "slug": "new-bv-project",
-                "name": "Neues Gutachten",
+                "name": "Neues Projekt",
                 "url_name": "projekt_create",
                 "icon": "bi-folder-plus",
             },
             {
                 "slug": "bv-project-list",
-                "name": "Alle Gutachten",
+                "name": "Projektverwaltung",
                 "url_name": "projekt_list",
                 "icon": "bi-folder",
             },
@@ -445,5 +445,3 @@ INITIAL_ANLAGE2_CONFIG = {
 }
 
 # --- Hauptfunktion der Migration ---
-
-
