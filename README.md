@@ -83,6 +83,13 @@ Projektwurzelverzeichnis (`BASE_DIR`). Existiert die Datei nicht, kann sie
 einfach als leere Datei angelegt werden, sofern Schreibrechte im
 Projektordner bestehen.
 
+## Datenbank
+
+Ohne gesetzte PostgreSQL-Variablen (`DB_NAME`, `DB_USER`, `DB_PASSWORD` und
+`DB_HOST`) verwendet NOESIS automatisch SQLite. Die Datei `db.sqlite3` wird im
+Projektverzeichnis angelegt. Für den Produktivbetrieb ist PostgreSQL
+empfohlen.
+
 ## Datenbankmigrationen
 
 Führe nach dem Einspielen neuer Code-Änderungen immer `python manage.py migrate` aus. Damit werden Datenbankanpassungen, wie etwa das Entfernen von Unique-Constraints, wirksam. Anschließend legt `python manage.py seed_initial_data` die Standarddaten erneut an. Mit

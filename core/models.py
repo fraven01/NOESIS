@@ -497,12 +497,6 @@ class Area(models.Model):
     image = models.ImageField(upload_to="area_images/", blank=True, null=True)
     groups = models.ManyToManyField(
         Group,
-        related_name="areas",
-        blank=True,
-        help_text="Gruppen mit Zugriff auf diesen Bereich.",
-    )
-    groups = models.ManyToManyField(
-        Group,
         through="GroupAreaAccess",
         related_name="areas",
         blank=True,

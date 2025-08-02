@@ -4,6 +4,8 @@
 from django.core.management.base import BaseCommand
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
+import secrets
 
 from core.initial_data_constants import (
     INITIAL_AREAS,
@@ -70,7 +72,7 @@ def create_initial_data(apps) -> None:
                 },
             )
             tile.areas.add(area)
-            tile.groups.add(*allowed_groups)
+            tile.groups.set(allowed_groups)
 
     # 2. Projekt-Status
     print("\n[2] Verarbeite Projekt-Status...")
@@ -170,6 +172,7 @@ def create_initial_data(apps) -> None:
 
     # 10. Prompts
     print("\n[10] Verarbeite Prompts...")
+    # Zusätzliche Prompt-Texte vorbereiten
     prompts = [
         (
             "anlage2_subquestion_justification_check",
@@ -213,6 +216,60 @@ def create_initial_data(apps) -> None:
             True,
         ),
     ]
+
+    check_anlage1_text = (
+        "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
+        + INITIAL_ANLAGE1_QUESTIONS[0]["text"]
+        + "\n"
+        + INITIAL_ANLAGE1_QUESTIONS[1]["text"]
+        + "\n"
+        + "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
+        + "".join(f"{q['text']}\n" for q in INITIAL_ANLAGE1_QUESTIONS[2:])
+        + "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
+    )
+
+    prompts.extend(
+        [
+            ("anlage1_email",
+             "Formuliere eine freundliche E-Mail an den Fachbereich. Wir haben die Anlage 1 geprüft und noch folgende Vorschläge, bevor der Mitbestimmungsprozess weiter gehen kann. Bitte fasse die folgenden Vorschläge zusammen:\r\n\r\n",
+             True),
+            (
+                "anlage2_ai_involvement_check",
+                "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente? Eine KI-Komponente liegt vor, wenn die Funktion unstrukturierte Daten (Text, Bild, Ton) verarbeitet, Sentiment-Analysen durchführt oder nicht-deterministische, probabilistische Ergebnisse liefert.",
+                True,
+            ),
+            (
+                "anlage2_feature_justification",
+                "Warum besitzt die Software '{software_name}' typischerweise die Funktion oder Eigenschaft '{function_name}'?   Ist es möglich mit der {function_name} eine Leistungskontrolle oder eine Verhaltenskontrolle  Ist damit eine Leistungskontrolle oder eine Verhaltenskontrolle im Sinne des §87 Abs. 1 Nr. 6 möglich? Wenn ja, wie?",
+                True,
+            ),
+            (
+                "anlage2_feature_verification",
+                "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", \"Nein\" oder \"Unsicher\" sein. Gib keine Einleitung, keine Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: Besitzt die Software '{software_name}' basierend auf allgemeinem Wissen typischerweise die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}",
+                False,
+            ),
+            (
+                "check_anlage2_function",
+                "Prüfe anhand des folgenden Textes, ob die genannte Funktion vorhanden ist. Gib ein JSON mit den Schlüsseln \"technisch_verfuegbar\", \"einsatz_telefonica\", \"zur_lv_kontrolle\" und \"ki_beteiligung\" zurück.\n\n",
+                True,
+            ),
+            ("check_anlage3", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
+            ("check_anlage4", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
+            ("check_anlage5", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
+            ("classify_system", "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schlüsseln 'kategorie' und 'begruendung' zurück.\n\n", True),
+            ("generate_gutachten", "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n", True),
+            ("initial_check_knowledge", "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.", False),
+            ("initial_check_knowledge_with_context", "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'.", True),
+            ("initial_llm_check", "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. Erläutere, was sie tut und wie sie typischerweise eingesetzt wird.", True),
+            ("check_anlage1", check_anlage1_text, True),
+            ("check_anlage3_vision", "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
+            ("anlage2_table", "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n", True),
+            ("check_gutachten_functions", "Prüfe das folgende Gutachten auf weitere Funktionen, die nach § 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. Gib eine kurze Empfehlung als Text zurück.\n\n", True),
+        ]
+    )
+
+    for q in INITIAL_ANLAGE1_QUESTIONS:
+        prompts.append((f"anlage1_q{q['num']}", q["text"], True))
     for name, text, use_system_role in prompts:
         Prompt.objects.update_or_create(name=name, defaults={"text": text, "use_system_role": use_system_role})
 
@@ -228,6 +285,19 @@ def create_initial_data(apps) -> None:
             note_text=text,
             defaults={"display_order": order, "is_active": True},
         )
+
+    # 12. Standard-Benutzer
+    print("\n[12] Erstelle Standard-Benutzer...")
+    User = get_user_model()
+    user, created = User.objects.get_or_create(username="frank")
+    if created:
+        password = secrets.token_urlsafe(12)
+        user.is_staff = True
+        user.is_superuser = True
+        user.set_password(password)
+        user.save()
+        print(f"Benutzer 'frank' erstellt. Passwort: {password}")
+    user.groups.add(standard_group, admin_group)
 
     print("\n--- Ende: Initiale Daten erfolgreich erstellt. ---")
 
