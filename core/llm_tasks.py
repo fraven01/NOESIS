@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import DatabaseError, IntegrityError, connection
 from django.db.models import Q
 from django.utils import timezone
-from django_q.tasks import async_task, async_chain
+from django_q.tasks import async_task, result
 
 from .utils import get_project_file, update_file_status
 from .decorators import updates_file_status
@@ -1403,22 +1403,27 @@ def run_conditional_anlage2_check(
         for func in Anlage2Function.objects.prefetch_related(
             "anlage2subquestion_set"
         ).order_by("name"):
-            worker_verify_feature(
-                projekt.pk, "function", func.id, model_name
+            task_id = async_task(
+                "core.llm_tasks.worker_verify_feature",
+                projekt.pk,
+                "function",
+                func.id,
+                model_name,
             )
-            res = AnlagenFunktionsMetadaten.objects.filter(
-                anlage_datei__projekt_id=projekt.pk,
-                funktion=func,
-                subquestion__isnull=True,
-            ).first()
+            # Auf Abschluss des Tasks warten
+            result(task_id, wait=-1)
 
             doc_ok = False
-
             if doc_ok:
                 for sub in func.anlage2subquestion_set.all():
-                    worker_verify_feature(
-                        projekt.pk, "subquestion", sub.id, model_name
+                    sub_task_id = async_task(
+                        "core.llm_tasks.worker_verify_feature",
+                        projekt.pk,
+                        "subquestion",
+                        sub.id,
+                        model_name,
                     )
+                    result(sub_task_id, wait=-1)
 
         pf.verification_task_id = ""
         pf.save(update_fields=["verification_task_id"])

@@ -486,7 +486,15 @@ class BVProjectFileTests(NoesisTestCase):
             verification_task_id="tid",
         )
         Anlage2Function.objects.create(name="Login")
-        with patch("core.llm_tasks.query_llm", return_value="{}"):
+        with (
+            patch("core.llm_tasks.query_llm", return_value="{}"),
+            patch("core.llm_tasks.async_task") as mock_async,
+            patch("core.llm_tasks.result") as mock_result,
+        ):
+            mock_async.side_effect = lambda name, *a, **k: (
+                worker_verify_feature(*a, **k) or "tid"
+            )
+            mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
         pf.refresh_from_db()
         self.assertEqual(pf.verification_task_id, "")
@@ -1425,7 +1433,15 @@ class LLMTasksTests(NoesisTestCase):
         )
         func = Anlage2Function.objects.create(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": True})
-        with patch("core.llm_tasks.query_llm", return_value=llm_reply):
+        with (
+            patch("core.llm_tasks.query_llm", return_value=llm_reply),
+            patch("core.llm_tasks.async_task") as mock_async,
+            patch("core.llm_tasks.result") as mock_result,
+        ):
+            mock_async.side_effect = lambda name, *a, **k: (
+                worker_verify_feature(*a, **k) or "tid"
+            )
+            mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
 
         res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
@@ -4439,6 +4455,7 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
+        Anlage2Function.objects.all().delete()
         func = Anlage2Function.objects.create(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf_old,
@@ -4466,7 +4483,7 @@ class Anlage2ResetTests(NoesisTestCase):
         results = AnlagenFunktionsMetadaten.objects.filter(
             anlage_datei__projekt=projekt
         )
-        self.assertEqual(results.count(), 1)
+        self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
             projekt=projekt,
             funktion=func,
@@ -4494,6 +4511,12 @@ class Anlage2ResetTests(NoesisTestCase):
             technisch_verfuegbar=False,
         )
 
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("new.txt", b"x"),
+        )
+
         def fake(_pid, _typ, fid, _model=None):
             pf_latest = BVProjectFile.objects.filter(
                 projekt=projekt, anlage_nr=2
@@ -4512,12 +4535,20 @@ class Anlage2ResetTests(NoesisTestCase):
             )
             return {}
 
-        with patch("core.llm_tasks.worker_verify_feature", side_effect=fake):
+        with (
+            patch("core.llm_tasks.worker_verify_feature", side_effect=fake) as mock_verify,
+            patch("core.llm_tasks.async_task") as mock_async,
+            patch("core.llm_tasks.result") as mock_result,
+        ):
+            mock_async.side_effect = lambda name, *a, **k: (
+                mock_verify(*a, **k) or "tid"
+            )
+            mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
         results = AnlagenFunktionsMetadaten.objects.filter(
             anlage_datei__projekt=projekt
         )
-        self.assertEqual(results.count(), 1)
+        self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
             projekt=projekt,
             funktion=func,
