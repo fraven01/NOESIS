@@ -312,7 +312,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                 anlage_datei=anlage,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
-                quelle="parser",
+                quelle__iexact="parser",
             )
             .order_by("-created_at")
             .first()
@@ -402,7 +402,7 @@ def _verification_to_initial(pf: BVProjectFile | None) -> dict:
                 projekt=res.anlage_datei.projekt,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
-                quelle="ki",
+                quelle__iexact="ki",
             )
             .order_by("-created_at")
             .first()
@@ -560,7 +560,7 @@ def _build_row_data(
                 anlage_datei=pf,
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
-                quelle="parser",
+                quelle__iexact="parser",
             )
             .order_by("-created_at")
             .first()
@@ -570,7 +570,7 @@ def _build_row_data(
                 anlage_datei=pf,
                 funktion=result_obj.funktion,
                 subquestion=result_obj.subquestion,
-                quelle="ki",
+                quelle__iexact="ki",
             )
             .order_by("-created_at")
             .first()
@@ -731,7 +731,7 @@ def _build_supervision_row(
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion=result.subquestion,
-            quelle="parser",
+            quelle__iexact="parser",
         )
         .order_by("-created_at")
         .first()
@@ -741,7 +741,7 @@ def _build_supervision_row(
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion=result.subquestion,
-            quelle="ki",
+            quelle__iexact="ki",
         )
         .order_by("-created_at")
         .first()
@@ -3674,7 +3674,7 @@ def projekt_file_edit_json(request, pk):
                     anlage_datei=anlage,
                     funktion=res.funktion,
                     subquestion=res.subquestion,
-                    quelle="parser",
+                    quelle__iexact="parser",
                 )
                 .order_by("-created_at")
                 .first()
@@ -3684,7 +3684,7 @@ def projekt_file_edit_json(request, pk):
                     anlage_datei=anlage,
                     funktion=res.funktion,
                     subquestion=res.subquestion,
-                    quelle="ki",
+                    quelle__iexact="ki",
                 )
                 .order_by("-created_at")
                 .first()
@@ -3807,7 +3807,7 @@ def projekt_file_edit_json(request, pk):
             beteilig_map: dict[tuple[str, str | None], tuple[bool | None, str]] = {}
             for res in FunktionsErgebnis.objects.filter(
                 anlage_datei=anlage,
-                quelle="ki",
+                quelle__iexact="ki",
             ):
                 fid = str(res.funktion_id)
                 sid = str(res.subquestion_id) if res.subquestion_id else None
@@ -4286,7 +4286,7 @@ def hx_supervision_confirm(request, result_id: int):
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion=result.subquestion,
-            quelle="ki",
+            quelle__iexact="ki",
         )
         .order_by("-created_at")
         .first()
@@ -4713,27 +4713,27 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         pf.save(update_fields=["manual_analysis_json"])
     else:
         parser_entry = (
-            FunktionsErgebnis.objects.filter(
-                anlage_datei=pf,
-                funktion=result.funktion,
-                subquestion_id=sub_id,
-                quelle="parser",
-            )
-            .exclude(**{attr: None})
-            .order_by("-created_at")
-            .first()
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle__iexact="parser",
         )
+        .exclude(**{attr: None})
+        .order_by("-created_at")
+        .first()
+    )
         ai_entry = (
-            FunktionsErgebnis.objects.filter(
-                anlage_datei=pf,
-                funktion=result.funktion,
-                subquestion_id=sub_id,
-                quelle="ki",
-            )
-            .exclude(**{attr: None})
-            .order_by("-created_at")
-            .first()
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=pf,
+            funktion=result.funktion,
+            subquestion_id=sub_id,
+            quelle__iexact="ki",
         )
+        .exclude(**{attr: None})
+        .order_by("-created_at")
+        .first()
+    )
         doc_val = getattr(parser_entry, attr) if parser_entry else None
         ai_val = getattr(ai_entry, attr) if ai_entry else None
         cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name)
@@ -4768,7 +4768,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion_id=sub_id,
-            quelle="parser",
+            quelle__iexact="parser",
         )
         .order_by("-created_at")
         .first()
@@ -4778,7 +4778,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion_id=sub_id,
-            quelle="ki",
+            quelle__iexact="ki",
         )
         .order_by("-created_at")
         .first()
@@ -5601,7 +5601,7 @@ def justification_detail_edit(request, file_id, function_key):
             anlage_datei=anlage,
             funktion=funktion,
             subquestion=subquestion,
-            quelle="ki",
+            quelle__iexact="ki",
         )
         .order_by("-created_at")
         .first()
