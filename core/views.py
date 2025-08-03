@@ -4144,10 +4144,12 @@ def projekt_functions_check(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     pf = BVProjectFile.objects.filter(projekt=projekt, anlage_nr=2).first()
     if pf:
-        async_task(
-            "core.llm_tasks.run_conditional_anlage2_check",
-            pf.pk,
-            model,
+        transaction.on_commit(
+            lambda: async_task(
+                "core.llm_tasks.run_conditional_anlage2_check",
+                pf.pk,
+                model,
+            )
         )
     return JsonResponse({"status": "ok"})
 

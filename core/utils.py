@@ -41,15 +41,19 @@ def start_analysis_for_file(file_obj: BVProjectFile) -> None:
     file_obj.processing_status = BVProjectFile.PROCESSING
     file_obj.save(update_fields=["processing_status"])
 
-    try:
-        if connection.vendor == "sqlite":
-            for func, arg in tasks:
-                import_string(func)(arg)
-        else:
-            for func, arg in tasks:
-                async_task(func, arg)
-    except Exception:
-        logger.exception("Fehler beim Starten der Analyse")
+    def _start_tasks() -> None:
+        """Plant die Analyse-Tasks nach dem erfolgreichen Commit ein."""
+        try:
+            if connection.vendor == "sqlite":
+                for func, arg in tasks:
+                    import_string(func)(arg)
+            else:
+                for func, arg in tasks:
+                    async_task(func, arg)
+        except Exception:  # pragma: no cover - loggen genügt
+            logger.exception("Fehler beim Starten der Analyse")
+
+    transaction.on_commit(_start_tasks)
 
 
 @transaction.atomic
