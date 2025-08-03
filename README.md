@@ -130,6 +130,24 @@ Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
 2. Nach dem Klick erzeugt das LLM zwei Zusammenfassungen der offenen Punkte aus beiden Anlagen.
 3. Die Texte lassen sich bearbeiten und werden beim Speichern in den jeweiligen Anlagen hinterlegt.
 
+### Konfigurations-Management
+
+Das Projekt enthält Befehle zum Exportieren und Importieren der gesamten Anwendungskonfiguration. Dies ist nützlich für Backups oder die Migration von Konfigurationen zwischen verschiedenen Umgebungen (z. B. Staging zu Produktion).
+
+-   **Export:**
+    Über die Admin-Oberfläche unter `Systemverwaltung -> Konfigurationen` kann die gesamte Konfiguration als `configs.json`-Datei heruntergeladen werden. Alternativ kann der Befehl in der Shell ausgeführt werden:
+    ```sh
+    python manage.py export_configs > configs.json
+    ```
+
+-   **Import:**
+    Die `configs.json`-Datei kann über dieselbe Admin-Oberfläche wieder hochgeladen werden. Der Import ist idempotent, d.h., bestehende Einträge werden aktualisiert und neue hinzugefügt.
+    Alternativ über die Shell:
+    ```sh
+    python manage.py import_configs /pfad/zu/configs.json
+    ```
+
+
 ### Anlage 1 prüfen
 
 Der Aufruf

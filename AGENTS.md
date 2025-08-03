@@ -63,6 +63,12 @@ Procfile: Definiert die Prozesse (web, worker) für den Start mit honcho.
 - `/admin/` – System-Admin (das reguläre Django-Admin) für globale
   Konfiguration wie Benutzer und Gruppen.
 
+
+-   **Implementierung von CRUD-Ansichten:** Entwicklung von Listen-, Erstellungs-, Bearbeitungs- und Löschansichten für verschiedene Modelle.
+
+-   **Implementierung einer robusten Import/Export-Funktion:** Entwicklung einer idempotenten Import- und Exportlogik für die gesamte Anwendungskonfiguration, inklusive der Handhabung von Many-to-Many-Beziehungen und der Integration in die Admin-Oberfläche.
+-   **Analyse und Refactoring:** Bewertung von Code-Alternativen (Patches) und Umsetzung der besten Lösung.
+
 ## Tests und Checks
 - Vor jedem Commit `python manage.py makemigrations --check` ausführen.
 
