@@ -373,7 +373,8 @@ LOGGING = {
     },
 }
 
-LOGGING["handlers"]["console"]["encoding"] = "utf-8"
+if sys.version_info >= (3, 12):
+    LOGGING["handlers"]["console"]["encoding"] = "utf-8"
 
 # Django-Q Konfiguration
 Q_CLUSTER = {
