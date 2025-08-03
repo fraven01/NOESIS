@@ -379,14 +379,14 @@ if sys.version_info >= (3, 12):
 # Django-Q Konfiguration
 Q_CLUSTER = {
     "name": "noesis_q",
-    "workers": 1,
+    # Anzahl der Worker aus ENV oder der Anzahl der CPU-Kerne ableiten
+    "workers": int(os.environ.get("Q_CLUSTER_WORKERS", os.cpu_count() or 1)),
     "recycle": 500,
     "timeout": 1200,
     "retry": 1300,
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
-    "cpu_affinity": 1,
     "label": "Django Q",
     "orm": "default",
 }
