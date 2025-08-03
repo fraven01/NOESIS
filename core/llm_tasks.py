@@ -1712,7 +1712,8 @@ def worker_verify_feature(
         )
     except IntegrityError:
         logger.warning(
-            "Anlage-Datei %s fehlt. Prüfung wird abgebrochen.",
+            "Anlage %s (ID %s) fehlt. Prüfung wird abgebrochen.",
+            pf.anlage_nr,
             pf.pk,
         )
         return verification_result
