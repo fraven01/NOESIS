@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
-from django.db import DatabaseError, connection
+from django.db import DatabaseError, IntegrityError, connection
 from django.db.models import Q
 from django.utils import timezone
 from django_q.tasks import async_task, async_chain
@@ -498,12 +498,19 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         )
         lv = _extract_bool(row.get("zur_lv_kontrolle"))
         ki = _extract_bool(row.get("ki_beteiligung"))
-        AnlagenFunktionsMetadaten.objects.update_or_create(
-            anlage_datei=project_file,
-            funktion=func,
-            subquestion=sub,
-            defaults={},
-        )
+        try:
+            AnlagenFunktionsMetadaten.objects.update_or_create(
+                anlage_datei=project_file,
+                funktion=func,
+                subquestion=sub,
+                defaults={},
+            )
+        except IntegrityError:
+            logger.warning(
+                "Anlage-Datei %s fehlt. Analyse wird abgebrochen.",
+                project_file.pk,
+            )
+            return results
         FunktionsErgebnis.objects.create(
             projekt=project_file.projekt,
             anlage_datei=project_file,
@@ -526,7 +533,14 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
         "worker_run_anlage2_analysis gestartet für Datei %s",
         file_id,
     )
-    pf = BVProjectFile.objects.get(pk=file_id)
+    qs = BVProjectFile.objects.filter(pk=file_id)
+    if not qs.exists():
+        anlage2_logger.warning(
+            "Datei %s existiert nicht. Analyse wird abgebrochen.",
+            file_id,
+        )
+        return []
+    pf = qs.first()
     result = run_anlage2_analysis(pf)
     anlage2_logger.info(
         "worker_run_anlage2_analysis beendet für Datei %s",
@@ -1437,6 +1451,12 @@ def worker_verify_feature(
 
     projekt = BVProject.objects.get(pk=project_id)
     pf = get_project_file(projekt, 2)
+    if not pf or not BVProjectFile.objects.filter(pk=pf.pk).exists():
+        logger.warning(
+            "Anlage-2-Datei für Projekt %s fehlt. Prüfung wird beendet.",
+            project_id,
+        )
+        return {}
 
 
     gutachten_text = ""
@@ -1683,12 +1703,19 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
-    res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
-        anlage_datei=pf,
-        funktion_id=func_id,
-        subquestion=sub_obj,
-        defaults={},
-    )
+    try:
+        res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
+            anlage_datei=pf,
+            funktion_id=func_id,
+            subquestion=sub_obj,
+            defaults={},
+        )
+    except IntegrityError:
+        logger.warning(
+            "Anlage-Datei %s fehlt. Prüfung wird abgebrochen.",
+            pf.pk,
+        )
+        return verification_result
 
     auto_val = _calc_auto_negotiable(tv, ki_bet)
 
