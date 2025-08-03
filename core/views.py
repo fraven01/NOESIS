@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group, Permission
 from django.http import (
+    HttpRequest,
     HttpResponseBadRequest,
     Http404,
     HttpResponse,
@@ -24,6 +25,8 @@ from django.urls import reverse, reverse_lazy
 from typing import Any
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.management import call_command
 import io
 import zipfile
 from django.db import connection, transaction
@@ -1842,6 +1845,34 @@ def admin_models(request):
         cfg.save(update_fields=["models_changed"])
     context = {"config": cfg, "models": LLMConfig.get_available()}
     return render(request, "admin_models.html", context)
+
+
+@staff_member_required
+def config_export_import_view(request: HttpRequest) -> HttpResponse:
+    """Exportiert und importiert Konfigurationen über das Admin-Interface."""
+
+    if request.method == "POST" and "export" in request.POST:
+        buffer = io.StringIO()
+        call_command("export_configs", stdout=buffer)
+        buffer.seek(0)
+        resp = HttpResponse(buffer.read(), content_type="application/json")
+        resp["Content-Disposition"] = "attachment; filename=configs.json"
+        return resp
+
+    if request.method == "POST" and request.FILES.get("config_file"):
+        tmp = NamedTemporaryFile(delete=False)
+        for chunk in request.FILES["config_file"].chunks():
+            tmp.write(chunk)
+        tmp_path = tmp.name
+        tmp.close()
+        try:
+            call_command("import_configs", tmp_path)
+            messages.success(request, "Konfigurationen importiert")
+        except Exception as exc:  # noqa: BLE001
+            messages.error(request, f"Import fehlgeschlagen: {exc}")
+        finally:
+            os.unlink(tmp_path)
+    return render(request, "admin/config_transfer.html")
 
 
 @login_required

@@ -62,6 +62,10 @@
                         <i class="fas fa-check-square fa-fw mr-2"></i>
                         Rollen &amp; Rechte
                     </a>
+                    <a href="{% url 'config_transfer' %}" class="nav-link {% if request.resolver_match.url_name == 'config_transfer' %}active-nav-link{% endif %}">
+                        <i class="fas fa-exchange-alt fa-fw mr-2"></i>
+                        Konfigurationen übertragen
+                    </a>
                 </div>
                 {% endwith %}
             </div>
