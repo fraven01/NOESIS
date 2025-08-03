@@ -292,43 +292,15 @@ def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
 
     return out
 
-
 def _analysis_to_initial(anlage: BVProjectFile) -> dict:
-    """Ermittelt die Dokumentergebnisse aus der Datenbank."""
+    """Ermittelt die Dokumentergebnisse aus der Datenbank.
+
+    Fehlen Parser-Ergebnisse vollständig, werden Analysewerte genutzt."""
     initial = {"functions": {}}
+    field_names = [f[0] for f in get_anlage2_fields()]
+    analysis_data: dict[str, dict] = {}
 
-    results = AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
-
-    for res in results:
-        func_id = str(res.funktion_id)
-        target = initial["functions"].setdefault(func_id, {})
-        dest = target
-        if res.subquestion_id:
-            dest = target.setdefault("subquestions", {}).setdefault(
-                str(res.subquestion_id), {}
-            )
-        latest = (
-            FunktionsErgebnis.objects.filter(
-                anlage_datei=anlage,
-                funktion_id=res.funktion_id,
-                subquestion_id=res.subquestion_id,
-                quelle="parser",
-            )
-            .order_by("-created_at")
-            .first()
-        )
-        if latest:
-            dest["technisch_vorhanden"] = latest.technisch_verfuegbar
-            dest["einsatz_bei_telefonica"] = latest.einsatz_bei_telefonica
-            dest["zur_lv_kontrolle"] = latest.zur_lv_kontrolle
-            dest["ki_beteiligung"] = latest.ki_beteiligung
-        if res.gap_summary:
-            dest["gap_summary"] = res.gap_summary
-        if res.gap_notiz:
-            dest["gap_notiz"] = res.gap_notiz
-
-    # Fallback: Falls keine Daten existieren, analysis_json verwenden
-    if not initial["functions"] and isinstance(anlage.analysis_json, dict):
+    if isinstance(anlage.analysis_json, dict):
         funcs = anlage.analysis_json.get("functions")
         if isinstance(funcs, dict) and "value" in funcs:
             funcs = funcs["value"]
@@ -336,18 +308,19 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             table = anlage.analysis_json.get("table_functions")
             if isinstance(table, dict):
                 funcs = [
-                    {"name": k, **v} for k, v in table.items() if isinstance(v, dict)
+                    {"name": k, **v}
+                    for k, v in table.items()
+                    if isinstance(v, dict)
                 ]
         if not isinstance(funcs, list):
             funcs = []
-        field_names = [f[0] for f in get_anlage2_fields()]
         for item in funcs:
             name = item.get("funktion") or item.get("name")
             func = Anlage2Function.objects.filter(name__iexact=name).first()
             if not func:
                 continue
             fid = str(func.id)
-            target = initial["functions"].setdefault(fid, {})
+            target = analysis_data.setdefault(fid, {})
             norm_item = _normalize_fields(item)
             for f in field_names:
                 val = norm_item.get(f)
@@ -366,7 +339,9 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                 if not sub_obj:
                     continue
                 sid = str(sub_obj.id)
-                sub_target = target.setdefault("subquestions", {}).setdefault(sid, {})
+                sub_target = target.setdefault("subquestions", {}).setdefault(
+                    sid, {}
+                )
                 nsub = _normalize_fields(sub)
                 for f in field_names:
                     val = nsub.get(f)
@@ -374,6 +349,57 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                         sub_target[f] = val["value"]
                     else:
                         sub_target[f] = val
+
+    results = AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
+    has_parser_data = False
+
+    for res in results:
+        func_id = str(res.funktion_id)
+        target = initial["functions"].setdefault(func_id, {})
+        dest = target
+        if res.subquestion_id:
+            dest = target.setdefault("subquestions", {}).setdefault(
+                str(res.subquestion_id), {},
+            )
+        latest = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=anlage,
+                funktion_id=res.funktion_id,
+                subquestion_id=res.subquestion_id,
+                quelle="parser",
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if latest:
+            dest["technisch_vorhanden"] = latest.technisch_verfuegbar
+            dest["einsatz_bei_telefonica"] = latest.einsatz_bei_telefonica
+            dest["zur_lv_kontrolle"] = latest.zur_lv_kontrolle
+            dest["ki_beteiligung"] = latest.ki_beteiligung
+            has_parser_data = True
+        else:
+            fallback = analysis_data.get(func_id, {})
+            if res.subquestion_id:
+                fallback = (
+                    fallback.get("subquestions", {})
+                    .get(str(res.subquestion_id), {})
+                )
+            for f in field_names:
+                val = fallback.get(f)
+                if val is not None:
+                    dest[f] = val
+        if res.gap_summary:
+            dest["gap_summary"] = res.gap_summary
+        if res.gap_notiz:
+            dest["gap_notiz"] = res.gap_notiz
+
+    if not has_parser_data and analysis_data:
+        for fid, data in initial["functions"].items():
+            _deep_update(analysis_data.setdefault(fid, {}), data)
+        initial["functions"] = analysis_data
+    else:
+        for fid, data in analysis_data.items():
+            initial["functions"].setdefault(fid, data)
 
     debug_logger.debug("Ergebnis initial: %r", initial)
     return initial
