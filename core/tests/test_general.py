@@ -3595,6 +3595,40 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertFalse(parser_fe.technisch_verfuegbar)
         self.assertTrue(ai_fe.technisch_verfuegbar)
 
+    def test_warnung_bei_geloeschter_datei(self):
+        """L\u00f6schen der Datei f\u00fchrt zu Warnung statt Ausnahme."""
+        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+
+        original_update = AnlagenFunktionsMetadaten.objects.update_or_create
+
+        def _wrapped(*args, **kwargs):
+            obj, created = original_update(*args, **kwargs)
+            pf.delete()
+            return obj, created
+
+        with patch("core.llm_tasks.query_llm", side_effect=["Nein", "Nein"]):
+            with patch(
+                "core.llm_tasks.AnlagenFunktionsMetadaten.objects.update_or_create",
+                side_effect=_wrapped,
+            ):
+                with self.assertLogs("core.llm_tasks", level="WARNING") as cm:
+                    result = worker_verify_feature(
+                        self.projekt.pk, "function", self.func.pk
+                    )
+
+        self.assertEqual(
+            result,
+            {
+                "technisch_verfuegbar": False,
+                "ki_begruendung": "",
+                "ki_beteiligt": None,
+                "ki_beteiligt_begruendung": "",
+            },
+        )
+        self.assertTrue(
+            any("wurde w\u00e4hrend der Verarbeitung gel\u00f6scht" in msg for msg in cm.output)
+        )
+
 
 class InitialCheckTests(NoesisTestCase):
     def setUp(self):
