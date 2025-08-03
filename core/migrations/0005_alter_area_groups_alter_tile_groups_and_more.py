@@ -14,7 +14,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name="area",
+            name="groups",
+        ),
+        migrations.AddField(
             model_name="area",
             name="groups",
             field=models.ManyToManyField(
@@ -25,7 +29,11 @@ class Migration(migrations.Migration):
                 to="auth.group",
             ),
         ),
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name="tile",
+            name="groups",
+        ),
+        migrations.AddField(
             model_name="tile",
             name="groups",
             field=models.ManyToManyField(
