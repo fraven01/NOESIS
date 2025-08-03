@@ -2647,6 +2647,19 @@ class Anlage2ReviewTests(NoesisTestCase):
         field = f"func{self.func.id}_technisch_vorhanden"
         self.assertTrue(resp.context["form"].initial[field])
 
+    def test_prefill_with_metadaten_no_ergebnis(self):
+        """Analysewerte werden auch ohne FunktionsErgebnisse angezeigt."""
+        self.file.manual_analysis_json = None
+        self.file.save()
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=self.file,
+            funktion=self.func,
+        )
+        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        resp = self.client.get(url)
+        field = f"func{self.func.id}_technisch_vorhanden"
+        self.assertTrue(resp.context["form"].initial[field])
+
     def test_rows_include_lookup_key(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.get(url)
