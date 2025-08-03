@@ -5,6 +5,7 @@ from django.conf import settings
 from django.http import QueryDict
 from django.db import IntegrityError
 from types import SimpleNamespace
+import os
 
 
 from django.apps import apps
@@ -53,7 +54,7 @@ from ..parser_manager import parser_manager
 from ..parsers import AbstractParser
 
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from docx import Document
 import shutil
 from PIL import Image
@@ -422,6 +423,21 @@ class BVProjectFileTests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertTrue(pf.manual_reviewed)
         self.assertTrue(pf.verhandlungsfaehig)
+
+    def test_project_delete_removes_files(self):
+        """Sichert, dass beim Löschen eines Projekts die Dateien entfernt werden."""
+        with TemporaryDirectory() as tmpdir, override_settings(MEDIA_ROOT=tmpdir):
+            projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+            pf = BVProjectFile.objects.create(
+                projekt=projekt,
+                anlage_nr=1,
+                upload=SimpleUploadedFile("a.txt", b"data"),
+                text_content="d",
+            )
+            file_path = pf.upload.path
+            self.assertTrue(os.path.exists(file_path))
+            projekt.delete()
+            self.assertFalse(os.path.exists(file_path))
 
     def test_json_form_shows_analysis_field_for_anlage3(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
