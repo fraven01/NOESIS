@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth.models import Permission, Group
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django_q.tasks import async_task, fetch
 from pathlib import Path
 import logging
@@ -145,9 +145,11 @@ class BVProject(models.Model):
                 quelle="ki",
             ).exists()
             if not has_ai_results:
-                async_task(
-                    "core.llm_tasks.run_conditional_anlage2_check",
-                    self.pk,
+                transaction.on_commit(
+                    lambda: async_task(
+                        "core.llm_tasks.run_conditional_anlage2_check",
+                        self.pk,
+                    )
                 )
 
     def __str__(self) -> str:
