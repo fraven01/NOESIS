@@ -83,9 +83,6 @@ Projektwurzelverzeichnis (`BASE_DIR`). Existiert die Datei nicht, kann sie
 einfach als leere Datei angelegt werden, sofern Schreibrechte im
 Projektordner bestehen.
 
-Für eine korrekte UTF-8-Ausgabe in der Konsole sollte zusätzlich die
-Umgebungsvariable `PYTHONIOENCODING` auf `utf-8` gesetzt werden.
-
 ## Datenbank
 
 Ohne gesetzte PostgreSQL-Variablen (`DB_NAME`, `DB_USER`, `DB_PASSWORD` und
