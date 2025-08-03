@@ -4,6 +4,8 @@ from django.contrib.auth.models import Permission, Group
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django_q.tasks import async_task, fetch
 from pathlib import Path
 import logging
@@ -362,6 +364,19 @@ class BVProjectFile(models.Model):
         if self.anlage_nr == 5:
             return [("core.llm_tasks.check_anlage5", self.pk)]
         return []
+
+    def delete(self, *args, **kwargs) -> tuple[int, dict[str, int]]:
+        """Löscht die Datei vom Dateisystem und den Datenbankeintrag."""
+        self.upload.delete(save=False)
+        return super().delete(*args, **kwargs)
+
+
+@receiver(post_delete, sender=BVProjectFile)
+def delete_bvprojectfile_upload(
+    sender: type["BVProjectFile"], instance: "BVProjectFile", **kwargs
+) -> None:
+    """Entfernt die Upload-Datei nach dem Löschen des Datensatzes."""
+    instance.upload.delete(save=False)
 
 
 class SoftwareKnowledge(models.Model):
