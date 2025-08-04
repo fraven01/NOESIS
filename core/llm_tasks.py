@@ -1717,7 +1717,14 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
+    logger.debug(
+        "Update or create AnlagenFunktionsMetadaten: anlage_datei=%s funktion_id=%s subquestion=%s",
+        pf.pk,
+        func_id,
+        getattr(sub_obj, "pk", None),
+    )
     try:
+
         with transaction.atomic():
             pf = BVProjectFile.objects.select_for_update().get(pk=pf.pk)
             res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
@@ -1744,6 +1751,7 @@ def worker_verify_feature(
     except BVProjectFile.DoesNotExist:
         logger.warning(
             "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
+
             pf.pk,
         )
         return {}
@@ -1777,10 +1785,26 @@ def worker_verify_feature(
             return {}
         return verification_result
 
-    if not BVProjectFile.objects.filter(pk=pf.pk).exists():
-        logger.warning(
-            "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Ergebnis wird verworfen.",
-            pf.pk,
+
+    logger.debug(
+        "Erstelle FunktionsErgebnis: projekt=%s anlage_datei=%s funktion_id=%s subquestion=%s",
+        project_id,
+        pf.pk,
+        func_id,
+        getattr(sub_obj, "pk", None),
+    )
+    try:
+        FunktionsErgebnis.objects.create(
+            projekt_id=project_id,
+            anlage_datei=pf,
+            funktion_id=func_id,
+            subquestion=sub_obj,
+            quelle="ki",
+            technisch_verfuegbar=tv,
+            ki_beteiligung=ki_bet,
+            begruendung=justification,
+            ki_beteiligt_begruendung=ai_reason,
+
         )
         return {}
 
