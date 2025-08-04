@@ -388,6 +388,11 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+        "core.llm_tasks": {
+            "handlers": ["console", "file", "postgres_anlage2_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
     },
 }
 

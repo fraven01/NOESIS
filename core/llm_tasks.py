@@ -1717,6 +1717,12 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
+    logger.debug(
+        "Update or create AnlagenFunktionsMetadaten: anlage_datei=%s funktion_id=%s subquestion=%s",
+        pf.pk,
+        func_id,
+        getattr(sub_obj, "pk", None),
+    )
     try:
         res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
             anlage_datei=pf,
@@ -1725,7 +1731,7 @@ def worker_verify_feature(
             defaults={},
         )
     except IntegrityError:
-        logger.warning(
+        logger.exception(
             "Anlage-Datei %s fehlt. Prüfung wird abgebrochen.",
             pf.pk,
         )
@@ -1745,6 +1751,13 @@ def worker_verify_feature(
         )
         return verification_result
 
+    logger.debug(
+        "Erstelle FunktionsErgebnis: projekt=%s anlage_datei=%s funktion_id=%s subquestion=%s",
+        project_id,
+        pf.pk,
+        func_id,
+        getattr(sub_obj, "pk", None),
+    )
     try:
         FunktionsErgebnis.objects.create(
             projekt_id=project_id,
