@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
-from django.db import DatabaseError, IntegrityError, connection
+from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django_q.tasks import async_task, result
@@ -1724,32 +1724,67 @@ def worker_verify_feature(
         getattr(sub_obj, "pk", None),
     )
     try:
-        res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
-            anlage_datei=pf,
-            funktion_id=func_id,
-            subquestion=sub_obj,
-            defaults={},
-        )
-    except IntegrityError:
-        logger.exception(
-            "Anlage-Datei %s fehlt. Prüfung wird abgebrochen.",
+
+        with transaction.atomic():
+            pf = BVProjectFile.objects.select_for_update().get(pk=pf.pk)
+            res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
+                anlage_datei=pf,
+                funktion_id=func_id,
+                subquestion=sub_obj,
+                defaults={},
+            )
+            auto_val = _calc_auto_negotiable(tv, ki_bet)
+            if res.is_negotiable_manual_override is None:
+                res.is_negotiable = auto_val
+            res.save(update_fields=["is_negotiable"])
+            FunktionsErgebnis.objects.create(
+                projekt_id=project_id,
+                anlage_datei=pf,
+                funktion_id=func_id,
+                subquestion=sub_obj,
+                quelle="ki",
+                technisch_verfuegbar=tv,
+                ki_beteiligung=ki_bet,
+                begruendung=justification,
+                ki_beteiligt_begruendung=ai_reason,
+            )
+    except BVProjectFile.DoesNotExist:
+        logger.warning(
+            "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
+
             pf.pk,
         )
-        return verification_result
-
-    auto_val = _calc_auto_negotiable(tv, ki_bet)
-
-    try:
-        if res.is_negotiable_manual_override is None:
-            res.is_negotiable = auto_val
-
-        res.save(update_fields=["is_negotiable"])
+        return {}
+    except IntegrityError as exc:
+        if not BVProjectFile.objects.filter(pk=pf.pk).exists():
+            logger.warning(
+                "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
+                pf.pk,
+            )
+        else:
+            logger.error("Integritätsfehler beim Speichern der Ergebnisse: %s", exc)
+        return {}
     except DatabaseError:
+        if not BVProjectFile.objects.filter(pk=pf.pk).exists():
+            logger.warning(
+                "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
+                pf.pk,
+            )
+            return {}
         logger.warning(
-            "FunktionsErgebnis %s wurde während der Verarbeitung gelöscht. Speichern wird übersprungen.",
-            res.pk,
+            "Datensatz wurde während der Verarbeitung gelöscht. Speichern wird übersprungen.",
         )
         return verification_result
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Begründung konnte nicht gespeichert werden: %s", exc)
+        if not BVProjectFile.objects.filter(pk=pf.pk).exists():
+            logger.warning(
+                "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
+                pf.pk,
+            )
+            return {}
+        return verification_result
+
 
     logger.debug(
         "Erstelle FunktionsErgebnis: projekt=%s anlage_datei=%s funktion_id=%s subquestion=%s",
@@ -1769,9 +1804,10 @@ def worker_verify_feature(
             ki_beteiligung=ki_bet,
             begruendung=justification,
             ki_beteiligt_begruendung=ai_reason,
+
         )
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Begr\u00fcndung konnte nicht gespeichert werden: %s", exc)
+        return {}
+
 
 
     logger.info(

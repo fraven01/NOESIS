@@ -181,7 +181,7 @@ class BVProjectForm(DocxValidationMixin, forms.ModelForm):
             projekt.bvsoftware_set.all().delete()
             cleaned = [s.strip() for s in software_list if s.strip()]
             for name in cleaned:
-                BVSoftware.objects.create(projekt=projekt, name=name)
+                BVSoftware.objects.create(project=projekt, name=name)
             if not projekt.title and cleaned:
                 projekt.title = ", ".join(cleaned)
                 projekt.save(update_fields=["title"])
