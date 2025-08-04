@@ -142,7 +142,7 @@ class BVProject(models.Model):
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
         elif old_prompt is not None and old_prompt != self.project_prompt:
             has_ai_results = FunktionsErgebnis.objects.filter(
-                project=self,
+                anlage_datei__project=self,
                 anlage_datei__anlage_nr=2,
                 quelle="ki",
             ).exists()
@@ -350,7 +350,7 @@ class BVProjectFile(models.Model):
         if self.anlage_nr == 2:
             tasks = [("core.llm_tasks.worker_run_anlage2_analysis", self.pk)]
             has_ai_results = FunktionsErgebnis.objects.filter(
-                project=self.project,
+                anlage_datei__project=self.project,
                 anlage_datei__anlage_nr=2,
                 quelle="ki",
             ).exists()
@@ -1071,7 +1071,6 @@ class Anlage2SubQuestion(models.Model):
 class FunktionsErgebnis(models.Model):
     """Speichert ein einzelnes Ergebnis einer Funktionsprüfung."""
 
-    project = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     anlage_datei = models.ForeignKey(
         BVProjectFile,
         on_delete=models.CASCADE,
@@ -1095,6 +1094,11 @@ class FunktionsErgebnis(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return self.quelle
+
+    @property
+    def project(self) -> BVProject:
+        """Alias für das Projekt über die Anlage-Datei."""
+        return self.anlage_datei.project
 
 
 class ZweckKategorieA(models.Model):

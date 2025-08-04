@@ -4319,7 +4319,6 @@ def hx_supervision_confirm(request, result_id: int):
     )
     if ai_entry:
         FunktionsErgebnis.objects.create(
-            projekt=result.anlage_datei.project,
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion=result.subquestion,
@@ -4461,7 +4460,6 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
         subquestion_id=sub_id,
     )
     FunktionsErgebnis.objects.create(
-        projekt=anlage.project,
         anlage_datei=anlage,
         funktion=funktion,
         subquestion_id=sub_id,
@@ -4559,7 +4557,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         if field_name is not None and status_provided:
             attr = field_map.get(field_name, "technisch_verfuegbar")
             FunktionsErgebnis.objects.create(
-                projekt=anlage.project,
                 anlage_datei=anlage,
                 funktion=funktion,
                 subquestion_id=sub_id,
@@ -4765,7 +4762,6 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name)
         new_state = not cur_val if cur_val is not None else True
         FunktionsErgebnis.objects.create(
-            projekt=result.anlage_datei.project,
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion_id=sub_id,
@@ -5644,7 +5640,6 @@ def justification_detail_edit(request, file_id, function_key):
                 fe.save(update_fields=["begruendung"])
             else:
                 FunktionsErgebnis.objects.create(
-                    projekt=anlage.project,
                     anlage_datei=anlage,
                     funktion=funktion,
                     subquestion=subquestion,

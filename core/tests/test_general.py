@@ -783,7 +783,6 @@ class ProjektFileUploadTests(NoesisTestCase):
             upload=SimpleUploadedFile("v1.docx", b"x"),
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=first,
             funktion=func,
             quelle="ki",
@@ -1114,7 +1113,6 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="manuell",
@@ -1122,7 +1120,7 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             ki_beteiligung=False,
         )
         latest = FunktionsErgebnis.objects.filter(
-            project=projekt,
+            anlage_datei__project=projekt,
             funktion=func,
             quelle="manuell",
         ).first()
@@ -1181,14 +1179,12 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1223,14 +1219,12 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1295,14 +1289,12 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1343,7 +1335,6 @@ class BuildRowDataTests(NoesisTestCase):
             subquestion=sub,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
@@ -1351,7 +1342,6 @@ class BuildRowDataTests(NoesisTestCase):
             technisch_verfuegbar=False,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
@@ -1598,7 +1588,6 @@ class LLMTasksTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",
@@ -2712,7 +2701,6 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_subquestion_justification_link(self):
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.file,
             funktion=self.func,
             subquestion=self.sub,
@@ -3610,7 +3598,6 @@ class FeatureVerificationTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
@@ -3641,7 +3628,6 @@ class FeatureVerificationTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
@@ -3822,7 +3808,6 @@ class JustificationDetailEditTests(NoesisTestCase):
         )
         self.func = Anlage2Function.objects.create(name="Export")
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.file,
             funktion=self.func,
             quelle="ki",
@@ -3872,7 +3857,6 @@ class VerificationToInitialTests(NoesisTestCase):
             anlage_datei=pf, funktion=self.func, subquestion=self.sub
         )
         FunktionsErgebnis.objects.create(
-            project=self.project,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -3881,7 +3865,6 @@ class VerificationToInitialTests(NoesisTestCase):
             begruendung="Grund",
         )
         FunktionsErgebnis.objects.create(
-            project=self.project,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=self.sub,
@@ -4199,7 +4182,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertTrue(func_data["technisch_vorhanden"])
 
         fe = FunktionsErgebnis.objects.filter(
-            project=self.projekt,
+            anlage_datei__project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4211,7 +4194,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4263,7 +4245,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4285,7 +4266,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            project=self.projekt,
+            anlage_datei__project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4307,7 +4288,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            project=self.projekt,
+            anlage_datei__project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4332,7 +4313,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            project=self.projekt,
+            anlage_datei__project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4373,7 +4354,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertTrue(func_data["technisch_vorhanden"])
         self.assertFalse(func_data["ki_beteiligung"])
         fes = FunktionsErgebnis.objects.filter(
-            project=self.projekt,
+            anlage_datei__project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         )
@@ -4385,7 +4366,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4430,7 +4410,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4454,7 +4433,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
-                project=self.projekt,
+                anlage_datei__project=self.projekt,
                 funktion=self.func,
                 quelle="manuell",
             ).exists()
@@ -4516,7 +4495,6 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf_old,
             funktion=func,
             quelle="parser",
@@ -4539,7 +4517,7 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
-            project=projekt,
+            anlage_datei__project=projekt,
             funktion=func,
             quelle="parser",
         ).first()
@@ -4558,7 +4536,6 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf_old,
             funktion=func,
             quelle="ki",
@@ -4581,7 +4558,6 @@ class Anlage2ResetTests(NoesisTestCase):
                 defaults={},
             )
             FunktionsErgebnis.objects.create(
-                project=projekt,
                 anlage_datei=pf_latest,
                 funktion_id=fid,
                 quelle="ki",
@@ -4604,7 +4580,7 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
-            project=projekt,
+            anlage_datei__project=projekt,
             funktion=func,
             quelle="ki",
         ).first()
@@ -4657,21 +4633,18 @@ class Anlage2ResetTests(NoesisTestCase):
             is_negotiable_manual_override=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="manuell",
@@ -4684,7 +4657,7 @@ class Anlage2ResetTests(NoesisTestCase):
         res.refresh_from_db()
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
-                project=projekt,
+                anlage_datei__project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="manuell",
@@ -4693,7 +4666,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertIsNone(res.is_negotiable_manual_override)
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
-                project=projekt,
+                anlage_datei__project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="parser",
@@ -4702,7 +4675,7 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
-                project=projekt,
+                anlage_datei__project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="ki",
@@ -4723,14 +4696,12 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",

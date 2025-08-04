@@ -513,7 +513,6 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             update_file_status(project_file.pk, BVProjectFile.COMPLETE)
             return results
         FunktionsErgebnis.objects.create(
-            project=project_file.project,
             anlage_datei=project_file,
             funktion=func,
             subquestion=sub,
@@ -1037,7 +1036,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=anlage,
             funktion=func,
             quelle=source,
@@ -1374,7 +1372,6 @@ def check_anlage2_functions(
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            project=projekt,
             anlage_datei=anlage,
             funktion=func,
             quelle="llm",
@@ -1738,7 +1735,6 @@ def worker_verify_feature(
                 res.is_negotiable = auto_val
             res.save(update_fields=["is_negotiable"])
             FunktionsErgebnis.objects.create(
-                projekt_id=project_id,
                 anlage_datei=pf,
                 funktion_id=func_id,
                 subquestion=sub_obj,
@@ -1795,7 +1791,6 @@ def worker_verify_feature(
     )
     try:
         FunktionsErgebnis.objects.create(
-            projekt_id=project_id,
             anlage_datei=pf,
             funktion_id=func_id,
             subquestion=sub_obj,
@@ -1804,19 +1799,11 @@ def worker_verify_feature(
             ki_beteiligung=ki_bet,
             begruendung=justification,
             ki_beteiligt_begruendung=ai_reason,
-
         )
         return {}
-
-
-
-    logger.info(
-        "worker_verify_feature beendet für Projekt %s Objekt %s %s",
-        project_id,
-        object_type,
-        object_id,
-    )
-    return verification_result
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Ergebnis konnte nicht gespeichert werden: %s", exc)
+        return verification_result
 
 
 def worker_run_initial_check(
@@ -2000,7 +1987,6 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     res.save(update_fields=["gap_notiz", "gap_summary"])
 
     FunktionsErgebnis.objects.create(
-        project=projekt,
         anlage_datei=pf,
         funktion=res.funktion,
         subquestion=res.subquestion,
