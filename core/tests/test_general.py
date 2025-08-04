@@ -315,9 +315,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "zurück.\n\n"
             )
         },
-        "check_anlage3": {
-            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
-        },
         "check_anlage4": {
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
         },
