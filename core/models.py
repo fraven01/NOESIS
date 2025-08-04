@@ -33,7 +33,7 @@ class BVProjectManager(models.Manager):
             else:
                 names = [s.strip() for s in software if s.strip()]
             for name in names:
-                BVSoftware.objects.create(projekt=projekt, name=name)
+                BVSoftware.objects.create(project=projekt, name=name)
             if not projekt.title and names:
                 projekt.title = ", ".join(names)
                 projekt.save(update_fields=["title"])
@@ -184,7 +184,7 @@ class BVProject(models.Model):
 class BVSoftware(models.Model):
     """Software-Eintrag innerhalb eines Projekts."""
 
-    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    project = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
 
     class Meta:

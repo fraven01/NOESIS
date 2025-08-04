@@ -139,7 +139,7 @@ def setUpModule():
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     projekt = BVProject.objects.create(**kwargs)
     for name in software or []:
-        BVSoftware.objects.create(projekt=projekt, name=name)
+        BVSoftware.objects.create(project=projekt, name=name)
     return projekt
 
 

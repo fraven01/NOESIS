@@ -1689,7 +1689,7 @@ def admin_project_import(request):
                         proj.gutachten_file = saved
                         proj.save(update_fields=["gutachten_file"])
                     for name in entry.get("software", []):
-                        BVSoftware.objects.create(projekt=proj, name=name)
+                        BVSoftware.objects.create(project=proj, name=name)
                     for fentry in entry.get("files", []):
                         upload_name = ""
                         if fentry.get("filename"):
