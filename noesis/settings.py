@@ -95,6 +95,7 @@ WSGI_APPLICATION = "noesis.wsgi.application"
 
 POSTGRES_VARS = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST"]
 
+
 def _postgres_config() -> Dict[str, Any]:
     """Liefert die Einstellungen für PostgreSQL."""
 
@@ -107,8 +108,10 @@ def _postgres_config() -> Dict[str, Any]:
         "PORT": os.environ.get("DB_PORT", "5432"),
         "OPTIONS": {  # <-- DIESEN BLOCK HINZUFÜGEN
             "client_encoding": "UTF8",
+            "options": "-c search_path=public",
         },
     }
+
 
 if all(os.environ.get(var) for var in POSTGRES_VARS):
     # Verwendung der konfigurierten PostgreSQL-Datenbank
