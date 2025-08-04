@@ -4569,6 +4569,39 @@ class Anlage2ResetTests(NoesisTestCase):
         ).first()
         self.assertTrue(fe.technisch_verfuegbar)
 
+    def test_conditional_check_deletes_only_current_file_metadata(self):
+        """Nur Metadaten der geprüften Anlage werden entfernt."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+        )
+        other_pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=3,
+            upload=SimpleUploadedFile("b.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf, funktion=func)
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=other_pf, funktion=func
+        )
+        with (
+            patch("core.llm_tasks.async_task", return_value="tid"),
+            patch("core.llm_tasks.result", return_value=None),
+        ):
+            run_conditional_anlage2_check(pf.pk)
+
+        self.assertFalse(
+            AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf).exists()
+        )
+        self.assertTrue(
+            AnlagenFunktionsMetadaten.objects.filter(
+                anlage_datei=other_pf
+            ).exists()
+        )
+
     def test_ajax_reset_all_reviews_resets_manual_fields(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(

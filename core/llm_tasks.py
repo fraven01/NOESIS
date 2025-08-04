@@ -1395,9 +1395,10 @@ def run_conditional_anlage2_check(
         pf.processing_status = BVProjectFile.PROCESSING
         pf.save(update_fields=["processing_status"])
 
-        # Alle bisherigen Prüfergebnisse entfernen
+        # Alle bisherigen Prüfergebnisse der geprüften Anlage entfernen
         AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__projekt=projekt
+            anlage_datei=pf,
+            anlage_datei__anlage_nr=2,
         ).delete()
 
         for func in Anlage2Function.objects.prefetch_related(
