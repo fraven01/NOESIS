@@ -1876,6 +1876,23 @@ class LLMTasksTests(NoesisTestCase):
         }]
         self.assertEqual(result, expected)
 
+    def test_run_anlage2_analysis_sets_complete_status(self):
+        """Prüft, dass der Status nach der Analyse auf COMPLETE gesetzt wird."""
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            projekt=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="",
+        )
+        Anlage2Function.objects.create(name="Login")
+
+        run_anlage2_analysis(pf)
+
+        pf.refresh_from_db()
+        self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
+
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):
             name = "p1"

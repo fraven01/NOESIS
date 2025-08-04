@@ -512,6 +512,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             )
             project_file.analysis_json = {"functions": results}
             project_file.save(update_fields=["analysis_json"])
+            update_file_status(project_file.pk, BVProjectFile.COMPLETE)
             return results
         FunktionsErgebnis.objects.create(
             projekt=project_file.projekt,
@@ -527,6 +528,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
     project_file.analysis_json = {"functions": results}
     project_file.save(update_fields=["analysis_json"])
+    update_file_status(project_file.pk, BVProjectFile.COMPLETE)
     return results
 
 
@@ -546,6 +548,7 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
         return []
     pf = qs.first()
     result = run_anlage2_analysis(pf)
+    update_file_status(pf.pk, BVProjectFile.COMPLETE)
     anlage2_logger.info(
         "worker_run_anlage2_analysis beendet für Datei %s",
         file_id,
