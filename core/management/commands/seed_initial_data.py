@@ -269,7 +269,6 @@ def create_initial_data(apps) -> None:
                 True,
             ),
             ("check_anlage3", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
-            ("check_anlage4", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
             ("check_anlage5", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
             ("classify_system", "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schlüsseln 'kategorie' und 'begruendung' zurück.\n\n", True),
             ("generate_gutachten", "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n", True),
