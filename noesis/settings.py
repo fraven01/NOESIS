@@ -210,6 +210,11 @@ LOGGING = {
             "style": "{",
         },
     },
+    "filters": {
+        "anlage2_db_writes": {
+            "()": "noesis.logging_filters.Anlage2DBWriteFilter",
+        },
+    },
     "handlers": {
         "console": {
             "level": "INFO",  # Zeigt nur Informationen und Fehler in der Konsole an
@@ -241,6 +246,14 @@ LOGGING = {
             "filename": BASE_DIR / "anlage2-debug.log",
             "formatter": "verbose",
             "encoding": "utf-8",
+        },
+        "postgres_anlage2_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "postgres-anlage2.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "filters": ["anlage2_db_writes"],
         },
         "anlage2_ergebnis_file": {
             "level": "DEBUG",
@@ -308,6 +321,11 @@ LOGGING = {
         "django": {  # Der Django-spezifische Logger
             "handlers": ["console", "file"],
             "level": "INFO",  # Django selbst loggt nicht alles auf DEBUG standardmäßig, INFO ist oft ausreichend
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["postgres_anlage2_file"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "llm_debugger": {
