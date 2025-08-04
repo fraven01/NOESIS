@@ -142,7 +142,7 @@ class BVProject(models.Model):
             BVProjectStatusHistory.objects.create(projekt=self, status=self.status)
         elif old_prompt is not None and old_prompt != self.project_prompt:
             has_ai_results = FunktionsErgebnis.objects.filter(
-                projekt=self,
+                project=self,
                 anlage_datei__anlage_nr=2,
                 quelle="ki",
             ).exists()
@@ -244,7 +244,7 @@ class BVProjectFile(models.Model):
         (FAILED, "Fehlgeschlagen"),
     ]
 
-    projekt = models.ForeignKey(
+    project = models.ForeignKey(
         BVProject,
         on_delete=models.CASCADE,
         related_name="anlagen",
@@ -313,7 +313,7 @@ class BVProjectFile(models.Model):
         ordering = ["anlage_nr"]
 
     def __str__(self) -> str:
-        return f"Anlage {self.anlage_nr} zu {self.projekt}"
+        return f"Anlage {self.anlage_nr} zu {self.project}"
 
     def save(self, *args, **kwargs):
         """Speichert die Datei und startet ggf. die Funktionsprüfung."""
@@ -350,7 +350,7 @@ class BVProjectFile(models.Model):
         if self.anlage_nr == 2:
             tasks = [("core.llm_tasks.worker_run_anlage2_analysis", self.pk)]
             has_ai_results = FunktionsErgebnis.objects.filter(
-                projekt=self.projekt,
+                project=self.project,
                 anlage_datei__anlage_nr=2,
                 quelle="ki",
             ).exists()
@@ -382,7 +382,7 @@ def delete_bvprojectfile_upload(
 class SoftwareKnowledge(models.Model):
     """Kenntnisstand des LLM zu einer Software in einem Projekt."""
 
-    projekt = models.ForeignKey(
+    project = models.ForeignKey(
         BVProject,
         on_delete=models.CASCADE,
         related_name="softwareknowledge",
@@ -393,7 +393,7 @@ class SoftwareKnowledge(models.Model):
     last_checked = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ("projekt", "software_name")
+        unique_together = ("project", "software_name")
         ordering = ["software_name"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
@@ -427,7 +427,7 @@ class Gutachten(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
-        proj = self.software_knowledge.projekt
+        proj = self.software_knowledge.project
         name = self.software_knowledge.software_name
         return f"{proj} - {name}"
 
@@ -1071,7 +1071,7 @@ class Anlage2SubQuestion(models.Model):
 class FunktionsErgebnis(models.Model):
     """Speichert ein einzelnes Ergebnis einer Funktionsprüfung."""
 
-    projekt = models.ForeignKey(BVProject, on_delete=models.CASCADE)
+    project = models.ForeignKey(BVProject, on_delete=models.CASCADE)
     anlage_datei = models.ForeignKey(
         BVProjectFile,
         on_delete=models.CASCADE,

@@ -728,7 +728,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload = SimpleUploadedFile("t.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=upload,
             text_content="Zweck: B",
@@ -750,7 +750,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload = SimpleUploadedFile("t.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=upload,
             anlage4_config=cfg,
@@ -762,7 +762,7 @@ class Anlage4ParserTests(NoesisTestCase):
     def test_negative_pattern(self):
         cfg = Anlage4Config.objects.create(negative_patterns=["keine zwecke"])
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.docx", b""),
             text_content="Keine Zwecke vorhanden",
@@ -773,7 +773,7 @@ class Anlage4ParserTests(NoesisTestCase):
     def test_logs_free_text_detection(self):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="Zweck: A",
@@ -786,7 +786,7 @@ class Anlage4ParserTests(NoesisTestCase):
     def test_dual_parser_handles_invalid_rules(self):
         pcfg = Anlage4ParserConfig.objects.create(delimiter_phrase="")
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="",
@@ -806,7 +806,7 @@ class Anlage4ParserTests(NoesisTestCase):
             "Name B\nGesellschaft Z\nBereich W"
         )
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content=text,
@@ -832,7 +832,7 @@ class Anlage4ParserTests(NoesisTestCase):
             "Auswertung B\nGesellschaft Z\nBereich W"
         )
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content=text,
@@ -854,7 +854,7 @@ class Anlage4ParserTests(NoesisTestCase):
             fachbereiche_phrase="",
         )
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="Zweck: Logdaten",
@@ -876,7 +876,7 @@ class Anlage4ParserTests(NoesisTestCase):
             "   Fachbereiche, in denen die Auswertung eingesetzt wird: Qux"
         )
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content=text,
@@ -917,7 +917,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload = SimpleUploadedFile("t.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=upload,
             anlage4_parser_config=pcfg,
@@ -969,7 +969,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload = SimpleUploadedFile("t.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=upload,
             anlage4_parser_config=pcfg,
@@ -1008,7 +1008,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload = SimpleUploadedFile("t.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=upload,
             anlage4_parser_config=pcfg,
@@ -1025,7 +1025,7 @@ class Anlage4ParserTests(NoesisTestCase):
         )
         text = "Keine Auswertung vorhanden\nName A\nGesellschaft X\nBereich Y"
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content=text,
@@ -1035,7 +1035,7 @@ class Anlage4ParserTests(NoesisTestCase):
 
     def test_dual_parser_no_config(self):
         pf = BVProjectFile.objects.create(
-            projekt=BVProject.objects.create(software_typen="A"),
+            project=BVProject.objects.create(software_typen="A"),
             anlage_nr=4,
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="",
@@ -1051,7 +1051,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         cfg = Anlage4Config.objects.create(prompt_template="Antwort:")
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="Zweck: A",
@@ -1073,7 +1073,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A",
@@ -1089,7 +1089,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         pcfg = Anlage4ParserConfig.objects.create(table_columns=["auswertung"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A",
@@ -1106,7 +1106,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         cfg = Anlage4Config.objects.create(prompt_template="Vorlage {json_data}")
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A",
@@ -1123,7 +1123,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A\nZweck: B",
@@ -1153,7 +1153,7 @@ class AnalyseAnlage4AsyncTests(NoesisTestCase):
         pcfg = Anlage4ParserConfig.objects.create(delimiter_phrase="Zweck")
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A",
@@ -1179,7 +1179,7 @@ class Anlage4ReviewViewTests(NoesisTestCase):
         self.client.login(username="rev4", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             analysis_json={"items": [{"text": "A"}, {"text": "B"}]},
@@ -1210,7 +1210,7 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
         self.client.login(username="a4user", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zwecke",
@@ -1240,7 +1240,7 @@ class WorkerAnlage4EvaluateTests(NoesisTestCase):
     def test_worker_adds_structured(self):
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="",
@@ -1260,7 +1260,7 @@ class WorkerAnlage4EvaluateTests(NoesisTestCase):
     def test_worker_handles_code_fences(self):
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="",

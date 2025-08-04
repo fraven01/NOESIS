@@ -9,7 +9,7 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
 <p>
-  <a href="{% url 'anlage2_supervision' anlage.projekt.pk %}" class="bg-purple-600 text-white px-3 py-1 rounded">
+  <a href="{% url 'anlage2_supervision' anlage.project.pk %}" class="bg-purple-600 text-white px-3 py-1 rounded">
     Zur neuen Supervisions-Ansicht wechseln
   </a>
 </p>
@@ -109,7 +109,7 @@
         </tbody>
     </table>
     <div class="mb-2">
-        <button type="button" id="btn-verify-all" data-project-id="{{ anlage.projekt.pk }}" class="bg-green-600 text-white px-2 py-1 rounded">Alle Funktionen prüfen 🤖</button>
+        <button type="button" id="btn-verify-all" data-project-id="{{ anlage.project.pk }}" class="bg-green-600 text-white px-2 py-1 rounded">Alle Funktionen prüfen 🤖</button>
         <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     </div>
