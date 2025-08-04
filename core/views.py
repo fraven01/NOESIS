@@ -4254,7 +4254,7 @@ def anlage2_feature_verify(request, pk):
 
     task_id = async_task(
         "core.llm_tasks.worker_verify_feature",
-        anlage.projekt_id,
+        anlage.id,
         object_type,
         obj_id,
         model,
@@ -4642,7 +4642,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                 if not func_exists:
                     async_task(
                         "core.llm_tasks.worker_verify_feature",
-                        anlage.projekt_id,
+                        anlage.id,
                         "function",
                         funktion.id,
                     )
@@ -4659,7 +4659,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
                     if not sub_exists:
                         async_task(
                             "core.llm_tasks.worker_verify_feature",
-                            anlage.projekt_id,
+                            anlage.id,
                             "subquestion",
                             sub.id,
                         )

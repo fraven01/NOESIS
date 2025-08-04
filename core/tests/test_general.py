@@ -3478,7 +3478,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein", "Begruendung", "Nein"],
         ) as mock_q:
-            result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+            result = worker_verify_feature(self.pf.pk, "function", self.func.pk)
         self.assertEqual(
             result,
             {
@@ -3507,7 +3507,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Nein", "Nein"],
         ):
-            result = worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
+            result = worker_verify_feature(self.pf.pk, "subquestion", self.sub.pk)
         self.assertEqual(
             result,
             {
@@ -3535,7 +3535,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Nein", "Nein"],
         ) as mock_q:
-            worker_verify_feature(self.projekt.pk, "subquestion", self.sub.pk)
+            worker_verify_feature(self.pf.pk, "subquestion", self.sub.pk)
         first_call_ctx = mock_q.call_args_list[0].args[1]
         self.assertEqual(first_call_ctx["subquestion_text"], self.sub.frage_text)
 
@@ -3556,7 +3556,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein", "B", "Nein"],
         ) as mock_q:
-            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+            worker_verify_feature(self.pf.pk, "function", self.func.pk)
         ctx = mock_q.call_args_list[0].args[1]
         self.assertIn("Info", ctx["gutachten"])
         dest.unlink(missing_ok=True)
@@ -3566,7 +3566,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Unsicher", "Nein", "Begruendung"],
         ):
-            result = worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+            result = worker_verify_feature(self.pf.pk, "function", self.func.pk)
         self.assertIsNone(result["technisch_verfuegbar"])
         self.assertEqual(result["ki_begruendung"], "Begruendung")
         self.assertIsNone(result["ki_beteiligt"])
@@ -3595,7 +3595,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
-            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+            worker_verify_feature(self.pf.pk, "function", self.func.pk)
         parser_fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
             funktion=self.func,
@@ -3626,7 +3626,7 @@ class FeatureVerificationTests(NoesisTestCase):
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein", "", "Nein"],
         ):
-            worker_verify_feature(self.projekt.pk, "function", self.func.pk)
+            worker_verify_feature(self.pf.pk, "function", self.func.pk)
         parser_fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
             funktion=self.func,
@@ -3658,7 +3658,7 @@ class FeatureVerificationTests(NoesisTestCase):
             ):
                 with self.assertLogs("core.llm_tasks", level="WARNING") as cm:
                     result = worker_verify_feature(
-                        self.projekt.pk, "function", self.func.pk
+                        self.pf.pk, "function", self.func.pk
                     )
 
         self.assertEqual(
@@ -4442,13 +4442,13 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertEqual(mock_task.call_count, 2)
         mock_task.assert_any_call(
             "core.llm_tasks.worker_verify_feature",
-            self.projekt.pk,
+            self.pf.pk,
             "function",
             self.func.pk,
         )
         mock_task.assert_any_call(
             "core.llm_tasks.worker_verify_feature",
-            self.projekt.pk,
+            self.pf.pk,
             "subquestion",
             sub.pk,
         )

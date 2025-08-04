@@ -1405,7 +1405,7 @@ def run_conditional_anlage2_check(
         ).order_by("name"):
             task_id = async_task(
                 "core.llm_tasks.worker_verify_feature",
-                projekt.pk,
+                pf.pk,
                 "function",
                 func.id,
                 model_name,
@@ -1418,7 +1418,7 @@ def run_conditional_anlage2_check(
                 for sub in func.anlage2subquestion_set.all():
                     sub_task_id = async_task(
                         "core.llm_tasks.worker_verify_feature",
-                        projekt.pk,
+                        pf.pk,
                         "subquestion",
                         sub.id,
                         model_name,
@@ -1434,12 +1434,24 @@ def run_conditional_anlage2_check(
 
 
 def worker_verify_feature(
-    project_id: int,
+    file_id: int,
     object_type: str,
     object_id: int,
     model_name: str | None = None,
 ) -> dict[str, bool | str | None]:
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
+
+    try:
+        pf = BVProjectFile.objects.select_related("projekt").get(pk=file_id)
+    except BVProjectFile.DoesNotExist:
+        logger.warning(
+            "Anlage-2-Datei %s fehlt. Prüfung wird beendet.",
+            file_id,
+        )
+        return {}
+
+    projekt = pf.projekt
+    project_id = projekt.pk
 
     logger.info(
         "worker_verify_feature gestartet für Projekt %s Objekt %s %s",
@@ -1454,19 +1466,10 @@ def worker_verify_feature(
         object_id,
     )
 
-    projekt = BVProject.objects.get(pk=project_id)
-    pf = get_project_file(projekt, 2)
-    if not pf or not BVProjectFile.objects.filter(pk=pf.pk).exists():
-        logger.warning(
-            "Anlage-2-Datei für Projekt %s fehlt. Prüfung wird beendet.",
-            project_id,
-        )
-        return {}
-
 
     gutachten_text = ""
     if projekt.gutachten_file:
-        path = Path(settings.MEDIA_ROOT) / projekt.gutachten_file.name
+        path = Path(projekt.gutachten_file.path)
         try:
             gutachten_text = extract_text(path)
         except Exception as exc:  # noqa: BLE001
