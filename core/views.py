@@ -3046,7 +3046,7 @@ def anlage3_file_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3055,7 +3055,7 @@ def anlage3_file_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3096,7 +3096,7 @@ def anlage4_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3105,7 +3105,7 @@ def anlage4_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3177,7 +3177,7 @@ def anlage5_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3186,7 +3186,7 @@ def anlage5_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.project,
+            project=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3598,7 +3598,7 @@ def projekt_file_check_view(request, pk):
     version_param = request.GET.get("version")
     if version_param and version_param.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=anlage.project,
+            project=anlage.project,
             anlage_nr=anlage.anlage_nr,
             version=int(version_param),
         ).first()
@@ -3607,7 +3607,7 @@ def projekt_file_check_view(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=anlage.project,
+            project=anlage.project,
             anlage_nr=anlage.anlage_nr,
         ).order_by("version")
     )
@@ -3684,7 +3684,7 @@ def projekt_file_edit_json(request, pk):
     )
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=anlage.project,
+            project=anlage.project,
             anlage_nr=anlage.anlage_nr,
         ).order_by("version")
     )
