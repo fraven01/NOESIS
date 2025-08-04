@@ -215,19 +215,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
         Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
 
-    check_anlage1_text = (
-        "System: Du bist ein juristisch-technischer Pr\u00fcf-Assistent f\u00fcr Systembeschreibungen.\n\n"
-        + ANLAGE1_QUESTIONS[0]
-        + "\n"
-        + ANLAGE1_QUESTIONS[1]
-        + "\n"
-        + "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-        + "".join(f"{q}\n" for q in ANLAGE1_QUESTIONS[2:])
-        + "Konsistenzpr\u00fcfung und Stichworte. Gib ein JSON im vorgegebenen Schema zur\u00fcck.\n\n"
-    )
-    Prompt.objects.update_or_create(
-        name="check_anlage1", defaults={"text": check_anlage1_text}
-    )
     Prompt.objects.update_or_create(
         name="check_anlage3_vision",
         defaults={
@@ -315,7 +302,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "zurück.\n\n"
             )
         },
-        "check_anlage3": {
+
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
         },
         "check_anlage5": {
@@ -2101,65 +2088,6 @@ class LLMTasksTests(NoesisTestCase):
         self.assertTrue(data["ok"]["value"])
         self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
-    def test_check_anlage1_new_schema(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Text",
-        )
-        expected = {
-            "task": "check_anlage1",
-            "version": 1,
-            "anlage": 1,
-            "companies": {"value": ["ACME"], "editable": True},
-            "departments": {"value": ["IT"], "editable": True},
-            "it_integration_summary": {"value": "Summe", "editable": True},
-            "vendors": {"value": [], "editable": True},
-            "question4_raw": {"value": "raw", "editable": False},
-            "purpose_summary": {"value": "Zweck", "editable": True},
-            "purpose_missing": {"value": False, "editable": True},
-            "documentation_links": {"value": [], "editable": True},
-            "replaced_systems": {"value": [], "editable": True},
-            "legacy_functions": {"value": [], "editable": True},
-            "question9_raw": {"value": "", "editable": True},
-            "inconsistencies": {"value": [], "editable": True},
-            "keywords": {"value": [], "editable": True},
-            "plausibility_score": {"value": 0.5, "editable": True},
-            "manual_comments": {"value": {}, "editable": True},
-        }
-        llm_reply = json.dumps({**expected, "questions": {}})
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch(
-            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
-        ):
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            data = check_anlage1(file_obj.pk)
-        answers = [
-            ["ACME"],
-            ["IT"],
-            "leer",
-            "raw",
-            "Zweck",
-            "leer",
-            "leer",
-            "leer",
-            "leer",
-        ]
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {
-            str(i): {
-                "answer": answers[i - 1],
-                "status": "ok",
-                "hinweis": "",
-                "vorschlag": "",
-            }
-            for i in nums
-        }
-        self.assertEqual(file_obj.analysis_json, expected)
-        self.assertEqual(data, expected)
-
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
@@ -2302,41 +2230,6 @@ class LLMTasksTests(NoesisTestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1.2"}})
 
-    def test_wrong_question_number_sets_hint(self):
-        """Hinweis wird gesetzt, wenn die Nummer nicht passt."""
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content=text,
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            analysis = check_anlage1(file_obj.pk)
-        hint = analysis["questions"]["1"]["hinweis"]
-        self.assertIn("Frage 1.2 statt 1", hint)
-
-    def test_wrong_question_number_appends_hint(self):
-        """Bestehender Hinweis bleibt erhalten."""
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content=text,
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "Basis", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            analysis = check_anlage1(file_obj.pk)
-        hint = analysis["questions"]["1"]["hinweis"]
-        self.assertIn("Basis", hint)
-        self.assertIn("Frage 1.2 statt 1", hint)
-
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
@@ -2347,31 +2240,6 @@ class LLMTasksTests(NoesisTestCase):
             self.assertFalse(first.exists())
         finally:
             second.unlink(missing_ok=True)
-
-    def test_check_anlage1_ignores_disabled_questions(self):
-        Anlage1Config.objects.create()  # Standardwerte
-        q1 = Anlage1Question.objects.get(num=1)
-        q1.llm_enabled = False
-        q1.save(update_fields=["llm_enabled"])
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Text",
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        enabled_count = Anlage1Question.objects.filter(llm_enabled=True).count()
-        with patch(
-            "core.llm_tasks.query_llm",
-            side_effect=['{"task": "check_anlage1"}'] + [eval_reply] * enabled_count,
-        ) as mock_q:
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            data = check_anlage1(file_obj.pk)
-        prompt = mock_q.call_args_list[0].args[0].text
-        self.assertNotIn("Frage 1", prompt)
-        self.assertIn("1", data["questions"])
-        self.assertIsNone(data["questions"]["1"]["status"])
 
     def test_parse_anlage2_question_list(self):
         text = "Welche Funktionen bietet das System?\u00b6- Login\u00b6- Suche"
@@ -2399,24 +2267,6 @@ class PromptTests(NoesisTestCase):
         p.text = "DB"
         p.save()
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
-
-    def test_check_anlage1_prompt_text(self):
-        p = Prompt.objects.get(name="check_anlage1")
-        expected = (
-            "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
-            "Frage 1: Extrahiere alle Unternehmen als Liste.\n"
-            "Frage 2: Extrahiere alle Fachbereiche als Liste.\n"
-            "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-            "Frage 3: Liste alle Hersteller und Produktnamen auf.\n"
-            "Frage 4: Lege den Textblock als question4_raw ab.\n"
-            "Frage 5: Fasse den Zweck des Systems in einem Satz.\n"
-            "Frage 6: Extrahiere Web-URLs.\n"
-            "Frage 7: Extrahiere ersetzte Systeme.\n"
-            "Frage 8: Extrahiere Legacy-Funktionen.\n"
-            "Frage 9: Lege den Text als question9_raw ab.\n"
-            "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
-        )
-        self.assertEqual(p.text, expected)
 
     def test_check_anlage3_vision_prompt_text(self):
         p = Prompt.objects.get(name="check_anlage3_vision")
