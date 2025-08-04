@@ -16,7 +16,7 @@ class Anlage2DBWriteFilter(logging.Filter):
 
         sql: str = getattr(record, "sql", "")
         if not sql:
-            return False
+            return record.name.startswith("core.llm_tasks")
         upper_sql = sql.upper()
         if not (
             upper_sql.startswith("INSERT")

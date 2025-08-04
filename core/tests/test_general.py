@@ -3667,6 +3667,7 @@ class FeatureVerificationTests(NoesisTestCase):
 
     def test_warnung_bei_geloeschter_datei(self):
         """L\u00f6schen der Datei f\u00fchrt zu Warnung statt Ausnahme."""
+
         pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
 
         original_update = AnlagenFunktionsMetadaten.objects.update_or_create
@@ -3676,28 +3677,43 @@ class FeatureVerificationTests(NoesisTestCase):
             pf.delete()
             return obj, created
 
+        class _DummyQS:
+            def exists(self) -> bool:  # noqa: D401 - einfache Hilfsklasse
+                return False
+
+
         with patch("core.llm_tasks.query_llm", side_effect=["Nein", "Nein"]):
             with patch(
-                "core.llm_tasks.AnlagenFunktionsMetadaten.objects.update_or_create",
-                side_effect=_wrapped,
+                "core.llm_tasks.BVProjectFile.objects.filter",
+                return_value=_DummyQS(),
             ):
                 with self.assertLogs("core.llm_tasks", level="WARNING") as cm:
                     result = worker_verify_feature(
                         self.pf.pk, "function", self.func.pk
                     )
 
-        self.assertEqual(
-            result,
-            {
-                "technisch_verfuegbar": False,
-                "ki_begruendung": "",
-                "ki_beteiligt": None,
-                "ki_beteiligt_begruendung": "",
-            },
-        )
+        self.assertEqual(result, {})
         self.assertTrue(
-            any("wurde w\u00e4hrend der Verarbeitung gel\u00f6scht" in msg for msg in cm.output)
+            any("Ergebnis wird verworfen" in msg for msg in cm.output)
         )
+
+    def test_integrity_error_logs_and_returns_empty(self):
+        """Allgemeiner IntegrityError führt zu Fehler-Log und leerem Ergebnis."""
+        def _raise(*args, **kwargs):
+            raise IntegrityError("boom")
+
+        with patch("core.llm_tasks.query_llm", side_effect=["Nein", "Nein"]):
+            with patch(
+                "core.llm_tasks.AnlagenFunktionsMetadaten.objects.update_or_create",
+                side_effect=_raise,
+            ):
+                with self.assertLogs("core.llm_tasks", level="ERROR") as cm:
+                    result = worker_verify_feature(
+                        self.pf.pk, "function", self.func.pk
+                    )
+
+        self.assertEqual(result, {})
+        self.assertTrue(any("Integrit" in msg for msg in cm.output))
 
 
 class InitialCheckTests(NoesisTestCase):
