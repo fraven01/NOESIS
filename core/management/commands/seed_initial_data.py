@@ -14,6 +14,7 @@ from core.initial_data_constants import (
     INITIAL_ANLAGE1_QUESTIONS,
     INITIAL_ANLAGE2_FUNCTIONS,
     INITIAL_ANLAGE2_CONFIG,
+    INITIAL_ANSWER_RULES,
 )
 
 
@@ -44,6 +45,7 @@ def create_initial_data(apps) -> None:
     FormatBParserRule = apps.get_model("core", "FormatBParserRule")
     ZweckKategorieA = apps.get_model("core", "ZweckKategorieA")
     Anlage3ParserRule = apps.get_model("core", "Anlage3ParserRule")
+    AntwortErkennungsRegel = apps.get_model("core", "AntwortErkennungsRegel")
     Prompt = apps.get_model("core", "Prompt")
     SupervisionStandardNote = apps.get_model("core", "SupervisionStandardNote")
     standard_group, _ = Group.objects.get_or_create(name="Standard-Benutzer")
@@ -170,8 +172,21 @@ def create_initial_data(apps) -> None:
     for rule in parser_rules:
         Anlage3ParserRule.objects.update_or_create(field_name=rule["field_name"], defaults=rule)
 
-    # 10. Prompts
-    print("\n[10] Verarbeite Prompts...")
+    # 10. AntwortErkennungsRegeln
+    print("\n[10] Verarbeite AntwortErkennungsRegeln...")
+    for rule in INITIAL_ANSWER_RULES:
+        AntwortErkennungsRegel.objects.update_or_create(
+            regel_name=rule["regel_name"],
+            defaults={
+                "erkennungs_phrase": rule["erkennungs_phrase"],
+                "actions_json": rule["actions"],
+                "regel_anwendungsbereich": rule["regel_anwendungsbereich"],
+                "prioritaet": rule["prioritaet"],
+            },
+        )
+
+    # 11. Prompts
+    print("\n[11] Verarbeite Prompts...")
     # Zusätzliche Prompt-Texte vorbereiten
     prompts = [
         (
@@ -273,8 +288,8 @@ def create_initial_data(apps) -> None:
     for name, text, use_system_role in prompts:
         Prompt.objects.update_or_create(name=name, defaults={"text": text, "use_system_role": use_system_role})
 
-    # 11. SupervisionStandardNote
-    print("\n[11] Verarbeite SupervisionStandardNotes...")
+    # 12. SupervisionStandardNote
+    print("\n[12] Verarbeite SupervisionStandardNotes...")
     notes = [
         "Kein mitbest. relevanter Einsatz",
         "Lizenz-/kostenpflichtig",
@@ -286,8 +301,8 @@ def create_initial_data(apps) -> None:
             defaults={"display_order": order, "is_active": True},
         )
 
-    # 12. Standard-Benutzer
-    print("\n[12] Erstelle Standard-Benutzer...")
+    # 13. Standard-Benutzer
+    print("\n[13] Erstelle Standard-Benutzer...")
     User = get_user_model()
     user, created = User.objects.get_or_create(username="frank")
     if created:
