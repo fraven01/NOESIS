@@ -7,7 +7,7 @@
     {% if project_file %}
     <a href="{% url 'projekt_file_edit_json' project_file.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
     {% else %}
-    <a href="{% url 'projekt_detail' result.projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+    <a href="{% url 'projekt_detail' result.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
     {% endif %}
 </div>
 {% endblock %}

@@ -425,7 +425,7 @@ def _verification_to_initial(pf: BVProjectFile | None) -> dict:
             )
         latest = (
             FunktionsErgebnis.objects.filter(
-                projekt=res.anlage_datei.projekt,
+                projekt=res.anlage_datei.project,
                 funktion_id=res.funktion_id,
                 subquestion_id=res.subquestion_id,
                 quelle="ki",
@@ -1689,7 +1689,7 @@ def admin_project_import(request):
                         proj.gutachten_file = saved
                         proj.save(update_fields=["gutachten_file"])
                     for name in entry.get("software", []):
-                        BVSoftware.objects.create(projekt=proj, name=name)
+                        BVSoftware.objects.create(project=proj, name=name)
                     for fentry in entry.get("files", []):
                         upload_name = ""
                         if fentry.get("filename"):
@@ -1699,7 +1699,7 @@ def admin_project_import(request):
                                 ContentFile(content),
                             )
                         BVProjectFile.objects.create(
-                            projekt=proj,
+                            project=proj,
                             anlage_nr=fentry.get("anlage_nr"),
                             upload=upload_name,
                             manual_comment=fentry.get("manual_comment", ""),
@@ -3046,7 +3046,7 @@ def anlage3_file_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3055,7 +3055,7 @@ def anlage3_file_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3071,7 +3071,7 @@ def anlage3_file_review(request, pk):
         if form.is_valid() and gap_form.is_valid():
             form.save()
             gap_form.save()
-            return redirect("projekt_detail", pk=project_file.projekt.pk)
+            return redirect("projekt_detail", pk=project_file.project.pk)
     else:
         form = Anlage3MetadataForm(instance=meta)
         gap_form = BVGapNotesForm(instance=project_file)
@@ -3096,7 +3096,7 @@ def anlage4_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3105,7 +3105,7 @@ def anlage4_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3130,7 +3130,7 @@ def anlage4_review(request, pk):
             anlage4_logger.info(
                 "Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items)
             )
-            return redirect("projekt_detail", pk=project_file.projekt.pk)
+            return redirect("projekt_detail", pk=project_file.project.pk)
     else:
         form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
         gap_form = BVGapNotesForm(instance=project_file)
@@ -3177,7 +3177,7 @@ def anlage5_review(request, pk):
     version = request.GET.get("version")
     if version and version.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
             version=int(version),
         ).first()
@@ -3186,7 +3186,7 @@ def anlage5_review(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=project_file.projekt,
+            projekt=project_file.project,
             anlage_nr=project_file.anlage_nr,
         ).order_by("version")
     )
@@ -3216,7 +3216,7 @@ def anlage5_review(request, pk):
             )
             gap_form.save()
             project_file.save(update_fields=["verhandlungsfaehig"])
-            return redirect("projekt_detail", pk=project_file.projekt.pk)
+            return redirect("projekt_detail", pk=project_file.project.pk)
     else:
         form = Anlage5ReviewForm(initial=initial)
         gap_form = BVGapNotesForm(instance=project_file)
@@ -3357,12 +3357,12 @@ def _save_project_file(
             logger.error("Datei konnte nicht als UTF-8 dekodiert werden: %s", exc)
             raise ValueError("invalid")
 
-    obj.projekt = projekt
+    obj.project = projekt
     obj.anlage_nr = anlage_nr
     obj.text_content = content
     old_file = (
         BVProjectFile.objects.filter(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=obj.anlage_nr,
             is_active=True,
         )
@@ -3512,7 +3512,7 @@ def projekt_file_check(request, pk, nr):
     use_llm = request.POST.get("llm") or request.GET.get("llm")
 
     def parse_only(pid: int, model_name: str | None = None):
-        pf = BVProjectFile.objects.filter(projekt_id=pid, anlage_nr=2).first()
+        pf = BVProjectFile.objects.filter(project_id=pid, anlage_nr=2).first()
         if pf:
             run_anlage2_analysis(pf)
 
@@ -3529,7 +3529,7 @@ def projekt_file_check(request, pk, nr):
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
-        anlage = BVProjectFile.objects.filter(projekt_id=pk, anlage_nr=nr_int).first()
+        anlage = BVProjectFile.objects.filter(project_id=pk, anlage_nr=nr_int).first()
         if not anlage:
             return JsonResponse({"error": "not found"}, status=404)
         func(anlage.pk, model_name=model)
@@ -3598,7 +3598,7 @@ def projekt_file_check_view(request, pk):
     version_param = request.GET.get("version")
     if version_param and version_param.isdigit():
         alt = BVProjectFile.objects.filter(
-            projekt=anlage.projekt,
+            projekt=anlage.project,
             anlage_nr=anlage.anlage_nr,
             version=int(version_param),
         ).first()
@@ -3607,7 +3607,7 @@ def projekt_file_check_view(request, pk):
 
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=anlage.projekt,
+            projekt=anlage.project,
             anlage_nr=anlage.anlage_nr,
         ).order_by("version")
     )
@@ -3639,7 +3639,7 @@ def projekt_file_check_view(request, pk):
         messages.error(request, "Fehler bei der Anlagenpr\xfcfung")
 
     if anlage.anlage_nr == 3:
-        return redirect("anlage3_review", pk=anlage.projekt_id)
+        return redirect("anlage3_review", pk=anlage.project_id)
     if anlage.anlage_nr == 5:
         return redirect("anlage5_review", pk=anlage.pk)
 
@@ -3684,7 +3684,7 @@ def projekt_file_edit_json(request, pk):
     )
     versions = list(
         BVProjectFile.objects.filter(
-            projekt=anlage.projekt,
+            projekt=anlage.project,
             anlage_nr=anlage.anlage_nr,
         ).order_by("version")
     )
@@ -3736,7 +3736,7 @@ def projekt_file_edit_json(request, pk):
                     "Anlage1 Review gespeichert: %s Einträge",
                     len(data),
                 )
-                return redirect("projekt_detail", pk=anlage.projekt.pk)
+                return redirect("projekt_detail", pk=anlage.project.pk)
         else:
             init = anlage.question_review
             if not init:
@@ -3826,7 +3826,7 @@ def projekt_file_edit_json(request, pk):
                             funktion_id=fid,
                         )
 
-                return redirect("projekt_detail", pk=anlage.projekt.pk)
+                return redirect("projekt_detail", pk=anlage.project.pk)
         else:
             verif_init = _verification_to_initial(anlage)
             ki_map: dict[tuple[str, str | None], str] = {}
@@ -3893,7 +3893,7 @@ def projekt_file_edit_json(request, pk):
                 lk = sf.name
                 workflow_logger.info(
                     "[%s] - UI RENDER - Daten f\u00fcr Funktion '%s': doc_result: %s, ai_result: %s, manual_result: %s",
-                    anlage.projekt_id,
+                    anlage.project_id,
                     sf.name,
                     analysis_lookup.get(lk),
                     verification_lookup.get(lk),
@@ -3904,7 +3904,7 @@ def projekt_file_edit_json(request, pk):
                 )
                 workflow_logger.info(
                     "[%s] - UI RENDER - Finaler Anzeigewert f\u00fcr '%s': Wert=%s, Quelle='%s'",
-                    anlage.projekt_id,
+                    anlage.project_id,
                     sf.name,
                     disp_sample["values"].get("technisch_vorhanden"),
                     disp_sample["sources"].get("technisch_vorhanden"),
@@ -4057,14 +4057,14 @@ def projekt_file_edit_json(request, pk):
                 json_form = BVProjectFileJSONForm(request.POST, instance=anlage)
                 if json_form.is_valid():
                     json_form.save()
-                    return redirect("projekt_detail", pk=anlage.projekt.pk)
+                    return redirect("projekt_detail", pk=anlage.project.pk)
                 form = json_form
             else:
                 form = Anlage4ReviewForm(request.POST, items=items)
                 if form.is_valid():
                     anlage.manual_analysis_json = form.get_json()
                     anlage.save(update_fields=["manual_analysis_json"])
-                    return redirect("projekt_detail", pk=anlage.projekt.pk)
+                    return redirect("projekt_detail", pk=anlage.project.pk)
         else:
             form = Anlage4ReviewForm(initial=anlage.manual_analysis_json, items=items)
         template = "projekt_file_anlage4_review.html"
@@ -4080,7 +4080,7 @@ def projekt_file_edit_json(request, pk):
                 if obj.anlage_nr == 3 and not obj.manual_reviewed:
                     obj.manual_reviewed = True
                     obj.save(update_fields=["manual_reviewed"])
-                return redirect("projekt_detail", pk=anlage.projekt.pk)
+                return redirect("projekt_detail", pk=anlage.project.pk)
         else:
             form = BVProjectFileJSONForm(instance=anlage)
         template = "projekt_file_json_form.html"
@@ -4199,7 +4199,7 @@ def projekt_functions_check(request, pk):
     """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
     model = request.POST.get("model")
     projekt = get_object_or_404(BVProject, pk=pk)
-    pf = BVProjectFile.objects.filter(projekt=projekt, anlage_nr=2).first()
+    pf = BVProjectFile.objects.filter(project=projekt, anlage_nr=2).first()
     if pf:
         transaction.on_commit(
             lambda: async_task(
@@ -4277,7 +4277,7 @@ def anlage2_supervision(request, projekt_id):
         raise Http404
 
     versions = list(
-        BVProjectFile.objects.filter(projekt=projekt, anlage_nr=2).order_by("version")
+        BVProjectFile.objects.filter(project=projekt, anlage_nr=2).order_by("version")
     )
 
     rows = _build_supervision_groups(pf)
@@ -4303,10 +4303,10 @@ def hx_supervision_confirm(request, result_id: int):
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
     ai_entry = (
         FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
@@ -4319,7 +4319,7 @@ def hx_supervision_confirm(request, result_id: int):
     )
     if ai_entry:
         FunktionsErgebnis.objects.create(
-            projekt=result.anlage_datei.projekt,
+            projekt=result.anlage_datei.project,
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion=result.subquestion,
@@ -4342,13 +4342,13 @@ def hx_supervision_save_notes(request, result_id: int):
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     result.supervisor_notes = request.POST.get("notes", "")
     result.save(update_fields=["supervisor_notes"])
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
     if result.subquestion is None:
         groups = _build_supervision_groups(pf)
         group = next(g for g in groups if g["function"]["result_id"] == result.id)
@@ -4364,7 +4364,7 @@ def hx_supervision_add_standard_note(request, result_id: int):
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     note_text = request.POST.get("note_text", "")
@@ -4375,7 +4375,7 @@ def hx_supervision_add_standard_note(request, result_id: int):
             result.supervisor_notes = note_text
         result.save(update_fields=["supervisor_notes"])
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
     if result.subquestion is None:
         groups = _build_supervision_groups(pf)
         group = next(g for g in groups if g["function"]["result_id"] == result.id)
@@ -4391,10 +4391,10 @@ def hx_supervision_revert_to_document(request, result_id: int):
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
 
     FunktionsErgebnis.objects.filter(
         anlage_datei=pf,
@@ -4461,7 +4461,7 @@ def ajax_save_manual_review_item(request) -> JsonResponse:
         subquestion_id=sub_id,
     )
     FunktionsErgebnis.objects.create(
-        projekt=anlage.projekt,
+        projekt=anlage.project,
         anlage_datei=anlage,
         funktion=funktion,
         subquestion_id=sub_id,
@@ -4559,7 +4559,7 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         if field_name is not None and status_provided:
             attr = field_map.get(field_name, "technisch_verfuegbar")
             FunktionsErgebnis.objects.create(
-                projekt=anlage.projekt,
+                projekt=anlage.project,
                 anlage_datei=anlage,
                 funktion=funktion,
                 subquestion_id=sub_id,
@@ -4687,7 +4687,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     """Schaltet einen Review-Wert um und rendert die komplette Tabellenzeile."""
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     sub_id = request.POST.get("sub_id")
@@ -4700,7 +4700,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     }
     attr = field_map.get(field_name, "technisch_verfuegbar")
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
 
     manual_qs = (
         FunktionsErgebnis.objects.filter(
@@ -4765,7 +4765,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name)
         new_state = not cur_val if cur_val is not None else True
         FunktionsErgebnis.objects.create(
-            projekt=result.anlage_datei.projekt,
+            projekt=result.anlage_datei.project,
             anlage_datei=pf,
             funktion=result.funktion,
             subquestion_id=sub_id,
@@ -4897,7 +4897,7 @@ def hx_toggle_negotiable(request, result_id: int):
     """Schaltet den Verhandlungsstatus um."""
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     current = result.is_negotiable_manual_override
@@ -4928,7 +4928,7 @@ def hx_anlage_status(request, pk: int):
     """Gibt den Bearbeitungsstatus einer Anlage 2 zurück."""
     anlage = get_object_or_404(BVProjectFile, pk=pk)
 
-    if not _user_can_edit_project(request.user, anlage.projekt):
+    if not _user_can_edit_project(request.user, anlage.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     context = {"anlage": anlage}
@@ -4942,7 +4942,7 @@ def hx_anlage_row(request, pk: int):
     """Rendert eine einzelne Zeile der Anlagenliste."""
     anlage = get_object_or_404(BVProjectFile, pk=pk)
 
-    if not _user_can_edit_project(request.user, anlage.projekt):
+    if not _user_can_edit_project(request.user, anlage.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     context = {"anlage": anlage, "show_nr": False}
@@ -5066,11 +5066,11 @@ def trigger_file_analysis(request, pk: int):
     """L\u00f6st die Analyse f\u00fcr eine bestehende Datei erneut aus."""
     file_obj = get_object_or_404(BVProjectFile, pk=pk)
 
-    if not _user_can_edit_project(request.user, file_obj.projekt):
+    if not _user_can_edit_project(request.user, file_obj.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     start_analysis_for_file(file_obj)
-    return redirect("projekt_detail", pk=file_obj.projekt.pk)
+    return redirect("projekt_detail", pk=file_obj.project.pk)
 
 
 @login_required
@@ -5079,10 +5079,10 @@ def edit_gap_notes(request, result_id: int):
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    pf = get_project_file(result.anlage_datei.projekt, 2)
+    pf = get_project_file(result.anlage_datei.project, 2)
     context = {"result": result, "project_file": pf}
     return render(request, "gap_notes_form.html", context)
 
@@ -5094,7 +5094,7 @@ def ajax_generate_gap_summary(request, result_id: int) -> JsonResponse:
 
     result = get_object_or_404(AnlagenFunktionsMetadaten, pk=result_id)
 
-    if not _user_can_edit_project(request.user, result.anlage_datei.projekt):
+    if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     model = request.POST.get("model")
@@ -5143,20 +5143,20 @@ def project_file_toggle_flag(request, pk: int, field: str):
     if (
         field == "manual_reviewed"
         and project_file.anlage_nr == 3
-        and project_file.projekt.anlagen.filter(anlage_nr=3).count()
-        == project_file.projekt.anlagen.filter(
+        and project_file.project.anlagen.filter(anlage_nr=3).count()
+        == project_file.project.anlagen.filter(
             anlage_nr=3, manual_reviewed=True
         ).count()
     ):
         try:
-            set_project_status(project_file.projekt, "ENDGEPRUEFT")
+            set_project_status(project_file.project, "ENDGEPRUEFT")
         except ValueError:
             pass
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"status": "ok", field: new_val})
     if "HTTP_REFERER" in request.META:
         return redirect(request.META["HTTP_REFERER"])
-    return redirect("projekt_detail", pk=project_file.projekt.pk)
+    return redirect("projekt_detail", pk=project_file.project.pk)
 
 
 @login_required
@@ -5175,13 +5175,13 @@ def hx_toggle_project_file_flag(request, pk: int, field: str):
     if (
         field == "manual_reviewed"
         and project_file.anlage_nr == 3
-        and project_file.projekt.anlagen.filter(anlage_nr=3).count()
-        == project_file.projekt.anlagen.filter(
+        and project_file.project.anlagen.filter(anlage_nr=3).count()
+        == project_file.project.anlagen.filter(
             anlage_nr=3, manual_reviewed=True
         ).count()
     ):
         try:
-            set_project_status(project_file.projekt, "ENDGEPRUEFT")
+            set_project_status(project_file.project, "ENDGEPRUEFT")
         except ValueError:
             pass
 
@@ -5216,8 +5216,8 @@ def projekt_file_delete_result(request, pk: int):
     )
 
     if project_file.anlage_nr == 3:
-        return redirect("anlage3_review", pk=project_file.projekt.pk)
-    return redirect("projekt_detail", pk=project_file.projekt.pk)
+        return redirect("anlage3_review", pk=project_file.project.pk)
+    return redirect("projekt_detail", pk=project_file.project.pk)
 
 
 @login_required
@@ -5227,7 +5227,7 @@ def delete_project_file_version(request, pk: int):
 
     project_file = get_object_or_404(BVProjectFile, pk=pk)
 
-    if not _user_can_edit_project(request.user, project_file.projekt):
+    if not _user_can_edit_project(request.user, project_file.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
     with transaction.atomic():
@@ -5250,7 +5250,7 @@ def delete_project_file_version(request, pk: int):
             successor.save(update_fields=["parent"])
 
     messages.success(request, "Die Version wurde erfolgreich gelöscht.")
-    return redirect("projekt_detail", pk=project_file.projekt.pk)
+    return redirect("projekt_detail", pk=project_file.project.pk)
 
 
 @login_required
@@ -5334,7 +5334,7 @@ def ajax_start_gutachten_generation(request, project_id):
         return JsonResponse({"error": "invalid"}, status=400)
 
     if not SoftwareKnowledge.objects.filter(
-        pk=knowledge_id, projekt_id=project_id
+        pk=knowledge_id, project_id=project_id
     ).exists():
         return JsonResponse({"error": "invalid"}, status=400)
 
@@ -5351,7 +5351,7 @@ def ajax_start_gutachten_generation(request, project_id):
 def gutachten_view(request, pk):
     """Zeigt den Text eines Gutachtens an."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.projekt
+    projekt = gutachten.software_knowledge.project
     context = {
         "projekt": projekt,
         "text": gutachten.text,
@@ -5366,7 +5366,7 @@ def gutachten_view(request, pk):
 def gutachten_download(request, pk):
     """Stellt das Gutachten als formatiertes DOCX bereit."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.projekt
+    projekt = gutachten.software_knowledge.project
 
     markdown_text = gutachten.text
     temp_file_path = os.path.join(tempfile.gettempdir(), f"gutachten_{pk}.docx")
@@ -5510,7 +5510,7 @@ class Anlage3ParserRuleDeleteView(LoginRequiredMixin, StaffRequiredMixin, Delete
 def gutachten_edit(request, pk):
     """Ermöglicht das Bearbeiten und erneute Speichern des Gutachtens."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.projekt
+    projekt = gutachten.software_knowledge.project
     if request.method == "POST":
         text = request.POST.get("text", "")
         gutachten.text = text
@@ -5527,7 +5527,7 @@ def gutachten_edit(request, pk):
 def gutachten_delete(request, pk):
     """Löscht das Gutachten und entfernt den Verweis im Projekt."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.projekt
+    projekt = gutachten.software_knowledge.project
     gutachten.delete()
     return redirect("projekt_detail", pk=projekt.pk)
 
@@ -5537,7 +5537,7 @@ def gutachten_delete(request, pk):
 def gutachten_llm_check(request, pk):
     """Löst den LLM-Funktionscheck für das Gutachten aus."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.projekt
+    projekt = gutachten.software_knowledge.project
     category = request.POST.get("model_category")
     model = LLMConfig.get_default(category) if category else None
     try:
@@ -5644,7 +5644,7 @@ def justification_detail_edit(request, file_id, function_key):
                 fe.save(update_fields=["begruendung"])
             else:
                 FunktionsErgebnis.objects.create(
-                    projekt=anlage.projekt,
+                    projekt=anlage.project,
                     anlage_datei=anlage,
                     funktion=funktion,
                     subquestion=subquestion,
@@ -5741,7 +5741,7 @@ def ajax_start_initial_checks(request, project_id):
     tasks = []
     for name in names:
         sk, _ = SoftwareKnowledge.objects.get_or_create(
-            projekt=projekt,
+            project=projekt,
             software_name=name,
         )
         tid = async_task(
@@ -5829,7 +5829,7 @@ def edit_knowledge_description(request, knowledge_id):
         if form.is_valid():
             form.save()
             messages.success(request, "Beschreibung gespeichert")
-            return redirect("projekt_detail", pk=knowledge.projekt.pk)
+            return redirect("projekt_detail", pk=knowledge.project.pk)
     else:
         form = KnowledgeDescriptionForm(instance=knowledge)
     return render(
@@ -5844,7 +5844,7 @@ def edit_knowledge_description(request, knowledge_id):
 def delete_knowledge_entry(request, knowledge_id):
     """Löscht einen Knowledge-Eintrag."""
     knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
-    project_pk = knowledge.projekt.pk
+    project_pk = knowledge.project.pk
     knowledge.delete()
     return redirect("projekt_detail", pk=project_pk)
 
@@ -5882,7 +5882,7 @@ def download_knowledge_as_word(request, knowledge_id):
             request,
             "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
         )
-        return redirect("projekt_detail", pk=knowledge.projekt.pk)
+        return redirect("projekt_detail", pk=knowledge.project.pk)
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
@@ -5903,7 +5903,7 @@ def compare_versions(request, pk):
         result = get_object_or_404(
             AnlagenFunktionsMetadaten, pk=result_id, anlage_datei=parent
         )
-        if not _user_can_edit_project(request.user, project_file.projekt):
+        if not _user_can_edit_project(request.user, project_file.project):
             return HttpResponseForbidden("Nicht berechtigt")
         if action == "fix":
             result.gap_summary = ""
@@ -5959,7 +5959,7 @@ def anlage6_review(request, pk):
         if form.is_valid() and gap_form.is_valid():
             form.save()
             gap_form.save()
-            return redirect("projekt_detail", pk=project_file.projekt.pk)
+            return redirect("projekt_detail", pk=project_file.project.pk)
     else:
         form = Anlage6ReviewForm(instance=project_file)
         gap_form = BVGapNotesForm(instance=project_file)

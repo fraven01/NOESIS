@@ -9,7 +9,7 @@ class GapNotesSaveTests(NoesisTestCase):
 
     def _create_file(self, nr):
         return BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=nr,
             upload=SimpleUploadedFile("a.docx", b"x"),
             text_content="",

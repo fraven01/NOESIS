@@ -39,7 +39,7 @@ class AdminProjectCleanupTests(NoesisTestCase):
 
         self.projekt = create_project(["A"], beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -77,7 +77,7 @@ class AdminProjectCleanupTests(NoesisTestCase):
         self.file.gap_summary = "foo"
         self.file.save()
         pf2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",

@@ -355,7 +355,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
     workflow_logger.info(
         "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
-        project_file.projekt_id,
+        project_file.project_id,
     )
 
     # Alte Ergebnisse zur Datei entfernen, damit nur aktuelle Resultate
@@ -455,7 +455,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         results.append(entry)
         workflow_logger.info(
             "[%s] - PARSER-ERGEBNIS - Funktion '%s' -> parser_result: %s",
-            project_file.projekt_id,
+            project_file.project_id,
             func.name,
             json.dumps(entry, ensure_ascii=False),
         )
@@ -513,7 +513,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             update_file_status(project_file.pk, BVProjectFile.COMPLETE)
             return results
         FunktionsErgebnis.objects.create(
-            projekt=project_file.projekt,
+            project=project_file.project,
             anlage_datei=project_file,
             funktion=func,
             subquestion=sub,
@@ -717,7 +717,7 @@ def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
         model_name,
     )
     pf = BVProjectFile.objects.get(pk=file_id)
-    projekt = pf.projekt
+    projekt = pf.project
     anlagen = list(projekt.anlagen.filter(anlage_nr=3))
     if not anlagen:
         raise ValueError("Anlage 3 fehlt")
@@ -1037,7 +1037,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=anlage,
             funktion=func,
             quelle=source,
@@ -1179,7 +1179,7 @@ def worker_anlage4_evaluate(
     pf = BVProjectFile.objects.get(pk=project_file_id)
     cfg = pf.anlage4_config or Anlage4Config.objects.first()
     template = ((cfg.prompt_template if cfg else "") or _DEFAULT_A4_PROMPT)
-    structured = {"name": item_text, "kontext": pf.projekt.title}
+    structured = {"name": item_text, "kontext": pf.project.title}
     data_json = json.dumps(structured, ensure_ascii=False)
     try:
         prompt_text = template.format(json=data_json, json_data=data_json)
@@ -1192,7 +1192,7 @@ def worker_anlage4_evaluate(
         {},
         model_name=model_name,
         model_type="anlagen",
-        project_prompt=pf.projekt.project_prompt,
+        project_prompt=pf.project.project_prompt,
     )
     anlage4_logger.debug("Anlage4 Raw Response #%s: %s", index, reply)
     data = _parse_llm_json(reply)
@@ -1236,7 +1236,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
         {},
         model_name=model_name,
         model_type="anlagen",
-        project_prompt=pf.projekt.project_prompt,
+        project_prompt=pf.project.project_prompt,
     )
     anlage4_logger.debug("A4 Plausi Raw Response #%s: %s", index, reply)
     data = _parse_llm_json(reply)
@@ -1259,7 +1259,7 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
     """Startet die asynchrone Analyse von Anlage 4."""
 
     anlage = BVProjectFile.objects.get(pk=file_id)
-    projekt = anlage.projekt
+    projekt = anlage.project
 
     cfg = anlage.anlage4_config or Anlage4Config.objects.first()
     parser_cfg = anlage.anlage4_parser_config or Anlage4ParserConfig.objects.first()
@@ -1374,7 +1374,7 @@ def check_anlage2_functions(
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=anlage,
             funktion=func,
             quelle="llm",
@@ -1395,7 +1395,7 @@ def run_conditional_anlage2_check(
     """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
 
     pf = BVProjectFile.objects.get(pk=file_id)
-    projekt = pf.projekt
+    projekt = pf.project
     try:
         pf.processing_status = BVProjectFile.PROCESSING
         pf.save(update_fields=["processing_status"])
@@ -1448,7 +1448,7 @@ def worker_verify_feature(
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
 
     try:
-        pf = BVProjectFile.objects.select_related("projekt").get(pk=file_id)
+        pf = BVProjectFile.objects.select_related("project").get(pk=file_id)
     except BVProjectFile.DoesNotExist:
         logger.warning(
             "Anlage-2-Datei %s fehlt. Prüfung wird beendet.",
@@ -1456,7 +1456,7 @@ def worker_verify_feature(
         )
         return {}
 
-    projekt = pf.projekt
+    projekt = pf.project
     project_id = projekt.pk
 
     logger.info(
@@ -1804,7 +1804,7 @@ def worker_run_initial_check(
             tmp_prompt,
             {},
             model_type="default",
-            project_prompt=sk.projekt.project_prompt,
+            project_prompt=sk.project.project_prompt,
         )
         sk.is_known_by_llm = "ja" in reply1.strip().lower()
         result["is_known_by_llm"] = sk.is_known_by_llm
@@ -1816,7 +1816,7 @@ def worker_run_initial_check(
                 description_prompt,
                 {"name": software_name},
                 model_type="default",
-                project_prompt=sk.projekt.project_prompt,
+                project_prompt=sk.project.project_prompt,
             )
             description = reply2.strip()
             sk.description = description
@@ -1905,7 +1905,7 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     )
 
     pf = res.anlage_datei
-    projekt = pf.projekt
+    projekt = pf.project
 
     doc_entry = (
         FunktionsErgebnis.objects.filter(
@@ -1951,7 +1951,7 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
     res.save(update_fields=["gap_notiz", "gap_summary"])
 
     FunktionsErgebnis.objects.create(
-        projekt=projekt,
+        project=projekt,
         anlage_datei=pf,
         funktion=res.funktion,
         subquestion=res.subquestion,
@@ -1971,7 +1971,7 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
     lediglich der Vereinheitlichung der API.\n    """
 
     anlage = BVProjectFile.objects.get(pk=file_id)
-    projekt_id = anlage.projekt_id
+    projekt_id = anlage.project_id
     anlage5_logger.info("check_anlage5 gestartet f\u00fcr Projekt %s", projekt_id)
 
     path = Path(anlage.upload.path)

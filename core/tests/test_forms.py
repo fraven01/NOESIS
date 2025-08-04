@@ -43,7 +43,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
         self.client.login(username="user3", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -52,7 +52,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             verification_json={"functions": {}},
         )
         self.anlage1 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",
@@ -174,7 +174,7 @@ class GutachtenEditDeleteTests(NoesisTestCase):
             )
         Path(tmp.name).unlink(missing_ok=True)
         self.knowledge = SoftwareKnowledge.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             software_name="A",
             is_known_by_llm=True,
         )
@@ -210,7 +210,7 @@ class KnowledgeDescriptionEditTests(NoesisTestCase):
         self.client.login(username="kwuser", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.knowledge = SoftwareKnowledge.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             software_name="A",
             is_known_by_llm=True,
             description="Alt",

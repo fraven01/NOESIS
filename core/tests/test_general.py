@@ -139,7 +139,7 @@ def setUpModule():
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     projekt = BVProject.objects.create(**kwargs)
     for name in software or []:
-        BVSoftware.objects.create(projekt=projekt, name=name)
+        BVSoftware.objects.create(project=projekt, name=name)
     return projekt
 
 
@@ -397,7 +397,7 @@ class BVProjectFileTests(NoesisTestCase):
         for i in range(1, 4):
             f = SimpleUploadedFile(f"f{i}.txt", b"data")
             BVProjectFile.objects.create(
-                projekt=projekt,
+                project=projekt,
                 anlage_nr=i,
                 upload=f,
                 text_content="data",
@@ -410,7 +410,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_default_flags(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="d",
@@ -429,7 +429,7 @@ class BVProjectFileTests(NoesisTestCase):
         with TemporaryDirectory() as tmpdir, override_settings(MEDIA_ROOT=tmpdir):
             projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
             pf = BVProjectFile.objects.create(
-                projekt=projekt,
+                project=projekt,
                 anlage_nr=1,
                 upload=SimpleUploadedFile("a.txt", b"data"),
                 text_content="d",
@@ -442,7 +442,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_json_form_shows_analysis_field_for_anlage3(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="t",
@@ -455,7 +455,7 @@ class BVProjectFileTests(NoesisTestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.models.async_task") as mock_task:
             pf = BVProjectFile.objects.create(
-                projekt=projekt,
+                project=projekt,
                 anlage_nr=2,
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 text_content="t",
@@ -466,7 +466,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_is_verification_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
@@ -480,7 +480,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_check_functions_clears_task_id(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
@@ -502,7 +502,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_template_shows_disabled_state_when_task_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
@@ -517,7 +517,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_project_file_status_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
@@ -533,7 +533,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_project_file_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
@@ -549,7 +549,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_anlage_status_processing(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PROCESSING,
@@ -563,7 +563,7 @@ class BVProjectFileTests(NoesisTestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file"):
             pf = BVProjectFile.objects.create(
-                projekt=projekt,
+                project=projekt,
                 anlage_nr=2,
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 processing_status=BVProjectFile.COMPLETE,
@@ -578,7 +578,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_anlage_status_failed(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.FAILED,
@@ -592,7 +592,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_anlage_status_pending(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PENDING,
@@ -605,7 +605,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_project_anlage_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -618,7 +618,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_anlage_row(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -631,7 +631,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_hx_toggle_project_file_flag(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -650,7 +650,7 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_project_software_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        SoftwareKnowledge.objects.create(projekt=projekt, software_name="A")
+        SoftwareKnowledge.objects.create(project=projekt, software_name="A")
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_project_software_tab", args=[projekt.pk, "tech"])
         resp = self.client.get(url)
@@ -659,7 +659,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_trigger_file_analysis_starts_tasks(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PENDING,
@@ -674,7 +674,7 @@ class BVProjectFileTests(NoesisTestCase):
     def test_get_analysis_tasks_returns_project_id_for_conditional_check(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -778,12 +778,12 @@ class ProjektFileUploadTests(NoesisTestCase):
     def test_second_anlage2_version_skips_ai_check(self):
         func = Anlage2Function.objects.create(name="Login")
         first = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("v1.docx", b"x"),
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=first,
             funktion=func,
             quelle="ki",
@@ -866,7 +866,7 @@ class ProjektFileUploadTests(NoesisTestCase):
             Path(tmp.name).unlink(missing_ok=True)
             _save_project_file(projekt, upload=upload, anlage_nr=nr)
 
-        qs = BVProjectFile.objects.filter(projekt=projekt)
+        qs = BVProjectFile.objects.filter(project=projekt)
         self.assertEqual(qs.count(), 6)
         self.assertListEqual(
             sorted(qs.values_list("anlage_nr", flat=True)),
@@ -1017,13 +1017,13 @@ class AutoApprovalTests(NoesisTestCase):
 
     def test_project_status_updated_after_all_anlage3_reviewed(self):
         pf1 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="x",
         )
         pf2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("b.txt", b"x"),
             text_content="y",
@@ -1059,7 +1059,7 @@ class Anlage3AutomationTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.content.decode().count("<tr"), 1)
-        return BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=3)
+        return BVProjectFile.objects.get(project=self.projekt, anlage_nr=3)
 
     def test_single_page_sets_negotiable(self):
         doc = Document()
@@ -1069,7 +1069,7 @@ class Anlage3AutomationTests(NoesisTestCase):
 
     def test_review_save_marks_checked(self):
         pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="",
@@ -1105,7 +1105,7 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         func = Anlage2Function.objects.create(name="Login")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -1114,7 +1114,7 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="manuell",
@@ -1122,7 +1122,7 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
             ki_beteiligung=False,
         )
         latest = FunktionsErgebnis.objects.filter(
-            projekt=projekt,
+            project=projekt,
             funktion=func,
             quelle="manuell",
         ).first()
@@ -1172,7 +1172,7 @@ class BuildRowDataTests(NoesisTestCase):
     def test_flag_set_on_difference(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -1181,14 +1181,14 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1214,7 +1214,7 @@ class BuildRowDataTests(NoesisTestCase):
         manual = {"Testfunktion": {"technisch_vorhanden": True}}
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -1223,14 +1223,14 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1286,7 +1286,7 @@ class BuildRowDataTests(NoesisTestCase):
     def test_doc_ai_from_result_map_main(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -1295,14 +1295,14 @@ class BuildRowDataTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -1333,7 +1333,7 @@ class BuildRowDataTests(NoesisTestCase):
         )
         form = Anlage2ReviewForm()  # Formular nach dem Erstellen der Unterfrage
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -1343,7 +1343,7 @@ class BuildRowDataTests(NoesisTestCase):
             subquestion=sub,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
@@ -1351,7 +1351,7 @@ class BuildRowDataTests(NoesisTestCase):
             technisch_verfuegbar=False,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=sub,
@@ -1386,7 +1386,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_classify_system(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
@@ -1404,7 +1404,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_check_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Anlagetext",
@@ -1427,7 +1427,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_check_anlage2_functions_stores_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
         )
@@ -1455,7 +1455,7 @@ class LLMTasksTests(NoesisTestCase):
         """Der LLM-Prompt enthält den bekannten Text."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
@@ -1472,7 +1472,7 @@ class LLMTasksTests(NoesisTestCase):
         """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
@@ -1507,7 +1507,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("b.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
             text_content="ignored",
@@ -1537,7 +1537,7 @@ class LLMTasksTests(NoesisTestCase):
         content = "Login: tv: ja; tel: nein; lv: nein; ki: ja"
         upload = SimpleUploadedFile("b.txt", b"x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
             text_content=content,
@@ -1584,7 +1584,7 @@ class LLMTasksTests(NoesisTestCase):
         content = "Login: tv: ja; tel: nein; lv: nein; ki: ja"
         upload = SimpleUploadedFile("b.txt", b"x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
             text_content=content,
@@ -1598,7 +1598,7 @@ class LLMTasksTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",
@@ -1646,7 +1646,7 @@ class LLMTasksTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("c.docx", fh.read())
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
         )
@@ -1692,7 +1692,7 @@ class LLMTasksTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("d.docx", fh.read())
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
         )
@@ -1737,7 +1737,7 @@ class LLMTasksTests(NoesisTestCase):
         with open(tmp.name, "rb") as fh:
             upload = SimpleUploadedFile("e.docx", fh.read())
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=upload,
         )
@@ -1763,7 +1763,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_run_anlage2_analysis_auto_prefers_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="t",
@@ -1786,7 +1786,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_run_anlage2_analysis_auto_fallback_empty_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="t",
@@ -1807,7 +1807,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_run_anlage2_analysis_includes_missing_functions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
@@ -1831,7 +1831,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_run_anlage2_analysis_includes_missing_subquestions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
@@ -1854,7 +1854,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_run_anlage2_analysis_fuzzy_match(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="Logn: ja",
@@ -1881,7 +1881,7 @@ class LLMTasksTests(NoesisTestCase):
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
@@ -1914,7 +1914,7 @@ class LLMTasksTests(NoesisTestCase):
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"x"),
         )
@@ -1940,7 +1940,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("c.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -1967,7 +1967,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("d.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -1992,7 +1992,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("c.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -2016,7 +2016,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("d.pdf", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -2040,7 +2040,7 @@ class LLMTasksTests(NoesisTestCase):
             upload1 = SimpleUploadedFile("e.docx", fh.read())
         Path(tmp1.name).unlink(missing_ok=True)
         pf1 = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload1,
             text_content="x",
@@ -2057,7 +2057,7 @@ class LLMTasksTests(NoesisTestCase):
             upload2 = SimpleUploadedFile("f.docx", fh.read())
         Path(tmp2.name).unlink(missing_ok=True)
         pf2 = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload2,
             text_content="y",
@@ -2080,7 +2080,7 @@ class LLMTasksTests(NoesisTestCase):
             upload = SimpleUploadedFile("g.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -2096,7 +2096,7 @@ class LLMTasksTests(NoesisTestCase):
     def test_check_anlage1_new_schema(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -2159,7 +2159,7 @@ class LLMTasksTests(NoesisTestCase):
             "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
         )
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
@@ -2202,7 +2202,7 @@ class LLMTasksTests(NoesisTestCase):
             "Frage 10: Test?\u00b6A10"
         )
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
@@ -2299,7 +2299,7 @@ class LLMTasksTests(NoesisTestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
@@ -2316,7 +2316,7 @@ class LLMTasksTests(NoesisTestCase):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
@@ -2347,7 +2347,7 @@ class LLMTasksTests(NoesisTestCase):
         q1.save(update_fields=["llm_enabled"])
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -2423,7 +2423,7 @@ class CheckAnlage5Tests(NoesisTestCase):
     def test_check_anlage5_sets_flag(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=5,
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="",
@@ -2445,7 +2445,7 @@ class CheckAnlage5Tests(NoesisTestCase):
     def test_check_anlage5_detects_other_text(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=5,
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="",
@@ -2485,7 +2485,7 @@ class ReportingTests(NoesisTestCase):
     def test_gap_analysis_file_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
@@ -2504,7 +2504,7 @@ class ProjektFileCheckViewTests(NoesisTestCase):
         self.client.login(username="user2", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -2623,7 +2623,7 @@ class Anlage2ReviewTests(NoesisTestCase):
         self.client.login(username="rev", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("c.txt", b"d"),
             text_content="Text",
@@ -2712,7 +2712,7 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_subquestion_justification_link(self):
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.file,
             funktion=self.func,
             subquestion=self.sub,
@@ -2730,7 +2730,7 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_no_auto_analysis_on_get(self):
         pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("n.txt", b"x"),
             text_content="t",
@@ -2752,7 +2752,7 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -2761,7 +2761,7 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             verification_json={"functions": {}},
         )
         self.knowledge = SoftwareKnowledge.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             software_name="A",
             is_known_by_llm=True,
             description="",
@@ -2802,7 +2802,7 @@ class WorkerAnlage3VisionTests(NoesisTestCase):
             upload = SimpleUploadedFile("v.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
         BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=upload,
             text_content="ignored",
@@ -2834,7 +2834,7 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
         self.client.login(username="deluser", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("d.txt", b"data"),
             text_content="Text",
@@ -2864,7 +2864,7 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
 
     def test_delete_active_restores_parent(self):
         v1 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"d"),
             text_content="t",
@@ -2872,7 +2872,7 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
         v1.is_active = False
         v1.save(update_fields=["is_active"])
         v2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"d"),
             text_content="t",
@@ -2889,14 +2889,14 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
 
     def test_delete_inactive_repairs_chain(self):
         v1 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"d"),
             text_content="t",
             is_active=False,
         )
         v2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"d"),
             text_content="t",
@@ -2905,7 +2905,7 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
             is_active=False,
         )
         v3 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("c.txt", b"d"),
             text_content="t",
@@ -2926,7 +2926,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         self.client.login(username="vuser", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -2935,7 +2935,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             verification_json={"functions": {}},
         )
         self.file2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text2",
@@ -3027,7 +3027,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
 
     def test_anlage3_uses_analysis(self):
         pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("c.txt", b"x"),
             text_content="T",
@@ -3041,7 +3041,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
 
     def test_anlage3_llm_param_triggers_vision_check(self):
         pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("d.txt", b"x"),
             text_content="T",
@@ -3327,7 +3327,7 @@ class ModelSelectionTests(NoesisTestCase):
         self.client.login(username="modeluser", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
@@ -3336,7 +3336,7 @@ class ModelSelectionTests(NoesisTestCase):
             verification_json={"functions": {}},
         )
         self.pf2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
         )
@@ -3460,7 +3460,7 @@ class GutachtenLLMCheckTests(NoesisTestCase):
         self.client.login(username="gcheck", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.knowledge = SoftwareKnowledge.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             software_name="A",
             is_known_by_llm=True,
         )
@@ -3485,7 +3485,7 @@ class FeatureVerificationTests(NoesisTestCase):
             beschreibung="x",
         )
         self.pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             manual_analysis_json={"functions": {}},
@@ -3514,7 +3514,7 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
         self.assertEqual(mock_q.call_count, 4)
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf,
             funktion=self.func,
@@ -3543,7 +3543,7 @@ class FeatureVerificationTests(NoesisTestCase):
             },
         )
 
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
         res = AnlagenFunktionsMetadaten.objects.get(
             anlage_datei=pf,
             funktion=self.func,
@@ -3596,7 +3596,7 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertEqual(result["ki_begruendung"], "Begruendung")
         self.assertIsNone(result["ki_beteiligt"])
         self.assertEqual(result["ki_beteiligt_begruendung"], "")
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=self.func, quelle="ki"
         ).first()
@@ -3604,13 +3604,13 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertEqual(fe.begruendung, "Begruendung")
 
     def test_negotiable_set_on_match(self):
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
@@ -3635,13 +3635,13 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertTrue(ai_fe.technisch_verfuegbar)
 
     def test_negotiable_not_set_on_mismatch(self):
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=pf,
             funktion=self.func,
             quelle="parser",
@@ -3667,7 +3667,7 @@ class FeatureVerificationTests(NoesisTestCase):
 
     def test_warnung_bei_geloeschter_datei(self):
         """L\u00f6schen der Datei f\u00fchrt zu Warnung statt Ausnahme."""
-        pf = BVProjectFile.objects.get(projekt=self.projekt, anlage_nr=2)
+        pf = BVProjectFile.objects.get(project=self.projekt, anlage_nr=2)
 
         original_update = AnlagenFunktionsMetadaten.objects.update_or_create
 
@@ -3710,7 +3710,7 @@ class InitialCheckTests(NoesisTestCase):
             side_effect=["Ja", "Beschreibung"],
         ) as mock_q:
             sk = SoftwareKnowledge.objects.create(
-                projekt=self.projekt,
+                project=self.projekt,
                 software_name="A",
             )
             result = worker_run_initial_check(sk.pk)
@@ -3724,7 +3724,7 @@ class InitialCheckTests(NoesisTestCase):
     def test_unknown_sets_flags(self):
         with patch("core.llm_tasks.query_llm", return_value="Nein") as mock_q:
             sk = SoftwareKnowledge.objects.create(
-                projekt=self.projekt,
+                project=self.projekt,
                 software_name="A",
             )
             result = worker_run_initial_check(sk.pk)
@@ -3738,7 +3738,7 @@ class InitialCheckTests(NoesisTestCase):
     def test_context_is_passed_to_prompt(self):
         with patch("core.llm_tasks.query_llm", return_value="Nein") as mock_q:
             sk = SoftwareKnowledge.objects.create(
-                projekt=self.projekt,
+                project=self.projekt,
                 software_name="A",
             )
             worker_run_initial_check(sk.pk, user_context="Hint")
@@ -3752,7 +3752,7 @@ class EditKIJustificationTests(NoesisTestCase):
         self.client.login(username="justi", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
             manual_analysis_json={"functions": {}},
@@ -3797,7 +3797,7 @@ class JustificationDetailEditTests(NoesisTestCase):
         self.client.login(username="jdet", password="pw")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.file = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("jd.txt", b"data"),
             manual_analysis_json={"functions": {}},
@@ -3806,7 +3806,7 @@ class JustificationDetailEditTests(NoesisTestCase):
         )
         self.func = Anlage2Function.objects.create(name="Export")
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.file,
             funktion=self.func,
             quelle="ki",
@@ -3823,7 +3823,7 @@ class VerificationToInitialTests(NoesisTestCase):
     def setUp(self):
         self.project = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
-            projekt=self.project,
+            project=self.project,
             anlage_nr=2,
             upload=SimpleUploadedFile("v.txt", b"data"),
             manual_analysis_json={"functions": {}},
@@ -3856,7 +3856,7 @@ class VerificationToInitialTests(NoesisTestCase):
             anlage_datei=pf, funktion=self.func, subquestion=self.sub
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.project,
+            project=self.project,
             anlage_datei=pf,
             funktion=self.func,
             quelle="ki",
@@ -3865,7 +3865,7 @@ class VerificationToInitialTests(NoesisTestCase):
             begruendung="Grund",
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.project,
+            project=self.project,
             anlage_datei=pf,
             funktion=self.func,
             subquestion=self.sub,
@@ -4153,7 +4153,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.client.login(username="reviewer", password="pw")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             manual_analysis_json={"functions": {}},
@@ -4183,7 +4183,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertTrue(func_data["technisch_vorhanden"])
 
         fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
+            project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4195,7 +4195,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4247,7 +4247,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4269,7 +4269,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
+            project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4291,7 +4291,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
+            project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4316,7 +4316,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
         fe = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
+            project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         ).first()
@@ -4357,7 +4357,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         self.assertTrue(func_data["technisch_vorhanden"])
         self.assertFalse(func_data["ki_beteiligung"])
         fes = FunktionsErgebnis.objects.filter(
-            projekt=self.projekt,
+            project=self.projekt,
             funktion=self.func,
             quelle="manuell",
         )
@@ -4369,7 +4369,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4414,7 +4414,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_datei=self.pf,
             funktion=self.func,
             quelle="ki",
@@ -4438,7 +4438,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
-                projekt=self.projekt,
+                project=self.projekt,
                 funktion=self.func,
                 quelle="manuell",
             ).exists()
@@ -4489,7 +4489,7 @@ class Anlage2ResetTests(NoesisTestCase):
     def test_run_anlage2_analysis_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf_old = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
@@ -4500,13 +4500,13 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf_old,
             funktion=func,
             quelle="parser",
         )
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("new.txt", b"x"),
         )
@@ -4519,11 +4519,11 @@ class Anlage2ResetTests(NoesisTestCase):
         ):
             run_anlage2_analysis(pf)
         results = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__projekt=projekt
+            anlage_datei__project=projekt
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
-            projekt=projekt,
+            project=projekt,
             funktion=func,
             quelle="parser",
         ).first()
@@ -4532,7 +4532,7 @@ class Anlage2ResetTests(NoesisTestCase):
     def test_conditional_check_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf_old = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
@@ -4542,7 +4542,7 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf_old,
             funktion=func,
             quelle="ki",
@@ -4550,14 +4550,14 @@ class Anlage2ResetTests(NoesisTestCase):
         )
 
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("new.txt", b"x"),
         )
 
         def fake(_pid, _typ, fid, _model=None):
             pf_latest = BVProjectFile.objects.filter(
-                projekt=projekt, anlage_nr=2
+                project=projekt, anlage_nr=2
             ).first()
             AnlagenFunktionsMetadaten.objects.update_or_create(
                 anlage_datei=pf_latest,
@@ -4565,7 +4565,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 defaults={},
             )
             FunktionsErgebnis.objects.create(
-                projekt=projekt,
+                project=projekt,
                 anlage_datei=pf_latest,
                 funktion_id=fid,
                 quelle="ki",
@@ -4584,11 +4584,11 @@ class Anlage2ResetTests(NoesisTestCase):
             mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
         results = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__projekt=projekt
+            anlage_datei__project=projekt
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
-            projekt=projekt,
+            project=projekt,
             funktion=func,
             quelle="ki",
         ).first()
@@ -4598,12 +4598,12 @@ class Anlage2ResetTests(NoesisTestCase):
         """Nur Metadaten der geprüften Anlage werden entfernt."""
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
         other_pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=3,
             upload=SimpleUploadedFile("b.txt", b"x"),
         )
@@ -4630,7 +4630,7 @@ class Anlage2ResetTests(NoesisTestCase):
     def test_ajax_reset_all_reviews_resets_manual_fields(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -4641,21 +4641,21 @@ class Anlage2ResetTests(NoesisTestCase):
             is_negotiable_manual_override=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="manuell",
@@ -4668,7 +4668,7 @@ class Anlage2ResetTests(NoesisTestCase):
         res.refresh_from_db()
         self.assertFalse(
             FunktionsErgebnis.objects.filter(
-                projekt=projekt,
+                project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="manuell",
@@ -4677,7 +4677,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertIsNone(res.is_negotiable_manual_override)
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
-                projekt=projekt,
+                project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="parser",
@@ -4686,7 +4686,7 @@ class Anlage2ResetTests(NoesisTestCase):
         )
         self.assertTrue(
             FunktionsErgebnis.objects.filter(
-                projekt=projekt,
+                project=projekt,
                 anlage_datei=pf,
                 funktion=func,
                 quelle="ki",
@@ -4697,7 +4697,7 @@ class Anlage2ResetTests(NoesisTestCase):
     def test_hx_update_review_cell_toggles_manual_entry(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
@@ -4707,14 +4707,14 @@ class Anlage2ResetTests(NoesisTestCase):
             funktion=func,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="parser",
             technisch_verfuegbar=True,
         )
         FunktionsErgebnis.objects.create(
-            projekt=projekt,
+            project=projekt,
             anlage_datei=pf,
             funktion=func,
             quelle="ki",
@@ -4754,13 +4754,13 @@ class GapReportTests(NoesisTestCase):
         self.client.login(username=self.superuser.username, password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf1 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             question_review={"1": {"hinweis": "Hinweis", "vorschlag": "V"}},
         )
         self.pf2 = BVProjectFile.objects.create(
-            projekt=self.projekt,
+            project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
         )
