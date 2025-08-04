@@ -370,6 +370,28 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         )
 
 
+class SeedInitialDataTests(TestCase):
+    """Tests für das Seeding der Antwortregeln."""
+
+    def test_answer_rules_seeded(self) -> None:
+        """Prüft, ob die Antwortregeln angelegt werden."""
+        call_command("seed_initial_data")
+        from ..initial_data_constants import INITIAL_ANSWER_RULES
+
+        for rule in INITIAL_ANSWER_RULES:
+            obj = AntwortErkennungsRegel.objects.get(
+                regel_name=rule["regel_name"]
+            )
+            self.assertEqual(
+                obj.erkennungs_phrase,
+                rule["erkennungs_phrase"],
+            )
+            self.assertEqual(
+                obj.actions_json,
+                rule["actions"],
+            )
+
+
 class NoesisTestCase(TestCase):
     """Basisklasse für alle Tests mit gefüllter Datenbank."""
 

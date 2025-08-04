@@ -444,4 +444,22 @@ INITIAL_ANLAGE2_CONFIG = {
     ],
 }
 
+# 7. Antwort-Erkennungsregeln
+INITIAL_ANSWER_RULES = [
+    {
+        "regel_name": "Antwort Ja",
+        "erkennungs_phrase": "ja",
+        "actions": [{"field": "einsatz_telefonica", "value": True}],
+        "regel_anwendungsbereich": "Hauptfunktion",
+        "prioritaet": 1,
+    },
+    {
+        "regel_name": "Antwort Nein",
+        "erkennungs_phrase": "nein",
+        "actions": [{"field": "einsatz_telefonica", "value": False}],
+        "regel_anwendungsbereich": "Hauptfunktion",
+        "prioritaet": 2,
+    },
+]
+
 # --- Hauptfunktion der Migration ---
