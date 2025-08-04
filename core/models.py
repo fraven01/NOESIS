@@ -694,7 +694,7 @@ class Anlage2Config(models.Model):
         return ["exact"]
 
     parser_order = models.JSONField(
-        default=list,
+        default=default_parser_order,
         help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
