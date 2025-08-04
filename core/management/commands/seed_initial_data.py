@@ -232,17 +232,6 @@ def create_initial_data(apps) -> None:
         ),
     ]
 
-    check_anlage1_text = (
-        "System: Du bist ein juristisch-technischer Prüf-Assistent für Systembeschreibungen.\n\n"
-        + INITIAL_ANLAGE1_QUESTIONS[0]["text"]
-        + "\n"
-        + INITIAL_ANLAGE1_QUESTIONS[1]["text"]
-        + "\n"
-        + "IT-Landschaft: Fasse den Abschnitt zusammen, der die Einbettung in die IT-Landschaft beschreibt.\n"
-        + "".join(f"{q['text']}\n" for q in INITIAL_ANLAGE1_QUESTIONS[2:])
-        + "Konsistenzprüfung und Stichworte. Gib ein JSON im vorgegebenen Schema zurück.\n\n"
-    )
-
     prompts.extend(
         [
             ("anlage1_email",
@@ -276,7 +265,6 @@ def create_initial_data(apps) -> None:
             ("initial_check_knowledge", "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.", False),
             ("initial_check_knowledge_with_context", "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'.", True),
             ("initial_llm_check", "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. Erläutere, was sie tut und wie sie typischerweise eingesetzt wird.", True),
-            ("check_anlage1", check_anlage1_text, True),
             ("check_anlage3_vision", "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
             ("anlage2_table", "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n", True),
             ("check_gutachten_functions", "Prüfe das folgende Gutachten auf weitere Funktionen, die nach § 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. Gib eine kurze Empfehlung als Text zurück.\n\n", True),
