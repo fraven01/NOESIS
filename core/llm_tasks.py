@@ -510,6 +510,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                 "Anlage-Datei %s fehlt. Analyse wird abgebrochen.",
                 project_file.pk,
             )
+            project_file.analysis_json = {"functions": results}
+            project_file.save(update_fields=["analysis_json"])
             return results
         FunktionsErgebnis.objects.create(
             projekt=project_file.projekt,
@@ -523,6 +525,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             ki_beteiligung=ki,
         )
 
+    project_file.analysis_json = {"functions": results}
+    project_file.save(update_fields=["analysis_json"])
     return results
 
 

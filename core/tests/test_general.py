@@ -1568,8 +1568,16 @@ class LLMTasksTests(NoesisTestCase):
         self.assertIsNotNone(fe)
         self.assertTrue(fe.technisch_verfuegbar)
 
+        login_entry = next(
+            f for f in pf.analysis_json["functions"] if f["funktion"] == "Login"
+        )
+        self.assertTrue(login_entry["technisch_verfuegbar"]["value"])
+        self.assertFalse(login_entry["einsatz_telefonica"]["value"])
+        self.assertFalse(login_entry["zur_lv_kontrolle"]["value"])
+        self.assertTrue(login_entry["ki_beteiligung"]["value"])
+
         self.assertIsInstance(result, list)
-        self.assertEqual(result[0]["funktion"], "Login")
+        self.assertTrue(any(r["funktion"] == "Login" for r in result))
 
     def test_run_anlage2_analysis_sets_negotiable_on_match(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
