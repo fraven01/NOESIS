@@ -11,12 +11,12 @@
 {% endif %}
 
 <div id="anlage-edit-{{ anlage.pk }}" hx-swap="outerHTML"
-    {% if anlage.processing_status == 'PROCESSING' or anlage.processing_status == 'PENDING' %}
+    {% if anlage.processing_status == 'PROCESSING' or anlage.processing_status == 'PENDING' or anlage.is_verification_running %}
         hx-get="{% url 'hx_anlage_status' anlage.pk %}"
         hx-trigger="load, every 5s"
     {% endif %}>
 
-{% if anlage.processing_status == 'PROCESSING' %}
+{% if anlage.processing_status == 'PROCESSING' or anlage.is_verification_running %}
 <span class="table-action-btn table-action-secondary disabled-btn"><span class="spinner"></span> Analyse läuft...</span>
 {% elif anlage.processing_status == 'COMPLETE' %}
 <a href="{{ edit_url }}" class="table-action-btn table-action-primary">Analyse bearbeiten</a>
