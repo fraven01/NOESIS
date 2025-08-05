@@ -14,30 +14,72 @@
         <nav class="admin-nav space-y-4 text-sm">
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
-                <a href="{% url 'admin_projects' %}">Projekt-Liste</a><br>
-                <a href="{% url 'admin_project_statuses' %}">Projekt-Status</a><br>
+                <a href="{% url 'admin_projects' %}" class="nav-link">Projekt-Liste</a><br>
+                <a href="{% url 'admin_project_statuses' %}" class="nav-link">Projekt-Status</a><br>
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
-                <a href="{% url 'admin_anlage1' %}">Anlage 1 Fragen</a><br>
-                <a href="{% url 'anlage2_function_list' %}">Anlage 2 Funktionen</a><br>
-                <a href="{% url 'anlage2_config' %}">Anlage 2 Globale Phrasen</a><br>
-                <a href="{% url 'parser_rule_list' %}">Exakter Parser Regeln</a><br>
-                <a href="{% url 'anlage3_rule_list' %}">Anlage 3 Parser Regeln</a><br>
-                <a href="{% url 'anlage4_config' %}">Anlage 4 Konfiguration</a><br>
-                <a href="{% url 'zweckkategoriea_list' %}">Zwecke verwalten</a><br>
-                <a href="{% url 'supervisionnote_list' %}">Supervision-Notizen</a><br>
+                {% with current=request.resolver_match.url_name %}
+                <div>
+                    <h4 class="accordion-header">
+                        <span>Anlage 1</span>
+                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
+                    </h4>
+                    <div class="accordion-content pl-2 space-y-1 {% if current in 'admin_anlage1' %}block{% else %}hidden{% endif %}">
+                        <a href="{% url 'admin_anlage1' %}" class="nav-link {% if current == 'admin_anlage1' %}active-nav-link{% endif %}">Fragen</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="accordion-header">
+                        <span>Anlage 2</span>
+                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
+                    </h4>
+                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
+                        <a href="{% url 'anlage2_function_list' %}" class="nav-link {% if current == 'anlage2_function_list' %}active-nav-link{% endif %}">Funktionen</a>
+                        <a href="{% url 'anlage2_config' %}" class="nav-link {% if current == 'anlage2_config' %}active-nav-link{% endif %}">Globale Phrasen</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="accordion-header">
+                        <span>Anlage 3</span>
+                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
+                    </h4>
+                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage3_rule_list' %}block{% else %}hidden{% endif %}">
+                        <a href="{% url 'anlage3_rule_list' %}" class="nav-link {% if current == 'anlage3_rule_list' %}active-nav-link{% endif %}">Parser Regeln</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="accordion-header">
+                        <span>Anlage 4</span>
+                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
+                    </h4>
+                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage4_config' %}block{% else %}hidden{% endif %}">
+                        <a href="{% url 'anlage4_config' %}" class="nav-link {% if current == 'anlage4_config' %}active-nav-link{% endif %}">Konfiguration</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="accordion-header">
+                        <span>Allgemein</span>
+                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
+                    </h4>
+                    <div class="accordion-content pl-2 space-y-1 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}block{% else %}hidden{% endif %}">
+                        <a href="{% url 'parser_rule_list' %}" class="nav-link {% if current == 'parser_rule_list' %}active-nav-link{% endif %}">Exakter Parser Regeln</a>
+                        <a href="{% url 'zweckkategoriea_list' %}" class="nav-link {% if current == 'zweckkategoriea_list' %}active-nav-link{% endif %}">Zwecke verwalten</a>
+                        <a href="{% url 'supervisionnote_list' %}" class="nav-link {% if current == 'supervisionnote_list' %}active-nav-link{% endif %}">Supervision-Notizen</a>
+                    </div>
+                </div>
+                {% endwith %}
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
-                <a href="{% url 'admin_llm_roles' %}">LLM-Rollen</a><br>
-                <a href="{% url 'admin_prompts' %}">Prompts</a><br>
-                <a href="{% url 'admin_models' %}">LLM-Modelle</a><br>
+                <a href="{% url 'admin_llm_roles' %}" class="nav-link">LLM-Rollen</a><br>
+                <a href="{% url 'admin_prompts' %}" class="nav-link">Prompts</a><br>
+                <a href="{% url 'admin_models' %}" class="nav-link">LLM-Modelle</a><br>
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
-                <a href="{% url 'admin_user_list' %}">Benutzer verwalten</a><br>
-                <a href="{% url 'admin:auth_group_changelist' %}">Gruppen</a><br>
+                <a href="{% url 'admin_user_list' %}" class="nav-link">Benutzer verwalten</a><br>
+                <a href="{% url 'admin:auth_group_changelist' %}" class="nav-link">Gruppen</a><br>
             </div>
         </nav>
             </aside>
@@ -48,4 +90,21 @@
     </section>
 </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.accordion-header').forEach(function(header) {
+            header.addEventListener('click', function() {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
+                content.classList.toggle('hidden');
+                if (icon) {
+                    icon.classList.toggle('rotate-180');
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
