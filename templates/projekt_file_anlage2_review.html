@@ -13,7 +13,7 @@
     Zur neuen Supervisions-Ansicht wechseln
   </a>
 </p>
-{% if anlage.processing_status == 'PROCESSING' %}
+{% if anlage.processing_status == 'PROCESSING' or anlage.is_verification_running %}
 <div id="anlage-edit-{{ anlage.pk }}" class="p-4 text-center"
      hx-get="{% url 'hx_anlage_status' anlage.pk %}"
      hx-trigger="load, every 5s" hx-swap="outerHTML">
