@@ -1484,14 +1484,7 @@ def worker_verify_feature(
     )
 
 
-    gutachten_text = ""
-    if projekt.gutachten_file:
-        path = Path(projekt.gutachten_file.path)
-        try:
-            gutachten_text = extract_text(path)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Gutachten konnte nicht geladen werden: %s", exc)
-    context: dict[str, str] = {"gutachten": gutachten_text}
+    context: dict[str, str] = {}
 
     obj_to_check = None
     lookup_key: str | None = None
@@ -1525,7 +1518,7 @@ def worker_verify_feature(
                     "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
                     'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
                     "Aussage: Besitzt die Software '{software_name}' typischerweise "
-                    "die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}"
+                    "die Funktion oder Eigenschaft '{function_name}'?"
                 ),
                 use_system_role=False,
             )
@@ -1814,7 +1807,7 @@ def worker_verify_feature(
             begruendung=justification,
             ki_beteiligt_begruendung=ai_reason,
         )
-        return {}
+        return verification_result
     except Exception as exc:  # noqa: BLE001
         logger.error("Ergebnis konnte nicht gespeichert werden: %s", exc)
         return verification_result
