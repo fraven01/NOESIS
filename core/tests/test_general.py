@@ -4687,3 +4687,18 @@ class ManualGapDetectionTests(TestCase):
         doc_data: dict = {}
         manual_data = {"technisch_vorhanden": True}
         self.assertTrue(_has_manual_gap(doc_data, manual_data))
+
+    def test_no_gap_when_manual_missing(self) -> None:
+        """Kein GAP, wenn manuelle Daten fehlen."""
+        doc_data = {"technisch_vorhanden": True}
+        manual_data = {"technisch_vorhanden": None}
+        self.assertFalse(_has_manual_gap(doc_data, manual_data))
+
+    def test_gap_with_additional_manual_field(self) -> None:
+        """Erkennt eine Lücke bei zusätzlichen manuellen Feldern."""
+        doc_data = {"technisch_vorhanden": True}
+        manual_data = {
+            "technisch_vorhanden": True,
+            "neues_feld": False,
+        }
+        self.assertTrue(_has_manual_gap(doc_data, manual_data))
