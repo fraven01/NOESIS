@@ -141,6 +141,7 @@
 {% endif %}
 {% endblock %}
 {% block extra_js %}
+<script src="{% static 'js/anlage2_review_utils.js' %}"></script>
 <script src="{% static 'js/popover.js' %}"></script>
 <script>
 function safeJsonParse(jsonString) {
@@ -223,7 +224,7 @@ function updateNegotiableCell(cell, value, override) {
     }
 }
 
-function updatePopoverContent(icon, input) {
+function updatePopoverContent(icon) {
     const row = icon.closest('tr');
     if (!row) return;
     const doc = safeJsonParse(row.dataset.doc);
@@ -254,15 +255,14 @@ function updatePopoverContent(icon, input) {
     }
     let manualVal = null;
     let manualEntry = manual[aiKey];
-    if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
-    else if (manualEntry !== undefined) manualVal = manualEntry;
-    if (manualVal === null && icon.dataset.isManual === 'true' && input && input.dataset && 'state' in input.dataset) {
-        const st = input.dataset.state;
-        manualVal = st === 'true' ? true : st === 'false' ? false : null;
+    let hasManual = manualEntry !== undefined;
+    if (hasManual) {
+        if (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) manualVal = manualEntry.value;
+        else manualVal = manualEntry;
     }
-    const manualHtml = manualVal !== null ?
+    const manualHtml = hasManual ?
         `<span class="popover-manual">Manuell: ${manualVal}</span>` :
-        `Manuell: ${manualVal}`;
+        'Manuell: -';
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
                  `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
                  manualHtml;
@@ -276,11 +276,14 @@ function updateRowAppearance(row) {
     if (!row) return;
     const ai = safeJsonParse(row.dataset.ai);
     const doc = safeJsonParse(row.dataset.doc);
+    const manualData = safeJsonParse(row.dataset.manual);
     const fieldOrder = ['technisch_vorhanden','einsatz_bei_telefonica','zur_lv_kontrolle','ki_beteiligung'];
-    let needsReview = false;
-    const textToState = txt => txt.trim().startsWith('✓') ? true : (txt.trim().startsWith('✗') ? false : null);
-    const techIconEl = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
-    let techManualVal = techIconEl ? textToState(techIconEl.textContent) : null;
+    let needsReviewRow = false;
+    const techManualEntry = manualData.hasOwnProperty('technisch_verfuegbar') ? manualData.technisch_verfuegbar : manualData.technisch_vorhanden;
+    let techManualVal = null;
+    if (techManualEntry !== undefined) {
+        techManualVal = (techManualEntry && typeof techManualEntry === 'object' && 'value' in techManualEntry) ? techManualEntry.value : techManualEntry;
+    }
     let techDocVal = doc.hasOwnProperty('technisch_verfuegbar') ? doc.technisch_verfuegbar : doc.technisch_vorhanden;
     if (techDocVal && typeof techDocVal === 'object' && 'value' in techDocVal) techDocVal = techDocVal.value;
     let techAiVal = ai.hasOwnProperty('technisch_verfuegbar') ? ai.technisch_verfuegbar : ai.technisch_vorhanden;
@@ -289,8 +292,14 @@ function updateRowAppearance(row) {
     fieldOrder.forEach(f => {
         const icon = row.querySelector(`.tri-state-icon[data-field-name="${f}"]`);
         if (!icon) return;
-        const manual = textToState(icon.textContent);
-        icon.dataset.isManual = manual !== null ? 'true' : 'false';
+        const manualKey = f === 'technisch_vorhanden' && manualData.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
+        const manualEntry = manualData[manualKey];
+        const hasManual = manualEntry !== undefined;
+        let manualVal = null;
+        if (hasManual) {
+            manualVal = (manualEntry && typeof manualEntry === 'object' && 'value' in manualEntry) ? manualEntry.value : manualEntry;
+        }
+        icon.dataset.isManual = hasManual ? 'true' : 'false';
         const docKey = f === 'technisch_vorhanden' && doc.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         const aiKey = f === 'technisch_vorhanden' && ai.hasOwnProperty('technisch_verfuegbar') ? 'technisch_verfuegbar' : f;
         let docVal = doc[docKey];
@@ -298,29 +307,35 @@ function updateRowAppearance(row) {
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
-        if (manual === true) icon.classList.add('status-badge','status-ja');
-        else if (manual === false) icon.classList.add('status-badge','status-nein');
+        const displayVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
+        if (displayVal === true) icon.classList.add('status-badge','status-ja');
+        else if (displayVal === false) icon.classList.add('status-badge','status-nein');
         else icon.classList.add('status-badge','status-unbekannt');
         let cls = 'status-unbekannt';
-        if (manual !== null) {
-            cls = manual === docVal ? 'status-ok' : 'status-manuell-abweichung';
+        if (hasManual) {
+            cls = manualVal === docVal ? 'status-ok' : 'status-manuell-abweichung';
         } else if (docVal !== undefined && aiVal !== undefined) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
         }
-        const finalVal = manual !== null ? manual : (docVal !== undefined ? docVal : aiVal);
+        const finalVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
         if ((f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') && techEffective === false && finalVal === false) {
             cls = 'status-ok';
         }
         icon.classList.add(cls);
-        updatePopoverContent(icon, {dataset: {state: manual === true ? 'true' : manual === false ? 'false' : 'unknown'}});
-        if (docVal !== undefined && aiVal !== undefined && docVal !== aiVal && manual === null) {
-            needsReview = true;
+        updatePopoverContent(icon);
+        if (calcNeedsReview(manualVal, docVal, aiVal, hasManual)) {
+            needsReviewRow = true;
         }
     });
     const techIcon = row.querySelector('.tri-state-icon[data-field-name="technisch_vorhanden"]');
     let techState = null;
     if (techIcon && !row.classList.contains('subquestion-row')) {
-        techState = textToState(techIcon.textContent);
+        const techManualEntry2 = manualData.hasOwnProperty('technisch_verfuegbar') ? manualData.technisch_verfuegbar : manualData.technisch_vorhanden;
+        if (techManualEntry2 !== undefined) {
+            techState = (techManualEntry2 && typeof techManualEntry2 === 'object' && 'value' in techManualEntry2) ? techManualEntry2.value : techManualEntry2;
+        } else {
+            techState = techDocVal;
+        }
         // Unterfragen nur aktivieren/deaktivieren, nicht automatisch ein- oder
         // ausblenden, damit sie initial eingeklappt bleiben.
         setSubRowsEnabled(row.dataset.funcId, techState === true);
@@ -346,9 +361,9 @@ function updateRowAppearance(row) {
         updateNegotiableCell(negCell, cellVal, override);
         row.classList.toggle('negotiated-row', cellVal);
     }
-    row.dataset.requiresReview = needsReview ? 'true' : 'false';
+    row.dataset.requiresReview = needsReviewRow ? 'true' : 'false';
     const indicator = row.querySelector('.text-danger.text-sm');
-    if (indicator) indicator.style.display = needsReview ? '' : 'none';
+    if (indicator) indicator.style.display = needsReviewRow ? '' : 'none';
 }
 
 
