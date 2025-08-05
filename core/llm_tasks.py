@@ -460,6 +460,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             func.name,
             json.dumps(entry, ensure_ascii=False),
         )
+        anlage2_result_logger.info(
+            "Funktion '%s' Ergebnis: %s",
+            func.name,
+            json.dumps(entry, ensure_ascii=False),
+        )
 
         for sub in func.anlage2subquestion_set.all():
             key = f"{func.name}: {sub.frage_text}"
@@ -470,6 +475,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
                     sub_entry[f] = None
                 sub_entry["not_found"] = True
             results.append(sub_entry)
+            anlage2_result_logger.info(
+                "Unterfrage '%s' Ergebnis: %s",
+                key,
+                json.dumps(sub_entry, ensure_ascii=False),
+            )
 
     for row in results:
         sub_id = row.get("subquestion_id")
