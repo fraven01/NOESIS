@@ -57,9 +57,21 @@ class ParserManager:
                 logger.error("Parser '%s' Fehler: %s", name, exc)
                 result = []
             if result:
-                logger.debug("Parser '%s' lieferte %s Einträge", name, len(result))
+                logger.debug(
+                    "Parser '%s' lieferte %s Einträge", name, len(result)
+                )
+                logger.info(
+                    "Parser '%s' lieferte %s Einträge für Datei %s",
+                    name,
+                    len(result),
+                    project_file.upload.name,
+                )
                 return result
         logger.debug("Keine Parser lieferten Ergebnisse")
+        logger.warning(
+            "Kein Parser erzielte Treffer für Datei %s",
+            project_file.upload.name,
+        )
         return []
 
     def _run_single(self, name: str, project_file: BVProjectFile) -> list[dict[str, object]]:
