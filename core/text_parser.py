@@ -189,16 +189,23 @@ def apply_rules(
     text_part: str,
     rules: List[AntwortErkennungsRegel],
     threshold: int = FUZZY_THRESHOLD,
+    *,
+    func_name: str | None = None,
 ) -> None:
-    """Wendet Antwortregeln auf einen Textabschnitt an."""
+    """Wendet Antwortregeln auf einen Textabschnitt an.
+
+    Der optionale Parameter ``func_name`` dient ausschließlich der Protokoll-
+    lierung und legt fest, zu welcher Funktion die Prüfung gehört.
+    """
     detail_logger.debug("Prüfe Regeln in '%s'", text_part)
     found_rules: Dict[str, tuple[bool, int, str]] = {}
     for rule in rules:
         match = fuzzy_match(rule.erkennungs_phrase, text_part, threshold)
         detail_logger.debug(
-            "Regelvergleich '%s' (Prio %s) -> %s in '%s'",
+            "Regelvergleich '%s' (Prio %s) für Funktion '%s' -> %s in '%s'",
             rule.erkennungs_phrase,
             rule.prioritaet,
+            func_name or "-",
             "GEFUNDEN" if match else "NICHT gefunden",
             text_part,
         )
@@ -352,7 +359,7 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
             if not found_sub:
                 line_entry: dict[str, object] = {}
                 apply_tokens(line_entry, text_part, token_map)
-                apply_rules(line_entry, text_part, rules)
+                apply_rules(line_entry, text_part, rules, func_name=found_key)
                 for key, value in line_entry.items():
                     entry[key] = value
             continue
@@ -366,7 +373,7 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
             )
             line_entry = {}
             apply_tokens(line_entry, line, token_map)
-            apply_rules(line_entry, line, rules)
+            apply_rules(line_entry, line, rules, func_name=current_key)
             for key, value in line_entry.items():
                 entry[key] = value
 

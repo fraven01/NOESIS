@@ -437,7 +437,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
 
         line_entry: dict[str, object] = {}
         apply_tokens(line_entry, after, token_map)
-        apply_rules(line_entry, after, rules)
+        apply_rules(line_entry, after, rules, func_name=entry["funktion"])
         for key, value in line_entry.items():
             if key in {"funktion", "subquestion_id"}:
                 continue
