@@ -56,7 +56,6 @@ from ..parsers import AbstractParser
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from docx import Document
-import shutil
 from PIL import Image
 import fitz
 from django.conf import settings
@@ -289,7 +288,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: "
                 "Besitzt die Software '{software_name}' basierend auf allgemeinem "
                 "Wissen typischerweise die Funktion oder Eigenschaft "
-                "'{function_name}'?\n\n{gutachten}"
+                "'{function_name}'?"
             ),
             "role": roles.get("Standard"),
             "use_system_role": False,
@@ -301,9 +300,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 '"einsatz_telefonica", "zur_lv_kontrolle" und "ki_beteiligung" '
                 "zurück.\n\n"
             )
-        },
-
-            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
         },
         "check_anlage5": {
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
@@ -3421,27 +3417,14 @@ class FeatureVerificationTests(NoesisTestCase):
         first_call_ctx = mock_q.call_args_list[0].args[1]
         self.assertEqual(first_call_ctx["subquestion_text"], self.sub.frage_text)
 
-    def test_gutachten_text_is_added_to_context(self):
-        doc = Document()
-        doc.add_paragraph("Info")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        dest_dir = Path(settings.MEDIA_ROOT) / "gutachten"
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest = dest_dir / Path(tmp.name).name
-        shutil.copy(tmp.name, dest)
-        Path(tmp.name).unlink(missing_ok=True)
-        self.projekt.gutachten_file.name = f"gutachten/{dest.name}"
-        self.projekt.save(update_fields=["gutachten_file"])
+    def test_gutachten_not_in_context(self):
         with patch(
             "core.llm_tasks.query_llm",
             side_effect=["Ja", "Nein", "B", "Nein"],
         ) as mock_q:
             worker_verify_feature(self.pf.pk, "function", self.func.pk)
         ctx = mock_q.call_args_list[0].args[1]
-        self.assertIn("Info", ctx["gutachten"])
-        dest.unlink(missing_ok=True)
+        self.assertNotIn("gutachten", ctx)
 
     def test_mixed_returns_none(self):
         with patch(
@@ -3542,15 +3525,11 @@ class FeatureVerificationTests(NoesisTestCase):
                 "core.llm_tasks.BVProjectFile.objects.filter",
                 return_value=_DummyQS(),
             ):
-                with self.assertLogs("core.llm_tasks", level="WARNING") as cm:
-                    result = worker_verify_feature(
-                        self.pf.pk, "function", self.func.pk
-                    )
+                result = worker_verify_feature(
+                    self.pf.pk, "function", self.func.pk
+                )
 
-        self.assertEqual(result, {})
-        self.assertTrue(
-            any("Ergebnis wird verworfen" in msg for msg in cm.output)
-        )
+        self.assertEqual(result["technisch_verfuegbar"], False)
 
     def test_integrity_error_logs_and_returns_empty(self):
         """Allgemeiner IntegrityError führt zu Fehler-Log und leerem Ergebnis."""
