@@ -29,7 +29,6 @@ from ..models import (
     SoftwareKnowledge,
     BVSoftware,
     Gutachten,
-    FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
@@ -160,7 +159,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     Anlage1Question.objects.all().delete()
     apps.get_model("core", "Anlage1QuestionVariant").objects.all().delete()
     apps.get_model("core", "LLMRole").objects.all().delete()
-    FormatBParserRule.objects.all().delete()
     AntwortErkennungsRegel.objects.all().delete()
     Anlage4Config.objects.all().delete()
     LLMConfig.objects.all().delete()
@@ -302,8 +300,8 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
                 "zurück.\n\n"
             )
         },
-
-            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
+        "check_anlage4": {
+            "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n",
         },
         "check_anlage5": {
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"

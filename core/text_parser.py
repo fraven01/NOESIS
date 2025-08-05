@@ -9,7 +9,6 @@ from typing import Dict, List, Tuple
 
 from .models import (
     BVProjectFile,
-    FormatBParserRule,
     Anlage2Config,
     Anlage2Function,
     Anlage2SubQuestion,
@@ -91,56 +90,6 @@ PHRASE_TYPE_CHOICES: list[tuple[str, str]] = [
     ("zur_lv_kontrolle_false", "zur_lv_kontrolle_false"),
     ("zur_lv_kontrolle_true", "zur_lv_kontrolle_true"),
 ]
-
-
-
-def parse_format_b(text: str) -> List[dict[str, object]]:
-    """Parst ein einfaches Listenformat von Anlage 2.
-
-    Mehrere Zeilen können verarbeitet werden.
-    Jede Zeile enthält einen Funktionsnamen und optionale Tokens
-    wie ``tv``, ``tel``, ``lv`` und ``ki``.
-    Eine vorausgehende Nummerierung wie ``1.`` wird ignoriert.
-    """
-
-    detail_logger.info("parse_format_b gestartet")
-    rules = FormatBParserRule.objects.all()
-    if rules:
-        mapping = {r.key.lower(): r.target_field for r in rules}
-    else:
-        mapping = {
-            "tv": "technisch_verfuegbar",
-            "tel": "einsatz_telefonica",
-            "lv": "zur_lv_kontrolle",
-            "ki": "ki_beteiligung",
-        }
-
-    results: List[dict[str, object]] = []
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        line = re.sub(r"^[\d]+[.)]\s*", "", line)
-        parts = re.split(r"[;\-]", line)
-        if not parts:
-            continue
-        entry: dict[str, object] = {"funktion": parts[0].strip()}
-        key_re = "|".join(map(re.escape, mapping.keys()))
-        for part in parts[1:]:
-            part = part.strip()
-            m = re.match(rf"({key_re})\s*[:=]\s*(ja|nein)", part, re.I)
-            if not m:
-                continue
-            key, val = m.groups()
-            entry[mapping[key.lower()]] = {
-                "value": val.lower() == "ja",
-                "note": None,
-            }
-        results.append(entry)
-
-    detail_logger.info("parse_format_b beendet: %s Einträge", len(results))
-
-    return results
 
 
 def build_token_map(cfg: Anlage2Config) -> Dict[str, List[Tuple[str, bool]]]:

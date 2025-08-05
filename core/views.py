@@ -103,7 +103,6 @@ from .models import (
     Area,
     ProjectStatus,
     LLMRole,
-    FormatBParserRule,
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
