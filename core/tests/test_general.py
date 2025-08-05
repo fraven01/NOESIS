@@ -101,6 +101,7 @@ from ..views import (
     _save_project_file,
     extract_anlage_nr,
     get_user_tiles,
+    _has_manual_gap,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -4664,3 +4665,25 @@ class GapReportTests(NoesisTestCase):
         self.pf2.refresh_from_db()
         self.assertEqual(self.pf1.gap_summary, "")
         self.assertEqual(self.pf2.gap_summary, "")
+
+
+class ManualGapDetectionTests(TestCase):
+    """Tests für die Funktion ``_has_manual_gap``."""
+
+    def test_detects_difference(self) -> None:
+        """Erkennt eine Abweichung zwischen Dokument und manuellem Wert."""
+        doc_data = {"technisch_vorhanden": True}
+        manual_data = {"technisch_vorhanden": False}
+        self.assertTrue(_has_manual_gap(doc_data, manual_data))
+
+    def test_no_gap_when_equal(self) -> None:
+        """Kein GAP, wenn Werte übereinstimmen."""
+        doc_data = {"technisch_vorhanden": True}
+        manual_data = {"technisch_vorhanden": True}
+        self.assertFalse(_has_manual_gap(doc_data, manual_data))
+
+    def test_gap_when_doc_missing(self) -> None:
+        """Erkennt eine Lücke, wenn Dokumentdaten fehlen."""
+        doc_data: dict = {}
+        manual_data = {"technisch_vorhanden": True}
+        self.assertTrue(_has_manual_gap(doc_data, manual_data))
