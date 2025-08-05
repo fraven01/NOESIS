@@ -648,50 +648,7 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
-class FormatBParserTests(NoesisTestCase):
-    def test_parse_format_b_basic(self):
-        text = "Login; tv: ja; tel: nein; lv: nein; ki: ja"
-        data = text_parser.parse_format_b(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Login",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "einsatz_telefonica": {"value": False, "note": None},
-                    "zur_lv_kontrolle": {"value": False, "note": None},
-                    "ki_beteiligung": {"value": True, "note": None},
-                }
-            ],
-        )
-
-    def test_parse_format_b_numbering(self):
-        text = "1. Logout - tv=nein - ki=ja"
-        data = text_parser.parse_format_b(text)
-        self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Logout",
-                    "technisch_verfuegbar": {"value": False, "note": None},
-                    "ki_beteiligung": {"value": True, "note": None},
-                }
-            ],
-        )
-
-    def test_parse_format_b_multiple_lines(self):
-        text = "Login; tv: ja\nLogout; tv: nein"
-        data = text_parser.parse_format_b(text)
-        self.assertEqual(len(data), 2)
-        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
-        self.assertFalse(data[1]["technisch_verfuegbar"]["value"])
-
-    def test_parse_format_b_with_rules(self):
-        FormatBParserRule.objects.create(key="t", target_field="technisch_verfuegbar")
-        text = "Login; t: ja"
-        data = text_parser.parse_format_b(text)
-        self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
-
+class DocxUtilsTests(NoesisTestCase):
     def test_extract_images(self):
         img = Image.new("RGB", (1, 1), color="blue")
         img_tmp = NamedTemporaryFile(delete=False, suffix=".png")

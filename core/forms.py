@@ -23,7 +23,7 @@ from .models import (
     LLMRole,
     Prompt,
     Tile,
-    FormatBParserRule,
+    Anlage2ColumnHeading,
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
@@ -1073,7 +1073,7 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
 
     actions_json = forms.JSONField(
         required=False,
-        widget=ActionsJSONWidget(choices=FormatBParserRule.FIELD_CHOICES),
+        widget=ActionsJSONWidget(choices=Anlage2ColumnHeading.FIELD_CHOICES),
         label="Aktionen",
     )
 
@@ -1154,7 +1154,7 @@ class ActionForm(forms.Form):
     """Formular für eine einzelne Regel-Aktion."""
 
     field = forms.ChoiceField(
-        choices=FormatBParserRule.FIELD_CHOICES,
+        choices=Anlage2ColumnHeading.FIELD_CHOICES,
         label="Feld",
     )
     value = forms.BooleanField(label="Wert", required=False)
