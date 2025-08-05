@@ -29,7 +29,7 @@ from .models import (
     AnlagenFunktionsMetadaten,
     FunktionsErgebnis,
     Anlage2Config,
-    FormatBParserRule,
+    Anlage2ColumnHeading,
     AntwortErkennungsRegel,
     Anlage4Config,
     Anlage4ParserConfig,
@@ -390,7 +390,7 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         """Normalisiert Begriffe f\xfcr exakte Vergleiche."""
         return re.sub(r"[\W_]+", "", text).lower()
 
-    fields = list({f[0] for f in FormatBParserRule.FIELD_CHOICES})
+    fields = list({f[0] for f in Anlage2ColumnHeading.FIELD_CHOICES})
 
     func_alias_map: dict[str, Anlage2Function] = {}
     sub_alias_map: dict[str, tuple[Anlage2Function, Anlage2SubQuestion]] = {}

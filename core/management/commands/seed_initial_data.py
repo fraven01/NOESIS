@@ -42,7 +42,6 @@ def create_initial_data(apps) -> None:
     Anlage2SubQuestion = apps.get_model("core", "Anlage2SubQuestion")
     Anlage2Config = apps.get_model("core", "Anlage2Config")
     Anlage2ColumnHeading = apps.get_model("core", "Anlage2ColumnHeading")
-    FormatBParserRule = apps.get_model("core", "FormatBParserRule")
     ZweckKategorieA = apps.get_model("core", "ZweckKategorieA")
     Anlage3ParserRule = apps.get_model("core", "Anlage3ParserRule")
     AntwortErkennungsRegel = apps.get_model("core", "AntwortErkennungsRegel")
@@ -132,19 +131,8 @@ def create_initial_data(apps) -> None:
         )
     config.save()
 
-    # 7. FormatBParserRule Defaults
-    print("\n[7] Verarbeite FormatBParserRules...")
-    format_rules = [
-        {"key": "tv", "target_field": "technisch_verfuegbar", "ordering": 1},
-        {"key": "tel", "target_field": "einsatz_telefonica", "ordering": 2},
-        {"key": "lv", "target_field": "zur_lv_kontrolle", "ordering": 3},
-        {"key": "ki", "target_field": "ki_beteiligung", "ordering": 4},
-    ]
-    for rule in format_rules:
-        FormatBParserRule.objects.update_or_create(key=rule["key"], defaults=rule)
-
-    # 8. ZweckKategorieA Defaults
-    print("\n[8] Verarbeite ZweckKategorieA...")
+    # 7. ZweckKategorieA Defaults
+    print("\n[7] Verarbeite ZweckKategorieA...")
     zweck_liste = [
         "Leistungsvergleiche von Mitarbeitern oder Mitarbeitergruppen (wenn eine der Gruppen nicht größer als 5 Personen ist).",
         "Abgleich von Verhalten oder Leistung eines Mitarbeiters oder einer Mitarbeitergruppe (wenn eine der Gruppen nicht größer als 5 Personen ist) mit bestimmten Durchschnittsleistungen von Mitarbeitergruppen.",
@@ -161,8 +149,8 @@ def create_initial_data(apps) -> None:
     for beschreibung in zweck_liste:
         ZweckKategorieA.objects.update_or_create(beschreibung=beschreibung)
 
-    # 9. Anlage3ParserRule Defaults
-    print("\n[9] Verarbeite Anlage3 Parser Regeln...")
+    # 8. Anlage3ParserRule Defaults
+    print("\n[8] Verarbeite Anlage3 Parser Regeln...")
     parser_rules = [
         {"field_name": "name", "aliases": ["name der auswertung", "name", "bezeichnung"], "ordering": 1},
         {"field_name": "beschreibung", "aliases": ["beschreibung", "kurzbeschreibung"], "ordering": 2},
@@ -172,8 +160,8 @@ def create_initial_data(apps) -> None:
     for rule in parser_rules:
         Anlage3ParserRule.objects.update_or_create(field_name=rule["field_name"], defaults=rule)
 
-    # 10. AntwortErkennungsRegeln
-    print("\n[10] Verarbeite AntwortErkennungsRegeln...")
+    # 9. AntwortErkennungsRegeln
+    print("\n[9] Verarbeite AntwortErkennungsRegeln...")
     for rule in INITIAL_ANSWER_RULES:
         AntwortErkennungsRegel.objects.update_or_create(
             regel_name=rule["regel_name"],
@@ -185,8 +173,8 @@ def create_initial_data(apps) -> None:
             },
         )
 
-    # 11. Prompts
-    print("\n[11] Verarbeite Prompts...")
+    # 10. Prompts
+    print("\n[10] Verarbeite Prompts...")
     # Zusätzliche Prompt-Texte vorbereiten
     prompts = [
         (

@@ -4,7 +4,6 @@ from django.core import serializers
 from core.models import (
     Prompt,
     LLMRole,
-    FormatBParserRule,
     ProjectStatus,
     Area,
     Tile,
@@ -25,7 +24,6 @@ class Command(BaseCommand):
         for model in [
             Prompt,
             LLMRole,
-            FormatBParserRule,
             ProjectStatus,
             Area,
             Tile,

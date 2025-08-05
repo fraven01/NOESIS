@@ -263,38 +263,6 @@ Konfigurations-Export gesammelt heruntergeladen und wieder importiert
 werden.
 
 
-### Format-B Textparser
-
-Für kurze Listen gibt es ein vereinfachtes Eingabeformat. Welche Tokens oder
-Keys ausgewertet werden, lässt sich über die Admin‑Ansicht **FormatBParserRule**
-anpassen. Das Modell ordnet jedem Token ein Zielfeld zu. Standardmäßig sind die
-Kürzel `tv`, `tel`, `lv` und `ki` hinterlegt und weisen auf die Felder
-`technisch_verfuegbar`, `einsatz_telefonica`, `zur_lv_kontrolle` und
-`ki_beteiligung`.
-Jede Zeile enthält den Funktionsnamen und optional diese Tokens. Ein
-Doppelpunkt trennt den Schlüssel vom Wert `ja` oder `nein`. Nummerierungen wie
-`1.` oder Bindestriche am Zeilenanfang werden ignoriert.
-
-Beispiel:
-
-```text
-Login; tv: ja; tel: nein; lv: nein; ki: ja
-```
-
-erzeugt
-
-```json
-[
-  {
-    "funktion": "Login",
-    "technisch_verfuegbar": {"value": true, "note": null},
-    "einsatz_telefonica": {"value": false, "note": null},
-    "zur_lv_kontrolle": {"value": false, "note": null},
-    "ki_beteiligung": {"value": true, "note": null}
-  }
-]
-```
-
 ### Anlage 4 Parser konfigurieren
 
 Der optionale Parser für die vierte Anlage arbeitet ohne LLM-Extraktion. Er
