@@ -163,13 +163,12 @@ from django.conf import settings
 from .templatetags.recording_extras import markdownify
 
 logger = logging.getLogger(__name__)
-debug_logger = logging.getLogger("anlage2_debug")
-admin_a2_logger = logging.getLogger("anlage2_admin_debug")
-anlage2_logger = logging.getLogger("anlage2_debug")
-ergebnis_logger = logging.getLogger("anlage2_ergebnis")
-anlage4_logger = logging.getLogger("anlage4_debug")
+detail_logger = logging.getLogger("anlage2_detail")
+admin_a2_logger = logging.getLogger("anlage2_detail")
+anlage2_logger = logging.getLogger("anlage2_detail")
+ergebnis_logger = logging.getLogger("anlage2_result")
+anlage4_logger = logging.getLogger("anlage4_detail")
 workflow_logger = logging.getLogger("workflow_debug")
-parse_exact_logger = logging.getLogger("parse_exact_anlage2_log")
 
 
 _WHISPER_MODEL = None
@@ -401,7 +400,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         for fid, data in analysis_data.items():
             initial["functions"].setdefault(fid, data)
 
-    debug_logger.debug("Ergebnis initial: %r", initial)
+    detail_logger.debug("Ergebnis initial: %r", initial)
     return initial
 
 
@@ -2393,7 +2392,7 @@ def anlage2_config(request):
     rules_qs = AntwortErkennungsRegel.objects.all().order_by("prioritaet")
     raw_actions = {r.pk: r.actions_json for r in rules_qs}
     for r in rules_qs:
-        parse_exact_logger.debug("Lade Regel %s actions_json=%r", r.pk, r.actions_json)
+        detail_logger.debug("Lade Regel %s actions_json=%r", r.pk, r.actions_json)
     a4_parser_cfg = (
         Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
     )
@@ -2537,7 +2536,7 @@ def anlage2_config(request):
     cfg_form = cfg_form if "cfg_form" in locals() else Anlage2ConfigForm(instance=cfg)
     rule_formset = RuleFormSet(queryset=rules_qs, prefix="rules")
     for f in rule_formset:
-        parse_exact_logger.debug(
+        detail_logger.debug(
             "Formset Rule PK=%s initial actions_json=%r",
             f.instance.pk,
             f.initial.get("actions_json"),
@@ -2548,7 +2547,7 @@ def anlage2_config(request):
         else RuleFormSetFB(queryset=rules_qs, prefix="rules_fb")
     )
     for f in rule_formset_fb:
-        parse_exact_logger.debug(
+        detail_logger.debug(
             "Formset FB Rule PK=%s initial actions_json=%r",
             f.instance.pk,
             f.initial.get("actions_json"),
@@ -3976,14 +3975,14 @@ def projekt_file_edit_json(request, pk):
             lookup_key = func.name
             func_status = analysis_lookup.get(lookup_key, {}).get("technisch_vorhanden")
             if func.name == "Anwesenheitsüberwachung":
-                debug_logger.info(
+                detail_logger.info(
                     "--- Starte detaillierte Prüfung für Funktion: '%s' ---",
                     func.name,
                 )
                 if func_status is True:
-                    debug_logger.info("-> Status: Als 'Technisch verfügbar' erkannt.")
+                    detail_logger.info("-> Status: Als 'Technisch verfügbar' erkannt.")
                 elif func_status is False:
-                    debug_logger.info(
+                    detail_logger.info(
                         "-> Status: Als 'Technisch NICHT verfügbar' erkannt."
                     )
                 note = None
@@ -3991,15 +3990,15 @@ def projekt_file_edit_json(request, pk):
                 if isinstance(tv_entry, dict):
                     note = tv_entry.get("note") or tv_entry.get("text")
                 if note:
-                    debug_logger.info("-> Entscheidungsgrundlage im Text: '%s'", note)
+                    detail_logger.info("-> Entscheidungsgrundlage im Text: '%s'", note)
             else:
-                debug_logger.info(
+                detail_logger.info(
                     "--- Starte Prüfung für Funktion: '%s' ---", func.name
                 )
                 if answers.get(lookup_key):
-                    debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+                    detail_logger.info("-> Ergebnis: Im Dokument gefunden.")
                 else:
-                    debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
+                    detail_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
             rows.append(
                 _build_row_data(
                     func.name,
@@ -4019,13 +4018,13 @@ def projekt_file_edit_json(request, pk):
                 if not (
                     func.name == "Anwesenheitsüberwachung" and func_status is not True
                 ):
-                    debug_logger.info(
+                    detail_logger.info(
                         "--- Starte Prüfung für Unterfrage: '%s' ---", sub.frage_text
                     )
                     if answers.get(lookup_key):
-                        debug_logger.info("-> Ergebnis: Im Dokument gefunden.")
+                        detail_logger.info("-> Ergebnis: Im Dokument gefunden.")
                     else:
-                        debug_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
+                        detail_logger.info("-> Ergebnis: Nicht im Dokument gefunden.")
                 rows.append(
                     _build_row_data(
                         sub.frage_text,

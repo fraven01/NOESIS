@@ -7,7 +7,8 @@ from docx import Document
 
 from .models import BVProjectFile, Anlage3ParserRule
 
-logger = logging.getLogger("anlage3_debug")
+logger = logging.getLogger("anlage3_detail")
+result_logger = logging.getLogger("anlage3_result")
 
 
 _DEFAULT_ALIAS_MAP: Dict[str, list[str]] = {
@@ -72,4 +73,5 @@ def parse_anlage3(project_file: BVProjectFile) -> Dict[str, str]:
             handle_pair(before, after)
 
     logger.debug("Anlage3 Parser Ergebnis: %s", result)
+    result_logger.debug("Anlage3 Endergebnis: %s", result)
     return result

@@ -6,7 +6,7 @@ from typing import Dict, List, Type
 from .models import BVProjectFile, Anlage2Config
 from .parsers import AbstractParser, TableParser, ExactParser
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("anlage2_detail")
 
 
 class ParserManager:
@@ -32,6 +32,7 @@ class ParserManager:
         cfg = Anlage2Config.get_instance()
         mode = project_file.parser_mode or cfg.parser_mode
         order = project_file.parser_order or cfg.parser_order or ["exact"]
+        logger.debug("Parser-Modus: %s Reihenfolge: %s", mode, order)
 
         if mode == "table_only":
             return self._run_single("table", project_file)
@@ -49,13 +50,16 @@ class ParserManager:
             if parser is None:
                 logger.warning("Unbekannter Parser: %s", name)
                 continue
+            logger.debug("Starte Parser: %s", name)
             try:
                 result = parser.parse(project_file)
             except Exception as exc:  # pragma: no cover - Fehlkonfiguration
                 logger.error("Parser '%s' Fehler: %s", name, exc)
                 result = []
             if result:
+                logger.debug("Parser '%s' lieferte %s Einträge", name, len(result))
                 return result
+        logger.debug("Keine Parser lieferten Ergebnisse")
         return []
 
     def _run_single(self, name: str, project_file: BVProjectFile) -> list[dict[str, object]]:

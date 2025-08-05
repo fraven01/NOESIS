@@ -35,7 +35,7 @@ from .models import (
     Anlage3Metadata,
 )
 
-parse_exact_logger = logging.getLogger("parse_exact_anlage2_log")
+detail_logger = logging.getLogger("anlage2_detail")
 
 
 class ActionsJSONWidget(forms.Widget):
@@ -1101,7 +1101,7 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        parse_exact_logger.debug(
+        detail_logger.debug(
             "Init RegelForm PK=%s actions_json=%r",
             getattr(self.instance, "pk", None),
             self.initial.get("actions_json"),
@@ -1109,7 +1109,7 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
 
     def save(self, commit: bool = True) -> AntwortErkennungsRegel:
         self.instance.actions_json = self.cleaned_data.get("actions_json")
-        parse_exact_logger.debug(
+        detail_logger.debug(
             "Speichere Regel PK=%s actions_json=%r",
             getattr(self.instance, "pk", None),
             self.instance.actions_json,

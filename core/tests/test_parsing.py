@@ -755,7 +755,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload=upload,
             anlage4_config=cfg,
         )
-        with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
+        with self.assertLogs("anlage4_detail", level="DEBUG") as cm:
             parse_anlage4(pf)
         self.assertIn("table detected - 1 items", cm.output[0])
 
@@ -779,7 +779,7 @@ class Anlage4ParserTests(NoesisTestCase):
             text_content="Zweck: A",
             anlage4_config=cfg,
         )
-        with self.assertLogs("anlage4_debug", level="DEBUG") as cm:
+        with self.assertLogs("anlage4_detail", level="DEBUG") as cm:
             parse_anlage4(pf)
         self.assertIn("free text found - 1 items", "".join(cm.output))
 
@@ -1040,7 +1040,7 @@ class Anlage4ParserTests(NoesisTestCase):
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="",
         )
-        with self.assertLogs("anlage4_debug", level="WARNING") as cm:
+        with self.assertLogs("anlage4_detail", level="WARNING") as cm:
             items = parse_anlage4_dual(pf)
         self.assertEqual(items, [])
         self.assertIn("Keine Anlage4ParserConfig vorhanden", "".join(cm.output))

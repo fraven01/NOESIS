@@ -214,9 +214,11 @@ LOGGING = {
         },
     },
     "filters": {
-        "anlage2_db_writes": {
-            "()": "noesis.logging_filters.Anlage2DBWriteFilter",
-        },
+        "anlage1": {"()": "noesis.logging_filters.AnlageFilter", "anlage": "1"},
+        "anlage2": {"()": "noesis.logging_filters.AnlageFilter", "anlage": "2"},
+        "anlage3": {"()": "noesis.logging_filters.AnlageFilter", "anlage": "3"},
+        "anlage4": {"()": "noesis.logging_filters.AnlageFilter", "anlage": "4"},
+        "anlage5": {"()": "noesis.logging_filters.AnlageFilter", "anlage": "5"},
     },
     "handlers": {
         "console": {
@@ -236,17 +238,39 @@ LOGGING = {
             "filename": BASE_DIR / "llm-debug.log",
             "formatter": "llm_formatter",
         },
-        "anlage1_file": {
+        "anlage1_detail_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage1-debug.log",
+            "filename": BASE_DIR / "anlage1-detail.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage2_file": {
+        "anlage1_result_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage2-debug.log",
+            "filename": BASE_DIR / "anlage-1.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        "postgres_anlage1_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "postgres-anlage1.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "filters": ["anlage1"],
+        },
+        "anlage2_detail_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "anlage2-detail.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        "anlage2_result_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "anlage-2.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
@@ -256,49 +280,73 @@ LOGGING = {
             "filename": BASE_DIR / "postgres-anlage2.log",
             "formatter": "verbose",
             "encoding": "utf-8",
-            "filters": ["anlage2_db_writes"],
+            "filters": ["anlage2"],
         },
-        "anlage2_ergebnis_file": {
+        "anlage3_detail_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage2-ergebnis.log",
+            "filename": BASE_DIR / "anlage3-detail.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage3_file": {
+        "anlage3_result_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage3-debug.log",
+            "filename": BASE_DIR / "anlage-3.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage4_file": {
+        "postgres_anlage3_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage4-debug.log",
+            "filename": BASE_DIR / "postgres-anlage3.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "filters": ["anlage3"],
+        },
+        "anlage4_detail_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "anlage4-detail.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage5_file": {
+        "anlage4_result_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "anlage5-debug.log",
+            "filename": BASE_DIR / "anlage-4.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "anlage2_admin_file": {
+        "postgres_anlage4_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "debug-admin_anlage2_funktionen.log",
+            "filename": BASE_DIR / "postgres-anlage4.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "filters": ["anlage4"],
+        },
+        "anlage5_detail_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "anlage5-detail.log",
             "formatter": "verbose",
             "encoding": "utf-8",
         },
-        "parse_exact_anlage2_file": {
+        "anlage5_result_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "parse_exact_anlage2.log",
+            "filename": BASE_DIR / "anlage-5.log",
             "formatter": "verbose",
             "encoding": "utf-8",
+        },
+        "postgres_anlage5_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "postgres-anlage5.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "filters": ["anlage5"],
         },
         "workflow_file": {
             "level": "DEBUG",
@@ -326,11 +374,6 @@ LOGGING = {
             "level": "INFO",  # Django selbst loggt nicht alles auf DEBUG standardmäßig, INFO ist oft ausreichend
             "propagate": False,
         },
-        "django.db.backends": {
-            "handlers": ["postgres_anlage2_file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
         "llm_debugger": {
             "handlers": ["llm_file"],
             "level": "DEBUG",
@@ -341,43 +384,64 @@ LOGGING = {
             "level": "DEBUG",  # Hier setzt du den Loglevel für DEINE App auf DEBUG
             "propagate": False,
         },
-        "anlage1_debug": {
-            "handlers": ["anlage1_file"],
+        "anlage1_detail": {
+            "handlers": ["anlage1_detail_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage2_debug": {
-            "handlers": ["anlage2_file"],
+        "anlage1_result": {
+            "handlers": ["anlage1_result_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage2_ergebnis": {
-            "handlers": ["anlage2_ergebnis_file"],
+        "anlage2_detail": {
+            "handlers": ["anlage2_detail_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage3_debug": {
-            "handlers": ["anlage3_file"],
+        "anlage2_result": {
+            "handlers": ["anlage2_result_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage4_debug": {
-            "handlers": ["anlage4_file"],
+        "anlage3_detail": {
+            "handlers": ["anlage3_detail_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage5_debug": {
-            "handlers": ["anlage5_file"],
+        "anlage3_result": {
+            "handlers": ["anlage3_result_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "anlage2_admin_debug": {
-            "handlers": ["anlage2_admin_file"],
+        "anlage4_detail": {
+            "handlers": ["anlage4_detail_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "parse_exact_anlage2_log": {
-            "handlers": ["parse_exact_anlage2_file"],
+        "anlage4_result": {
+            "handlers": ["anlage4_result_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "anlage5_detail": {
+            "handlers": ["anlage5_detail_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "anlage5_result": {
+            "handlers": ["anlage5_result_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "postgres": {
+            "handlers": [
+                "postgres_anlage1_file",
+                "postgres_anlage2_file",
+                "postgres_anlage3_file",
+                "postgres_anlage4_file",
+                "postgres_anlage5_file",
+            ],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -392,7 +456,7 @@ LOGGING = {
             "propagate": False,
         },
         "core.llm_tasks": {
-            "handlers": ["console", "file", "postgres_anlage2_file"],
+            "handlers": ["console", "file"],
             "level": "DEBUG",
             "propagate": False,
         },

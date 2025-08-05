@@ -1,27 +1,17 @@
-"""Hilfsfilter für Logging-Konfiguration."""
+"""Hilfsfilter für anlagenspezifisches Logging."""
+
+from __future__ import annotations
 
 import logging
 
 
-class Anlage2DBWriteFilter(logging.Filter):
-    """Filtert SQL-Schreiboperationen für Anlage 2."""
+class AnlageFilter(logging.Filter):
+    """Filtert Logeinträge anhand der Anlagenummer."""
 
-    TARGET_TABLES = (
-        "core_anlagenfunktionsmetadaten",
-        "core_funktionsergebnis",
-    )
+    def __init__(self, anlage: str) -> None:
+        super().__init__()
+        self.anlage = str(anlage)
 
-    def filter(self, record: logging.LogRecord) -> bool:
-        """Gibt nur Schreiboperationen auf Anlage 2-Tabellen frei."""
-
-        sql: str = getattr(record, "sql", "")
-        if not sql:
-            return record.name.startswith("core.llm_tasks")
-        upper_sql = sql.upper()
-        if not (
-            upper_sql.startswith("INSERT")
-            or upper_sql.startswith("UPDATE")
-            or upper_sql.startswith("DELETE")
-        ):
-            return False
-        return any(table in upper_sql for table in self.TARGET_TABLES)
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: D401 - Django-Style
+        """Lässt nur Einträge für die konfigurierte Anlage passieren."""
+        return getattr(record, "anlage", "") == self.anlage
