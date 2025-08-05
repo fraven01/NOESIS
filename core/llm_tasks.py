@@ -525,6 +525,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         )
 
     project_file.analysis_json = {"functions": results}
+    anlage2_logger.debug(
+        "Speichere analysis_json für Datei %s: %s",
+        project_file.upload.name,
+        json.dumps({"functions": results}, ensure_ascii=False),
+    )
     project_file.save(update_fields=["analysis_json"])
     update_file_status(project_file.pk, BVProjectFile.COMPLETE)
     return results
@@ -1714,7 +1719,15 @@ def worker_verify_feature(
         "ki_beteiligt": ai_involved,
         "ki_beteiligt_begruendung": ai_reason,
     }
-    ki_logger.debug("[%s] Ergebnis-Objekt: %s", project_id, json.dumps(verification_result, ensure_ascii=False))
+    ki_logger.debug(
+        "[%s] Ergebnis-Objekt: %s",
+        project_id,
+        json.dumps(verification_result, ensure_ascii=False),
+    )
+    anlage2_result_logger.debug(
+        "DB-Write FunktionsErgebnis: %s",
+        json.dumps(verification_result, ensure_ascii=False),
+    )
     workflow_logger.info(
         "[%s] - KI-CHECK ERGEBNIS - Objekt [ID: %s] -> result: %s",
         project_id,
