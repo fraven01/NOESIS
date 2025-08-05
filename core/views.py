@@ -542,14 +542,14 @@ def _get_display_data(
 
 
 def _has_manual_gap(doc_data: dict, manual_data: dict) -> bool:
-    """Prüft, ob ein manueller Wert von den Dokumentdaten abweicht."""
+    """Ermittelt, ob manuelle Angaben von den Dokumentdaten abweichen."""
 
-    for field, _ in get_anlage2_fields():
-        man_val = manual_data.get(field)
+    for field, man_val in manual_data.items():
         if man_val is not None:
-            man_val = _extract_bool(man_val)
-            doc_val = _extract_bool(doc_data.get(field))
-            if doc_val is None or man_val != doc_val:
+            man_bool = _extract_bool(man_val)
+            doc_val = doc_data.get(field)
+            doc_bool = _extract_bool(doc_val) if doc_val is not None else None
+            if doc_bool is None or man_bool != doc_bool:
                 return True
     return False
 
