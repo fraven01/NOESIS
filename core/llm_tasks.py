@@ -61,15 +61,16 @@ from .anlage3_parser import parse_anlage3
 from docx import Document
 
 logger = logging.getLogger(__name__)
-debug_logger = logging.getLogger("anlage2_debug")
-anlage1_logger = logging.getLogger("anlage1_debug")
-anlage2_logger = logging.getLogger("anlage2_debug")
-anlage3_logger = logging.getLogger("anlage3_debug")
-anlage4_logger = logging.getLogger("anlage4_debug")
+anlage1_logger = logging.getLogger("anlage1_detail")
+anlage2_logger = logging.getLogger("anlage2_detail")
+anlage3_logger = logging.getLogger("anlage3_detail")
+anlage4_logger = logging.getLogger("anlage4_detail")
 workflow_logger = logging.getLogger("workflow_debug")
-result_logger = logging.getLogger("anlage2_ergebnis")
+anlage2_result_logger = logging.getLogger("anlage2_result")
 ki_logger = logging.getLogger("ki_involvement")
 llm_logger = logging.getLogger("llm_debugger")
+anlage1_result_logger = logging.getLogger("anlage1_result")
+db_logger = logging.getLogger("postgres")
 
 # Standard-Prompt für die Prüfung von Anlage 4
 _DEFAULT_A4_PROMPT = (
@@ -79,7 +80,7 @@ _DEFAULT_A4_PROMPT = (
     "Berücksichtige bei deiner Analyse die Kombination aus dem Namen der Auswertung, den anwendenden Gesellschaften und den zuständigen Fachbereichen.\n\n"
     "Gib deine finale Bewertung ausschließlich als valides JSON-Objekt mit den Schlüsseln 'plausibilitaet', 'score' (0.0-1.0) und 'begruendung' zurück:\n{json}"
 )
-anlage5_logger = logging.getLogger("anlage5_debug")
+anlage5_logger = logging.getLogger("anlage5_detail")
 
 ANLAGE1_QUESTIONS = [
     "Frage 1: Extrahiere alle Unternehmen als Liste.",
@@ -288,8 +289,8 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
     if not text_content:
         return None
     text = text_content.replace("\u00b6", "\n")
-    debug_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
-    debug_logger.debug(
+    anlage2_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
+    anlage2_logger.debug(
         f"--- ANFANG ROH-TEXT ANLAGE 2 ---\n{text}\n--- ENDE ROH-TEXT ANLAGE 2 ---"
     )
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -366,9 +367,9 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     token_map = build_token_map(cfg)
     rules = list(AntwortErkennungsRegel.objects.all())
     if rules:
-        result_logger.debug("Geladene AntwortErkennungsRegeln:")
+        anlage2_result_logger.debug("Geladene AntwortErkennungsRegeln:")
         for r in rules:
-            result_logger.debug(
+            anlage2_result_logger.debug(
                 "- %s | %s | Prio %s",
                 r.regel_name,
                 r.erkennungs_phrase,
@@ -924,7 +925,14 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
         raise
     finally:
         anlage.save(update_fields=save_fields)
+        db_logger.debug(
+            "Speichere Anlage1: id=%s felder=%s",
+            anlage.pk,
+            save_fields,
+            extra={"anlage": "1"},
+        )
 
+    anlage1_result_logger.debug("Analyse Ergebnis Anlage1: %r", data)
     return data
 
 
@@ -952,7 +960,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         table = parser_manager.parse_anlage2(anlage)
     except ValueError as exc:  # pragma: no cover - Fehlkonfiguration
         parser_error = str(exc)
-        debug_logger.error("Fehler im Parser: %s", exc)
+        anlage2_logger.error("Fehler im Parser: %s", exc)
         anlage.analysis_json = {"parser_error": parser_error}
         anlage.save(update_fields=["analysis_json"])
         table = []
@@ -980,7 +988,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         )
         anlage2_logger.debug("Tabellenzeile: %s", row)
         if row is None:
-            debug_logger.debug("Parser fand Funktion '%s' nicht", func.name)
+            anlage2_logger.debug("Parser fand Funktion '%s' nicht", func.name)
 
         def _val(item, key):
             value = item.get(key)
@@ -1058,7 +1066,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 None,
             )
             if sub_row is None:
-                debug_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
+                anlage2_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             anlage2_logger.debug(
                 "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
@@ -1099,7 +1107,13 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
         data["parser_error"] = parser_error
     anlage.analysis_json = data
     anlage.save(update_fields=["analysis_json"])
+    db_logger.debug(
+        "Speichere Anlage2 Analyse: id=%s",
+        anlage.pk,
+        extra={"anlage": "2"},
+    )
     anlage2_logger.debug("check_anlage2 Ergebnis: %s", data)
+    anlage2_result_logger.debug("Analyse Ergebnis Anlage2: %r", data)
     return data
 
 

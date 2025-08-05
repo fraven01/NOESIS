@@ -11,7 +11,8 @@ from .models import BVProjectFile, Anlage4Config, Anlage4ParserConfig
 _DEFAULT_REGEX_PATTERNS = [r"Zweck: (.+)"]
 
 
-logger = logging.getLogger("anlage4_debug")
+logger = logging.getLogger("anlage4_detail")
+result_logger = logging.getLogger("anlage4_result")
 
 
 def _normalize(text: str) -> str:
@@ -121,6 +122,7 @@ def parse_anlage4(
         project_file.pk,
         len(items),
     )
+    result_logger.debug("Anlage4 Endergebnis: %s", items)
     return items
 
 
@@ -317,4 +319,5 @@ def parse_anlage4_dual(
         project_file.pk,
         len(results),
     )
+    result_logger.debug("Anlage4 Dual-Ergebnis: %s", results)
     return results
