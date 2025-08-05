@@ -353,7 +353,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
     einer Funktion werden dabei zusammengeführt.
     """
 
-    anlage2_logger.debug("Starte run_anlage2_analysis für Datei %s", project_file.pk)
+    anlage2_logger.debug(
+        "Starte run_anlage2_analysis für Datei %s (%s)",
+        project_file.pk,
+        project_file.upload.name,
+    )
     workflow_logger.info(
         "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
         project_file.project_id,
@@ -545,6 +549,11 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
         )
         return []
     pf = qs.first()
+    anlage2_logger.debug(
+        "Lade Datei %s (%s)",
+        pf.pk,
+        pf.upload.name,
+    )
     result = run_anlage2_analysis(pf)
     update_file_status(pf.pk, BVProjectFile.COMPLETE)
     anlage2_logger.info(

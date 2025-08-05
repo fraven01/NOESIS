@@ -28,7 +28,11 @@ class ParserManager:
 
     def parse_anlage2(self, project_file: BVProjectFile) -> list[dict[str, object]]:
         """Führt die Parser gemäß Konfiguration aus."""
-
+        logger.debug(
+            "Parse Datei %s (%s)",
+            project_file.pk,
+            project_file.upload.name,
+        )
         cfg = Anlage2Config.get_instance()
         mode = project_file.parser_mode or cfg.parser_mode
         order = project_file.parser_order or cfg.parser_order or ["exact"]
