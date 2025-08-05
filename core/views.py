@@ -477,8 +477,12 @@ def _resolve_value(
     doc_val: bool | None,
     field: str,
     manual_exists: bool = False,
+    doc_exists: bool = False,
 ) -> tuple[bool | None, str]:
-    """Ermittelt den Review-Wert und dessen Quelle."""
+    """Ermittelt den Review-Wert und dessen Quelle.
+
+    Berücksichtigt manuelle Angaben, KI-Vorschläge und ob eine Dokumenten-Analyse vorliegt.
+    """
 
     # Explizit gesetzte manuelle Werte haben Vorrang
     if manual_exists:
@@ -488,7 +492,7 @@ def _resolve_value(
         return manual_val, "Manuell"
 
     # Quelle richtet sich ausschließlich nach dem Dokument
-    src = "Dokumenten-Analyse" if doc_val is not None else "N/A"
+    src = "Dokumenten-Analyse" if doc_exists or doc_val is not None else "N/A"
 
     # Vorauswahl der Checkbox kann durch KI bestimmt werden
     if ai_val is not None:
@@ -510,6 +514,7 @@ def _get_display_data(
     """Ermittelt finale Werte und Quellen für eine Funktion oder Unterfrage."""
 
     fields = get_anlage2_fields()
+    doc_exists = bool(analysis_data.get(lookup_key))
     a_data = analysis_data.get(lookup_key, {})
     v_data = verification_data.get(lookup_key, {})
     m_data = manual_results_map.get(lookup_key, {})
@@ -523,7 +528,7 @@ def _get_display_data(
         ai_val = v_data.get(field)
         doc_val = a_data.get(field)
         manual_exists = field in m_data
-        val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists)
+        val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists, doc_exists)
         values[field] = val
         sources[field] = src
         manual_flags[field] = manual_exists
@@ -4758,7 +4763,7 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         )
         doc_val = getattr(parser_entry, attr) if parser_entry else None
         ai_val = getattr(ai_entry, attr) if ai_entry else None
-        cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name)
+        cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name, False, parser_entry is not None)
         new_state = not cur_val if cur_val is not None else True
         FunktionsErgebnis.objects.create(
             anlage_datei=pf,
