@@ -626,6 +626,19 @@ def _build_row_data(
         doc_data = {}
         ai_data = {}
 
+    if not doc_data:
+        doc_answers = answers.get(lookup_key)
+        if doc_answers:
+            # Fallback auf analysierte Felder, falls keine Dokumentdaten vorliegen
+            for field in (
+                "technisch_vorhanden",
+                "einsatz_bei_telefonica",
+                "zur_lv_kontrolle",
+                "ki_beteiligung",
+            ):
+                if field in doc_answers:
+                    doc_data[field] = doc_answers[field]
+
     override_val = result_obj.is_negotiable_manual_override if result_obj else None
     manual_data = manual_lookup.get(lookup_key, {})
     doc_json = json.dumps(doc_data, ensure_ascii=False)
@@ -633,7 +646,7 @@ def _build_row_data(
     manual_json = json.dumps(manual_data, ensure_ascii=False)
 
     disp = _get_display_data(
-        lookup_key, {lookup_key: doc_data}, {lookup_key: ai_data}, manual_lookup
+        lookup_key, answers, {lookup_key: ai_data}, manual_lookup
     )
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
