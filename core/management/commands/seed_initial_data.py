@@ -249,7 +249,7 @@ def create_initial_data(apps) -> None:
             ),
             (
                 "anlage2_feature_verification",
-                "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", \"Nein\" oder \"Unsicher\" sein. Gib keine Einleitung, keine Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: Besitzt die Software '{software_name}' basierend auf allgemeinem Wissen typischerweise die Funktion oder Eigenschaft '{function_name}'?",
+                "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", \"Nein\" oder \"Unsicher\" sein. Gib keine Einleitung, keine Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: Besitzt die Software '{software_name}' basierend auf allgemeinem Wissen typischerweise die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}",
                 False,
             ),
             (
