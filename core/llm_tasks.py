@@ -440,6 +440,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             if entry.get(key) is None:
                 entry[key] = value
 
+    anlage2_logger.debug(
+        "Erkannte Funktionen: %s",
+        ", ".join(sorted(results_map.keys())),
+    )
+
     results: list[dict[str, object]] = []
 
     def _blank_entry(name: str) -> dict[str, object]:
