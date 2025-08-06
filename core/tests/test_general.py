@@ -4798,3 +4798,17 @@ class ManualGapDetectionTests(TestCase):
             "neues_feld": False,
         }
         self.assertTrue(_has_manual_gap(doc_data, manual_data))
+
+    def test_no_gap_when_parser_missing_special(self) -> None:
+        """Kein GAP bei Spezialfeldern ohne Parser-Wert."""
+        doc_data: dict = {}
+        manual_data = {"einsatz_bei_telefonica": True}
+        self.assertFalse(_has_manual_gap(doc_data, manual_data))
+
+    def test_gap_only_on_difference_special(self) -> None:
+        """GAP bei Spezialfeldern nur bei Abweichung."""
+        doc_data = {"einsatz_bei_telefonica": False}
+        manual_data = {"einsatz_bei_telefonica": True}
+        self.assertTrue(_has_manual_gap(doc_data, manual_data))
+        manual_data2 = {"einsatz_bei_telefonica": False}
+        self.assertFalse(_has_manual_gap(doc_data, manual_data2))

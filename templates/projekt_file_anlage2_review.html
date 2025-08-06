@@ -306,6 +306,10 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
+        if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
+            if (docVal === null || docVal === undefined) docVal = false;
+            if (aiVal === null) aiVal = undefined;
+        }
         icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
         const displayVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
         if (displayVal === true) icon.classList.add('status-badge','status-ja');
@@ -323,7 +327,7 @@ function updateRowAppearance(row) {
         }
         icon.classList.add(cls);
         updatePopoverContent(icon);
-        if (calcNeedsReview(manualVal, docVal, aiVal, hasManual)) {
+        if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
             needsReviewRow = true;
         }
     });
