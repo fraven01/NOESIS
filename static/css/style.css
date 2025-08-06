@@ -325,3 +325,9 @@ input[type="submit"]:hover {
     list-style-type: decimal;
 }
 
+/* Info-Symbol neben dem KI-Beteiligungsstatus */
+.info-icon {
+    margin-left: 0.25rem;
+    text-decoration: none;
+}
+
