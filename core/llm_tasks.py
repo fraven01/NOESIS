@@ -1472,10 +1472,12 @@ def run_conditional_anlage2_check(
                     result(sub_task_id, wait=-1)
 
         pf.verification_task_id = ""
-        pf.save(update_fields=["verification_task_id"])
+        pf.processing_status = BVProjectFile.COMPLETE
+        pf.save(update_fields=["verification_task_id", "processing_status"])
     except Exception:
         pf.verification_task_id = ""
-        pf.save(update_fields=["verification_task_id"])
+        pf.processing_status = BVProjectFile.FAILED
+        pf.save(update_fields=["verification_task_id", "processing_status"])
         raise
 
 
