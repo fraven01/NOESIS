@@ -5945,6 +5945,53 @@ def compare_versions(request, pk):
     if not parent:
         raise Http404
 
+    if project_file.anlage_nr == 1:
+        parent_review = parent.question_review or {}
+        current_review = project_file.question_review or {}
+        if request.method == "POST":
+            action = request.POST.get("action")
+            q_num = request.POST.get("question")
+            if not q_num:
+                return HttpResponseBadRequest("Ungültige Anfrage")
+            if not _user_can_edit_project(request.user, project_file.project):
+                return HttpResponseForbidden("Nicht berechtigt")
+            data = current_review
+            entry = data.get(q_num, {})
+            if action == "negotiable":
+                entry["ok"] = True
+            elif action == "add_gap":
+                parent_entry = parent_review.get(q_num, {})
+                if parent_entry.get("hinweis"):
+                    entry["hinweis"] = parent_entry.get("hinweis", "")
+                if parent_entry.get("vorschlag"):
+                    entry["vorschlag"] = parent_entry.get("vorschlag", "")
+            else:
+                return HttpResponseBadRequest("Unbekannte Aktion")
+            data[q_num] = entry
+            project_file.question_review = data
+            project_file.save(update_fields=["question_review"])
+            return HttpResponse("", status=204)
+
+        numbers = sorted(
+            set(parent_review.keys()) | set(current_review.keys()), key=lambda x: int(x)
+        )
+        all_questions = []
+        gap_questions = []
+        for num in numbers:
+            p = parent_review.get(num, {})
+            c = current_review.get(num, {})
+            item = {"num": num, "parent": p, "current": c}
+            all_questions.append(item)
+            if p.get("hinweis") or p.get("vorschlag"):
+                gap_questions.append(item)
+        context = {
+            "file": project_file,
+            "parent": parent,
+            "gap_questions": gap_questions,
+            "all_questions": all_questions,
+        }
+        return render(request, "version_compare.html", context)
+
     if request.method == "POST":
         result_id = int(request.POST.get("result_id", 0))
         action = request.POST.get("action")
@@ -5968,6 +6015,8 @@ def compare_versions(request, pk):
                     "is_negotiable": result.is_negotiable,
                 },
             )
+        else:
+            return HttpResponseBadRequest("Unbekannte Aktion")
         return HttpResponse("", status=204)
 
     parent_gaps = (
