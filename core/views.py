@@ -195,17 +195,27 @@ def get_user_tiles(user, bereich: str) -> list[Tile]:
 
 
 def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
-    """Prüft, ob ``user`` das angegebene ``projekt`` bearbeiten darf."""
+    """Prüft, ob ``user`` das angegebene ``projekt`` bearbeiten darf.
+
+    Falls das Projekt keine Besitz-Attribute (``user`` oder ``team_members``)
+    hat, darf jeder authentifizierte Benutzer das Projekt bearbeiten.
+    """
 
     if user.is_superuser or user.is_staff:
         return True
-    if hasattr(projekt, "user") and projekt.user_id == user.id:
+
+    has_user_attr = hasattr(projekt, "user")
+    has_team_attr = hasattr(projekt, "team_members")
+
+    if not has_user_attr and not has_team_attr:
+        return bool(getattr(user, "is_authenticated", False))
+
+    if has_user_attr and projekt.user_id == user.id:
         return True
-    if (
-        hasattr(projekt, "team_members")
-        and projekt.team_members.filter(pk=user.pk).exists()
-    ):
+
+    if has_team_attr and projekt.team_members.filter(pk=user.pk).exists():
         return True
+
     return False
 
 
