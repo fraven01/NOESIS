@@ -103,6 +103,7 @@ from ..views import (
     extract_anlage_nr,
     get_user_tiles,
     _has_manual_gap,
+    _build_supervision_groups,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -4456,6 +4457,56 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             "subquestion",
             sub.pk,
         )
+
+
+class SupervisionGapTests(NoesisTestCase):
+    def test_manually_negotiable_function_excluded_from_supervision(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            is_negotiable_manual_override=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        sub = Anlage2SubQuestion.objects.create(funktion=func, frage_text="S?")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        groups = _build_supervision_groups(pf)
+        self.assertEqual(groups, [])
 
 
 class Anlage2ResetTests(NoesisTestCase):
