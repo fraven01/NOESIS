@@ -245,6 +245,8 @@ NOESIS unterscheidet zwei Verwaltungsoberflächen:
 
 Administratorinnen und Administratoren erreichen die Übersicht aller Anlage‑2-Funktionen unter `/projects-admin/anlage2/`. Dort lassen sich neue Einträge anlegen, vorhandene Funktionen bearbeiten und auch wieder löschen. Über den Button **Importieren** kann eine JSON-Datei hochgeladen werden, die den Funktionskatalog enthält. Ist `/projects-admin/anlage2/import/` aufrufbar, bietet das Formular zudem die Option, die Datenbank vor dem Import zu leeren. Mit **Exportieren** wird der aktuelle Katalog als JSON unter `/projects-admin/anlage2/export/` heruntergeladen. Der Zugriff auf alle genannten URLs erfordert Mitgliedschaft in der Gruppe `admin`.
 
+Der JSON-Export enthält für jede Funktion und Unterfrage optional das Feld `name_aliases`. Hier lassen sich alternative Bezeichnungen als Liste angeben. Beim Import werden diese Aliase in `detection_phrases["name_aliases"]` übernommen.
+
 Der Textparser nutzt die Einträge aus dem Funktionskatalog, um die Anlage 2 zu analysieren. Dabei werden die Funktionsnamen als Alias für die Erkennungsphrasen verwendet. Das bedeutet, dass der Parser automatisch nach den Funktionsnamen sucht und diese als Treffer zählt. Die zurodnung, ob etwas technisch verfügbar ist, erfolgt ausschließlich über die über die Felder `technisch_vorhanden` und `technisch_verfuegbar`. Diese Felder sind für den Textparser relevant und werden bei der Analyse berücksichtigt.
 Der Textparser berücksichtigt stets den Funktionsnamen bzw. den Fragetext als
 Alias. Zusätzliche Varianten können für den Tabellenparser 3über das Feld `name_aliases` hinterlegt
