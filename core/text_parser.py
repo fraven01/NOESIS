@@ -163,7 +163,7 @@ def apply_rules(
                         bool(val),
                         rule.prioritaet,
                         rule.erkennungs_phrase,
-
+                        rule.regel_name,
                     )
                     detail_logger.debug(
                         "  -> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
