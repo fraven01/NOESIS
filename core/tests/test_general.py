@@ -3347,6 +3347,32 @@ class FunctionImportExportTests(NoesisTestCase):
             1,
         )
 
+    def test_roundtrip_preserves_aliases(self):
+        func = Anlage2Function.objects.create(
+            name="Login",
+            detection_phrases={"name_aliases": ["Sign in"]},
+        )
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+            detection_phrases={"name_aliases": ["Why"]},
+        )
+        export_url = reverse("anlage2_function_export")
+        resp = self.client.get(export_url)
+        payload = resp.content
+        file = SimpleUploadedFile("func.json", payload)
+        import_url = reverse("anlage2_function_import")
+        resp = self.client.post(
+            import_url,
+            {"json_file": file, "clear_first": "on"},
+            format="multipart",
+        )
+        self.assertRedirects(resp, reverse("anlage2_function_list"))
+        func = Anlage2Function.objects.get(name="Login")
+        self.assertEqual(func.detection_phrases.get("name_aliases"), ["Sign in"])
+        sub = func.anlage2subquestion_set.get(frage_text="Warum?")
+        self.assertEqual(sub.detection_phrases.get("name_aliases"), ["Why"])
+
 
 class GutachtenLLMCheckTests(NoesisTestCase):
     def setUp(self):

@@ -2734,7 +2734,7 @@ def anlage2_function_delete(request, pk):
 
 @login_required
 @admin_required
-def anlage2_function_import(request):
+def anlage2_function_import(request: HttpRequest) -> HttpResponse:
     """Importiert den Funktionskatalog aus einer JSON-Datei."""
     form = Anlage2FunctionImportForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
@@ -2750,6 +2750,8 @@ def anlage2_function_import(request):
         for entry in items:
             name = entry.get("name") or entry.get("funktion") or ""
             func, _ = Anlage2Function.objects.get_or_create(name=name)
+            func.detection_phrases = func.detection_phrases or {}
+            func.detection_phrases["name_aliases"] = entry.get("name_aliases", [])
             func.save()
             subs = entry.get("subquestions") or entry.get("unterfragen") or []
             for sub in subs:
@@ -2759,10 +2761,13 @@ def anlage2_function_import(request):
                 else:
                     text = str(sub)
                     vals = {}
-                Anlage2SubQuestion.objects.create(
+                sq = Anlage2SubQuestion.objects.create(
                     funktion=func,
                     frage_text=text,
                 )
+                sq.detection_phrases = sq.detection_phrases or {}
+                sq.detection_phrases["name_aliases"] = vals.get("name_aliases", [])
+                sq.save()
         messages.success(request, "Funktionskatalog importiert")
         return redirect("anlage2_function_list")
     return render(request, "anlage2/function_import.html", {"form": form})
@@ -2770,16 +2775,22 @@ def anlage2_function_import(request):
 
 @login_required
 @admin_required
-def anlage2_function_export(request):
+def anlage2_function_export(request: HttpRequest) -> HttpResponse:
     """Exportiert den aktuellen Funktionskatalog als JSON."""
-    functions = []
+    functions: list[dict[str, Any]] = []
     for f in Anlage2Function.objects.all().order_by("name"):
         item = {
             "name": f.name,
+            "name_aliases": f.detection_phrases.get("name_aliases", []),
             "subquestions": [],
         }
         for q in f.anlage2subquestion_set.all().order_by("id"):
-            item["subquestions"].append({"frage_text": q.frage_text})
+            item["subquestions"].append(
+                {
+                    "frage_text": q.frage_text,
+                    "name_aliases": q.detection_phrases.get("name_aliases", []),
+                }
+            )
         functions.append(item)
     content = json.dumps(functions, ensure_ascii=False, indent=2)
     resp = HttpResponse(content, content_type="application/json")
