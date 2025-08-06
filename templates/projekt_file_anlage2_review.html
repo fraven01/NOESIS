@@ -315,17 +315,19 @@ function updateRowAppearance(row) {
         if (displayVal === true) icon.classList.add('status-badge','status-ja');
         else if (displayVal === false) icon.classList.add('status-badge','status-nein');
         else icon.classList.add('status-badge','status-unbekannt');
-        let cls = 'status-unbekannt';
-        if (hasManual) {
-            cls = manualVal === docVal ? 'status-ok' : 'status-manuell-abweichung';
-        } else if (docVal !== undefined && aiVal !== undefined) {
-            cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
+        if (f !== 'ki_beteiligung') {
+            let cls = 'status-unbekannt';
+            if (hasManual) {
+                cls = manualVal === docVal ? 'status-ok' : 'status-manuell-abweichung';
+            } else if (docVal !== undefined && aiVal !== undefined) {
+                cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
+            }
+            const finalVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
+            if ((f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') && techEffective === false && finalVal === false) {
+                cls = 'status-ok';
+            }
+            icon.classList.add(cls);
         }
-        const finalVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
-        if ((f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') && techEffective === false && finalVal === false) {
-            cls = 'status-ok';
-        }
-        icon.classList.add(cls);
         updatePopoverContent(icon);
         if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
             needsReviewRow = true;
