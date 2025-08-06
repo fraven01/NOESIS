@@ -252,8 +252,6 @@ class BVProjectFile(models.Model):
     anlage_nr = models.PositiveSmallIntegerField(
         "Anlage Nr",
         choices=[(i, str(i)) for i in range(1, 7)],
-        null=True,
-        blank=True,
     )
     upload = models.FileField("Upload", upload_to="bv_files")
     created_at = models.DateTimeField(auto_now_add=True)
