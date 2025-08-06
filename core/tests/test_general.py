@@ -1798,6 +1798,44 @@ class LLMTasksTests(NoesisTestCase):
         m_table.assert_called_once()
         self.assertEqual(result, [{"funktion": "Login"}])
 
+    def test_parser_manager_exact_parser_segments(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="Alpha: aktiv\nBeta: kein einsatz",
+        )
+        Anlage2Function.objects.create(name="Alpha")
+        Anlage2Function.objects.create(name="Beta")
+        AntwortErkennungsRegel.objects.create(
+            regel_name="aktiv",
+            erkennungs_phrase="aktiv",
+            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
+        )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="einsatz",
+            erkennungs_phrase="kein einsatz",
+            actions_json=[{"field": "einsatz_telefonica", "value": False}],
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "exact_only"
+        cfg.save()
+        result = parser_manager.parse_anlage2(pf)
+        self.assertEqual(
+            result,
+            [
+                {
+                    "funktion": "Alpha",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {
+                    "funktion": "Beta",
+                    "einsatz_telefonica": {"value": False, "note": None},
+                },
+            ],
+        )
+
     def test_run_anlage2_analysis_includes_missing_functions(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
