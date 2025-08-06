@@ -652,6 +652,15 @@ def _build_row_data(
     disp = _get_display_data(
         lookup_key, answers, {lookup_key: ai_data}, manual_lookup
     )
+    # Für Felder ohne KI-Prüfung soll der Dokumentenwert Priorität haben,
+    # sofern kein manueller Wert gesetzt wurde. Dies betrifft die Spalten
+    # "einsatz_bei_telefonica" und "zur_lv_kontrolle".
+    for field in ("einsatz_bei_telefonica", "zur_lv_kontrolle"):
+        if manual_lookup.get(lookup_key, {}).get(field) is None:
+            doc_val = doc_data.get(field)
+            if doc_val is not None:
+                disp["values"][field] = doc_val
+                disp["sources"][field] = "Dokumenten-Analyse"
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
     rev_origin = {}
