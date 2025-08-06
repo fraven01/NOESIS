@@ -496,12 +496,18 @@ def _resolve_value(
     # Quelle richtet sich ausschließlich nach dem Dokument
     src = "Dokumenten-Analyse" if doc_exists or doc_val is not None else "N/A"
 
-    # Vorauswahl der Checkbox kann durch KI bestimmt werden
-    if ai_val is not None:
-        return ai_val, src
-
-    if doc_val is not None:
-        return doc_val, src
+    # Spezielle Felder ohne KI-Prüfung orientieren sich am Dokument
+    if field in ["einsatz_bei_telefonica", "zur_lv_kontrolle"]:
+        if doc_val is not None:
+            return doc_val, src
+        if ai_val is not None:
+            return ai_val, src
+    else:
+        # Vorauswahl der Checkbox kann durch KI bestimmt werden
+        if ai_val is not None:
+            return ai_val, src
+        if doc_val is not None:
+            return doc_val, src
 
     # Null-Werte werden als "nicht vorhanden" interpretiert
     return False, src

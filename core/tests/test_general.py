@@ -104,6 +104,7 @@ from ..views import (
     get_user_tiles,
     _has_manual_gap,
     _build_supervision_groups,
+    _resolve_value,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -4890,3 +4891,32 @@ class ManualGapDetectionTests(TestCase):
         self.assertTrue(_has_manual_gap(doc_data, manual_data))
         manual_data2 = {"einsatz_bei_telefonica": False}
         self.assertFalse(_has_manual_gap(doc_data, manual_data2))
+
+
+class ResolveValuePriorityTests(TestCase):
+    """Prüft die Vorrangregel der Dokumentwerte bei Spezialfeldern."""
+
+    def test_doc_priority_for_einsatzweise(self) -> None:
+        """Dokumentenwert setzt sich gegen KI-Wert durch."""
+        val, src = _resolve_value(
+            manual_val=None,
+            ai_val=False,
+            doc_val=True,
+            field="einsatz_bei_telefonica",
+            manual_exists=False,
+            doc_exists=True,
+        )
+        self.assertTrue(val)
+        self.assertEqual(src, "Dokumenten-Analyse")
+
+    def test_doc_priority_for_lv_kontrolle(self) -> None:
+        """Dokumentenwert hat Vorrang bei Leistungs- oder Verhaltenskontrolle."""
+        val, _src = _resolve_value(
+            manual_val=None,
+            ai_val=False,
+            doc_val=True,
+            field="zur_lv_kontrolle",
+            manual_exists=False,
+            doc_exists=True,
+        )
+        self.assertTrue(val)
