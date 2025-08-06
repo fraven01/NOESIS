@@ -199,11 +199,13 @@ def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
 
     if user.is_superuser or user.is_staff:
         return True
-    has_user_attr = hasattr(projekt, "user")
+    has_user_attr = hasattr(projekt, "user") and hasattr(projekt, "user_id")
     has_team_attr = hasattr(projekt, "team_members")
-    if not has_user_attr and not has_team_attr:
+    user_assigned = has_user_attr and projekt.user_id is not None
+    team_assigned = has_team_attr and projekt.team_members.exists()
+    if not user_assigned and not team_assigned:
         return user.is_authenticated
-    if has_user_attr and projekt.user_id == user.id:
+    if user_assigned and projekt.user_id == user.id:
         return True
     if has_team_attr and projekt.team_members.filter(pk=user.pk).exists():
         return True
@@ -3285,6 +3287,9 @@ def projekt_create(request):
         if form.is_valid():
             software_typen_list = request.POST.getlist("software_typen")
             projekt = form.save(software_list=software_typen_list)
+            if hasattr(projekt, "user_id") and projekt.user_id is None:
+                projekt.user = request.user
+                projekt.save(update_fields=["user"])
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()

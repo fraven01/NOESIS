@@ -724,6 +724,26 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertIsNotNone(file_obj)
         self.assertIn("Docx Inhalt", file_obj.text_content)
 
+    def test_ownerless_project_allows_upload(self):
+        """Prüft, dass ein neuer Nutzer Dateien in ein besitzerloses Projekt laden darf."""
+        doc = Document()
+        doc.add_paragraph("Inhalt")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
+            format="multipart",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+
     def test_pdf_upload_stores_bytes(self):
         pdf = fitz.open()
         pdf.new_page()
