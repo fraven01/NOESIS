@@ -17,6 +17,7 @@ from ..models import (
     LLMConfig,
     Tile,
     UserTileAccess,
+    GroupTileAccess,
     Anlage1Question,
     Anlage1Config,
     Area,
@@ -3084,16 +3085,25 @@ class TileVisibilityTests(NoesisTestCase):
         resp = self.client.get(reverse("talkdiary_personal"))
         self.assertEqual(resp.status_code, 200)
 
-    def test_projekt_access_denied_without_tile(self):
+    def test_projekt_tile_hidden_without_group(self):
         self._login("noproj")
         resp = self.client.get(reverse("work"))
         self.assertNotContains(resp, "Projektverwaltung")
         resp = self.client.get(reverse("projekt_list"))
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 200)
 
     def test_projekt_access_allowed_with_tile(self):
         user = self._login("withproj")
         UserTileAccess.objects.create(user=user, tile=self.projekt)
+        resp = self.client.get(reverse("work"))
+        self.assertContains(resp, "Projektverwaltung")
+        resp = self.client.get(reverse("projekt_list"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_projekt_tile_visible_with_group(self):
+        user = self._login("groupproj")
+        user.groups.add(self.group)
+        GroupTileAccess.objects.create(group=self.group, tile=self.projekt)
         resp = self.client.get(reverse("work"))
         self.assertContains(resp, "Projektverwaltung")
         resp = self.client.get(reverse("projekt_list"))
