@@ -146,23 +146,12 @@ def apply_rules(
     lierung und legt fest, zu welcher Funktion die Prüfung gehört.
     """
     detail_logger.debug("Prüfe Regeln in '%s'", text_part)
-    found_rules: Dict[str, tuple[bool, int, str]] = {}
+    found_rules: Dict[str, tuple[bool, int, str, str]] = {}
     for rule in rules:
-        match = fuzzy_match(rule.erkennungs_phrase, text_part, threshold)
-        detail_logger.debug(
-            "Regelvergleich '%s' (Prio %s) für Funktion '%s' -> %s in '%s'",
-            rule.erkennungs_phrase,
-            rule.prioritaet,
-            func_name or "-",
-            "GEFUNDEN" if match else "NICHT gefunden",
-            text_part,
-        )
-        if match:
+        if fuzzy_match(rule.erkennungs_phrase, text_part, threshold):
             actions = rule.actions_json or []
             if isinstance(actions, dict):
-                actions = [
-                    {"field": k, "value": v} for k, v in actions.items()
-                ]
+                actions = [{"field": k, "value": v} for k, v in actions.items()]
             for act in actions:
                 field = act.get("field")
                 if not field:
@@ -174,6 +163,7 @@ def apply_rules(
                         bool(val),
                         rule.prioritaet,
                         rule.erkennungs_phrase,
+
                     )
                     detail_logger.debug(
                         "  -> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
@@ -185,11 +175,17 @@ def apply_rules(
     if not found_rules:
         return
 
-    for field, (val, _prio, _phrase) in found_rules.items():
+    for field, (val, _prio, _phrase, rule_name) in found_rules.items():
+        detail_logger.debug(
+            "-> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
+            rule_name,
+            field,
+            val,
+        )
         entry[field] = {"value": val, "note": None}
 
     remaining = text_part
-    for _val, _prio, phrase in found_rules.values():
+    for _val, _prio, phrase, _rule_name in found_rules.values():
         remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I)
     remaining = remaining.strip()
 
@@ -308,7 +304,9 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
         entry = results.setdefault(func_name, {"funktion": func_name})
         if func_name not in order:
             order.append(func_name)
-            detail_logger.info("Analyse Funktion: '%s'", func_name)
+
+            detail_logger.info("[Analyse Funktion: '%s']", func_name)
+
 
         line_entry: dict[str, object] = {}
         apply_tokens(line_entry, text_part, token_map)
@@ -319,6 +317,7 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
     ordered_results = [results[k] for k in order]
     for res in ordered_results:
         detail_logger.info(
+
             "Endergebnis für '%s': %s", res.get("funktion"), res
         )
         result_logger.info(
