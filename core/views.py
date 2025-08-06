@@ -4232,13 +4232,22 @@ def projekt_functions_check(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
     pf = BVProjectFile.objects.filter(project=projekt, anlage_nr=2).first()
     if pf:
-        transaction.on_commit(
-            lambda: async_task(
+        # Status sofort auf PROCESSING setzen, damit die Analyse gesperrt bleibt
+        pf.processing_status = BVProjectFile.PROCESSING
+        pf.save(update_fields=["processing_status"])
+
+        def _start_task() -> None:
+            """Startet den Hintergrundtask und speichert die Task-ID."""
+            task_id = async_task(
                 "core.llm_tasks.run_conditional_anlage2_check",
                 pf.pk,
                 model,
             )
-        )
+            BVProjectFile.objects.filter(pk=pf.pk).update(
+                verification_task_id=task_id
+            )
+
+        transaction.on_commit(_start_task)
     return JsonResponse({"status": "ok"})
 
 

@@ -504,6 +504,7 @@ class BVProjectFileTests(NoesisTestCase):
             run_conditional_anlage2_check(pf.pk)
         pf.refresh_from_db()
         self.assertEqual(pf.verification_task_id, "")
+        self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
 
     def test_template_shows_disabled_state_when_task_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3323,7 +3324,10 @@ class ModelSelectionTests(NoesisTestCase):
 
     def test_functions_check_uses_model(self):
         url = reverse("projekt_functions_check", args=[self.projekt.pk])
-        with patch("core.views.async_task") as mock_task:
+        with (
+            patch("core.views.async_task", return_value="tid") as mock_task,
+            patch("core.views.transaction.on_commit", side_effect=lambda f: f()),
+        ):
             resp = self.client.post(url, {"model": "mf"})
         self.assertEqual(resp.status_code, 200)
         mock_task.assert_called_with(
@@ -3331,6 +3335,9 @@ class ModelSelectionTests(NoesisTestCase):
             self.pf2.pk,
             "mf",
         )
+        pf = BVProjectFile.objects.get(pk=self.pf2.pk)
+        self.assertEqual(pf.verification_task_id, "tid")
+        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
 
     def test_prompt_save_triggers_async_check(self):
         url = reverse("edit_project_context", args=[self.projekt.pk])
