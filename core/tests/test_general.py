@@ -694,6 +694,7 @@ class BVProjectFileTests(NoesisTestCase):
         )
 
 
+@override_settings(ALLOWED_HOSTS=["testserver"])
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("user", password="pass")
@@ -899,6 +900,27 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(resp.content.decode().count("<tr"), 1)
         pf = self.projekt.anlagen.get()
         self.assertEqual(pf.anlage_nr, 4)
+
+    def test_upload_uses_filename_when_anlage_nr_empty(self):
+        doc = Document()
+        doc.add_paragraph("x")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_3.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"anlage_nr": "", "upload": upload},
+            format="multipart",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        pf = self.projekt.anlagen.get()
+        self.assertEqual(pf.anlage_nr, 3)
 
 
 class DropzoneUploadTests(NoesisTestCase):

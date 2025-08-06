@@ -199,12 +199,13 @@ def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
 
     if user.is_superuser or user.is_staff:
         return True
-    if hasattr(projekt, "user") and projekt.user_id == user.id:
+    has_user_attr = hasattr(projekt, "user")
+    has_team_attr = hasattr(projekt, "team_members")
+    if not has_user_attr and not has_team_attr:
+        return user.is_authenticated
+    if has_user_attr and projekt.user_id == user.id:
         return True
-    if (
-        hasattr(projekt, "team_members")
-        and projekt.team_members.filter(pk=user.pk).exists()
-    ):
+    if has_team_attr and projekt.team_members.filter(pk=user.pk).exists():
         return True
     return False
 
@@ -5046,12 +5047,17 @@ def hx_project_file_upload(request, pk: int):
     if not upload:
         return HttpResponseBadRequest("invalid")
 
-    try:
-        anlage_nr = (
-            int(anlage_nr_raw) if anlage_nr_raw else extract_anlage_nr(upload.name)
-        )
-    except (TypeError, ValueError):
-        anlage_nr = None
+    anlage_nr: int | None = None
+    if anlage_nr_raw:
+        try:
+            anlage_nr = int(anlage_nr_raw)
+        except (TypeError, ValueError):
+            anlage_nr = None
+    if anlage_nr is None:
+        try:
+            anlage_nr = extract_anlage_nr(upload.name)
+        except ValueError:
+            anlage_nr = None
 
     form = BVProjectFileForm(request.POST, request.FILES, anlage_nr=anlage_nr)
 
