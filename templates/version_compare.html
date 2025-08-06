@@ -26,78 +26,41 @@
     <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
   </div>
   {% endif %}
-{% if file.anlage_nr == 1 %}
-  {% if gap_questions %}
-  <h2 class="text-xl font-semibold mt-6">Offene Fragen aus Version {{ parent.version }}</h2>
-  <table class="table-auto w-full border mt-2">
-    <thead>
-      <tr>
-        <th class="border px-2">Frage</th>
-        <th class="border px-2">Gap-Notizen</th>
-        <th class="border px-2">Aktion</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for q in gap_questions %}
-      <tr id="gap-row-{{ q.num }}">
-        <td class="border px-2">{{ q.num }}</td>
-        <td class="border px-2">
-          {% if q.parent.hinweis %}<p>{{ q.parent.hinweis|linebreaksbr }}</p>{% endif %}
-          {% if q.parent.vorschlag %}<p class="mt-1">{{ q.parent.vorschlag|linebreaksbr }}</p>{% endif %}
-        </td>
-        <td class="border px-2 space-x-2 whitespace-nowrap">
-          <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ q.num }}" hx-swap="delete" class="inline">
-            <input type="hidden" name="question" value="{{ q.num }}">
-            <input type="hidden" name="action" value="add_gap">
-            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Übernehmen</button>
-          </form>
-          <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ q.num }}" hx-swap="delete" class="inline ms-2">
-            <input type="hidden" name="question" value="{{ q.num }}">
-            <input type="hidden" name="action" value="negotiable">
-            <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Verhandlungsfähig</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-{% else %}
-  {% if parent_gaps %}
-  <h2 class="text-xl font-semibold mt-6">Offene Gaps aus Version {{ parent.version }}</h2>
-  <table class="table-auto w-full border mt-2">
-    <thead>
-      <tr>
-        <th class="border px-2">Funktion</th>
-        <th class="border px-2">Gap-Notizen</th>
-        <th class="border px-2">Aktion</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for gap in parent_gaps %}
-      <tr id="gap-row-{{ gap.id }}">
-        <td class="border px-2">{{ gap.get_lookup_key }}</td>
-        <td class="border px-2">
-          {% if gap.gap_notiz %}<p>{{ gap.gap_notiz|linebreaksbr }}</p>{% endif %}
-          {% if gap.gap_summary %}<p class="mt-1">{{ gap.gap_summary|linebreaksbr }}</p>{% endif %}
-        </td>
-        <td class="border px-2 space-x-2 whitespace-nowrap">
-          <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline">
-            <input type="hidden" name="result_id" value="{{ gap.id }}">
-            <input type="hidden" name="action" value="carry">
-            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Übernehmen</button>
-          </form>
-          <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline ms-2">
-            <input type="hidden" name="result_id" value="{{ gap.id }}">
-            <input type="hidden" name="action" value="fix">
-            <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Behoben</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
+</div>
+{% if parent_gaps %}
+<h2 class="text-xl font-semibold mt-6">Offene Gaps aus Version {{ parent.version }}</h2>
+<table class="table-auto w-full border mt-2">
+  <thead>
+    <tr>
+      <th class="border px-2">Funktion</th>
+      <th class="border px-2">Gap-Notizen</th>
+      <th class="border px-2">Aktion</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for gap in parent_gaps %}
+    <tr id="gap-row-{{ gap.id }}">
+      <td class="border px-2">{{ gap.get_lookup_key }}</td>
+      <td class="border px-2">
+        {% if gap.gap_notiz %}<p>{{ gap.gap_notiz|linebreaksbr }}</p>{% endif %}
+        {% if gap.gap_summary %}<p class="mt-1">{{ gap.gap_summary|linebreaksbr }}</p>{% endif %}
+      </td>
+      <td class="border px-2 space-x-2 whitespace-nowrap">
+        <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline">
+          <input type="hidden" name="result_id" value="{{ gap.id }}">
+          <input type="hidden" name="action" value="carry">
+          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Übernehmen</button>
+        </form>
+        <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline ms-2">
+          <input type="hidden" name="result_id" value="{{ gap.id }}">
+          <input type="hidden" name="action" value="fix">
+          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Behoben</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endif %}
 <div class="mt-4">
   <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück zum Projekt</a>
