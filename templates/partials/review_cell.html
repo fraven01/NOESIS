@@ -21,6 +21,9 @@
         <i class="fas fa-file-alt"></i>
         {% endif %}
     </span>
+    {% if field_name == 'ki_beteiligung' and row.ki_beteiligt_begruendung %}
+    <a href="{% url 'ki_involvement_detail_edit' anlage.pk row.verif_key %}" class="info-icon" title="Begründung ansehen/bearbeiten">ℹ️</a>
+    {% endif %}
     {% else %}
     <span>-</span>
     {% endif %}
