@@ -1,16 +1,11 @@
 function calcNeedsReview(manualVal, docVal, aiVal, hasManual) {
-    const docMissing = docVal === undefined || docVal === null;
-    const aiMissing = aiVal === undefined || aiVal === null;
     if (hasManual) {
-        if (docMissing) {
-            return false;
-        }
-        return manualVal !== docVal;
+        return docVal === undefined || manualVal !== docVal;
     }
-    if (docMissing) {
+    if (docVal === undefined) {
         return true;
     }
-    if (aiMissing) {
+    if (aiVal === undefined) {
         return false;
     }
     return docVal !== aiVal;

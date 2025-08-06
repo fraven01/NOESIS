@@ -306,28 +306,18 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        let docValDisplay = docVal;
-        let aiValDisplay = aiVal;
-        if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
-            docValDisplay = (docVal === undefined || docVal === null) ? false : docVal;
-            aiValDisplay = (aiVal === undefined || aiVal === null) ? false : aiVal;
-        }
         icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
-        let displayVal = hasManual ? manualVal : (docValDisplay !== undefined ? docValDisplay : aiValDisplay);
-        if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
-            icon.classList.add('status-badge', docValDisplay ? 'status-ja' : 'status-nein');
-        } else {
-            if (displayVal === true) icon.classList.add('status-badge','status-ja');
-            else if (displayVal === false) icon.classList.add('status-badge','status-nein');
-            else icon.classList.add('status-badge','status-unbekannt');
-        }
+        const displayVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
+        if (displayVal === true) icon.classList.add('status-badge','status-ja');
+        else if (displayVal === false) icon.classList.add('status-badge','status-nein');
+        else icon.classList.add('status-badge','status-unbekannt');
         let cls = 'status-unbekannt';
         if (hasManual) {
             cls = manualVal === docVal ? 'status-ok' : 'status-manuell-abweichung';
         } else if (docVal !== undefined && aiVal !== undefined) {
             cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
         }
-        const finalVal = displayVal;
+        const finalVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
         if ((f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') && techEffective === false && finalVal === false) {
             cls = 'status-ok';
         }
