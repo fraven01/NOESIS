@@ -123,7 +123,7 @@ def apply_tokens(
         for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
             if fuzzy_match(phrase, text_part, threshold):
                 detail_logger.debug(
-                    "Token '%s' gefunden, setze %s=%s",
+                    "  -> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
                     phrase,
                     field,
                     value,
@@ -176,9 +176,8 @@ def apply_rules(
                         rule.erkennungs_phrase,
                     )
                     detail_logger.debug(
-                        "Regel '%s' (%s) setzt %s=%s",
+                        "  -> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
                         rule.regel_name,
-                        rule.erkennungs_phrase,
                         field,
                         val,
                     )
@@ -309,6 +308,7 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
         entry = results.setdefault(func_name, {"funktion": func_name})
         if func_name not in order:
             order.append(func_name)
+            detail_logger.info("Analyse Funktion: '%s'", func_name)
 
         line_entry: dict[str, object] = {}
         apply_tokens(line_entry, text_part, token_map)
@@ -318,7 +318,12 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
 
     ordered_results = [results[k] for k in order]
     for res in ordered_results:
-        result_logger.info("Ergebnis Funktion '%s': %s", res.get("funktion"), res)
+        detail_logger.info(
+            "Endergebnis für '%s': %s", res.get("funktion"), res
+        )
+        result_logger.info(
+            "Ergebnis Funktion '%s': %s", res.get("funktion"), res
+        )
     return ordered_results
 
 
