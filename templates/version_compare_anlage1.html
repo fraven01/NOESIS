@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Versionen vergleichen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Anlage 1: Version {{ file.version }} mit Vorgänger vergleichen</h1>
+<h2 class="text-xl font-semibold mb-2">GAP-Fragen</h2>
+{% if gap_rows %}
+<table class="table-auto w-full border">
+  <thead>
+    <tr>
+      <th class="border px-2">Frage</th>
+      <th class="border px-2">Vorgänger</th>
+      <th class="border px-2">Aktuell</th>
+      <th class="border px-2">Aktionen</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in gap_rows %}
+    <tr>
+      <td class="border px-2">{{ row.text }}</td>
+      <td class="border px-2">
+        {% if row.parent.hinweis %}<p>Hinweis: {{ row.parent.hinweis }}</p>{% endif %}
+        {% if row.parent.vorschlag %}<p>Vorschlag: {{ row.parent.vorschlag }}</p>{% endif %}
+      </td>
+      <td class="border px-2">
+        {% if row.current.hinweis %}<p>Hinweis: {{ row.current.hinweis }}</p>{% endif %}
+        {% if row.current.vorschlag %}<p>Vorschlag: {{ row.current.vorschlag }}</p>{% endif %}
+      </td>
+      <td class="border px-2 space-x-2">
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="negotiate">
+          <input type="hidden" name="question" value="{{ row.num }}">
+          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Verhandlungsfähig</button>
+        </form>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_gap">
+          <input type="hidden" name="question" value="{{ row.num }}">
+          <input type="hidden" name="note" value="Offen">
+          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Gap hinzufügen</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Keine offenen Gaps.</p>
+{% endif %}
+
+<h2 class="text-xl font-semibold mt-6">Alle Fragen</h2>
+<table class="table-auto w-full border mt-2">
+  <thead>
+    <tr>
+      <th class="border px-2">Frage</th>
+      <th class="border px-2">Vorgänger</th>
+      <th class="border px-2">Aktuell</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in all_rows %}
+    <tr>
+      <td class="border px-2">{{ row.text }}</td>
+      <td class="border px-2">
+        {% if row.parent.answer %}<p>{{ row.parent.answer }}</p>{% endif %}
+        {% if row.parent.hinweis %}<p>Hinweis: {{ row.parent.hinweis }}</p>{% endif %}
+        {% if row.parent.vorschlag %}<p>Vorschlag: {{ row.parent.vorschlag }}</p>{% endif %}
+      </td>
+      <td class="border px-2 {% if row.changed %}bg-yellow-100{% endif %}">
+        {% if row.current.answer %}<p>{{ row.current.answer }}</p>{% endif %}
+        {% if row.current.hinweis %}<p>Hinweis: {{ row.current.hinweis }}</p>{% endif %}
+        {% if row.current.vorschlag %}<p>Vorschlag: {{ row.current.vorschlag }}</p>{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="mt-4">
+  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück zum Projekt</a>
+</div>
+{% endblock %}

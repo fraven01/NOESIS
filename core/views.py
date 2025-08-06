@@ -5936,14 +5936,90 @@ def download_knowledge_as_word(request, knowledge_id):
             os.remove(temp_file_path)
 
 
+def _compare_versions_anlage1(
+    request: HttpRequest,
+    project_file: BVProjectFile,
+    parent: BVProjectFile,
+) -> HttpResponse:
+    """Spezielle Vergleichslogik für Anlage 1."""
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if not _user_can_edit_project(request.user, project_file.project):
+            return HttpResponseForbidden("Nicht berechtigt")
+        if action == "negotiate":
+            project_file.verhandlungsfaehig = True
+            project_file.save(update_fields=["verhandlungsfaehig"])
+        elif action == "add_gap":
+            qnum = request.POST.get("question")
+            note = request.POST.get("note", "")
+            review = project_file.question_review or {}
+            qdata = review.get(qnum, {})
+            qdata["hinweis"] = note
+            review[qnum] = qdata
+            project_file.question_review = review
+            project_file.save(update_fields=["question_review"])
+        return redirect("compare_versions", pk=project_file.pk)
+
+    questions_map = {str(q.num): q.text for q in Anlage1Question.objects.all()}
+    parent_review = parent.question_review or {}
+    current_review = project_file.question_review or {}
+    parent_analysis = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
+    current_analysis = (
+        project_file.analysis_json.get("questions", {})
+        if project_file.analysis_json
+        else {}
+    )
+
+    gap_rows = []
+    for num, pdata in parent_review.items():
+        if isinstance(pdata, dict) and (pdata.get("hinweis") or pdata.get("vorschlag")):
+            gap_rows.append(
+                {
+                    "num": num,
+                    "text": questions_map.get(num, f"Frage {num}"),
+                    "parent": pdata,
+                    "current": current_review.get(num, {}),
+                }
+            )
+
+    all_nums = sorted(
+        set(parent_analysis.keys()) | set(current_analysis.keys()), key=lambda x: int(x)
+    )
+    all_rows = []
+    for num in all_nums:
+        pdata = parent_analysis.get(num, {})
+        cdata = current_analysis.get(num, {})
+        all_rows.append(
+            {
+                "num": num,
+                "text": questions_map.get(num, f"Frage {num}"),
+                "parent": pdata,
+                "current": cdata,
+                "changed": pdata != cdata,
+            }
+        )
+
+    context = {
+        "file": project_file,
+        "parent": parent,
+        "gap_rows": gap_rows,
+        "all_rows": all_rows,
+    }
+    return render(request, "version_compare_anlage1.html", context)
+
+
 @login_required
-def compare_versions(request, pk):
+def compare_versions(request: HttpRequest, pk: int) -> HttpResponse:
     """Vergleicht eine Datei mit ihrer Vorgängerversion."""
 
     project_file = get_object_or_404(BVProjectFile, pk=pk)
     parent = project_file.parent
     if not parent:
         raise Http404
+
+    if project_file.anlage_nr == 1:
+        return _compare_versions_anlage1(request, project_file, parent)
 
     if request.method == "POST":
         result_id = int(request.POST.get("result_id", 0))
