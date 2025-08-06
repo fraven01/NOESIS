@@ -550,8 +550,12 @@ def _has_manual_gap(doc_data: dict, manual_data: dict) -> bool:
             man_bool = _extract_bool(man_val)
             doc_val = doc_data.get(field)
             doc_bool = _extract_bool(doc_val) if doc_val is not None else None
-            if doc_bool is None or man_bool != doc_bool:
-                return True
+            if field in ["einsatz_bei_telefonica", "zur_lv_kontrolle"]:
+                if doc_bool is not None and man_bool != doc_bool:
+                    return True
+            else:
+                if doc_bool is None or man_bool != doc_bool:
+                    return True
     return False
 
 
@@ -711,15 +715,16 @@ def _build_row_data(
         doc_val = doc_data.get(field)
         ai_val = ai_data.get(field)
         manual_val = manual_lookup.get(lookup_key, {}).get(field)
-        if (
-            doc_val is not None
-            and ai_val is not None
-            and doc_val != ai_val
-            and manual_val is None
-        ):
-            has_gap = True
-            manual_review_required = True
-            break
+        if field not in ["einsatz_bei_telefonica", "zur_lv_kontrolle"]:
+            if (
+                doc_val is not None
+                and ai_val is not None
+                and doc_val != ai_val
+                and manual_val is None
+            ):
+                has_gap = True
+                manual_review_required = True
+                break
     return {
         "name": display_name,
         "doc_result": doc_data,
