@@ -804,7 +804,9 @@ def _build_supervision_row(
     ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
     final_val = manual_entry.technisch_verfuegbar if manual_entry else None
 
-    if manual_entry is not None:
+    if result.is_negotiable_manual_override:
+        has_discrepancy = False
+    elif manual_entry is not None:
         has_discrepancy = doc_val is not None and final_val != doc_val
     else:
         has_discrepancy = (
@@ -834,7 +836,13 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
     )
 
     grouped: dict[int, dict] = {}
+    skipped_funcs: set[int] = set()
     for r in results:
+        if r.subquestion_id is None and r.is_negotiable_manual_override:
+            skipped_funcs.add(r.funktion_id)
+            continue
+        if r.funktion_id in skipped_funcs:
+            continue
         row_data = _build_supervision_row(r, pf)
         if not row_data["has_discrepancy"]:
             continue
