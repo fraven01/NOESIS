@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .models import BVProjectFile, AntwortErkennungsRegel
 from .docx_utils import parse_anlage2_table
+from .text_parser import extract_function_segments, apply_rules
 
 logger = logging.getLogger(__name__)
 
@@ -38,21 +39,28 @@ class ExactParser(AbstractParser):
     def parse(self, project_file: BVProjectFile) -> list[dict[str, object]]:
         """Parst das Dokument anhand exakter Regeln."""
 
-        results: list[dict[str, object]] = []
-        text = (project_file.text_content or "").lower()
-        for rule in AntwortErkennungsRegel.objects.all().order_by("prioritaet"):
-            if rule.erkennungs_phrase.lower() in text:
-                actions = rule.actions_json or []
-                if isinstance(actions, dict):
-                    actions = [
-                        {"field": k, "value": v} for k, v in actions.items()
-                    ]
-                entry: dict[str, object] = {"funktion": rule.regel_name}
-                for act in actions:
-                    field = act.get("field")
-                    if not field:
-                        continue
-                    entry[field] = {"value": bool(act.get("value")), "note": None}
-                results.append(entry)
-        return results
+        text = project_file.text_content or ""
+        segments = extract_function_segments(text)
+        rules = list(AntwortErkennungsRegel.objects.all())
+
+        results: dict[str, dict[str, object]] = {}
+        order: list[str] = []
+
+        for func_name, text_part in segments:
+            if ":" in func_name:
+                main_name = func_name.split(":", 1)[0]
+                main_entry = results.get(main_name)
+                if not main_entry or main_entry.get("technisch_verfuegbar", {}).get("value") is not True:
+                    continue
+
+            entry = results.setdefault(func_name, {"funktion": func_name})
+            if func_name not in order:
+                order.append(func_name)
+
+            line_entry: dict[str, object] = {}
+            apply_rules(line_entry, text_part, rules, func_name=func_name)
+            for key, value in line_entry.items():
+                entry[key] = value
+
+        return [results[k] for k in order]
 

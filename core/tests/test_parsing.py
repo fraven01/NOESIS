@@ -2,6 +2,7 @@ from .test_general import *
 from ..anlage4_parser import parse_anlage4_dual
 from ..models import Anlage4ParserConfig
 from ..docx_utils import _normalize_header_text
+from ..parsers import ExactParser
 
 class DocxExtractTests(NoesisTestCase):
     def test_extract_text(self):
@@ -647,6 +648,56 @@ class DocxExtractTests(NoesisTestCase):
                 {"funktion": "Anwesenheit: Grund?"},
             ],
         )
+
+    def test_exact_parser_handles_segments(self):
+        func1 = Anlage2Function.objects.create(name="Login")
+        func2 = Anlage2Function.objects.create(name="Analyse")
+        AntwortErkennungsRegel.objects.create(
+            regel_name="aktiv", erkennungs_phrase="aktiv",
+            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
+        )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="einsatz", erkennungs_phrase="kein einsatz",
+            actions_json=[{"field": "einsatz_telefonica", "value": False}],
+        )
+        text = "Login: aktiv\nAnalyse: kein einsatz"
+        pf = BVProjectFile.objects.create(
+            project=BVProject.objects.create(software_typen="A", beschreibung="x"),
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content=text,
+        )
+        data = ExactParser().parse(pf)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Login",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {
+                    "funktion": "Analyse",
+                    "einsatz_telefonica": {"value": False, "note": None},
+                },
+            ],
+        )
+
+    def test_exact_parser_subquestion_requires_main(self):
+        func = Anlage2Function.objects.create(name="Login")
+        Anlage2SubQuestion.objects.create(funktion=func, frage_text="Grund?")
+        AntwortErkennungsRegel.objects.create(
+            regel_name="tv", erkennungs_phrase="ja",
+            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
+        )
+        text = "Grund? ja"
+        pf = BVProjectFile.objects.create(
+            project=BVProject.objects.create(software_typen="A", beschreibung="x"),
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content=text,
+        )
+        data = ExactParser().parse(pf)
+        self.assertEqual(data, [])
 
 class DocxUtilsTests(NoesisTestCase):
     def test_extract_images(self):
