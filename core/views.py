@@ -35,6 +35,8 @@ import subprocess
 import whisper
 import torch
 import json
+import difflib
+import html
 import asyncio
 from django_q.tasks import async_task, fetch, result, Task
 
@@ -5944,6 +5946,77 @@ def compare_versions(request, pk):
     parent = project_file.parent
     if not parent:
         raise Http404
+
+    if project_file.anlage_nr == 1:
+        parent_answers = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
+        current_answers = project_file.analysis_json.get("questions", {}) if project_file.analysis_json else {}
+
+        if request.method == "POST":
+            num = request.POST.get("result_id")
+            action = request.POST.get("action")
+            if not _user_can_edit_project(request.user, project_file.project):
+                return HttpResponseForbidden("Nicht berechtigt")
+            parent_review = parent.question_review or {}
+            entry = parent_review.get(num)
+            if not entry:
+                return HttpResponse("", status=204)
+            if action == "fix":
+                entry["hinweis"] = ""
+                entry["vorschlag"] = ""
+                parent_review[num] = entry
+                parent.question_review = parent_review
+                parent.save(update_fields=["question_review"])
+            elif action == "carry":
+                current_review = project_file.question_review or {}
+                current_review[num] = entry
+                project_file.question_review = current_review
+                project_file.save(update_fields=["question_review"])
+            return HttpResponse("", status=204)
+
+        parent_review = parent.question_review or {}
+        gaps = []
+        for num, data in sorted(parent_review.items(), key=lambda x: int(x[0])):
+            if isinstance(data, dict) and (data.get("hinweis") or data.get("vorschlag")):
+                gaps.append(
+                    {
+                        "num": num,
+                        "old": parent_answers.get(num, {}).get("answer", ""),
+                        "new": current_answers.get(num, {}).get("answer", ""),
+                    }
+                )
+
+        def _mark_diff(old: str, new: str) -> tuple[str, str]:
+            sm = difflib.SequenceMatcher(None, old, new)
+            old_res: list[str] = []
+            new_res: list[str] = []
+            for op, i1, i2, j1, j2 in sm.get_opcodes():
+                if op == "equal":
+                    old_res.append(html.escape(old[i1:i2]))
+                    new_res.append(html.escape(new[j1:j2]))
+                elif op == "delete":
+                    old_res.append(f"<del>{html.escape(old[i1:i2])}</del>")
+                elif op == "insert":
+                    new_res.append(f"<ins>{html.escape(new[j1:j2])}</ins>")
+                elif op == "replace":
+                    old_res.append(f"<del>{html.escape(old[i1:i2])}</del>")
+                    new_res.append(f"<ins>{html.escape(new[j1:j2])}</ins>")
+            return "".join(old_res), "".join(new_res)
+
+        nums = sorted(set(parent_answers.keys()) | set(current_answers.keys()), key=lambda x: int(x))
+        all_questions = []
+        for num in nums:
+            old = parent_answers.get(num, {}).get("answer", "") or ""
+            new = current_answers.get(num, {}).get("answer", "") or ""
+            old_m, new_m = _mark_diff(old, new)
+            all_questions.append((num, old_m, new_m))
+
+        context = {
+            "file": project_file,
+            "parent": parent,
+            "gaps": gaps,
+            "all_questions": all_questions,
+        }
+        return render(request, "version_compare_anlage1.html", context)
 
     if request.method == "POST":
         result_id = int(request.POST.get("result_id", 0))

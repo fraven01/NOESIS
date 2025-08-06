@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Versionen vergleichen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Version {{ file.version }} mit Vorgänger vergleichen</h1>
+
+<h2 class="text-xl font-semibold">Gaps</h2>
+{% if gaps %}
+<table class="table-auto w-full border mt-2">
+  <thead>
+    <tr>
+      <th class="border px-2">Nr.</th>
+      <th class="border px-2">Alt</th>
+      <th class="border px-2">Neu</th>
+      <th class="border px-2">Aktion</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for gap in gaps %}
+    <tr id="gap-row-{{ gap.num }}">
+      <td class="border px-2">{{ gap.num }}</td>
+      <td class="border px-2 whitespace-pre-wrap">{{ gap.old }}</td>
+      <td class="border px-2 whitespace-pre-wrap">{{ gap.new }}</td>
+      <td class="border px-2 space-x-2 whitespace-nowrap">
+        <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.num }}" hx-swap="delete" class="inline">
+          <input type="hidden" name="result_id" value="{{ gap.num }}">
+          <input type="hidden" name="action" value="carry">
+          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Übernehmen</button>
+        </form>
+        <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.num }}" hx-swap="delete" class="inline ms-2">
+          <input type="hidden" name="result_id" value="{{ gap.num }}">
+          <input type="hidden" name="action" value="fix">
+          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Behoben</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Keine offenen Gaps.</p>
+{% endif %}
+
+<h2 class="text-xl font-semibold mt-6">Alle Fragen</h2>
+<table class="table-auto w-full border mt-2">
+  <thead>
+    <tr>
+      <th class="border px-2 w-1/2">Vorgängerversion (v{{ parent.version }})</th>
+      <th class="border px-2 w-1/2">Aktuelle Version (v{{ file.version }})</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for num, old, new in all_questions %}
+    <tr>
+      <td class="border px-2 align-top"><span class="font-semibold">Frage {{ num }}:</span> <div class="whitespace-pre-wrap">{{ old|safe }}</div></td>
+      <td class="border px-2 align-top"><span class="font-semibold">Frage {{ num }}:</span> <div class="whitespace-pre-wrap">{{ new|safe }}</div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="mt-4">
+  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück zum Projekt</a>
+</div>
+{% endblock %}
