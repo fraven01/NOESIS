@@ -3290,34 +3290,39 @@ def projekt_upload(request):
 
 @login_required
 def projekt_create(request):
+    software_list = request.POST.getlist("software_typen") if request.method == "POST" else []
     if request.method == "POST":
         form = BVProjectForm(request.POST)
         if form.is_valid():
-            software_typen_list = request.POST.getlist("software_typen")
-            projekt = form.save(software_list=software_typen_list)
+            projekt = form.save(software_list=software_list)
             if hasattr(projekt, "user_id") and projekt.user_id is None:
                 projekt.user = request.user
                 projekt.save(update_fields=["user"])
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
-    return render(request, "projekt_form.html", {"form": form})
+    return render(request, "projekt_form.html", {"form": form, "software_list": software_list})
 
 
 @login_required
 def projekt_edit(request, pk):
     projekt = get_object_or_404(BVProject, pk=pk)
+    software_list = (
+        request.POST.getlist("software_typen")
+        if request.method == "POST"
+        else projekt.software_list
+    )
     if request.method == "POST":
         form = BVProjectForm(request.POST, instance=projekt)
         if form.is_valid():
-            software_typen_list = request.POST.getlist("software_typen")
-            projekt = form.save(software_list=software_typen_list)
+            projekt = form.save(software_list=software_list)
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm(instance=projekt)
     context = {
         "form": form,
         "projekt": projekt,
+        "software_list": software_list,
         "categories": LLMConfig.get_categories(),
         "category": "default",
     }
