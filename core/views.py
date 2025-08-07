@@ -3415,6 +3415,49 @@ def _save_project_file(
         obj.parent = old_file
 
     obj.save()
+    if old_file:
+        # Übernahme vorhandener KI-Prüfergebnisse aus der Vorgängerversion
+        ai_results = FunktionsErgebnis.objects.filter(
+            anlage_datei=old_file, quelle="ki"
+        )
+        if ai_results.exists():
+            obj.verification_json = old_file.verification_json
+            obj.processing_status = old_file.processing_status
+            obj.save(update_fields=["verification_json", "processing_status"])
+
+            meta_copies = [
+                AnlagenFunktionsMetadaten(
+                    anlage_datei=obj,
+                    funktion=m.funktion,
+                    subquestion=m.subquestion,
+                    gap_summary=m.gap_summary,
+                    gap_notiz=m.gap_notiz,
+                    supervisor_notes=m.supervisor_notes,
+                    is_negotiable=m.is_negotiable,
+                    is_negotiable_manual_override=m.is_negotiable_manual_override,
+                )
+                for m in AnlagenFunktionsMetadaten.objects.filter(anlage_datei=old_file)
+            ]
+            if meta_copies:
+                AnlagenFunktionsMetadaten.objects.bulk_create(meta_copies)
+
+            fe_copies = [
+                FunktionsErgebnis(
+                    anlage_datei=obj,
+                    funktion=r.funktion,
+                    subquestion=r.subquestion,
+                    quelle=r.quelle,
+                    technisch_verfuegbar=r.technisch_verfuegbar,
+                    einsatz_bei_telefonica=r.einsatz_bei_telefonica,
+                    zur_lv_kontrolle=r.zur_lv_kontrolle,
+                    ki_beteiligung=r.ki_beteiligung,
+                    ki_beteiligt_begruendung=r.ki_beteiligt_begruendung,
+                    begruendung=r.begruendung,
+                )
+                for r in ai_results
+            ]
+            if fe_copies:
+                FunktionsErgebnis.objects.bulk_create(fe_copies)
     if obj.anlage_nr == 3 and obj.upload.name.lower().endswith(".docx"):
         try:
             from .anlage3_parser import parse_anlage3
@@ -4076,10 +4119,15 @@ def projekt_file_edit_json(request, pk):
                         ki_map,
                         beteilig_map,
                         manual_lookup,
-                        result_map,
-                        sub_id=sub.id,
-                    )
+                    result_map,
+                    sub_id=sub.id,
                 )
+            )
+        has_ai_results = FunktionsErgebnis.objects.filter(
+            anlage_datei__project=anlage.project,
+            anlage_datei__anlage_nr=2,
+            quelle="ki",
+        ).exists()
     elif anlage.anlage_nr == 4:
         items = []
         if anlage.analysis_json:
@@ -4142,6 +4190,7 @@ def projekt_file_edit_json(request, pk):
                 "field_pairs": fields_def,
                 "no_ai_fields": ["einsatz_bei_telefonica", "zur_lv_kontrolle"],
                 "parser_form": parser_form,
+                "allow_ai_check": not has_ai_results,
             }
         )
     elif anlage.anlage_nr == 4:
@@ -4238,6 +4287,10 @@ def projekt_functions_check(request, pk):
     """Löst die Einzelprüfung der Anlage-2-Funktionen aus."""
     model = request.POST.get("model")
     projekt = get_object_or_404(BVProject, pk=pk)
+    if FunktionsErgebnis.objects.filter(
+        anlage_datei__project=projekt, anlage_datei__anlage_nr=2, quelle="ki"
+    ).exists():
+        return JsonResponse({"error": "results_exist"}, status=400)
     pf = BVProjectFile.objects.filter(project=projekt, anlage_nr=2).first()
     if pf:
         # Status sofort auf PROCESSING setzen, damit die Analyse gesperrt bleibt
@@ -4273,6 +4326,12 @@ def anlage2_feature_verify(request, pk):
         return JsonResponse({"error": "not found"}, status=404)
     if anlage.anlage_nr != 2:
         return JsonResponse({"error": "invalid"}, status=400)
+    if FunktionsErgebnis.objects.filter(
+        anlage_datei__project=anlage.project,
+        anlage_datei__anlage_nr=2,
+        quelle="ki",
+    ).exists():
+        return JsonResponse({"error": "results_exist"}, status=400)
 
     function_id = request.POST.get("function_id", None)
     subquestion_id = request.POST.get("subquestion_id", None)
