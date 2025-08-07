@@ -44,6 +44,7 @@ from ..docx_utils import (
     _normalize_header_text,
 )
 
+from ..utils import start_analysis_for_file
 from .. import text_parser
 
 from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
@@ -673,11 +674,29 @@ class BVProjectFileTests(NoesisTestCase):
             processing_status=BVProjectFile.PENDING,
         )
         self.client.login(username=self.superuser.username, password="pass")
-        with patch("core.views.start_analysis_for_file") as mock_start:
+        with patch("core.views.start_analysis_for_file", return_value="123") as mock_start:
             url = reverse("trigger_file_analysis", args=[pf.pk])
             resp = self.client.post(url)
-        mock_start.assert_called_with(pf)
-        self.assertRedirects(resp, reverse("projekt_detail", args=[projekt.pk]))
+        mock_start.assert_called_with(pf.pk)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"task_id": "123"})
+
+    def test_start_analysis_for_file_enqueues_tasks(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            processing_status=BVProjectFile.PENDING,
+        )
+        with patch.object(BVProjectFile, "get_analysis_tasks", return_value=[("f.q", pf.pk)]), \
+            patch("core.utils.async_task") as mock_async:
+            mock_async.return_value = "t1"
+            task_id = start_analysis_for_file(pf.pk)
+        mock_async.assert_called_with("f.q", pf.pk)
+        self.assertEqual(task_id, "t1")
+        pf.refresh_from_db()
+        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
 
     def test_get_analysis_tasks_returns_project_id_for_conditional_check(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")

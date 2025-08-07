@@ -51,5 +51,5 @@ def auto_start_analysis(sender, instance: BVProjectFile, created: bool, **kwargs
     if not created:
         return
 
-    start_analysis_for_file(instance)
+    start_analysis_for_file(instance.pk)
 

@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 
 from django_q.tasks import async_task
-from django.db import transaction, connection
-from django.utils.module_loading import import_string
+from django.db import transaction
 
 from .models import BVProject, BVProjectFile
 
@@ -25,35 +24,34 @@ def get_project_file(projekt: BVProject, nr: int, version: int | None = None) ->
 
 
 
-def start_analysis_for_file(file_obj: BVProjectFile) -> None:
-    """Startet die Analyse f\xFCr ``file_obj``.
+def start_analysis_for_file(file_id: int) -> str | None:
+    """Startet die Analyse f\xFCr die Projektdatei mit ``file_id``.
 
     Setzt den Status auf ``PROCESSING`` und plant die zugeh\xF6rigen
-    Hintergrund-Tasks. Bei SQLite werden die Tasks sequenziell direkt
-    ausgef\xFChrt, um Sperrkonflikte zu vermeiden.
-    Nicht vorhandene Anlagen werden ignoriert.
+    Hintergrund-Tasks \u00fcber ``async_task`` ein. Die ID des ersten geplanten
+    Tasks wird zur\u00fcckgegeben, nicht vorhandene Anlagen werden ignoriert.
     """
+
+    file_obj = BVProjectFile.objects.filter(pk=file_id).first()
+    if not file_obj:
+        return None
 
     tasks = file_obj.get_analysis_tasks()
     if not tasks:
-        return
+        return None
 
     file_obj.processing_status = BVProjectFile.PROCESSING
     file_obj.save(update_fields=["processing_status"])
 
-    def _start_tasks() -> None:
-        """Plant die Analyse-Tasks nach dem erfolgreichen Commit ein."""
-        try:
-            if connection.vendor == "sqlite":
-                for func, arg in tasks:
-                    import_string(func)(arg)
-            else:
-                for func, arg in tasks:
-                    async_task(func, arg)
-        except Exception:  # pragma: no cover - loggen genügt
-            logger.exception("Fehler beim Starten der Analyse")
-
-    transaction.on_commit(_start_tasks)
+    task_id: str | None = None
+    try:
+        for func, arg in tasks:
+            tid = async_task(func, arg)
+            if task_id is None:
+                task_id = tid
+    except Exception:  # pragma: no cover - loggen genügt
+        logger.exception("Fehler beim Starten der Analyse")
+    return task_id
 
 
 @transaction.atomic
