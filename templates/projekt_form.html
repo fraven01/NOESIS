@@ -2,47 +2,63 @@
 {% block extra_head %}{{ block.super }}{% endblock %}
 {% block title %}{% if projekt %}Projekt bearbeiten{% else %}Neues Projekt{% endif %}{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-4">{% if projekt %}Projekt bearbeiten{% else %}Neues Projekt{% endif %}</h1>
-<form method="post" enctype="multipart/form-data" class="space-y-4">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div>
-        {{ form.title.label_tag }}<br>
-        {{ form.title }}
-        {{ form.title.errors }}
-    </div>
-    <div>
-        {{ form.beschreibung.label_tag }}<br>
-        {{ form.beschreibung }}
-        {{ form.beschreibung.errors }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Software (jede Software in ein eigenes Feld):</label>
-        <div id="software-inputs-container">
-            <input type="text" name="software_typen" class="form-control mb-2">
+<div class="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-6">
+    <h1 class="text-2xl font-semibold mb-6">{% if projekt %}Projekt bearbeiten{% else %}Neues Projekt{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+            <label for="{{ form.title.id_for_label }}" class="block font-medium mb-1">{{ form.title.label }}</label>
+            {{ form.title }}
+            {{ form.title.errors }}
         </div>
-        <button type="button" id="add-software-btn" class="btn btn-sm btn-secondary mt-1">+</button>
-    </div>
-    {% if 'status' in form.fields %}
-    <div>
-        {{ form.status.label_tag }}<br>
-        {{ form.status }}
-        {{ form.status.errors }}
-    </div>
-    {% endif %}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
-    {% if projekt %}
-    <div class="mt-4">
-        <label class="font-semibold">LLM-Modell:</label>
-        {% for key, data in categories.items %}
-            <label class="ml-2">
-                <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
-                {{ data.label }}
-            </label>
-        {% endfor %}
-    </div>
-    {% endif %}
-</form>
+        <div>
+            <label for="{{ form.beschreibung.id_for_label }}" class="block font-medium mb-1">{{ form.beschreibung.label }}</label>
+            {{ form.beschreibung }}
+            {{ form.beschreibung.errors }}
+        </div>
+        <div>
+            <label class="block font-medium mb-2">Software</label>
+            <div id="software-inputs-container" class="space-y-2">
+                {% if software_list %}
+                    {% for name in software_list %}
+                    <div class="flex items-center space-x-2">
+                        <input type="text" name="software_typen" value="{{ name }}" class="flex-grow border rounded p-2">
+                        <button type="button" class="px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn">Entfernen</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="flex items-center space-x-2">
+                        <input type="text" name="software_typen" class="flex-grow border rounded p-2">
+                        <button type="button" class="px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn">Entfernen</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" id="add-software-btn" class="mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded">Software hinzufügen</button>
+        </div>
+        {% if 'status' in form.fields %}
+        <div>
+            <label for="{{ form.status.id_for_label }}" class="block font-medium mb-1">{{ form.status.label }}</label>
+            {{ form.status }}
+            {{ form.status.errors }}
+        </div>
+        {% endif %}
+        <div class="pt-4">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow">Speichern</button>
+        </div>
+        {% if projekt %}
+        <div class="mt-6">
+            <label class="font-semibold">LLM-Modell:</label>
+            {% for key, data in categories.items %}
+                <label class="ml-2">
+                    <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                    {{ data.label }}
+                </label>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </form>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -52,18 +68,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const addSoftwareBtn = document.getElementById('add-software-btn');
     const container = document.getElementById('software-inputs-container');
 
-    if (addSoftwareBtn && container) {
-        addSoftwareBtn.addEventListener('click', function() {
-            const newInput = document.createElement('input');
-            newInput.type = 'text';
-            newInput.name = 'software_typen';
-            newInput.className = 'form-control mb-2';
-            newInput.placeholder = 'Weitere Software...';
+    function addSoftwareField(value = '') {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex items-center space-x-2';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'software_typen';
+        input.value = value;
+        input.className = 'flex-grow border rounded p-2';
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn';
+        removeBtn.textContent = 'Entfernen';
+        removeBtn.addEventListener('click', function() {
+            wrapper.remove();
+            updateRemoveButtons();
+        });
+        wrapper.appendChild(input);
+        wrapper.appendChild(removeBtn);
+        container.appendChild(wrapper);
+    }
 
-            container.appendChild(newInput);
-            newInput.focus();
+    function updateRemoveButtons() {
+        const buttons = container.querySelectorAll('.remove-software-btn');
+        buttons.forEach((btn, idx) => {
+            btn.style.display = idx === 0 ? 'none' : '';
         });
     }
+
+    if (addSoftwareBtn && container) {
+        addSoftwareBtn.addEventListener('click', function() {
+            addSoftwareField();
+            updateRemoveButtons();
+        });
+    }
+
+    container.querySelectorAll('.remove-software-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            btn.parentElement.remove();
+            updateRemoveButtons();
+        });
+    });
+
+    updateRemoveButtons();
 
     const desc = document.getElementById('id_beschreibung');
     if (desc) {
@@ -72,3 +119,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
