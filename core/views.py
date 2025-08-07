@@ -5175,15 +5175,15 @@ def hx_project_file_upload(request, pk: int):
 
 @login_required
 @require_POST
-def trigger_file_analysis(request, pk: int):
+def trigger_file_analysis(request, pk: int) -> JsonResponse:
     """L\u00f6st die Analyse f\u00fcr eine bestehende Datei erneut aus."""
     file_obj = get_object_or_404(BVProjectFile, pk=pk)
 
     if not _user_can_edit_project(request.user, file_obj.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    start_analysis_for_file(file_obj)
-    return redirect("projekt_detail", pk=file_obj.project.pk)
+    task_id = start_analysis_for_file(file_obj.pk)
+    return JsonResponse({"task_id": task_id})
 
 
 @login_required
