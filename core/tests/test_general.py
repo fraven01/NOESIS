@@ -1953,8 +1953,8 @@ class LLMTasksTests(NoesisTestCase):
         }]
         self.assertEqual(result, expected)
 
-    def test_run_anlage2_analysis_sets_complete_status(self):
-        """Prüft, dass der Status nach der Analyse auf COMPLETE gesetzt wird."""
+    def test_run_anlage2_analysis_sets_complete_status_without_followup(self):
+        """Status wird nur ohne anschließende KI-Prüfung auf COMPLETE gesetzt."""
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
@@ -1962,13 +1962,38 @@ class LLMTasksTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
+            processing_status=BVProjectFile.PROCESSING,
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=True,
+        )
+
+        run_anlage2_analysis(pf)
+
+        pf.refresh_from_db()
+        self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
+
+    def test_run_anlage2_analysis_keeps_processing_with_followup(self):
+        """Bei ausstehender KI-Prüfung bleibt der Status PROCESSING."""
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="",
+            processing_status=BVProjectFile.PROCESSING,
         )
         Anlage2Function.objects.create(name="Login")
 
         run_anlage2_analysis(pf)
 
         pf.refresh_from_db()
-        self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
+        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
 
     def test_check_anlage2_table_error_fallback(self):
         class P1(AbstractParser):

@@ -362,6 +362,12 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
         project_file.project_id,
     )
+    # Prüfen, ob im Anschluss noch eine KI-Prüfung erfolgen soll
+    needs_followup = not FunktionsErgebnis.objects.filter(
+        anlage_datei__project=project_file.project,
+        anlage_datei__anlage_nr=2,
+        quelle="ki",
+    ).exists()
 
     # Alte Ergebnisse zur Datei entfernen, damit nur aktuelle Resultate
     # berücksichtigt werden
@@ -530,7 +536,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             )
             project_file.analysis_json = {"functions": results}
             project_file.save(update_fields=["analysis_json"])
-            update_file_status(project_file.pk, BVProjectFile.COMPLETE)
+            if not needs_followup:
+                update_file_status(project_file.pk, BVProjectFile.COMPLETE)
             return results
         FunktionsErgebnis.objects.create(
             anlage_datei=project_file,
@@ -550,7 +557,8 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         json.dumps({"functions": results}, ensure_ascii=False),
     )
     project_file.save(update_fields=["analysis_json"])
-    update_file_status(project_file.pk, BVProjectFile.COMPLETE)
+    if not needs_followup:
+        update_file_status(project_file.pk, BVProjectFile.COMPLETE)
     return results
 
 
@@ -575,7 +583,6 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
         pf.upload.name,
     )
     result = run_anlage2_analysis(pf)
-    update_file_status(pf.pk, BVProjectFile.COMPLETE)
     anlage2_logger.info(
         "worker_run_anlage2_analysis beendet für Datei %s",
         file_id,
