@@ -100,6 +100,7 @@ from ..llm_tasks import (
 from ..views import (
     _verification_to_initial,
     _build_row_data,
+    _build_supervision_row,
     _save_project_file,
     extract_anlage_nr,
     get_user_tiles,
@@ -4558,6 +4559,32 @@ class SupervisionGapTests(NoesisTestCase):
         )
         groups = _build_supervision_groups(pf)
         self.assertEqual(groups, [])
+
+    def test_ai_reason_uses_function_begruendung(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        res = AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf, funktion=func)
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+            begruendung="Func reason",
+            ki_beteiligt_begruendung="KI involvement",
+        )
+        row = _build_supervision_row(res, pf)
+        self.assertEqual(row["ai_reason"], "Func reason")
 
 
 class Anlage2ResetTests(NoesisTestCase):
