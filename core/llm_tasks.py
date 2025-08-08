@@ -1453,30 +1453,54 @@ def run_conditional_anlage2_check(
             anlage_datei__anlage_nr=2,
         ).delete()
 
-        for func in Anlage2Function.objects.prefetch_related(
-            "anlage2subquestion_set"
-        ).order_by("name"):
-            task_id = async_task(
+        funktionen = list(
+            Anlage2Function.objects.prefetch_related("anlage2subquestion_set")
+            .order_by("name")
+            .all()
+        )
+
+        # Hauptfunktionen parallel pr\u00fcfen
+        func_tasks: dict[int, str] = {}
+        for func in funktionen:
+            func_tasks[func.id] = async_task(
                 "core.llm_tasks.worker_verify_feature",
                 pf.pk,
                 "function",
                 func.id,
                 model_name,
             )
-            # Auf Abschluss des Tasks warten
-            result(task_id, wait=-1)
 
-            doc_ok = False
+        positive_funcs: list[Anlage2Function] = []
+        for func in funktionen:
+            result(func_tasks[func.id], wait=-1)
+            doc_ok = (
+                FunktionsErgebnis.objects.filter(
+                    anlage_datei=pf,
+                    funktion=func,
+                    subquestion__isnull=True,
+                )
+                .values_list("technisch_verfuegbar", flat=True)
+                .first()
+            )
             if doc_ok:
-                for sub in func.anlage2subquestion_set.all():
-                    sub_task_id = async_task(
+                positive_funcs.append(func)
+
+        # Unterfragen f\u00fcr positive Funktionen parallel pr\u00fcfen
+        sub_task_ids: list[str] = []
+        for func in positive_funcs:
+            for sub in func.anlage2subquestion_set.all():
+                sub_task_ids.append(
+                    async_task(
                         "core.llm_tasks.worker_verify_feature",
                         pf.pk,
                         "subquestion",
                         sub.id,
                         model_name,
                     )
-                    result(sub_task_id, wait=-1)
+                )
+
+        for tid in sub_task_ids:
+            result(tid, wait=-1)
 
         pf.verification_task_id = ""
         pf.processing_status = BVProjectFile.COMPLETE
