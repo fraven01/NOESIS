@@ -231,12 +231,14 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "debug.log",
             "formatter": "verbose",
+            "encoding": "utf-8",
         },
         "llm_file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "llm-debug.log",
             "formatter": "llm_formatter",
+            "encoding": "utf-8",
         },
         "anlage1_detail_file": {
             "level": "DEBUG",
