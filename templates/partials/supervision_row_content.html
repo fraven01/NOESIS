@@ -1,22 +1,27 @@
 <div class="p-2 space-y-4">
-  <div class="border rounded bg-gray-50 p-2 space-y-1">
-    <h3 class="font-semibold">Parser</h3>
-    <p>{{ row.doc_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
-    {% if row.doc_snippet %}
-      <pre class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ row.doc_snippet }}</pre>
-    {% endif %}
+  {% for f in row.fields.values %}
+  <div class="border rounded bg-white p-2 space-y-2">
+    <h3 class="font-semibold">{{ f.label }}</h3>
+    <div class="border rounded bg-gray-50 p-2 space-y-1">
+      <h4 class="font-semibold">Parser</h4>
+      <p>{{ f.doc_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
+      {% if f.doc_reason %}
+      <pre class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ f.doc_reason }}</pre>
+      {% endif %}
+    </div>
+    <div class="border rounded bg-blue-50 p-2 space-y-1">
+      <h4 class="font-semibold">KI</h4>
+      <p>{{ f.ai_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
+      {% if f.ai_reason %}
+      <p class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ f.ai_reason }}</p>
+      {% endif %}
+    </div>
+    <div class="border rounded bg-gray-50 p-2 space-y-1">
+      <h4 class="font-semibold">Manuell</h4>
+      <p>{{ f.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
+    </div>
   </div>
-  <div class="border rounded bg-blue-50 p-2 space-y-1">
-    <h3 class="font-semibold">KI</h3>
-    <p>{{ row.ai_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
-    {% if row.ai_reason %}
-      <p class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ row.ai_reason }}</p>
-    {% endif %}
-  </div>
-  <div class="border rounded bg-gray-50 p-2 space-y-1">
-    <h3 class="font-semibold">Manuell</h3>
-    <p>{{ row.final_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
-  </div>
+  {% endfor %}
   <div class="border rounded bg-white p-2 space-y-2">
     <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
       <button class="bg-green-600 text-white px-2 py-1 rounded" type="submit">GAP bestätigen</button>
