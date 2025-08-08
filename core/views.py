@@ -800,52 +800,27 @@ def _build_supervision_row(
         .first()
     )
 
-    tech_doc = parser_entry.technisch_verfuegbar if parser_entry else None
-    tech_ai = ai_entry.technisch_verfuegbar if ai_entry else None
-    tech_final = manual_entry.technisch_verfuegbar if manual_entry else None
-    ki_doc = parser_entry.ki_beteiligung if parser_entry else None
-    ki_ai = ai_entry.ki_beteiligung if ai_entry else None
-    ki_final = manual_entry.ki_beteiligung if manual_entry else None
+    doc_val = parser_entry.technisch_verfuegbar if parser_entry else None
+    ai_val = ai_entry.technisch_verfuegbar if ai_entry else None
+    final_val = manual_entry.technisch_verfuegbar if manual_entry else None
 
-    fields: dict[str, dict] = {
-        "technisch_vorhanden": {
-            "label": "Technisch vorhanden",
-            "doc_val": tech_doc,
-            "doc_reason": parser_entry.begruendung if parser_entry else "",
-            "ai_val": tech_ai,
-            "ai_reason": ai_entry.begruendung if ai_entry else "",
-            "final_val": tech_final,
-        },
-        "ki_beteiligung": {
-            "label": "KI-Beteiligung",
-            "doc_val": ki_doc,
-            "doc_reason": parser_entry.ki_beteiligt_begruendung if parser_entry else "",
-            "ai_val": ki_ai,
-            "ai_reason": ai_entry.ki_beteiligt_begruendung if ai_entry else "",
-            "final_val": ki_final,
-        },
-    }
-
-    for f in fields.values():
-        if result.is_negotiable_manual_override:
-            f["has_discrepancy"] = False
-        elif manual_entry is not None:
-            f["has_discrepancy"] = (
-                f["doc_val"] is not None and f["final_val"] != f["doc_val"]
-            )
-        else:
-            f["has_discrepancy"] = (
-                f["doc_val"] is not None
-                and f["ai_val"] is not None
-                and f["doc_val"] != f["ai_val"]
-            )
-
-    has_discrepancy = any(f["has_discrepancy"] for f in fields.values())
+    if result.is_negotiable_manual_override:
+        has_discrepancy = False
+    elif manual_entry is not None:
+        has_discrepancy = doc_val is not None and final_val != doc_val
+    else:
+        has_discrepancy = (
+            doc_val is not None and ai_val is not None and doc_val != ai_val
+        )
 
     return {
         "result_id": result.id,
         "name": result.get_lookup_key(),
-        "fields": fields,
+        "doc_val": doc_val,
+        "doc_snippet": parser_entry.begruendung if parser_entry else "",
+        "ai_val": ai_val,
+        "ai_reason": ai_entry.ki_beteiligt_begruendung if ai_entry else "",
+        "final_val": final_val,
         "notes": result.supervisor_notes or "",
         "has_discrepancy": has_discrepancy,
     }
@@ -888,13 +863,9 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
             continue
         if not subrows and func and not func["has_discrepancy"]:
             continue
-        present = None
-        if func:
-            tv_field = func["fields"].get("technisch_vorhanden", {})
-            present = tv_field.get("final_val")
-            if present is None:
-                doc = tv_field.get("doc_val")
-                present = doc if doc is not None else tv_field.get("ai_val")
+        present = func["final_val"] if func else None
+        if present is None and func:
+            present = func["doc_val"] if func["doc_val"] is not None else func["ai_val"]
         groups.append(
             {
                 "function": func,
@@ -4465,7 +4436,6 @@ def hx_supervision_confirm(request, result_id: int):
             subquestion=result.subquestion,
             quelle="manuell",
             technisch_verfuegbar=ai_entry.technisch_verfuegbar,
-            ki_beteiligung=ai_entry.ki_beteiligung,
         )
 
     if result.subquestion is None:
