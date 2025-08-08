@@ -9,7 +9,7 @@
   <div class="border rounded bg-blue-50 p-2 space-y-1">
     <h3 class="font-semibold">KI</h3>
     <p>{{ row.ai_val|yesno:"Vorhanden,Nicht vorhanden,?" }}</p>
-    {% if row.ai_reason %}
+    {% if row.ai_val and row.ai_reason %}
       <p class="whitespace-pre-wrap bg-gray-100 p-2 rounded">{{ row.ai_reason }}</p>
     {% endif %}
   </div>

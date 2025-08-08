@@ -105,6 +105,7 @@ from ..views import (
     get_user_tiles,
     _has_manual_gap,
     _build_supervision_groups,
+    _build_supervision_row,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -4558,6 +4559,38 @@ class SupervisionGapTests(NoesisTestCase):
         )
         groups = _build_supervision_groups(pf)
         self.assertEqual(groups, [])
+
+
+class SupervisionReasonTests(NoesisTestCase):
+    def test_ai_reason_uses_function_justification(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        res = AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+            begruendung="Doc",
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+            begruendung="KI Grund",
+            ki_beteiligt_begruendung="KI Beteiligung",
+        )
+        row = _build_supervision_row(res, pf)
+        self.assertEqual(row["ai_reason"], "KI Grund")
 
 
 class Anlage2ResetTests(NoesisTestCase):

@@ -819,7 +819,7 @@ def _build_supervision_row(
         "doc_val": doc_val,
         "doc_snippet": parser_entry.begruendung if parser_entry else "",
         "ai_val": ai_val,
-        "ai_reason": ai_entry.ki_beteiligt_begruendung if ai_entry else "",
+        "ai_reason": ai_entry.begruendung if ai_entry else "",
         "final_val": final_val,
         "notes": result.supervisor_notes or "",
         "has_discrepancy": has_discrepancy,
