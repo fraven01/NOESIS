@@ -43,6 +43,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
+
 
 # Application definition
 
@@ -55,7 +57,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "core",
     "django_q",
+    "tailwind",
+    "django_browser_reload",
+    "theme",
 ]
+
+TAILWIND_APP_NAME = "theme"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -66,6 +73,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "core.middleware.LLMConfigNoticeMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
 ROOT_URLCONF = "noesis.urls"
