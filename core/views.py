@@ -242,6 +242,10 @@ FIELD_RENAME = {
     "einsatz_telefonica": "einsatz_bei_telefonica",
 }
 
+# Felder ohne KI-Unterstützung: Werte stammen ausschließlich aus
+# Dokumentenparser oder manueller Eingabe.
+NO_AI_FIELDS = {"einsatz_bei_telefonica", "zur_lv_kontrolle"}
+
 
 def _deep_update(base: dict, extra: dict) -> dict:
     """Aktualisiert ``base`` rekursiv mit ``extra``."""
@@ -495,6 +499,12 @@ def _resolve_value(
 
     # Quelle richtet sich ausschließlich nach dem Dokument
     src = "Dokumenten-Analyse" if doc_exists or doc_val is not None else "N/A"
+
+    # Für bestimmte Felder wird kein KI-Wert berücksichtigt
+    if field in NO_AI_FIELDS:
+        if doc_val is not None:
+            return doc_val, src
+        return False, src
 
     # Vorauswahl der Checkbox kann durch KI bestimmt werden
     if ai_val is not None:

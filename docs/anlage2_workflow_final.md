@@ -11,7 +11,7 @@ Diese Datei beschreibt die konsolidierten Anforderungen für den Prüfprozess de
 
 ## Kernlogik 2: UI-Verhalten in der Review-Ansicht
 
-- **Anzeigepriorität**: Sichtbarer Status in der Zelle folgt der Reihenfolge Manuell > KI > Parser.
+- **Anzeigepriorität**: Standardmäßig gilt Manuell > KI > Parser. Für die Spalten „Einsatz bei Telefónica“ und „Zur LV-Kontrolle“ wird der KI-Wert ignoriert, hier lautet die Reihenfolge Manuell > Parser.
 - **Tooltip**: Zeigt immer Werte aus allen drei Quellen (Dokument, KI-Check, Manuell). Die Zeile "Manuell" wird hervorgehoben, sobald dort ein Wert vorhanden ist.
 
 ## Kernlogik 3: Interaktion & Reset-Funktion als "Toggle"
