@@ -5,7 +5,8 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}
 {% if is_admin %}
-<a href="{% url 'admin_projects' %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Admin</a>
+{% url 'admin_projects' as admin_url %}
+{% include 'partials/_button.html' with href=admin_url label='Admin' color_classes='bg-red-600 text-white hover:bg-red-700' classes='ml-2' %}
 {% endif %}
 </h1>
 <div class="lg:flex lg:space-x-4">
@@ -21,26 +22,23 @@
         ✎
     </a>
 </p>
-<form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4">
+<form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4 flex items-center space-x-2">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
-    <select id="status" name="status" class="border rounded p-2">
-    {% for s in status_choices %}
-        <option value="{{ s.key }}" {% if projekt.status and projekt.status.key == s.key %}selected{% endif %}>{{ s.name }}</option>
-    {% endfor %}
-    </select>
-    <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded ml-2">Aktualisieren</button>
+    {% include 'partials/_form_select.html' with name='status' id='status' options=status_choices value=projekt.status.key classes='' %}
+    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' classes='' %}
 </form>
 <p class="mb-4">
-    <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-blue-700 underline">Gap-Analyse herunterladen</a>
+    <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline">Gap-Analyse herunterladen</a>
     |
-    <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-blue-700 underline">Management Summary herunterladen</a>
+    <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-primary underline">Management Summary herunterladen</a>
 </p>
 <p class="mb-4">
     {% if can_gap_report %}
-    <a href="{% url 'gap_report_view' projekt.pk %}" class="bg-blue-600 text-white px-4 py-2 rounded">GAP-Bericht f\u00fcr Fachbereich erstellen</a>
+    {% url 'gap_report_view' projekt.pk as gap_url %}
+    {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' %}
     {% else %}
-    <button class="bg-gray-300 text-gray-500 px-4 py-2 rounded" disabled>GAP-Bericht f\u00fcr Fachbereich erstellen</button>
+    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' color_classes='bg-gray-300 text-gray-500' disabled=True %}
     {% endif %}
 </p>
 </div>
@@ -49,7 +47,7 @@
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
 <nav class="flex space-x-2 mb-4" id="anlage-tabs-nav">
   {% for nr in anlage_numbers %}
-  <button class="anlage-tab-btn px-3 py-1 border-b-2 {% if forloop.first %}border-blue-600 text-blue-600{% else %}border-transparent text-gray-600{% endif %}"
+  <button class="anlage-tab-btn px-3 py-1 border-b-2 {% if forloop.first %}border-primary text-primary{% else %}border-transparent text-gray-600{% endif %}"
           hx-get="{% url 'hx_project_anlage_tab' projekt.pk nr %}"
           hx-target="#anlage-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-nr="{{ nr }}">
@@ -64,7 +62,7 @@
 <div class="bg-white rounded-lg shadow p-4">
 <h2 class="text-xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h2>
 <nav class="flex space-x-2 mb-4">
-  <button class="software-tab-btn px-3 py-1 border-b-2 border-blue-600 text-blue-600"
+  <button class="software-tab-btn px-3 py-1 border-b-2 border-primary text-primary"
           hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
           hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-tab="tech">Technische Prüfung</button>
@@ -107,15 +105,15 @@ function renderLLM(data){
    <textarea id="edit" class="border rounded w-full p-2 mb-2">${data.llm_initial_output||''}</textarea>
    <input id="context" type="text" placeholder="Weiterer Kontext" class="border rounded w-full p-2 mb-2 hidden">
    <div class="space-x-2">
-     <button id="edit-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
-     <button id="ctx-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Zusätzlichen Kontext & erneut prüfen</button>
+     <button id="edit-btn" class="bg-primary text-white px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
+     <button id="ctx-btn" class="bg-primary text-white px-4 py-2 rounded">Zusätzlichen Kontext & erneut prüfen</button>
    </div>`;
  }else if(data.ist_llm_geprueft && data.llm_validated){
   sec.innerHTML=`<button id="toggle" class="bg-green-600 text-white px-4 py-2 rounded mb-2">Antwort ein-/ausblenden</button>
   <div id="output" class="prose max-w-none bg-gray-100 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
  }
  if(data.llm_initial_output){
-   sec.innerHTML += `<button id="recheck" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
+  sec.innerHTML += `<button id="recheck" class="bg-primary text-white px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
  }
  attachHandlers();
 }
@@ -241,19 +239,19 @@ document.addEventListener('htmx:beforeRequest',function(e){
   const t=e.target;
   if(t.classList.contains('anlage-tab-btn')){
     document.querySelectorAll('.anlage-tab-btn').forEach(b=>{
-      b.classList.remove('border-blue-600','text-blue-600');
+      b.classList.remove('border-primary','text-primary');
       b.classList.add('border-transparent','text-gray-600');
     });
     t.classList.remove('border-transparent','text-gray-600');
-    t.classList.add('border-blue-600','text-blue-600');
+    t.classList.add('border-primary','text-primary');
   }
   if(t.classList.contains('software-tab-btn')){
     document.querySelectorAll('.software-tab-btn').forEach(b=>{
-      b.classList.remove('border-blue-600','text-blue-600');
+      b.classList.remove('border-primary','text-primary');
       b.classList.add('border-transparent','text-gray-600');
     });
     t.classList.remove('border-transparent','text-gray-600');
-    t.classList.add('border-blue-600','text-blue-600');
+    t.classList.add('border-primary','text-primary');
   }
 });
 </script>
