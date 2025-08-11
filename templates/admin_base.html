@@ -1,21 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-{% endblock %}
 
 {% block content %}
 <div class="max-w-screen-2xl mx-auto">
-<div class="admin-container">
-    <section class="admin-content">
+    <section class="p-4">
         <div class="flex flex-col md:flex-row gap-6">
-            <aside class="admin-sidebar">
+            <aside class="w-full md:w-64 bg-gray-50 p-4 border-r border-gray-200">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
-        <nav class="admin-nav space-y-4 text-sm">
+        <nav class="space-y-4 text-sm">
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
-                <a href="{% url 'admin_projects' %}" class="nav-link">Projekt-Liste</a><br>
-                <a href="{% url 'admin_project_statuses' %}" class="nav-link">Projekt-Status</a><br>
+                <a href="{% url 'admin_projects' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Liste</a><br>
+                <a href="{% url 'admin_project_statuses' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Status</a><br>
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
@@ -26,7 +22,7 @@
                         <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'admin_anlage1' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'admin_anlage1' %}" class="nav-link {% if current == 'admin_anlage1' %}active-nav-link{% endif %}">Fragen</a>
+                        <a href="{% url 'admin_anlage1' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'admin_anlage1' %}bg-primary text-white{% else %}text-primary{% endif %}">Fragen</a>
                     </div>
                 </div>
                 <div>
@@ -35,8 +31,8 @@
                         <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage2_function_list' %}" class="nav-link {% if current == 'anlage2_function_list' %}active-nav-link{% endif %}">Funktionen</a>
-                        <a href="{% url 'anlage2_config' %}" class="nav-link {% if current == 'anlage2_config' %}active-nav-link{% endif %}">Globale Phrasen</a>
+                        <a href="{% url 'anlage2_function_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_function_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Funktionen</a>
+                        <a href="{% url 'anlage2_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_config' %}bg-primary text-white{% else %}text-primary{% endif %}">Globale Phrasen</a>
                     </div>
                 </div>
                 <div>
@@ -45,7 +41,7 @@
                         <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage3_rule_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage3_rule_list' %}" class="nav-link {% if current == 'anlage3_rule_list' %}active-nav-link{% endif %}">Parser Regeln</a>
+                        <a href="{% url 'anlage3_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage3_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Parser Regeln</a>
                     </div>
                 </div>
                 <div>
@@ -54,7 +50,7 @@
                         <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage4_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage4_config' %}" class="nav-link {% if current == 'anlage4_config' %}active-nav-link{% endif %}">Konfiguration</a>
+                        <a href="{% url 'anlage4_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage4_config' %}bg-primary text-white{% else %}text-primary{% endif %}">Konfiguration</a>
                     </div>
                 </div>
                 <div>
@@ -63,23 +59,23 @@
                         <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'parser_rule_list' %}" class="nav-link {% if current == 'parser_rule_list' %}active-nav-link{% endif %}">Exakter Parser Regeln</a>
-                        <a href="{% url 'zweckkategoriea_list' %}" class="nav-link {% if current == 'zweckkategoriea_list' %}active-nav-link{% endif %}">Zwecke verwalten</a>
-                        <a href="{% url 'supervisionnote_list' %}" class="nav-link {% if current == 'supervisionnote_list' %}active-nav-link{% endif %}">Supervision-Notizen</a>
+                        <a href="{% url 'parser_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'parser_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Exakter Parser Regeln</a>
+                        <a href="{% url 'zweckkategoriea_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'zweckkategoriea_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Zwecke verwalten</a>
+                        <a href="{% url 'supervisionnote_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'supervisionnote_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Supervision-Notizen</a>
                     </div>
                 </div>
                 {% endwith %}
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
-                <a href="{% url 'admin_llm_roles' %}" class="nav-link">LLM-Rollen</a><br>
-                <a href="{% url 'admin_prompts' %}" class="nav-link">Prompts</a><br>
-                <a href="{% url 'admin_models' %}" class="nav-link">LLM-Modelle</a><br>
+                <a href="{% url 'admin_llm_roles' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Rollen</a><br>
+                <a href="{% url 'admin_prompts' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Prompts</a><br>
+                <a href="{% url 'admin_models' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Modelle</a><br>
             </div>
             <div>
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
-                <a href="{% url 'admin_user_list' %}" class="nav-link">Benutzer verwalten</a><br>
-                <a href="{% url 'admin:auth_group_changelist' %}" class="nav-link">Gruppen</a><br>
+                <a href="{% url 'admin_user_list' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Benutzer verwalten</a><br>
+                <a href="{% url 'admin:auth_group_changelist' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Gruppen</a><br>
             </div>
         </nav>
             </aside>
@@ -88,7 +84,6 @@
             </div>
         </div>
     </section>
-</div>
 </div>
 {% endblock %}
 {% block extra_js %}

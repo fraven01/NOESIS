@@ -2,9 +2,11 @@
 {% block title %}Projektverwaltung{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Projektverwaltung</h1>
-<a href="{% url 'projekt_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Neues Projekt</a>
+{% url 'projekt_create' as create_url %}
+{% include 'partials/_button.html' with href=create_url label='Neues Projekt' %}
 {% if is_admin %}
-<a href="{% url 'admin_projects' %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Admin</a>
+{% url 'admin_projects' as admin_url %}
+{% include 'partials/_button.html' with href=admin_url label='Admin' color_classes='bg-red-600 text-white hover:bg-red-700' classes='ml-2' %}
 {% endif %}
 <form method="get" action="{% url 'projekt_list' %}">
 <table class="min-w-full mt-4">
@@ -12,22 +14,17 @@
         <tr class="text-left border-b">
             <th class="py-2">
                 Titel
-                <input type="text" name="q" placeholder="Suchen..." value="{{ search_query }}" class="form-control form-control-sm mt-1">
+                {% include 'partials/_form_input.html' with name='q' placeholder='Suchen...' value=search_query classes='mt-1' %}
             </th>
             <th class="py-2">Beschreibung</th>
 
             <th class="py-2">
                 Software-Typen
-                <input type="text" name="software" placeholder="Suchen..." value="{{ software_filter }}" class="form-control form-control-sm mt-1">
+                {% include 'partials/_form_input.html' with name='software' placeholder='Suchen...' value=software_filter classes='mt-1' %}
             </th>
             <th class="py-2">
                 Status
-                <select name="status" class="form-select form-select-sm mt-1">
-                    <option value="">Alle</option>
-                    {% for s in status_choices %}
-                        <option value="{{ s.key }}" {% if s.key == status_filter %}selected{% endif %}>{{ s.name }}</option>
-                    {% endfor %}
-                </select>
+                {% include 'partials/_form_select.html' with name='status' options=status_choices value=status_filter classes='mt-1' include_blank='Alle' %}
             </th>
 
 
