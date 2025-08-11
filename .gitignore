@@ -209,3 +209,4 @@ debug.log
 node_modules/
 package-lock.json
 static/css/dist.css
+theme/static/css/dist/
