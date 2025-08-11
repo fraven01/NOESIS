@@ -106,6 +106,7 @@ from ..views import (
     get_user_tiles,
     _has_manual_gap,
     _build_supervision_groups,
+    _resolve_value,
 )
 from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
@@ -4961,3 +4962,22 @@ class ManualGapDetectionTests(TestCase):
         self.assertTrue(_has_manual_gap(doc_data, manual_data))
         manual_data2 = {"einsatz_bei_telefonica": False}
         self.assertFalse(_has_manual_gap(doc_data, manual_data2))
+
+
+class ResolveValueLogicTests(TestCase):
+    """Tests für die Feldpriorisierung in ``_resolve_value``."""
+
+    def test_doc_overrides_ai_for_special_fields(self) -> None:
+        """Bei Spezialfeldern hat Parser-Vorrang vor KI."""
+        val, src = _resolve_value(
+            None, False, True, "einsatz_bei_telefonica", False, True
+        )
+        self.assertTrue(val)
+        self.assertEqual(src, "Dokumenten-Analyse")
+
+    def test_ai_still_used_for_regular_fields(self) -> None:
+        """Bei normalen Feldern dominiert der KI-Wert."""
+        val, _ = _resolve_value(
+            None, False, True, "technisch_vorhanden", False, True
+        )
+        self.assertFalse(val)

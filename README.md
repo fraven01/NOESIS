@@ -199,6 +199,8 @@ der Parser erneut ausgeführt, um aktualisierte Dateien einzulesen. Mit
 Wird im Projekt der Prompt geändert, setzt dies den KI‑Check zurück und führt
 ihn beim nächsten Speichern erneut aus.
 
+In der Review-Ansicht der Anlage 2 folgt die Anzeige der Werte einer spaltenspezifischen Priorität. Für „Einsatz bei Telefónica“ und „Zur LV-Kontrolle“ gilt die Reihenfolge Manuell > Parser – KI-Einschätzungen werden hier ignoriert. Für „Technisch vorhanden“ und „KI-Beteiligung“ bleibt es bei Manuell > KI > Parser.
+
 
 Erkennungsphrasen für den Textparser können nun zeilenweise eingegeben werden;
 jede Zeile wird als eigene Phrase gespeichert.
