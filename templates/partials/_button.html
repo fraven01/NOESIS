@@ -1,0 +1,6 @@
+{% if href %}
+<a href="{{ href }}" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} class="inline-flex items-center px-4 py-2 rounded {{ color_classes|default:'bg-primary text-white hover:bg-primary-dark' }} {{ classes|default:'' }}">{{ label }}</a>
+{% else %}
+<button type="{{ type|default:'button' }}" {% if id %}id="{{ id }}"{% endif %} {% if name %}name="{{ name }}"{% endif %} {% if formaction %}formaction="{{ formaction }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} class="inline-flex items-center px-4 py-2 rounded {{ color_classes|default:'bg-primary text-white hover:bg-primary-dark' }} {{ classes|default:'' }}">{{ label }}</button>
+{% endif %}
+

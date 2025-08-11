@@ -10,22 +10,17 @@
             <tr class="border-b text-left">
                 <th class="py-2">
                     Titel
-                    <input type="text" name="q" placeholder="Suchen..." value="{{ search_query }}" class="form-control form-control-sm mt-1">
+                    {% include 'partials/_form_input.html' with name='q' placeholder='Suchen...' value=search_query classes='mt-1' %}
                 </th>
                 <th class="py-2">Beschreibung</th>
 
                 <th class="py-2">
                     Software-Typen
-                    <input type="text" name="software" placeholder="Suchen..." value="{{ software_filter }}" class="form-control form-control-sm mt-1">
+                    {% include 'partials/_form_input.html' with name='software' placeholder='Suchen...' value=software_filter classes='mt-1' %}
                 </th>
                 <th class="py-2">
                     Status
-                    <select name="status" class="form-select form-select-sm mt-1">
-                        <option value="">Alle</option>
-                        {% for s in status_choices %}
-                            <option value="{{ s.key }}" {% if s.key == status_filter %}selected{% endif %}>{{ s.name }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include 'partials/_form_select.html' with name='status' options=status_choices value=status_filter classes='mt-1' include_blank='Alle' %}
                 </th>
                 <th class="py-2">LLM geprüft</th>
 
@@ -43,9 +38,10 @@
     {% csrf_token %}
     {% if projects %}
     <div class="mt-4 space-x-2">
-        <button type="button" id="import-btn" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</button>
-        <button type="submit" id="export-btn" formaction="{% url 'admin_project_export' %}" class="px-4 py-2 bg-blue-600 text-white rounded" disabled>Exportieren</button>
-        <button type="submit" name="delete_selected" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Einträge wirklich löschen?');">Markierte löschen</button>
+        {% include 'partials/_button.html' with type='button' id='import-btn' label='Importieren' color_classes='bg-green-600 text-white hover:bg-green-700' %}
+        {% url 'admin_project_export' as export_url %}
+        {% include 'partials/_button.html' with type='submit' id='export-btn' formaction=export_url label='Exportieren' disabled=True %}
+        {% include 'partials/_button.html' with type='submit' name='delete_selected' label='Markierte löschen' color_classes='bg-red-600 text-white hover:bg-red-700' onclick="return confirm('Einträge wirklich löschen?');" %}
     </div>
     {% endif %}
 </form>

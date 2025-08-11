@@ -15,16 +15,16 @@
         <div id="alias-container">
             {% for val in aliases %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" value="{{ val }}" class="form-control flex-grow">
-                <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                <input type="text" name="name_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow">
+                <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
             </div>
             {% endfor %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" class="form-control flex-grow">
-                <button type="button" class="btn btn-sm btn-secondary ml-2 remove-btn">x</button>
+                <input type="text" name="name_aliases" class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow">
+                <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
             </div>
         </div>
-        <button type="button" id="add-alias-btn" class="btn btn-sm btn-secondary mt-1">+ Alias hinzufügen</button>
+        <button type="button" id="add-alias-btn" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Alias hinzufügen</button>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -40,11 +40,11 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'name_aliases';
-            input.className = 'form-control flex-grow';
+            input.className = 'mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow';
             const del = document.createElement('button');
             del.type = 'button';
             del.textContent = 'x';
-            del.className = 'btn btn-sm btn-secondary ml-2 remove-btn';
+            del.className = 'px-2 py-1 bg-gray-200 rounded ml-2 remove-btn';
             del.addEventListener('click', () => wrap.remove());
             wrap.appendChild(input);
             wrap.appendChild(del);
@@ -53,6 +53,6 @@
         });
     });
     </script>
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Speichern</button>
+    {% include 'partials/_button.html' with type='submit' label='Speichern' %}
 </form>
 {% endblock %}

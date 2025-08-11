@@ -1,0 +1,12 @@
+<select name="{{ name }}"
+        id="{{ id|default:name }}"
+        class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary {{ classes|default:'' }}"
+        {% if multiple %}multiple{% endif %}>
+  {% if include_blank %}<option value="">{{ include_blank }}</option>{% endif %}
+  {% for option in options %}
+    {% with val=option.value|default:option.key lbl=option.label|default:option.name %}
+    <option value="{{ val }}" {% if val == value %}selected{% endif %}>{{ lbl }}</option>
+    {% endwith %}
+  {% endfor %}
+</select>
+
