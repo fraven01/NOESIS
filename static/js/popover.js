@@ -5,7 +5,7 @@
     function createPopover(content, target){
         removeAll();
         const pop = document.createElement('div');
-        pop.className = 'custom-popover';
+        pop.className = 'custom-popover absolute bg-white border border-gray-300 px-2 py-1 rounded shadow text-sm max-w-[250px] whitespace-normal z-[1000]';
         pop.innerHTML = (content || '').replace(/\n/g, '<br>');
         document.body.appendChild(pop);
         const rect = target.getBoundingClientRect();
