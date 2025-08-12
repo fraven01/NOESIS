@@ -52,7 +52,7 @@
         {% if messages %}
         <div class="mb-4 space-y-2">
             {% for message in messages %}
-            <div class="p-2 rounded bg-primary-light text-primary-dark {{ message.tags }}">
+            <div class="{% if 'success' in message.tags %}alert-success{% else %}alert{% endif %} {{ message.tags }}">
                 {{ message }}
             </div>
             {% endfor %}
