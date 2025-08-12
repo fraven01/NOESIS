@@ -1626,7 +1626,8 @@ def admin_project_cleanup(request, pk):
     )
     context = {
         "projekt": projekt,
-        "files": projekt.anlagen.all(),
+        # Dateien nach Anlagennummer und Version sortieren
+        "files": projekt.anlagen.all().order_by("anlage_nr", "version"),
         "gap_report_exists": gap_report_exists,
     }
     return render(request, "admin_project_cleanup.html", context)

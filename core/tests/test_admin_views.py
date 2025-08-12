@@ -91,6 +91,28 @@ class AdminProjectCleanupTests(NoesisTestCase):
         pf2.refresh_from_db()
         self.assertEqual(self.file.gap_summary, "")
         self.assertEqual(pf2.gap_summary, "")
+
+    def test_version_column_and_sorting(self):
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            version=2,
+            upload=SimpleUploadedFile("a2.txt", b"data"),
+        )
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=2,
+            version=1,
+            upload=SimpleUploadedFile("b1.txt", b"data"),
+        )
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.get(url)
+        files = list(resp.context["files"])
+        self.assertEqual(
+            [(f.anlage_nr, f.version) for f in files],
+            [(1, 1), (1, 2), (2, 1)],
+        )
+        self.assertContains(resp, "<th class=\"py-2\">Version</th>")
 class AdminPromptsViewTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")

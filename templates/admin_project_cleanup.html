@@ -9,6 +9,7 @@
     <thead>
         <tr class="border-b text-left">
             <th class="py-2">Nr.</th>
+            <th class="py-2">Version</th>
             <th class="py-2">Datei</th>
             <th class="py-2 text-center">Löschen</th>
         </tr>
@@ -17,6 +18,7 @@
     {% for f in files %}
         <tr class="border-b text-sm">
             <td class="py-1">{{ f.anlage_nr }}</td>
+            <td class="py-1">{{ f.version }}</td>
             <td class="py-1">{{ f.upload.name }}</td>
             <td class="py-1 text-center">
                 <form method="post">
@@ -28,7 +30,7 @@
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="3">Keine Anlagen vorhanden</td></tr>
+        <tr><td colspan="4">Keine Anlagen vorhanden</td></tr>
     {% endfor %}
     </tbody>
 </table>
