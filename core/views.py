@@ -5802,26 +5802,45 @@ def ki_involvement_detail_edit(request, file_id, function_key):
     if ":" in function_key:
         func_name, sub_text = [p.strip() for p in function_key.split(":", 1)]
 
-    get_object_or_404(Anlage2Function, name=func_name)
+    funktion = get_object_or_404(Anlage2Function, name=func_name)
+    subquestion = None
     if sub_text:
-        get_object_or_404(
+        subquestion = get_object_or_404(
             Anlage2SubQuestion,
-            funktion__name=func_name,
+            funktion=funktion,
             frage_text=sub_text,
         )
 
-    data = (anlage.verification_json or {}).get(function_key, {})
-    initial_text = data.get("ki_beteiligt_begruendung", "")
+    fe = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=anlage,
+            funktion=funktion,
+            subquestion=subquestion,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    initial_text = (
+        fe.ki_beteiligt_begruendung if fe and fe.ki_beteiligt_begruendung else ""
+    )
 
     if request.method == "POST":
         form = JustificationForm(request.POST)
         if form.is_valid():
             text = form.cleaned_data["justification"]
-            vdata = anlage.verification_json or {}
-            entry = vdata.setdefault(function_key, {})
-            entry["ki_beteiligt_begruendung"] = text
-            anlage.verification_json = vdata
-            anlage.save(update_fields=["verification_json"])
+            if fe:
+                fe.ki_beteiligt_begruendung = text
+                fe.save(update_fields=["ki_beteiligt_begruendung"])
+            else:
+                FunktionsErgebnis.objects.create(
+                    anlage_datei=anlage,
+                    funktion=funktion,
+                    subquestion=subquestion,
+                    quelle="ki",
+                    ki_beteiligt_begruendung=text,
+                )
             messages.success(request, "Begründung gespeichert")
             return redirect("projekt_file_edit_json", pk=anlage.pk)
     else:
