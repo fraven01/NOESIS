@@ -3,3 +3,10 @@ repos:
     rev: v8.27.2
     hooks:
       - id: gitleaks
+  - repo: local
+    hooks:
+      - id: contrast-check
+        name: Kontrastprüfung
+        entry: npm --prefix theme/static_src run contrast -- base.html
+        language: system
+        pass_filenames: false
