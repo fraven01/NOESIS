@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static tailwind_tags %}
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Noesis Assistant{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
+    {% tailwind_css %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-mK8e1zgS60F7uO3cu6UytzszbmWzxubUANe0yoyS9MhUlCT3ocOITkkpFmS6r30YIOCwRvDDDeZz7eGRIDcNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -25,7 +25,7 @@
                 <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="Noesis Logo" class="h-8 inline"></a>
             </div>
             <nav class="space-x-4">
-                <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="back-link hover:underline">&larr; Zurück</a>
+                <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="mr-2 hover:underline">&larr; Zurück</a>
                 <a href="/" class="hover:underline">Startseite</a>
                 {% if user.is_authenticated %}
                     <a href="/account/" class="hover:underline">Mein Konto</a>
