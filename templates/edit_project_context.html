@@ -6,6 +6,6 @@
     {% csrf_token %}
     {{ form.project_prompt.label_tag }}
     {{ form.project_prompt }}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
+    {% include 'partials/_button.html' with type='submit' label='Speichern' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded' %}
 </form>
 {% endblock %}

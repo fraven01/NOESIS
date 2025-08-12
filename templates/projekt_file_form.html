@@ -41,7 +41,7 @@
     {{ form.verhandlungsfaehig }} {{ form.verhandlungsfaehig.label_tag }}
     {{ form.verhandlungsfaehig.errors }}
 </div>
-<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded mt-4">Speichern</button>
+{% include 'partials/_button.html' with type='submit' label='Speichern' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded mt-4' %}
 </form>
 {% endblock %}
 

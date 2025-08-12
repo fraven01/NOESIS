@@ -5,9 +5,11 @@
 <p>Diese Notizen werden automatisch erstellt und können hier nicht mehr bearbeitet werden.</p>
 <div class="space-x-2 mt-4">
     {% if project_file %}
-    <a href="{% url 'projekt_file_edit_json' project_file.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+    {% url 'projekt_file_edit_json' project_file.pk as back_url %}
+    {% include 'partials/_button.html' with href=back_url label='Zurück' color_classes='bg-gray-300 text-black' classes='px-4 py-2 rounded' %}
     {% else %}
-    <a href="{% url 'projekt_detail' result.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+    {% url 'projekt_detail' result.project.pk as back_url %}
+    {% include 'partials/_button.html' with href=back_url label='Zurück' color_classes='bg-gray-300 text-black' classes='px-4 py-2 rounded' %}
     {% endif %}
 </div>
 {% endblock %}

@@ -9,12 +9,12 @@
         <label for="model_category" class="font-semibold">LLM-Modell:</label>
         {% for key, data in categories.items %}
             <label class="ml-2">
-                <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                {% include 'partials/_form_input.html' with type='radio' name='model_category' value=key checked=(key == category) base_classes='mr-1' %}
                 {{ data.label }}
             </label>
         {% endfor %}
     </div>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">LLM starten</button>
+    {% include 'partials/_button.html' with type='submit' label='LLM starten' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded' %}
 </form>
 {% if projekt.gutachten_file %}
 <p class="mt-4">
