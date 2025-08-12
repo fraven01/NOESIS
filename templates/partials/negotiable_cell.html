@@ -1,11 +1,11 @@
 {% if row.result_id %}
-<td class="border px-2 text-center negotiable-cell"
+<td class="border px-2 text-center negotiable-cell {% if is_negotiable %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}{% if override is not none %} border-yellow-400{% endif %}"
     hx-post="{% url 'hx_toggle_negotiable' result_id=row.result_id %}"
     hx-target="closest td" hx-swap="outerHTML">
     {% if is_negotiable %}
-    <span class="text-green-600">✅</span>
+    <span>✅</span>
     {% else %}
-    <span class="text-red-600">❌</span>
+    <span>❌</span>
     {% endif %}
     {% if override is not none %}
     <span class="ms-1" title="Manueller Override">👤</span>
