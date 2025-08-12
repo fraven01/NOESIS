@@ -197,11 +197,6 @@ input[type="submit"]:hover {
     background-color: #fffae6;
 }
 
-/* Bereits verhandelte Zeilen deutlich ausgrauen */
-.negotiated-row {
-    opacity: 0.4;
-}
-
 /* Icon für Notiz-Bearbeitung */
 .gap-note-icon {
     cursor: pointer;
