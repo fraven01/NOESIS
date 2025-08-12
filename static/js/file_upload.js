@@ -55,9 +55,9 @@
     // --- Vorschau-Logik aus 'main' ---
     function createPreview(file, container, onRemove, anlageNr) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'preview-item flex flex-col mb-2 border p-2 rounded';
+        wrapper.className = 'flex flex-col mb-2 border p-2 rounded';
         const thumb = document.createElement('div');
-        thumb.className = 'preview-thumb mb-1 text-center';
+        thumb.className = 'mb-1 text-center';
 
         const fileNameSpan = document.createElement('span');
         fileNameSpan.className = "font-bold text-sm mb-2 block";
@@ -112,8 +112,8 @@
             thumb.textContent = '📄 PDF Vorschau';
         } else if (acceptedDocxTypes.includes(file.type)) {
             const docxContainer = document.createElement('div');
-            docxContainer.className = 'preview-docx flex items-center justify-center';
-            docxContainer.innerHTML = '<span class="spinner"></span> wird geladen...';
+            docxContainer.className = 'overflow-auto max-h-80 text-left flex items-center justify-center';
+            docxContainer.innerHTML = `${window.SPINNER_HTML} wird geladen...`;
             thumb.appendChild(docxContainer);
 
             const token = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value;
@@ -134,9 +134,9 @@
         }
 
         const barContainer = document.createElement('div');
-        barContainer.className = 'progress-container bg-gray-200 rounded h-2 w-full mt-2';
+        barContainer.className = 'bg-gray-200 rounded h-2 w-full mt-2 overflow-hidden';
         const bar = document.createElement('div');
-        bar.className = 'progress-bar bg-blue-600 h-2 rounded';
+        bar.className = 'bg-blue-600 h-2 rounded transition-all duration-200 w-0';
         bar.style.width = '0%';
         barContainer.appendChild(bar);
         wrapper.appendChild(barContainer);
@@ -275,7 +275,7 @@
             for (const file of files) {
                 const placeholder = document.createElement('tr');
                 placeholder.innerHTML =
-                    `<td colspan="7"><span class="spinner"></span> ${file.name}</td>`;
+                    `<td colspan="7">${window.SPINNER_HTML} ${file.name}</td>`;
                 tableBody.prepend(placeholder);
                 await sendInlineFile(file, placeholder);
             }

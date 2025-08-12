@@ -17,7 +17,7 @@
 <div id="anlage-edit-{{ anlage.pk }}" class="p-4 text-center"
      hx-get="{% url 'hx_anlage_status' anlage.pk %}"
      hx-trigger="load, every 5s" hx-swap="outerHTML">
-  <span class="spinner"></span> Initiale Prüfung läuft...
+  {% include 'partials/spinner.html' %} Initiale Prüfung läuft...
 </div>
 {% else %}
 <div class="bg-white rounded-lg shadow p-4 space-y-4">
@@ -43,12 +43,12 @@
                 {% endif %}
                 {% endfor %}
                 <th class="border px-2">Verhandlungsfähig</th>
-                <th class="border px-2 action-column">Aktion</th>
+                <th class="border px-2 action-column hidden">Aktion</th>
             </tr>
         </thead>
         <tbody id="anlage2-table-body">
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row hidden subquestions-for-{{ row.func_id }} {% endif %}{% if row.is_negotiable %}opacity-60{% endif %}"
+            <tr class="{% if row.sub %}subquestion-row hidden subquestions-for-{{ row.func_id }} bg-yellow-50 {% endif %}{% if row.is_negotiable %}opacity-60{% endif %}"
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
@@ -96,7 +96,7 @@
                 {% endwith %}
                 {% endfor %}
                 {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
-                <td class="border px-2 text-center action-column">
+                <td class="border px-2 text-center action-column hidden">
                     {% if allow_ai_check %}
                     <button type="button"
                         class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 hover:bg-gray-200"
@@ -166,7 +166,6 @@ function initAnlage2Review() {
     const collapseAllBtn = document.getElementById('collapse-all-subquestions');
     const individualToggleButtons = document.querySelectorAll('.toggle-button');
     const toggleActionsBtn = document.getElementById('toggle-actions');
-    const reviewTable = document.getElementById('anlage2-review-table');
 
     individualToggleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -192,10 +191,10 @@ function initAnlage2Review() {
         });
     }
 
-    if (toggleActionsBtn && reviewTable) {
+    if (toggleActionsBtn) {
         toggleActionsBtn.addEventListener('click', () => {
-            reviewTable.classList.toggle('actions-visible');
-            const visible = reviewTable.classList.contains('actions-visible');
+            document.querySelectorAll('.action-column').forEach(c => c.classList.toggle('hidden'));
+            const visible = Array.from(document.querySelectorAll('.action-column')).some(c => !c.classList.contains('hidden'));
             toggleActionsBtn.textContent = visible ? 'Aktionen ausblenden' : 'Aktionen einblenden';
         });
     }
@@ -311,11 +310,11 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        icon.classList.remove('status-badge','bg-green-500','bg-red-500','bg-yellow-500','text-white');
+        icon.classList.remove('bg-green-500','bg-red-500','bg-yellow-500','text-white');
         if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
             // Farbgebung ausschließlich anhand des Dokumentenwertes
             const displayVal = docVal === true;
-            icon.classList.add('status-badge', displayVal ? 'bg-green-500' : 'bg-red-500', 'text-white');
+            icon.classList.add(displayVal ? 'bg-green-500' : 'bg-red-500', 'text-white');
             updatePopoverContent(icon);
             if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
                 needsReviewRow = true;
@@ -333,7 +332,7 @@ function updateRowAppearance(row) {
                 cls = docVal === aiVal ? 'bg-green-500' : 'bg-red-500';
             }
         }
-        icon.classList.add('status-badge', cls, 'text-white');
+        icon.classList.add(cls, 'text-white');
         updatePopoverContent(icon);
         if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
             needsReviewRow = true;

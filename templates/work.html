@@ -14,7 +14,7 @@
         {% if tile.image %}
         <img src="{{ tile.image.url }}" class="h-32 w-full object-cover" alt="{{ tile.name }}">
         {% else %}
-        <div class="h-32 tile-bg flex items-center justify-center">
+        <div class="h-32 bg-gradient-to-r from-primary to-primary-dark text-white flex items-center justify-center">
             <i class="{{ tile.icon }} text-white text-4xl"></i>
         </div>
         {% endif %}

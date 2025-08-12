@@ -523,7 +523,7 @@ class BVProjectFileTests(NoesisTestCase):
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
             resp = self.client.get(url)
-        self.assertContains(resp, "disabled-btn")
+        self.assertContains(resp, "Analyse läuft")
 
     def test_hx_project_file_status_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -539,7 +539,7 @@ class BVProjectFileTests(NoesisTestCase):
             url = reverse("hx_anlage_status", args=[pf.pk])
             resp = self.client.get(url)
         self.assertContains(resp, "hx-trigger")
-        self.assertContains(resp, "spinner")
+        self.assertContains(resp, "animate-spin")
 
     def test_hx_project_file_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -568,7 +568,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
-        self.assertContains(resp, "spinner")
+        self.assertContains(resp, "animate-spin")
 
     def test_hx_anlage_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
