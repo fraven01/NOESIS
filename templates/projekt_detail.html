@@ -38,7 +38,7 @@
     {% url 'gap_report_view' projekt.pk as gap_url %}
     {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' %}
     {% else %}
-    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' color_classes='bg-gray-300 text-gray-500' disabled=True %}
+    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' color_classes='bg-gray-300 text-gray-700' disabled=True %}
     {% endif %}
 </p>
 </div>
