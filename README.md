@@ -231,8 +231,8 @@ zusätzliche Inline-Tabelle, über die sich die verfügbaren Tiles wie
 ### Modernisiertes Admin-Interface
 
 Das Django-Admin wurde optisch überarbeitet. Eine Seitenleiste listet alle
-Modelle übersichtlich auf und bietet eine Suchleiste. Die neue Datei
-`static/css/admin.css` steuert das Layout.
+Modelle übersichtlich auf und bietet eine Suchleiste. Das Layout wird
+vollständig über Tailwind-Klassen gesteuert.
 
 ### Admin-Bereiche
 

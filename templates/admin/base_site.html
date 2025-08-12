@@ -3,40 +3,37 @@
 
 {% block title %}{{ title }} | NOESIS Admin{% endblock %}
 
-{% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
-{% endblock %}
+{% block extra_head %}{% endblock %}
 
 {% block content %}
 <div class="max-w-screen-2xl mx-auto">
-    <div class="admin-container">
-        <section class="admin-content">
-            <div class="flex flex-col md:flex-row gap-6">
-                <aside class="admin-sidebar">
+    <section class="flex-1 p-4">
+        <div class="flex flex-col md:flex-row gap-6">
+            <aside class="bg-gray-50 p-4 border-r border-gray-200 overflow-y-auto w-full md:w-64 flex-shrink-0">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
-        <nav class="admin-nav space-y-4 text-sm">
+        <nav class="space-y-4 text-sm">
             <div>
-                <a href="/projects-admin/" class="nav-link bg-blue-600 text-white font-bold">
+                <a href="/projects-admin/" class="flex items-center px-3 py-2 rounded bg-blue-600 text-white font-semibold">
                     <i class="fas fa-project-diagram fa-fw mr-2"></i>
                     Projekt-Admin
                 </a>
             </div>
             <div>
                 {% with open_ki=request.resolver_match.url_name %}
-                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-gray-600 uppercase tracking-wider text-sm">
                     <span>KI-Konfiguration</span>
-                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}rotate-180{% endif %}"></i>
+                    <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}rotate-180{% endif %}"></i>
                 </h3>
                 <div class="accordion-content pl-2 space-y-1 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_llm_roles' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_llm_roles' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin_llm_roles' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_llm_roles' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-user-gear fa-fw mr-2"></i>
                         LLM-Rollen
                     </a>
-                    <a href="{% url 'admin_prompts' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_prompts' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin_prompts' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_prompts' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-pencil-alt fa-fw mr-2"></i>
                         Prompts
                     </a>
-                    <a href="{% url 'admin_models' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_models' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin_models' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_models' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-robot fa-fw mr-2"></i>
                         LLM-Modelle
                     </a>
@@ -45,24 +42,24 @@
             </div>
             <div>
                 {% with open_sys=request.resolver_match.url_name %}
-                <h3 class="accordion-header text-gray-600 uppercase tracking-wider text-sm">
+                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-gray-600 uppercase tracking-wider text-sm">
                     <span>Systemverwaltung</span>
-                    <i class="fas fa-chevron-down accordion-icon ml-2 {% if open_sys in 'admin_user_list auth_group_changelist' %}rotate-180{% endif %}"></i>
+                    <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_sys in 'admin_user_list auth_group_changelist' %}rotate-180{% endif %}"></i>
                 </h3>
                 <div class="accordion-content pl-2 space-y-1 {% if open_sys in 'admin_user_list auth_group_changelist' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_user_list' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_user_list' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin_user_list' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_user_list' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-users fa-fw mr-2"></i>
                         Benutzer verwalten
                     </a>
-                    <a href="{% url 'admin:auth_group_changelist' %}" class="nav-link {% if request.resolver_match.url_name == 'auth_group_changelist' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin:auth_group_changelist' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'auth_group_changelist' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-user-shield fa-fw mr-2"></i>
                         Gruppen
                     </a>
-                    <a href="{% url 'admin_role_editor' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_role_editor' %}active-nav-link{% endif %}">
+                    <a href="{% url 'admin_role_editor' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_role_editor' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-check-square fa-fw mr-2"></i>
                         Rollen &amp; Rechte
                     </a>
-                    <a href="{% url 'config_transfer' %}" class="nav-link {% if request.resolver_match.url_name == 'config_transfer' %}active-nav-link{% endif %}">
+                    <a href="{% url 'config_transfer' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'config_transfer' %}bg-blue-600 text-white font-semibold{% endif %}">
                         <i class="fas fa-exchange-alt fa-fw mr-2"></i>
                         Konfigurationen übertragen
                     </a>
@@ -70,29 +67,28 @@
                 {% endwith %}
             </div>
         </nav>
-                </aside>
+            </aside>
 
-                <div class="flex-1">
+            <div class="flex-1">
                     {% block admin_content %}
                         <div id="content-main">
                             {% block object-tools %}{% endblock %}
                             {{ content }}
                         </div>
                     {% endblock %}
-                </div>
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.accordion-header').forEach(function(header) {
+        document.querySelectorAll('[data-accordion-header]').forEach(function(header) {
             header.addEventListener('click', function() {
                 const content = header.nextElementSibling;
-                const icon = header.querySelector('.accordion-icon');
+                const icon = header.querySelector('[data-accordion-icon]');
                 content.classList.toggle('hidden');
                 if (icon) {
                     icon.classList.toggle('rotate-180');
