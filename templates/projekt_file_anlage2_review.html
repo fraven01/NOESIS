@@ -48,7 +48,7 @@
         </thead>
         <tbody id="anlage2-table-body">
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }} {% endif %}{% if row.is_negotiable %}negotiated-row{% endif %}"
+            <tr class="{% if row.sub %}subquestion-row hidden-row subquestions-for-{{ row.func_id }} {% endif %}{% if row.is_negotiable %}opacity-40{% endif %}"
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
@@ -370,7 +370,7 @@ function updateRowAppearance(row) {
         }
         row.dataset.negotiable = cellVal ? 'true' : 'false';
         updateNegotiableCell(negCell, cellVal, override);
-        row.classList.toggle('negotiated-row', cellVal);
+        row.classList.toggle('opacity-40', cellVal);
     }
     row.dataset.requiresReview = needsReviewRow ? 'true' : 'false';
     const indicator = row.querySelector('.text-danger.text-sm');
