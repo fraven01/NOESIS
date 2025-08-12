@@ -1,0 +1,8 @@
+{
+  "chromeLaunchConfig": {
+    "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+  },
+  "defaults": {
+    "timeout": 10000
+  }
+}
