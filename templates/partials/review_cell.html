@@ -1,7 +1,8 @@
 {% load recording_extras %}
 <td class="border px-2 text-center">
     {% if row.result_id %}
-    <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
+    {% with doc_val=row.doc_result|get_item:field_name ai_val=row.ai_result|get_item:field_name manual_val=row.manual_result|get_item:field_name %}
+    <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %} {% if manual_val != '' and manual_val != doc_val %}bg-yellow-100 text-yellow-800{% elif manual_val == '' and doc_val != '' and ai_val != '' and doc_val != ai_val %}bg-yellow-100 text-yellow-800{% else %}{{ state|yesno:'bg-green-100 text-green-800,bg-red-100 text-red-800,' }}{% endif %}"
             data-field-name="{{ field_name }}"
             data-is-manual="{{ is_manual|yesno:'true,false' }}"
             hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
@@ -12,6 +13,7 @@
         ✗ Nicht vorhanden
         {% endif %}
     </button>
+    {% endwith %}
     <span class="source-icon" title="{{ source }}">
         {% if source == 'Manuell' %}
         <i class="fas fa-user"></i>
