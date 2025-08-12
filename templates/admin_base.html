@@ -17,18 +17,18 @@
                 <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
                 {% with current=request.resolver_match.url_name %}
                 <div>
-                    <h4 class="accordion-header">
+                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
                         <span>Anlage 1</span>
-                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
+                        <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'admin_anlage1' %}block{% else %}hidden{% endif %}">
                         <a href="{% url 'admin_anlage1' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'admin_anlage1' %}bg-primary text-white{% else %}text-primary{% endif %}">Fragen</a>
                     </div>
                 </div>
                 <div>
-                    <h4 class="accordion-header">
+                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
                         <span>Anlage 2</span>
-                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
+                        <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
                         <a href="{% url 'anlage2_function_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_function_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Funktionen</a>
@@ -36,27 +36,27 @@
                     </div>
                 </div>
                 <div>
-                    <h4 class="accordion-header">
+                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
                         <span>Anlage 3</span>
-                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
+                        <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage3_rule_list' %}block{% else %}hidden{% endif %}">
                         <a href="{% url 'anlage3_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage3_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Parser Regeln</a>
                     </div>
                 </div>
                 <div>
-                    <h4 class="accordion-header">
+                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
                         <span>Anlage 4</span>
-                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
+                        <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage4_config' %}block{% else %}hidden{% endif %}">
                         <a href="{% url 'anlage4_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage4_config' %}bg-primary text-white{% else %}text-primary{% endif %}">Konfiguration</a>
                     </div>
                 </div>
                 <div>
-                    <h4 class="accordion-header">
+                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
                         <span>Allgemein</span>
-                        <i class="fas fa-chevron-down accordion-icon ml-2 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
+                        <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}block{% else %}hidden{% endif %}">
                         <a href="{% url 'parser_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'parser_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Exakter Parser Regeln</a>
@@ -90,10 +90,10 @@
 {{ block.super }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.accordion-header').forEach(function(header) {
+        document.querySelectorAll('[data-accordion-header]').forEach(function(header) {
             header.addEventListener('click', function() {
                 const content = header.nextElementSibling;
-                const icon = header.querySelector('.accordion-icon');
+                const icon = header.querySelector('[data-accordion-icon]');
                 content.classList.toggle('hidden');
                 if (icon) {
                     icon.classList.toggle('rotate-180');
