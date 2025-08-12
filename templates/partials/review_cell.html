@@ -1,15 +1,17 @@
 {% load recording_extras %}
-<td class="border px-2 text-center">
+<td class="border px-2 text-center {% if state is True %}bg-green-500 text-white{% elif state is False %}bg-red-500 text-white{% else %}bg-yellow-500 text-black{% endif %}">
     {% if row.result_id %}
-    <button class="tri-state-icon{% if field_name == 'technisch_vorhanden' and row.sub %} disabled-field{% endif %}"
+    <button class="tri-state-icon {% if field_name == 'technisch_vorhanden' and row.sub %}disabled-field {% endif %}{% if state is True %}bg-green-500 text-white{% elif state is False %}bg-red-500 text-white{% else %}bg-yellow-500 text-black{% endif %}"
             data-field-name="{{ field_name }}"
             data-is-manual="{{ is_manual|yesno:'true,false' }}"
             hx-post="{% url 'hx_update_review_cell' result_id=row.result_id field_name=field_name %}{% if row.sub_id %}?sub_id={{ row.sub_id }}{% endif %}"
             hx-target="closest tr" hx-swap="outerHTML">
-        {% if state == True %}
+        {% if state is True %}
         ✓ Vorhanden
-        {% else %}
+        {% elif state is False %}
         ✗ Nicht vorhanden
+        {% else %}
+        ! Konflikt
         {% endif %}
     </button>
     <span class="source-icon" title="{{ source }}">
