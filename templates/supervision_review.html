@@ -7,7 +7,7 @@
 <div id="anlage-edit-{{ pf.pk }}" class="p-4 text-center"
      hx-get="{% url 'hx_anlage_status' pf.pk %}"
      hx-trigger="load, every 5s" hx-swap="outerHTML">
-  <span class="spinner"></span> Initiale Prüfung läuft...
+  {% include 'partials/spinner.html' %} Initiale Prüfung läuft...
 </div>
 {% else %}
 <div class="space-y-4">

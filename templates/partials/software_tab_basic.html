@@ -15,11 +15,11 @@
             <td class="px-2 py-1">{{ row.name }}</td>
             <td class="px-2 py-1 text-center">
                 {% if row.entry and row.entry.is_known_by_llm is True %}
-                    <span class="badge status-ja">✓ Bekannt</span>
+                    {% include 'partials/status_badge.html' with status_key='ja' label='✓ Bekannt' %}
                 {% elif row.entry and row.entry.is_known_by_llm is False %}
-                    <span class="badge status-nein">✗ Nicht bekannt</span>
+                    {% include 'partials/status_badge.html' with status_key='nein' label='✗ Nicht bekannt' %}
                 {% else %}
-                    <span class="badge status-unbekannt">? Ungeprüft</span>
+                    {% include 'partials/status_badge.html' with status_key='unbekannt' label='? Ungeprüft' %}
                 {% endif %}
             </td>
             <td class="px-2 py-1">

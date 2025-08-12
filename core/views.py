@@ -694,7 +694,7 @@ def _build_row_data(
             attrs.update(
                 {
                     "disabled": True,
-                    "class": "disabled-field",
+                    "class": "opacity-50 pointer-events-none",
                     "data-initial-state": "unknown",
                 }
             )

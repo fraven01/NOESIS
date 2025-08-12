@@ -10,11 +10,13 @@ function safeJsonParse(jsonString) {
     }
 }
 
+window.SPINNER_HTML = '<span class="inline-block w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin align-[-0.125em]"></span>';
+
 function showSpinner(buttonElement, spinnerText = 'Wird geladen...') {
     if (!buttonElement) return;
     buttonElement.dataset.originalHtml = buttonElement.innerHTML;
     buttonElement.disabled = true;
-    buttonElement.innerHTML = `<span class="spinner"></span>${spinnerText ? ' ' + spinnerText : ''}`;
+    buttonElement.innerHTML = `${window.SPINNER_HTML}${spinnerText ? ' ' + spinnerText : ''}`;
 }
 
 function hideSpinner(buttonElement) {

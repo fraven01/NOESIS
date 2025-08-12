@@ -4,7 +4,7 @@
         <td class="py-1">{{ p.beschreibung|truncatechars:50 }}</td>
         <td class="py-1">{{ p.software_string }}</td>
         <td class="py-1">
-            <span class="status-badge status-badge-{{ p.status.key|lower }}">{{ p.status.name }}</span>
+            {% include 'partials/status_badge.html' with status_key=p.status.key label=p.status.name %}
         </td>
     </tr>
 {% empty %}
