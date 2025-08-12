@@ -881,7 +881,7 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
             {
                 "function": func,
                 "subrows": subrows,
-                "show_subs": bool(present),
+                "show_subs": bool(present) or not func,
             }
         )
     return groups
