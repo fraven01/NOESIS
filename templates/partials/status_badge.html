@@ -1,3 +1,3 @@
 {% with key=status_key|lower %}
-<span class="{% if key == 'new' or key == 'classified' %}badge-blue{% elif key == 'in_pruefung_anlage_x' or key == 'fb_in_pruefung' %}badge-yellow{% elif key == 'gutachten_ok' or key == 'gutachten_freigegeben' or key == 'endgeprueft' or key == 'ja' %}badge-green{% elif key == 'error' %}badge-red{% elif key == 'nein' or key == 'unbekannt' %}badge-gray{% else %}badge-gray{% endif %}">{{ label }}</span>
+<span class="badge {% if key == 'new' or key == 'classified' %}badge-blue{% elif key == 'in_pruefung_anlage_x' or key == 'fb_in_pruefung' %}badge-yellow{% elif key == 'gutachten_ok' or key == 'gutachten_freigegeben' or key == 'endgeprueft' or key == 'ja' %}badge-green{% elif key == 'error' %}badge-red{% elif key == 'nein' or key == 'unbekannt' %}badge-gray{% else %}badge-gray{% endif %}">{{ label }}</span>
 {% endwith %}
