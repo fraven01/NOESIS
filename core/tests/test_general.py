@@ -3858,6 +3858,42 @@ class JustificationDetailEditTests(NoesisTestCase):
         self.assertContains(resp, "Begruendung")
 
 
+class KIInvolvementDetailEditTests(NoesisTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("kid", password="pw")
+        self.client.login(username="kid", password="pw")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.file = BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("kid.txt", b"data"),
+            manual_analysis_json={"functions": {}},
+            analysis_json={},
+            verification_json={"functions": {}},
+        )
+        self.func = Anlage2Function.objects.create(name="Export")
+        FunktionsErgebnis.objects.create(
+            anlage_datei=self.file,
+            funktion=self.func,
+            quelle="ki",
+            ki_beteiligt_begruendung="Initial",
+        )
+
+    def test_get_loads_text(self):
+        url = reverse("ki_involvement_detail_edit", args=[self.file.pk, self.func.name])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Initial")
+
+    def test_post_updates_value(self):
+        url = reverse("ki_involvement_detail_edit", args=[self.file.pk, self.func.name])
+        resp = self.client.post(url, {"justification": "Neu"})
+        self.assertRedirects(resp, reverse("projekt_file_edit_json", args=[self.file.pk]))
+        fe = FunktionsErgebnis.objects.get(
+            anlage_datei=self.file, funktion=self.func, quelle="ki"
+        )
+        self.assertEqual(fe.ki_beteiligt_begruendung, "Neu")
+
+
 class VerificationToInitialTests(NoesisTestCase):
     def setUp(self):
         self.project = BVProject.objects.create(software_typen="A", beschreibung="x")
