@@ -3,7 +3,7 @@
   <section>
     <h3 class="font-semibold mb-2">Projekt-Steckbrief</h3>
     <p class="text-lg font-semibold">{{ projekt.title }}</p>
-    <span class="status-badge status-badge-{{ projekt.status.key|lower }}">{{ projekt.status.name }}</span>
+    {% include 'partials/status_badge.html' with status_key=projekt.status.key label=projekt.status.name %}
     <p class="mt-1 text-sm"><strong>Software:</strong> {{ projekt.software_string }}</p>
     <p class="mt-1 text-sm"><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
   </section>
@@ -34,7 +34,7 @@
         Anlage {{ nr }}:
         {% if file %}
           <a href="{{ file.upload.url }}" class="underline" title="{{ file.upload.name|clean_filename }}">{{ file.upload.name|clean_filename }}</a>
-          {% if file.processing_status == 'COMPLETE' %}<i class="fas fa-check text-green-600"></i>{% elif file.processing_status == 'FAILED' %}<i class="fas fa-times text-red-600"></i>{% elif file.processing_status == 'PROCESSING' %}<span class="spinner"></span>{% else %}<i class="fas fa-clock text-gray-500"></i>{% endif %}
+          {% if file.processing_status == 'COMPLETE' %}<i class="fas fa-check text-green-600"></i>{% elif file.processing_status == 'FAILED' %}<i class="fas fa-times text-red-600"></i>{% elif file.processing_status == 'PROCESSING' %}{% include 'partials/spinner.html' %}{% else %}<i class="fas fa-clock text-gray-500"></i>{% endif %}
           {% if file.verhandlungsfaehig %}<i class="fas fa-handshake text-green-600 ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fas fa-handshake-slash text-gray-400 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
         {% else %}
           <span class="text-gray-500">fehlt</span>

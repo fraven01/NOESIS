@@ -32,7 +32,7 @@
     </td>
     <td class="px-2 py-1 text-center">
         {% if anlage.parent %}
-            <a href="{% url 'compare_versions' anlage.pk %}" class="table-action-btn table-action-primary">Mit Vorgänger vergleichen</a>
+            <a href="{% url 'compare_versions' anlage.pk %}" class="inline-block px-1 py-0.5 rounded bg-primary text-white text-sm hover:bg-primary-dark">Mit Vorgänger vergleichen</a>
         {% endif %}
     </td>
     <td class="px-2 py-1 text-center">
@@ -40,7 +40,7 @@
               hx-target="closest tr" hx-swap="outerHTML" method="post">
             {% csrf_token %}
             <input type="hidden" name="value" value="{{ anlage.manual_reviewed|yesno:'0,1' }}">
-            <button class="status-toggle-btn" title="Geprüft umschalten">
+            <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Geprüft umschalten">
                 {% if anlage.manual_reviewed %}
                 <span class="text-green-600">✓</span>
                 {% else %}
@@ -54,7 +54,7 @@
               hx-target="closest tr" hx-swap="outerHTML" method="post">
             {% csrf_token %}
             <input type="hidden" name="value" value="{{ anlage.verhandlungsfaehig|yesno:'0,1' }}">
-            <button class="status-toggle-btn" title="Verhandlungsfähigkeit umschalten">
+            <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Verhandlungsfähigkeit umschalten">
                 {% if anlage.verhandlungsfaehig %}
                 <span class="text-green-600">✓</span>
                 {% else %}

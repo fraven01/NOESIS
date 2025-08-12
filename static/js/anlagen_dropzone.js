@@ -25,7 +25,7 @@ function initDropzone() {
         const rowId = 'upl-' + Math.random().toString(36).slice(2);
         const row = document.createElement('tr');
         row.id = rowId;
-        row.innerHTML = `<td colspan="${colspan}"><span class="spinner"></span> ${file.name}</td>`;
+        row.innerHTML = `<td colspan="${colspan}">${window.SPINNER_HTML} ${file.name}</td>`;
         tableBody.prepend(row);
 
         const data = new FormData();
