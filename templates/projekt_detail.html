@@ -11,7 +11,7 @@
 </h1>
 <div class="lg:flex lg:space-x-4">
 <div class="lg:w-2/3 space-y-6">
-<div class="bg-white rounded-lg shadow p-4">
+<div class="card">
 <p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
 <p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
 <p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
@@ -43,7 +43,7 @@
 </p>
 </div>
 
-<div class="bg-white rounded-lg shadow p-4">
+<div class="card">
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
 <nav class="flex space-x-2 mb-4" id="anlage-tabs-nav">
   {% for nr in anlage_numbers %}
@@ -59,7 +59,7 @@
 </div>
 
 
-<div class="bg-white rounded-lg shadow p-4">
+<div class="card">
 <h2 class="text-xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h2>
 <nav class="flex space-x-2 mb-4">
   <button class="software-tab px-3 py-1 border-b-2 border-primary text-primary"

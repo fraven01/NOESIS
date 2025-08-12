@@ -69,6 +69,12 @@ auszuführen.
 - Die erste Zeile besteht aus einer kurzen Zusammenfassung, gefolgt von einer
   Leerzeile und einer optionalen genaueren Beschreibung.
 
+### CSS-Komponenten
+
+Hintergrund- und Textfarben dürfen ausschließlich über die in
+`theme/static_src/src/components.css` definierten Utility-Klassen wie
+`.card`, `.badge` oder `.alert-success` gesetzt werden.
+
 ## Logging
 
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
