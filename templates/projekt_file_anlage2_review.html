@@ -265,7 +265,7 @@ function updatePopoverContent(icon) {
         else manualVal = manualEntry;
     }
     const manualHtml = hasManual ?
-        `<span class="popover-manual">Manuell: ${manualVal}</span>` :
+        `<span class="font-bold">Manuell: ${manualVal}</span>` :
         'Manuell: -';
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
                  `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
