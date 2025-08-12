@@ -10,7 +10,7 @@
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Funktionen prüfen</h1>
 <p>
   {% url 'anlage2_supervision' anlage.project.pk as supervision_url %}
-  {% include 'partials/_button.html' with href=supervision_url label='Zur neuen Supervisions-Ansicht wechseln' color_classes='bg-purple-600 text-white' classes='px-3 py-1 rounded' %}
+{% include 'partials/_button.html' with href=supervision_url label='Zur neuen Supervisions-Ansicht wechseln' variant='purple' classes='px-3 py-1 rounded' %}
 </p>
 {% if anlage.processing_status == 'PROCESSING' or anlage.is_verification_running %}
 <div id="anlage-edit-{{ anlage.pk }}" class="p-4 text-center"
@@ -23,9 +23,9 @@
 <form method="post" class="space-y-4" data-anlage-id="{{ anlage.pk }}">
     {% csrf_token %}
     <div class="mb-3">
-        {% include 'partials/_button.html' with type='button' id='expand-all-subquestions' label='Alle aufklappen' color_classes='bg-gray-300 text-black' classes='px-2 py-1 rounded' %}
-        {% include 'partials/_button.html' with type='button' id='collapse-all-subquestions' label='Alle einklappen' color_classes='bg-gray-300 text-black' classes='px-2 py-1 rounded' %}
-        {% include 'partials/_button.html' with type='button' id='toggle-actions' label='Aktionen einblenden' color_classes='bg-gray-300 text-black' classes='px-2 py-1 rounded ml-4' %}
+        {% include 'partials/_button.html' with type='button' id='expand-all-subquestions' label='Alle aufklappen' variant='secondary' classes='px-2 py-1 rounded' %}
+        {% include 'partials/_button.html' with type='button' id='collapse-all-subquestions' label='Alle einklappen' variant='secondary' classes='px-2 py-1 rounded' %}
+        {% include 'partials/_button.html' with type='button' id='toggle-actions' label='Aktionen einblenden' variant='secondary' classes='px-2 py-1 rounded ml-4' %}
     </div>
     <div class="overflow-x-auto">
     <table id="anlage2-review-table" class="table-auto w-full border">
@@ -112,7 +112,7 @@
     </table>
     <div class="mb-2">
         {% if allow_ai_check %}
-        {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' color_classes='bg-green-600 text-white' classes='px-2 py-1 rounded' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
+        {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' variant='success' classes='px-2 py-1 rounded' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
         {% endif %}
         <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>

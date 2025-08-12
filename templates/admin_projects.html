@@ -38,10 +38,10 @@
     {% csrf_token %}
     {% if projects %}
     <div class="mt-4 space-x-2">
-        {% include 'partials/_button.html' with type='button' id='import-btn' label='Importieren' color_classes='bg-green-600 text-white hover:bg-green-700' %}
+        {% include 'partials/_button.html' with type='button' id='import-btn' label='Importieren' variant='success' %}
         {% url 'admin_project_export' as export_url %}
-        {% include 'partials/_button.html' with type='submit' id='export-btn' formaction=export_url label='Exportieren' disabled=True %}
-        {% include 'partials/_button.html' with type='submit' name='delete_selected' label='Markierte löschen' color_classes='bg-red-600 text-white hover:bg-red-700' onclick="return confirm('Einträge wirklich löschen?');" %}
+        {% include 'partials/_button.html' with type='submit' id='export-btn' formaction=export_url label='Exportieren' variant='primary' disabled=True %}
+        {% include 'partials/_button.html' with type='submit' name='delete_selected' label='Markierte löschen' variant='danger' onclick="return confirm('Einträge wirklich löschen?');" %}
     </div>
     {% endif %}
 </form>

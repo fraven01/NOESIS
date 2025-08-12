@@ -6,7 +6,7 @@
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}
 {% if is_admin %}
 {% url 'admin_projects' as admin_url %}
-{% include 'partials/_button.html' with href=admin_url label='Admin' color_classes='bg-red-600 text-white hover:bg-red-700' classes='ml-2' %}
+{% include 'partials/_button.html' with href=admin_url label='Admin' variant='danger' classes='ml-2' %}
 {% endif %}
 </h1>
 <div class="lg:flex lg:space-x-4">
@@ -26,7 +26,7 @@
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
     {% include 'partials/_form_select.html' with name='status' id='status' options=status_choices value=projekt.status.key classes='' %}
-    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' classes='' %}
+    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' variant='primary' classes='' %}
 </form>
 <p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline">Gap-Analyse herunterladen</a>
@@ -36,9 +36,9 @@
 <p class="mb-4">
     {% if can_gap_report %}
     {% url 'gap_report_view' projekt.pk as gap_url %}
-    {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' %}
+    {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='primary' %}
     {% else %}
-    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' color_classes='bg-gray-300 text-gray-500' disabled=True %}
+    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='disabled' disabled=True %}
     {% endif %}
 </p>
 </div>
