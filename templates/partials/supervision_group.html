@@ -1,9 +1,11 @@
-<details class="border rounded" {% if group.function.has_discrepancy %}open{% endif %}>
-  <summary class="p-2 cursor-pointer {% if group.function.has_discrepancy %}bg-red-100{% else %}bg-gray-100{% endif %}">
-    {{ group.function.name }}
+<details class="border rounded" {% if group.function and group.function.has_discrepancy %}open{% endif %}>
+  <summary class="p-2 cursor-pointer {% if group.function and group.function.has_discrepancy %}bg-red-100{% else %}bg-gray-100{% endif %}">
+    {% if group.function %}{{ group.function.name }}{% else %}{{ group.name }}{% endif %}
     {% if group.subrows %}<span class="ms-2">+</span>{% endif %}
   </summary>
-  {% include 'partials/supervision_row_content.html' with row=group.function standard_notes=standard_notes %}
+  {% if group.function %}
+    {% include 'partials/supervision_row_content.html' with row=group.function standard_notes=standard_notes %}
+  {% endif %}
   {% if group.show_subs and group.subrows %}
   <div class="ms-4 space-y-4 mt-2">
     {% for sub in group.subrows %}
