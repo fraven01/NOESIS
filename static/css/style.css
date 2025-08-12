@@ -52,11 +52,6 @@
     display: none;
 }
 
-/* Neue Klasse für ein- und ausblendbare Zeilen */
-.hidden-row {
-    display: none;
-}
-
 /* Zeilen, die durch den Filter versteckt werden */
 .filter-hidden {
     display: none;
