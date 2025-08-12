@@ -93,6 +93,9 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.is_admin",
             ],
+            "libraries": {
+                "ui_extras": "core.templatetags.ui_extras",
+            },
         },
     },
 ]
