@@ -1,6 +1,7 @@
+{% load ui_extras %}
 {% if href %}
-<a href="{{ href }}" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {{ attrs|default:'' }} class="inline-flex items-center px-4 py-2 rounded {{ color_classes|default:'bg-primary text-white hover:bg-primary-dark' }} {{ classes|default:'' }}">{{ label }}</a>
+<a href="{{ href }}" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {{ attrs|default:'' }} class="inline-flex items-center px-4 py-2 rounded {{ btn_classes(variant) }} {{ classes|default:'' }}">{{ label }}</a>
 {% else %}
-<button type="{{ type|default:'button' }}" {% if id %}id="{{ id }}"{% endif %} {% if name %}name="{{ name }}"{% endif %} {% if formaction %}formaction="{{ formaction }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} {{ attrs|default:'' }} class="inline-flex items-center px-4 py-2 rounded {{ color_classes|default:'bg-primary text-white hover:bg-primary-dark' }} {{ classes|default:'' }}">{{ label }}</button>
+<button type="{{ type|default:'button' }}" {% if id %}id="{{ id }}"{% endif %} {% if name %}name="{{ name }}"{% endif %} {% if formaction %}formaction="{{ formaction }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} {{ attrs|default:'' }} class="inline-flex items-center px-4 py-2 rounded {{ btn_classes(variant) }} {{ classes|default:'' }}">{{ label }}</button>
 {% endif %}
 

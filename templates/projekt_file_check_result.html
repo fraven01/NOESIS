@@ -10,9 +10,9 @@
             {{ data.label }}
         </label>
     {% endfor %}
-    {% include 'partials/_button.html' with type='submit' label='Neu prüfen' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded ml-2' %}
+    {% include 'partials/_button.html' with type='submit' label='Neu prüfen' variant='primary' classes='px-4 py-2 rounded ml-2' %}
     {% if anlage.anlage_nr == 2 %}
-    {% include 'partials/_button.html' with type='submit' name='llm' value='1' label='LLM-Check' color_classes='bg-purple-600 text-white' classes='px-4 py-2 rounded ml-2' %}
+    {% include 'partials/_button.html' with type='submit' name='llm' value='1' label='LLM-Check' variant='purple' classes='px-4 py-2 rounded ml-2' %}
     {% endif %}
 </form>
 <form method="post" class="space-y-4">
@@ -33,10 +33,10 @@
     </div>
     {% endif %}
     <div class="space-x-2">
-        {% include 'partials/_button.html' with type='submit' label='Speichern' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded' %}
+        {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-4 py-2 rounded' %}
         {% url 'projekt_detail' anlage.project.pk as detail_url %}
-        {% include 'partials/_button.html' with href=detail_url label='Zurück' color_classes='bg-gray-300 text-black' classes='px-4 py-2 rounded' %}
-        {% include 'partials/_button.html' with type='button' id='copy-email' label='E-Mail kopieren' color_classes='bg-green-600 text-white' classes='px-4 py-2 rounded' %}
+        {% include 'partials/_button.html' with href=detail_url label='Zurück' variant='secondary' classes='px-4 py-2 rounded' %}
+        {% include 'partials/_button.html' with type='button' id='copy-email' label='E-Mail kopieren' variant='success' classes='px-4 py-2 rounded' %}
     </div>
 </form>
 <script>

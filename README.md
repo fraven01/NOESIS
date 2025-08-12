@@ -69,6 +69,7 @@ auszuführen.
 - Die erste Zeile besteht aus einer kurzen Zusammenfassung, gefolgt von einer
   Leerzeile und einer optionalen genaueren Beschreibung.
 
+3
 ## Farbkontrast
 
 Um eine gute Lesbarkeit zu gewährleisten, müssen Text und Hintergrund ein ausreichendes Kontrastverhältnis nach WCAG 2.1 aufweisen. Für normalen Text gilt ein Mindestwert von **4.5 : 1**, für große Schrift (≥ 18 pt oder ≥ 14 pt fett) genügt **3 : 1**.
@@ -92,6 +93,13 @@ Folgende Farbkombinationen sind in `theme/static_src/tailwind.config.js` hinterl
 | gray 900        | #111827  | Weiß                 | 17.74 : 1          |
 
 Neue UI-Komponenten müssen diese Richtlinien erfüllen und vor dem Commit die automatisierten Checks (z. B. `python manage.py makemigrations --check` und Tests) erfolgreich durchlaufen.
+
+### CSS-Komponenten
+
+Hintergrund- und Textfarben dürfen ausschließlich über die in
+`theme/static_src/src/components.css` definierten Utility-Klassen wie
+`.card`, `.badge` oder `.alert-success` gesetzt werden.
+
 
 ## Logging
 
