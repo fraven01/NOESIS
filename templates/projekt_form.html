@@ -23,18 +23,18 @@
                 {% if software_list %}
                     {% for name in software_list %}
                     <div class="flex items-center space-x-2">
-                        <input type="text" name="software_typen" value="{{ name }}" class="flex-grow border rounded p-2">
-                        <button type="button" class="px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn">Entfernen</button>
+                        {% include 'partials/_form_input.html' with name='software_typen' value=name base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}
+                        {% include 'partials/_button.html' with type='button' label='Entfernen' color_classes='bg-red-100 hover:bg-red-200 text-red-700' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
                     </div>
                     {% endfor %}
                 {% else %}
                     <div class="flex items-center space-x-2">
-                        <input type="text" name="software_typen" class="flex-grow border rounded p-2">
-                        <button type="button" class="px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn">Entfernen</button>
+                        {% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}
+                        {% include 'partials/_button.html' with type='button' label='Entfernen' color_classes='bg-red-100 hover:bg-red-200 text-red-700' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
                     </div>
                 {% endif %}
             </div>
-            <button type="button" id="add-software-btn" class="mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded">Software hinzufügen</button>
+            {% include 'partials/_button.html' with type='button' id='add-software-btn' label='Software hinzufügen' color_classes='bg-gray-200 hover:bg-gray-300 text-gray-800' classes='mt-2 px-3 py-1 rounded' %}
         </div>
         {% if 'status' in form.fields %}
         <div>
@@ -44,14 +44,14 @@
         </div>
         {% endif %}
         <div class="pt-4">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow">Speichern</button>
+            {% include 'partials/_button.html' with type='submit' label='Speichern' color_classes='bg-blue-600 hover:bg-blue-700 text-white' classes='font-semibold px-6 py-2 rounded shadow' %}
         </div>
         {% if projekt %}
         <div class="mt-6">
             <label class="font-semibold">LLM-Modell:</label>
             {% for key, data in categories.items %}
                 <label class="ml-2">
-                    <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+                    {% include 'partials/_form_input.html' with type='radio' name='model_category' value=key checked=(key == category) base_classes='mr-1' %}
                     {{ data.label }}
                 </label>
             {% endfor %}
@@ -68,24 +68,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const addSoftwareBtn = document.getElementById('add-software-btn');
     const container = document.getElementById('software-inputs-container');
 
+    const inputTemplate = `{% filter escapejs %}{% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}{% endfilter %}`;
+    const removeBtnTemplate = `{% filter escapejs %}{% include 'partials/_button.html' with type='button' label='Entfernen' color_classes='bg-red-100 hover:bg-red-200 text-red-700' classes='px-2 py-1 text-sm rounded remove-software-btn' %}{% endfilter %}`;
+
     function addSoftwareField(value = '') {
         const wrapper = document.createElement('div');
         wrapper.className = 'flex items-center space-x-2';
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = 'software_typen';
+        wrapper.innerHTML = inputTemplate + removeBtnTemplate;
+        const input = wrapper.querySelector('input[name="software_typen"]');
         input.value = value;
-        input.className = 'flex-grow border rounded p-2';
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'px-2 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded remove-software-btn';
-        removeBtn.textContent = 'Entfernen';
+        const removeBtn = wrapper.querySelector('.remove-software-btn');
         removeBtn.addEventListener('click', function() {
             wrapper.remove();
             updateRemoveButtons();
         });
-        wrapper.appendChild(input);
-        wrapper.appendChild(removeBtn);
         container.appendChild(wrapper);
     }
 

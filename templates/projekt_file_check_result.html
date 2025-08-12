@@ -6,13 +6,13 @@
     <label class="font-semibold">LLM-Modell:</label>
     {% for key, data in categories.items %}
         <label class="ml-2">
-            <input type="radio" name="model_category" value="{{ key }}" {% if key == category %}checked{% endif %}>
+            {% include 'partials/_form_input.html' with type='radio' name='model_category' value=key checked=(key == category) base_classes='mr-1' %}
             {{ data.label }}
         </label>
     {% endfor %}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Neu prüfen</button>
+    {% include 'partials/_button.html' with type='submit' label='Neu prüfen' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded ml-2' %}
     {% if anlage.anlage_nr == 2 %}
-    <button type="submit" name="llm" value="1" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Check</button>
+    {% include 'partials/_button.html' with type='submit' name='llm' value='1' label='LLM-Check' color_classes='bg-purple-600 text-white' classes='px-4 py-2 rounded ml-2' %}
     {% endif %}
 </form>
 <form method="post" class="space-y-4">
@@ -33,9 +33,10 @@
     </div>
     {% endif %}
     <div class="space-x-2">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
-        <a href="{% url 'projekt_detail' anlage.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zur\u00fcck</a>
-        <button type="button" id="copy-email" class="bg-green-600 text-white px-4 py-2 rounded">E-Mail kopieren</button>
+        {% include 'partials/_button.html' with type='submit' label='Speichern' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded' %}
+        {% url 'projekt_detail' anlage.project.pk as detail_url %}
+        {% include 'partials/_button.html' with href=detail_url label='Zurück' color_classes='bg-gray-300 text-black' classes='px-4 py-2 rounded' %}
+        {% include 'partials/_button.html' with type='button' id='copy-email' label='E-Mail kopieren' color_classes='bg-green-600 text-white' classes='px-4 py-2 rounded' %}
     </div>
 </form>
 <script>

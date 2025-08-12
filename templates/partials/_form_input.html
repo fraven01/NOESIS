@@ -2,7 +2,8 @@
        name="{{ name }}"
        id="{{ id|default:name }}"
        value="{{ value|default:'' }}"
-       class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary {{ classes|default:'' }}"
+       class="{{ base_classes|default:'mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary' }} {{ classes|default:'' }}"
        {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
-       {% if required %}required{% endif %}>
+       {% if required %}required{% endif %}
+       {% if checked %}checked{% endif %}>
 

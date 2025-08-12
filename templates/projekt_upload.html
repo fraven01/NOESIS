@@ -8,6 +8,6 @@
     {{ form.docx_file.label_tag }}<br>
     {{ form.docx_file }}
     {{ form.docx_file.errors }}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+    {% include 'partials/_button.html' with type='submit' label='Upload' color_classes='bg-blue-600 text-white' classes='px-4 py-2 rounded' %}
 </form>
 {% endblock %}
