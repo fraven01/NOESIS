@@ -69,6 +69,30 @@ auszuführen.
 - Die erste Zeile besteht aus einer kurzen Zusammenfassung, gefolgt von einer
   Leerzeile und einer optionalen genaueren Beschreibung.
 
+## Farbkontrast
+
+Um eine gute Lesbarkeit zu gewährleisten, müssen Text und Hintergrund ein ausreichendes Kontrastverhältnis nach WCAG 2.1 aufweisen. Für normalen Text gilt ein Mindestwert von **4.5 : 1**, für große Schrift (≥ 18 pt oder ≥ 14 pt fett) genügt **3 : 1**.
+
+Folgende Farbkombinationen sind in `theme/static_src/tailwind.config.js` hinterlegt:
+
+| Variante        | HEX      | Empfohlene Textfarbe | Kontrastverhältnis |
+|-----------------|----------|----------------------|--------------------|
+| primary DEFAULT | #2563eb  | Weiß                 | 5.17 : 1           |
+| primary light   | #3b82f6  | Schwarz              | 5.71 : 1           |
+| primary dark    | #1e40af  | Weiß                 | 8.72 : 1           |
+| gray 50         | #f9fafb  | Schwarz              | 20.10 : 1          |
+| gray 100        | #f3f4f6  | Schwarz              | 19.08 : 1          |
+| gray 200        | #e5e7eb  | Schwarz              | 16.96 : 1          |
+| gray 300        | #d1d5db  | Schwarz              | 14.25 : 1          |
+| gray 400        | #9ca3af  | Schwarz              | 8.27 : 1           |
+| gray 500        | #6b7280  | Weiß                 | 4.83 : 1           |
+| gray 600        | #4b5563  | Weiß                 | 7.56 : 1           |
+| gray 700        | #374151  | Weiß                 | 10.31 : 1          |
+| gray 800        | #1f2937  | Weiß                 | 14.68 : 1          |
+| gray 900        | #111827  | Weiß                 | 17.74 : 1          |
+
+Neue UI-Komponenten müssen diese Richtlinien erfüllen und vor dem Commit die automatisierten Checks (z. B. `python manage.py makemigrations --check` und Tests) erfolgreich durchlaufen.
+
 ## Logging
 
 Alle Debug-Ausgaben des Projekts werden zusätzlich in `debug.log` im Projektverzeichnis gespeichert. Diese Datei ist über `.gitignore` vom Versionskontrollsystem ausgenommen.
