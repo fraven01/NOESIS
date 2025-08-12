@@ -310,11 +310,11 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        icon.classList.remove('status-badge','status-ja','status-nein','status-unbekannt','status-ok','status-konflikt','status-manuell-abweichung');
+        icon.classList.remove('status-badge','bg-green-500','bg-red-500','bg-yellow-500','text-white');
         if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
             // Farbgebung ausschließlich anhand des Dokumentenwertes
             const displayVal = docVal === true;
-            icon.classList.add('status-badge', displayVal ? 'status-ja' : 'status-nein');
+            icon.classList.add('status-badge', displayVal ? 'bg-green-500' : 'bg-red-500', 'text-white');
             updatePopoverContent(icon);
             if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
                 needsReviewRow = true;
@@ -322,18 +322,17 @@ function updateRowAppearance(row) {
             return;
         }
         const displayVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
-        if (displayVal === true) icon.classList.add('status-badge','status-ja');
-        else if (displayVal === false) icon.classList.add('status-badge','status-nein');
-        else icon.classList.add('status-badge','status-unbekannt');
+        let cls = 'bg-yellow-500';
+        if (displayVal === true) cls = 'bg-green-500';
+        else if (displayVal === false) cls = 'bg-red-500';
         if (f !== 'ki_beteiligung') {
-            let cls = 'status-unbekannt';
             if (hasManual) {
-                cls = manualVal === docVal ? 'status-ok' : 'status-manuell-abweichung';
+                cls = manualVal === docVal ? 'bg-green-500' : 'bg-yellow-500';
             } else if (docVal !== undefined && aiVal !== undefined) {
-                cls = docVal === aiVal ? 'status-ok' : 'status-konflikt';
+                cls = docVal === aiVal ? 'bg-green-500' : 'bg-red-500';
             }
-            icon.classList.add(cls);
         }
+        icon.classList.add('status-badge', cls, 'text-white');
         updatePopoverContent(icon);
         if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
             needsReviewRow = true;
