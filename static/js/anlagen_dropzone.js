@@ -10,7 +10,7 @@ function initDropzone() {
     const colspan = parseInt(zone.dataset.colspan || '6', 10);
 
     function setActiveTab(nr) {
-        document.querySelectorAll('.anlage-tab-btn').forEach(btn => {
+        document.querySelectorAll('.anlage-tab').forEach(btn => {
             if (btn.dataset.nr === String(nr)) {
                 btn.classList.add('border-blue-600', 'text-blue-600');
                 btn.classList.remove('border-transparent', 'text-gray-600');

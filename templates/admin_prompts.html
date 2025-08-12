@@ -9,7 +9,7 @@
 </div>
 <div class="mb-4 space-x-2">
     {% for key, label, items in grouped %}
-        <button data-tab-btn data-tab="{{ key }}" class="px-3 py-1 bg-blue-600 text-white rounded">{{ label }}</button>
+        <button data-tab="{{ key }}" class="px-3 py-1 bg-blue-600 text-white rounded">{{ label }}</button>
     {% endfor %}
 </div>
 
@@ -103,7 +103,7 @@
 {% endfor %}
 
 <script>
-document.querySelectorAll('[data-tab-btn]').forEach(btn => {
+document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
         document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
