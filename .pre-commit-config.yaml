@@ -10,3 +10,4 @@ repos:
         entry: npm --prefix theme/static_src run contrast -- base.html
         language: system
         pass_filenames: false
+        exclude: ".*"
