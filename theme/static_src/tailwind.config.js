@@ -1,4 +1,6 @@
-const btnVariants = {
+import forms from '@tailwindcss/forms';
+
+export const btnVariants = {
   primary: 'bg-primary text-white hover:bg-primary-dark',
   secondary: 'bg-gray-300 text-black hover:bg-gray-400',
   success: 'bg-green-600 text-white hover:bg-green-700',
@@ -9,14 +11,14 @@ const btnVariants = {
   disabled: 'bg-gray-300 text-gray-500 cursor-not-allowed',
 };
 
-module.exports = {
+export default {
   btnVariants,
   content: [
-    "../templates/**/*.html",
-    "../../templates/**/*.html",
-    "../../core/templates/**/*.html",
-    "../../**/templates/**/*.html",
-    "../../**/*.py",
+    '../templates/**/*.html',
+    '../../templates/**/*.html',
+    '../../core/templates/**/*.html',
+    '../../**/templates/**/*.html',
+    '../../**/*.py',
   ],
   theme: {
     extend: {
@@ -51,7 +53,6 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-  ],
-}
+  plugins: [forms],
+};
+
