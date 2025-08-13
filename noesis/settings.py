@@ -36,6 +36,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Vertrauenswürdige Ursprünge für CSRF-Schutz (Cloud Run)
+CSRF_TRUSTED_ORIGINS = ["https://*.a.run.app"]
+
 INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
 
 
