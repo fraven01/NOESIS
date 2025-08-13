@@ -34,7 +34,12 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsicherer-build-schluessel")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Standard-Hosts für lokale Entwicklung
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
+# In Cloud Run wird K_SERVICE gesetzt; dann zusätzliche Hostfreigabe
+if os.environ.get("K_SERVICE"):
+    ALLOWED_HOSTS.append("*.a.run.app")
 
 INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
 
