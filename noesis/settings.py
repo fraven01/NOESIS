@@ -41,6 +41,9 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 if os.environ.get("K_SERVICE"):
     ALLOWED_HOSTS.append("*.a.run.app")
 
+# Vertrauenswürdige Ursprünge für CSRF-Schutz (Cloud Run)
+CSRF_TRUSTED_ORIGINS = ["https://*.a.run.app"]
+
 INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
 
 
