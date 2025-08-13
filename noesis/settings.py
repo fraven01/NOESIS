@@ -32,10 +32,14 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsicherer-build-schluessel")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = os.environ.get("DJANGO_DEBUG", "") != "False"
+DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+# Standard-Hosts für lokale Entwicklung
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
+# In Cloud Run wird K_SERVICE gesetzt; dann zusätzliche Hostfreigabe
+if os.environ.get("K_SERVICE"):
+    ALLOWED_HOSTS.append("*.a.run.app")
 
 INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
 
@@ -101,6 +105,7 @@ WSGI_APPLICATION = "noesis.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
 def _postgres_config() -> Dict[str, Any]:
     """Liefert die Einstellungen für PostgreSQL."""
 
@@ -116,6 +121,7 @@ def _postgres_config() -> Dict[str, Any]:
             "options": "-c search_path=public",
         },
     }
+
 
 if os.environ.get("DB_HOST"):
     # Verwendung der konfigurierten PostgreSQL-Datenbank
