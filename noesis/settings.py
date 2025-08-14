@@ -40,6 +40,9 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # In Cloud Run wird K_SERVICE gesetzt; dann zusätzliche Hostfreigabe
 if os.environ.get("K_SERVICE"):
     ALLOWED_HOSTS.append("*.a.run.app")
+    # Proxy-Header vertrauen, um korrekte Host- und Schema-Informationen zu erhalten
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 
 # Vertrauenswürdige Ursprünge für CSRF-Schutz (Cloud Run)
 CSRF_TRUSTED_ORIGINS = ["https://*.a.run.app"]
