@@ -22,6 +22,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Schritt 6: Den gesamten Anwendungscode in den Container kopieren
 COPY . .
 
+# Einstiegspunkt-Skript kopieren und ausführbar machen
+COPY entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh
+
 # Schritt 7: Frontend-Abhängigkeiten installieren und CSS bauen
 # Wechseln in das Verzeichnis, in dem sich die package.json befindet
 WORKDIR /app/theme/static_src
@@ -37,6 +41,6 @@ RUN python manage.py tailwind build
 # Django sammelt alle statischen Dateien (inkl. dem kompilierten CSS) an einem Ort
 RUN python manage.py collectstatic --no-input
 
-# Schritt 9: Den produktionsreifen Gunicorn-Server starten
-# Cloud Run übergibt den Port über die $PORT-Variable. Gunicorn lauscht auf allen Interfaces (0.0.0.0).
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 2 noesis.wsgi:application
+# Schritt 9: Einstiegspunkt und Standardbefehl definieren
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["web"]
