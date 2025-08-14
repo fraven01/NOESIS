@@ -22,3 +22,4 @@ django-browser-reload
 whitenoise[brotli]
 # Production Web Server
 gunicorn
+django-environ
