@@ -15,13 +15,14 @@ import os
 import sys
 import secrets
 from typing import Any, Dict
-from dotenv import load_dotenv
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .env-Datei laden, um API-Schlüssel bereitzustellen
-load_dotenv(BASE_DIR / ".env")
+# Umgebungsvariablen initialisieren
+env = environ.Env(DEBUG=(bool, False))
+env.read_env(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,10 +30,10 @@ load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Fallback-Wert erlaubt den Build ohne gesetzte Umgebungsvariable.
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsicherer-build-schluessel")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsicherer-build-schluessel")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=False)
 
 # Standard-Hosts für lokale Entwicklung
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
@@ -67,8 +68,11 @@ INSTALLED_APPS = [
 ]
 
 TAILWIND_APP_NAME = "theme"
-# NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.ps1"
-NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+# Betriebssystemabhängiger Pfad zu npm
+if sys.platform.startswith("win"):
+    NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+else:
+    NPM_BIN_PATH = "/usr/bin/npm"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -183,18 +187,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-# noesis/settings.py
-
-TAILWIND_APP_NAME = "theme"
-
-
-# Fügen Sie diese Zeile hinzu:
-NPM_BIN_PATH = "/usr/bin/npm"
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -497,6 +489,12 @@ LOGGING = {
         },
     },
 }
+
+if os.environ.get("K_SERVICE"):
+    console_handler = LOGGING["handlers"]["console"]
+    LOGGING["handlers"] = {"console": console_handler}
+    for logger in LOGGING["loggers"].values():
+        logger["handlers"] = ["console"]
 
 if sys.version_info >= (3, 12):
     LOGGING["handlers"]["console"]["encoding"] = "utf-8"
