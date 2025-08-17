@@ -33,7 +33,8 @@ env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsicherer-build-schluessel")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DEBUG", default=False)
+# DEBUG = env.bool("DEBUG", default=False)
+debug = True
 
 
 # Standard-Hosts für lokale Entwicklung
@@ -41,13 +42,13 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 # In Cloud Run wird K_SERVICE gesetzt; dann zusätzliche Hostfreigabe
 if os.environ.get("K_SERVICE"):
-    ALLOWED_HOSTS.append("*.a.run.app")
+    ALLOWED_HOSTS.append(".run.app")
     # Proxy-Header vertrauen, um korrekte Host- und Schema-Informationen zu erhalten
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
 
 # Vertrauenswürdige Ursprünge für CSRF-Schutz (Cloud Run)
-CSRF_TRUSTED_ORIGINS = ["https://*.a.run.app"]
+CSRF_TRUSTED_ORIGINS = ["https://*.run.app"]
 
 INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"]
 
@@ -497,8 +498,8 @@ if os.environ.get("K_SERVICE"):
     for logger in LOGGING["loggers"].values():
         logger["handlers"] = ["console"]
 
-if sys.version_info >= (3, 12):
-    LOGGING["handlers"]["console"]["encoding"] = "utf-8"
+# if sys.version_info >= (3, 12):
+#    LOGGING["handlers"]["console"]["encoding"] = "utf-8"
 
 # Django-Q Konfiguration
 Q_CLUSTER = {
