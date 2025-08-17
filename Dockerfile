@@ -21,6 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Schritt 6: Den gesamten Anwendungscode in den Container kopieren
 COPY . .
+RUN ls -la /app
 
 # Einstiegspunkt-Skript kopieren und ausführbar machen
 COPY entrypoint.sh /app/
