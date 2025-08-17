@@ -9,7 +9,7 @@ ENV PORT 8080
 # Schritt 3: Systemabhängigkeiten installieren
 # pandoc: für den DOCX-Export
 # nodejs & npm: für den TailwindCSS-Build
-RUN apt-get update && apt-get install -y pandoc nodejs npm --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y pandoc nodejs npm dos2unix --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 # Schritt 4: Das Arbeitsverzeichnis im Container festlegen
 WORKDIR /app
@@ -25,7 +25,9 @@ RUN ls -la /app
 
 # Einstiegspunkt-Skript kopieren und ausführbar machen
 COPY entrypoint.sh /app/
+RUN dos2unix /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
 
 # Schritt 7: Frontend-Abhängigkeiten installieren und CSS bauen
 # Wechseln in das Verzeichnis, in dem sich die package.json befindet
