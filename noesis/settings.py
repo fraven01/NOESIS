@@ -121,18 +121,33 @@ WSGI_APPLICATION = "noesis.wsgi.application"
 def _postgres_config() -> Dict[str, Any]:
     """Liefert die Einstellungen für PostgreSQL."""
 
-    return {
+    host_env = os.environ.get("DB_HOST", "localhost")
+
+    if os.environ.get("K_SERVICE"):
+        # In Cloud Run wird über den Unix-Socket verbunden
+        host = f"/cloudsql/{host_env}"
+        port = None
+    else:
+        # Lokale Entwicklung nutzt klassische Host-/Port-Kombination
+        host = host_env
+        port = os.environ.get("DB_PORT", "5432")
+
+    config: Dict[str, Any] = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("DB_NAME", "noesis_db"),
         "USER": os.environ.get("DB_USER", secrets.token_hex(8)),
         "PASSWORD": os.environ.get("DB_PASSWORD", secrets.token_hex(16)),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
-        "OPTIONS": {  # <-- DIESEN BLOCK HINZUFÜGEN
+        "HOST": host,
+        "OPTIONS": {
             "client_encoding": "UTF8",
             "options": "-c search_path=public",
         },
     }
+
+    if port:
+        config["PORT"] = port
+
+    return config
 
 
 if os.environ.get("DB_HOST"):
