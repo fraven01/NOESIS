@@ -34,7 +34,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsicherer-build-schluessel")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = env.bool("DEBUG", default=False)
-debug = True
+DEBUG = True
 
 
 # Standard-Hosts für lokale Entwicklung
@@ -123,12 +123,16 @@ def _postgres_config() -> Dict[str, Any]:
 
     host_env = os.environ.get("DB_HOST", "localhost")
 
-    if os.environ.get("K_SERVICE"):
-        # In Cloud Run wird über den Unix-Socket verbunden
-        host = f"/cloudsql/{host_env}"
+    # Wenn Cloud Run Service oder Job → Unix-Socket nutzen
+    if os.environ.get("K_SERVICE") or host_env.startswith("/cloudsql/"):
+        # Präfix /cloudsql/ nur einmal voranstellen
+        if host_env.startswith("/cloudsql/"):
+            host = host_env
+        else:
+            host = f"/cloudsql/{host_env}"
         port = None
     else:
-        # Lokale Entwicklung nutzt klassische Host-/Port-Kombination
+        # Lokale Entwicklung nutzt Host/Port
         host = host_env
         port = os.environ.get("DB_PORT", "5432")
 
