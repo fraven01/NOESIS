@@ -6,6 +6,12 @@ test_output.txt
 # C extensions
 *.so
 
+GCLOUD
+db_host.txt
+db_user.txt
+pass.txt
+
+
 # Distribution / packaging
 .Python
 build/
