@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Noesis Assistant{% endblock %}</title>
+    <title>{% block title %}Neomind Assistant{% endblock %}</title>
     {% tailwind_css %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-mK8e1zgS60F7uO3cu6UytzszbmWzxubUANe0yoyS9MhUlCT3ocOITkkpFmS6r30YIOCwRvDDDeZz7eGRIDcNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
@@ -19,10 +19,10 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen bg-white text-gray-900">
-    <header class="bg-primary text-gray-800 border-b">
+    <header class="bg-gray-200 text-gray-800 border-b">
         <div class="container mx-auto flex items-center justify-between p-4">
             <div class="text-xl font-semibold">
-                <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="Noesis Logo" class="h-8 inline"></a>
+                <a href="/"><img src="{% static 'images/noesis_logo.jpg' %}" alt="Noesis Logo" class="h-18 inline"></a>
             </div>
             <nav class="space-x-4">
                 <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="mr-2 hover:underline">&larr; Zurück</a>
