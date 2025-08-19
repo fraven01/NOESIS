@@ -15,12 +15,12 @@
         <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 hover:bg-gray-200" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
         {{ row.name }}
         {% if row.has_justification %}
-        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 hover:bg-gray-100">Begründung ansehen/bearbeiten</a>
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 dark:text-gray-200 hover:bg-gray-100">Begründung ansehen/bearbeiten</a>
         {% endif %}
         {% else %}
         {{ row.name }}
         {% if row.has_justification %}
-        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 hover:bg-gray-100">Begründung ansehen/bearbeiten</a>
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 dark:text-gray-200 hover:bg-gray-100">Begründung ansehen/bearbeiten</a>
         {% endif %}
         {% endif %}
         {% if row.source_text and row.source_text != 'N/A' %}
