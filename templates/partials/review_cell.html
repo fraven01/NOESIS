@@ -5,15 +5,15 @@
     {% with doc_val=row.doc_result|get_item:field_name ai_val=row.ai_result|get_item:field_name manual_val=row.manual_result|get_item:field_name %}
     <button class="tri-state-icon rounded-full px-2 py-1 text-sm{% if field_name == 'technisch_vorhanden' and row.sub %} opacity-50 pointer-events-none{% endif %}
         {% if manual_val != '' and manual_val != doc_val %}
-            bg-warning/20 text-warning-dark
+            bg-warning/20 dark:bg-warning-dark/30 text-warning-dark dark:text-warning-light
         {% elif manual_val == '' and doc_val != '' and ai_val != '' and doc_val != ai_val %}
-            bg-warning/20 text-warning-dark
+            bg-warning/20 dark:bg-warning-dark/30 text-warning-dark dark:text-warning-light
         {% elif state is True %}
-            bg-success/20 text-success-dark
+            bg-success/20 dark:bg-success-dark/30 text-success-dark dark:text-success-light
         {% elif state is False %}
-            bg-error-light text-error-dark
+            bg-error-light dark:bg-error-dark/30 text-error-dark dark:text-error-light
         {% else %}
-            bg-warning/20 text-warning-dark
+            bg-warning/20 dark:bg-warning-dark/30 text-warning-dark dark:text-warning-light
         {% endif %}"
             data-field-name="{{ field_name }}"
             data-is-manual="{{ is_manual|yesno:'true,false' }}"
