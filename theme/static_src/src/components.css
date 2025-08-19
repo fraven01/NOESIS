@@ -9,13 +9,13 @@
     @apply bg-accent text-text;
   }
   .badge-yellow {
-    @apply bg-accent text-text;
+    @apply bg-warning text-text;
   }
   .badge-green {
-    @apply bg-accent text-text;
+    @apply bg-success text-text;
   }
   .badge-red {
-    @apply bg-accent text-text;
+    @apply bg-error text-text;
   }
   .badge-gray {
     @apply bg-background text-text;
@@ -24,6 +24,9 @@
     @apply p-2 rounded;
   }
   .alert-success {
-    @apply p-2 rounded bg-background text-text;
+    @apply p-2 rounded bg-success text-text;
+  }
+  .alert-error {
+    @apply p-2 rounded bg-error text-text;
   }
 }
