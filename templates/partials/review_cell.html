@@ -30,11 +30,11 @@
     {% endwith %}
     <span class="source-icon" data-popover-content="{{ source }}">
         {% if source == 'Manuell' %}
-        <i class="fas fa-user"></i>
+        <i class="fa-solid fa-user"></i>
         {% elif source == 'KI-Check' %}
-        <i class="fas fa-robot"></i>
+        <i class="fa-solid fa-robot"></i>
         {% else %}
-        <i class="fas fa-file-alt"></i>
+        <i class="fa-solid fa-file-alt"></i>
         {% endif %}
     </span>
     {% if field_name == 'ki_beteiligung' and row.ki_beteiligt_begruendung %}

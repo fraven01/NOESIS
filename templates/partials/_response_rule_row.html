@@ -1,7 +1,7 @@
 <tr class="border-b text-sm">
     {{ form.id }}
     {{ form.ORDER }}
-    <td class="py-1 drag-handle cursor-move"><i class="fa fa-bars"></i></td>
+    <td class="py-1 drag-handle cursor-move"><i class="fa-solid fa-bars"></i></td>
     <td class="py-1">{{ form.regel_name }}</td>
     <td class="py-1">{{ form.erkennungs_phrase }}</td>
     <td class="py-1">{{ form.regel_anwendungsbereich }}</td>
@@ -9,10 +9,10 @@
     <td class="py-1 text-center">
         {% if form.instance.pk %}
         <button type="button" hx-delete="{% url 'anlage2_rule_delete' form.instance.pk %}" hx-target="closest tr" hx-swap="delete" hx-on:afterRequest="updateTotals()" class="text-error">
-            <i class="fa fa-trash"></i>
+            <i class="fa-solid fa-trash"></i>
         </button>
         {% else %}
-        <button type="button" onclick="this.closest('tr').remove();updateTotals();" class="text-error"><i class="fa fa-trash"></i></button>
+        <button type="button" onclick="this.closest('tr').remove();updateTotals();" class="text-error"><i class="fa-solid fa-trash"></i></button>
         {% endif %}
     </td>
 </tr>
