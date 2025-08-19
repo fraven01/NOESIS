@@ -2,13 +2,13 @@
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <input type="hidden" name="group_id" value="{{ selected_group.id }}">
-    <p class="text-gray-700 dark:text-gray-200">Wähle die sichtbaren Kacheln für diese Rolle aus.</p>
+    <p class="text-gray-700 dark:text-gray-300">Wähle die sichtbaren Kacheln für diese Rolle aus.</p>
     {% for area, items in tiles_by_area.items %}
         <h2 class="text-xl font-semibold mt-4">{{ area.name }}-Dashboard</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
             {% for item in items %}
                 <label class="flex items-center space-x-2">
-                    <input type="checkbox" name="tiles" value="{{ item.tile.id }}" {% if item.checked %}checked{% endif %}>
+                    <input type="checkbox" name="tiles" value="{{ item.tile.id }}" class="rounded border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark focus:ring-primary" {% if item.checked %}checked{% endif %}>
                     <span>{{ item.tile.name }}</span>
                 </label>
             {% empty %}

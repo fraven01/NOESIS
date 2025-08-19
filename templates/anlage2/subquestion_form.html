@@ -15,12 +15,12 @@
         <div id="alias-container">
             {% for val in aliases %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow">
+                <input type="text" name="name_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
                 <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
             </div>
             {% endfor %}
             <div class="flex mb-2">
-                <input type="text" name="name_aliases" class="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow">
+                <input type="text" name="name_aliases" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
                 <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
             </div>
         </div>
@@ -40,7 +40,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.name = 'name_aliases';
-            input.className = 'mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary flex-grow';
+            input.className = 'mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow';
             const del = document.createElement('button');
             del.type = 'button';
             del.textContent = 'x';

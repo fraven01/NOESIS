@@ -60,11 +60,11 @@
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
-                    <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 hover:bg-gray-200" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
+                    <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 dark:text-gray-200 hover:bg-gray-100">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -72,7 +72,7 @@
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 dark:text-gray-200 hover:bg-gray-100">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -98,7 +98,7 @@
                 <td class="border px-2 text-center action-column hidden">
                     {% if allow_ai_check %}
                     <button type="button"
-                        class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 hover:bg-gray-200"
+                        class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                         data-state="robot" data-popover-content="KI-Prüfung starten"
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"
