@@ -27,8 +27,8 @@ export default {
           DEFAULT: '#4f46e5',
           light: '#6366f1',
           dark: '#4338ca',
-          header-bg: '#0d1b2a',
         },
+        header: '#0d1b2a',
         gray: {
           50: '#f8fafc',
           100: '#f1f5f9',
