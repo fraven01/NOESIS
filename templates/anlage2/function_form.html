@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% if funktion %}
 <h2 class="text-xl font-semibold mt-8 mb-2">Unterfragen</h2>
-<a href="{% url 'anlage2_subquestion_new' funktion.id %}" class="inline-block mb-2 px-3 py-1 bg-green-600 text-white rounded">Neue Unterfrage</a>
+<a href="{% url 'anlage2_subquestion_new' funktion.id %}" class="inline-block mb-2 px-3 py-1 bg-success text-background rounded">Neue Unterfrage</a>
 <table class="min-w-full">
     <thead>
         <tr class="border-b text-left">
@@ -71,12 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr class="border-b text-sm">
             <td class="py-1">{{ q.frage_text|truncatechars:80 }}</td>
             <td class="py-1 text-center">
-                  <a href="{% url 'anlage2_subquestion_edit' q.id %}" class="px-2 py-1 bg-primary text-white rounded">Bearbeiten</a>
+                  <a href="{% url 'anlage2_subquestion_edit' q.id %}" class="px-2 py-1 bg-primary text-background rounded">Bearbeiten</a>
             </td>
             <td class="py-1 text-center">
                 <form action="{% url 'anlage2_subquestion_delete' q.id %}" method="post" class="inline">
                     {% csrf_token %}
-                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Unterfrage wirklich löschen?');">Löschen</button>
+                    <button type="submit" class="px-2 py-1 bg-error text-background rounded" onclick="return confirm('Unterfrage wirklich löschen?');">Löschen</button>
                 </form>
             </td>
         </tr>

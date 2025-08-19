@@ -5,9 +5,9 @@
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }}</h1>
 <div class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
 <p class="mt-4">
-    <a href="{% url 'gutachten_edit' gutachten.id %}" class="text-blue-700 underline">Bearbeiten</a>
+    <a href="{% url 'gutachten_edit' gutachten.id %}" class="text-accent-dark underline">Bearbeiten</a>
     |
-    <a href="{% url 'gutachten_download' gutachten.id %}" class="text-blue-700 underline">Download</a>
+    <a href="{% url 'gutachten_download' gutachten.id %}" class="text-accent-dark underline">Download</a>
 </p>
 {% if projekt.gutachten_function_note %}
 <div class="mt-4">
@@ -24,7 +24,7 @@
             {{ data.label }}
         </label>
     {% endfor %}
-    <button type="button" id="llm-check-btn" class="bg-purple-600 text-white px-4 py-2 rounded ml-2">LLM-Funktionscheck</button>
+    <button type="button" id="llm-check-btn" class="bg-primary text-background px-4 py-2 rounded ml-2">LLM-Funktionscheck</button>
 </form>
 <script>
 document.getElementById('llm-check-btn').addEventListener('click',function(){

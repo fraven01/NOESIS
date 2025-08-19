@@ -47,7 +47,7 @@
         </thead>
         <tbody id="anlage2-table-body">
         {% for row in rows %}
-            <tr class="{% if row.sub %}subquestion-row hidden subquestions-for-{{ row.func_id }} bg-yellow-50 {% endif %}{% if row.is_negotiable %}opacity-60{% endif %}"
+            <tr class="{% if row.sub %}subquestion-row hidden subquestions-for-{{ row.func_id }} bg-warning/10 {% endif %}{% if row.is_negotiable %}opacity-60{% endif %}"
                 data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
                 data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
                 data-parsed-notes="{{ row.doc_result|raw_item:'technisch_vorhanden'|get_item:'note' }}"
@@ -64,7 +64,7 @@
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-100">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 hover:bg-gray-100">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -72,7 +72,7 @@
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-100">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 rounded bg-background text-gray-700 hover:bg-gray-100">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -114,13 +114,13 @@
         {% if allow_ai_check %}
         {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' variant='success' classes='px-2 py-1 rounded' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
         {% endif %}
-        <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-blue-600 text-white px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
+        <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-accent text-background px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     </div>
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     <div class="space-x-2 mt-2">
-        <button type="reset" id="reset-fields" class="bg-gray-300 text-black px-4 py-2 rounded">Reset</button>
-        <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-black px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
+        <button type="reset" id="reset-fields" class="bg-gray-300 text-text px-4 py-2 rounded">Reset</button>
+        <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-text px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
     </div>
 </form>
 <details>
@@ -138,7 +138,7 @@
             {{ parser_form.parser_order }}
             {{ parser_form.parser_order.errors }}
         </div>
-        <button type="submit" name="save_parser_settings" class="bg-blue-600 text-white px-3 py-1 rounded">Einstellungen speichern</button>
+        <button type="submit" name="save_parser_settings" class="bg-accent text-background px-3 py-1 rounded">Einstellungen speichern</button>
     </form>
 </details>
 </div>
@@ -221,7 +221,7 @@ function setSubRowsEnabled(funcId, enabled) {
 
 function updateNegotiableCell(cell, value, override) {
     if (!cell) return;
-    cell.innerHTML = value ? '<span class="text-green-600">✅</span>' : '<span class="text-red-600">❌</span>';
+    cell.innerHTML = value ? '<span class="text-success">✅</span>' : '<span class="text-error">❌</span>';
     if (override !== null && override !== undefined) {
         cell.innerHTML += '<span class="ms-1">👤</span>';
     }
@@ -309,11 +309,11 @@ function updateRowAppearance(row) {
         if (docVal && typeof docVal === 'object' && 'value' in docVal) docVal = docVal.value;
         let aiVal = ai[aiKey];
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
-        icon.classList.remove('bg-green-500','bg-red-500','bg-yellow-500','text-white');
+        icon.classList.remove('bg-success','bg-error','bg-warning','text-background');
         if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
             // Farbgebung ausschließlich anhand des Dokumentenwertes
             const displayVal = docVal === true;
-            icon.classList.add(displayVal ? 'bg-green-500' : 'bg-red-500', 'text-white');
+            icon.classList.add(displayVal ? 'bg-success' : 'bg-error', 'text-background');
             updatePopoverContent(icon);
             if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
                 needsReviewRow = true;
@@ -321,17 +321,17 @@ function updateRowAppearance(row) {
             return;
         }
         const displayVal = hasManual ? manualVal : (docVal !== undefined ? docVal : aiVal);
-        let cls = 'bg-yellow-500';
-        if (displayVal === true) cls = 'bg-green-500';
-        else if (displayVal === false) cls = 'bg-red-500';
+        let cls = 'bg-warning';
+        if (displayVal === true) cls = 'bg-success';
+        else if (displayVal === false) cls = 'bg-error';
         if (f !== 'ki_beteiligung') {
             if (hasManual) {
-                cls = manualVal === docVal ? 'bg-green-500' : 'bg-yellow-500';
+                cls = manualVal === docVal ? 'bg-success' : 'bg-warning';
             } else if (docVal !== undefined && aiVal !== undefined) {
-                cls = docVal === aiVal ? 'bg-green-500' : 'bg-red-500';
+                cls = docVal === aiVal ? 'bg-success' : 'bg-error';
             }
         }
-        icon.classList.add(cls, 'text-white');
+        icon.classList.add(cls, 'text-background');
         updatePopoverContent(icon);
         if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {
             needsReviewRow = true;

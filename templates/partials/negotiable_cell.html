@@ -1,5 +1,5 @@
 {% if row.result_id %}
-<td class="border px-2 text-center negotiable-cell {% if is_negotiable %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}{% if override is not none %} border-yellow-400{% endif %}"
+<td class="border px-2 text-center negotiable-cell {% if is_negotiable %}bg-success/20 text-success-dark{% else %}bg-error-light text-error-dark{% endif %}{% if override is not none %} border-warning{% endif %}"
     hx-post="{% url 'hx_toggle_negotiable' result_id=row.result_id %}"
     hx-target="closest td" hx-swap="outerHTML">
     {% if is_negotiable %}

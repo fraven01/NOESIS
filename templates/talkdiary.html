@@ -7,47 +7,47 @@
 <h2 class="text-lg font-semibold mb-2">Aufnahme</h2>
 <div class="mb-6 flex flex-wrap items-center space-x-4">
     {% if is_recording %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700 flex items-center">
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-error hover:bg-error-dark flex items-center">
         Aufnahme stoppen
         <span class="ml-2 animate-pulse">&#9679;</span>
     </a>
-    <span class="text-red-700 font-semibold">Recording…</span>
+    <span class="text-error-dark font-semibold">Recording…</span>
     {% else %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700">Aufnahme starten</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-success hover:bg-success-dark">Aufnahme starten</a>
     {% endif %}
 
     <form method="get" class="inline-block">
-        <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-white rounded">Rescan</button>
+        <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-background rounded">Rescan</button>
     </form>
-    <a href="{% url 'upload_recording' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Datei hochladen</a>
+    <a href="{% url 'upload_recording' %}" class="px-4 py-2 bg-accent text-background rounded">Datei hochladen</a>
     {% if is_admin %}
-    <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 bg-purple-600 text-white rounded">Admin</a>
+    <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 bg-primary text-background rounded">Admin</a>
     {% endif %}
 </div>
 
 <h2 class="text-xl font-semibold mb-2">Original Files</h2>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {% for rec in recordings %}
-    <div class="border p-3 rounded shadow text-sm {{ rec.transcript_file|yesno:'bg-green-50,' }}">
+    <div class="border p-3 rounded shadow text-sm {{ rec.transcript_file|yesno:'bg-success/10,' }}">
         <audio controls src="{{ rec.audio_file.url }}" class="w-full mb-1"></audio>
         <div class="flex space-x-2 mt-1">
             <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="transcribe-form">
                 {% csrf_token %}
                 <input type="hidden" name="track" value="1">
-                <button type="submit" class="px-2 py-1 text-white bg-blue-600 rounded">Transkribieren</button>
+                <button type="submit" class="px-2 py-1 text-background bg-accent rounded">Transkribieren</button>
             </form>
             {% if rec.transcript_file %}
-            <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-green-600 text-white rounded">Transcript</a>
+            <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-success text-background rounded">Transcript</a>
             {% endif %}
             <form action="{% url 'recording_delete' rec.pk %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Aufnahme wirklich löschen?');">Löschen</button>
+                <button type="submit" class="px-2 py-1 bg-error text-background rounded" onclick="return confirm('Aufnahme wirklich löschen?');">Löschen</button>
             </form>
         </div>
         <p class="mt-1 flex items-center break-all">
-            <i class="fas fa-microphone text-blue-600 mr-2"></i>
+            <i class="fas fa-microphone text-accent mr-2"></i>
             {{ rec.audio_file.name|basename|truncatechars:30 }}
-            {% if rec.transcript_file %}<i class="fas fa-check text-green-600 ml-2"></i>{% endif %}
+            {% if rec.transcript_file %}<i class="fas fa-check text-success ml-2"></i>{% endif %}
         </p>
         <p class="text-xs text-gray-500">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
     </div>
@@ -61,7 +61,7 @@
         {% if rec.transcript_file %}
         <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 bg-gray-50 hover:bg-gray-100 text-sm">
             <h3 class="font-semibold flex items-center">
-                <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                <i class="fas fa-file-alt text-success mr-2"></i>
                 {{ rec.audio_file.name|basename|truncatechars:30 }}
             </h3>
             <p class="text-sm whitespace-pre-line mt-1">{{ rec.excerpt }}</p>
@@ -74,10 +74,10 @@
 {% if is_admin %}
 <div class="mt-8">
     <a href="{% url 'admin_talkdiary' %}" class="block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
-        <div class="h-32 bg-gradient-to-r from-primary to-primary-dark text-white flex items-center justify-center">
-            <i class="fas fa-tools text-white text-4xl"></i>
+        <div class="h-32 bg-gradient-to-r from-primary to-primary-dark text-background flex items-center justify-center">
+            <i class="fas fa-tools text-background text-4xl"></i>
         </div>
-        <div class="p-4 bg-white">
+        <div class="p-4 bg-background">
             <h3 class="text-lg font-semibold mb-2">Transcript Verwaltung</h3>
             <p class="text-gray-600">Alle Einträge prüfen und bereinigen</p>
         </div>

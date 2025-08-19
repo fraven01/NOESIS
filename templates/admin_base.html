@@ -22,7 +22,7 @@
                         <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'admin_anlage1' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'admin_anlage1' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'admin_anlage1' %}bg-primary text-white{% else %}text-primary{% endif %}">Fragen</a>
+                        <a href="{% url 'admin_anlage1' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'admin_anlage1' %}bg-primary text-background{% else %}text-primary{% endif %}">Fragen</a>
                     </div>
                 </div>
                 <div>
@@ -31,8 +31,8 @@
                         <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage2_function_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_function_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Funktionen</a>
-                        <a href="{% url 'anlage2_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_config' %}bg-primary text-white{% else %}text-primary{% endif %}">Globale Phrasen</a>
+                        <a href="{% url 'anlage2_function_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_function_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Funktionen</a>
+                        <a href="{% url 'anlage2_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_config' %}bg-primary text-background{% else %}text-primary{% endif %}">Globale Phrasen</a>
                     </div>
                 </div>
                 <div>
@@ -41,7 +41,7 @@
                         <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage3_rule_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage3_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage3_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Parser Regeln</a>
+                        <a href="{% url 'anlage3_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage3_rule_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Parser Regeln</a>
                     </div>
                 </div>
                 <div>
@@ -50,7 +50,7 @@
                         <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage4_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage4_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage4_config' %}bg-primary text-white{% else %}text-primary{% endif %}">Konfiguration</a>
+                        <a href="{% url 'anlage4_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage4_config' %}bg-primary text-background{% else %}text-primary{% endif %}">Konfiguration</a>
                     </div>
                 </div>
                 <div>
@@ -59,9 +59,9 @@
                         <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
                     </h4>
                     <div class="accordion-content pl-2 space-y-1 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'parser_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'parser_rule_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Exakter Parser Regeln</a>
-                        <a href="{% url 'zweckkategoriea_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'zweckkategoriea_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Zwecke verwalten</a>
-                        <a href="{% url 'supervisionnote_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'supervisionnote_list' %}bg-primary text-white{% else %}text-primary{% endif %}">Supervision-Notizen</a>
+                        <a href="{% url 'parser_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'parser_rule_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Exakter Parser Regeln</a>
+                        <a href="{% url 'zweckkategoriea_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'zweckkategoriea_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Zwecke verwalten</a>
+                        <a href="{% url 'supervisionnote_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'supervisionnote_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Supervision-Notizen</a>
                     </div>
                 </div>
                 {% endwith %}
