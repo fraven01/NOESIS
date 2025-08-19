@@ -20,6 +20,7 @@ export default {
     '../../**/templates/**/*.html',
     '../../**/*.py',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
