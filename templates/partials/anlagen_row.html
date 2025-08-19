@@ -17,14 +17,14 @@
                 {{ form.parser_order.errors }}
             </div>
             {% endif %}
-            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded mt-2">Speichern</button>
+            <button type="submit" class="bg-accent text-text px-2 py-1 rounded mt-2">Speichern</button>
         </form>
     </td>
 </tr>
 {% else %}
 <tr class="border-t">
     {% if show_nr %}<td class="px-2 py-1">{{ anlage.anlage_nr }}</td>{% endif %}
-    <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-blue-700 underline" title="{{ anlage.upload.name|clean_filename }}">Anlage {{ anlage.anlage_nr }}</a></td>
+    <td class="px-2 py-1"><a href="{{ anlage.upload.url }}" class="text-accent underline" title="{{ anlage.upload.name|clean_filename }}">Anlage {{ anlage.anlage_nr }}</a></td>
     <td class="px-2 py-1">{{ anlage.created_at|date:"d.m.Y" }}</td>
     <td class="px-2 py-1">{{ anlage.version }}</td>
     <td class="px-2 py-1 text-center" id="anlage-edit-{{ anlage.pk }}">
@@ -32,7 +32,7 @@
     </td>
     <td class="px-2 py-1 text-center">
         {% if anlage.parent %}
-            <a href="{% url 'compare_versions' anlage.pk %}" class="inline-block px-1 py-0.5 rounded bg-primary text-white text-sm hover:bg-primary-dark">Mit Vorgänger vergleichen</a>
+            <a href="{% url 'compare_versions' anlage.pk %}" class="inline-block px-1 py-0.5 rounded bg-accent text-text text-sm hover:bg-accent-dark">Mit Vorgänger vergleichen</a>
         {% endif %}
     </td>
     <td class="px-2 py-1 text-center">
@@ -42,9 +42,9 @@
             <input type="hidden" name="value" value="{{ anlage.manual_reviewed|yesno:'0,1' }}">
             <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Geprüft umschalten">
                 {% if anlage.manual_reviewed %}
-                <span class="text-green-600">✓</span>
+                <span class="text-accent">✓</span>
                 {% else %}
-                <span class="text-gray-400">✗</span>
+                <span class="text-text">✗</span>
                 {% endif %}
             </button>
         </form>
@@ -56,9 +56,9 @@
             <input type="hidden" name="value" value="{{ anlage.verhandlungsfaehig|yesno:'0,1' }}">
             <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Verhandlungsfähigkeit umschalten">
                 {% if anlage.verhandlungsfaehig %}
-                <span class="text-green-600">✓</span>
+                <span class="text-accent">✓</span>
                 {% else %}
-                <span class="text-gray-400">✗</span>
+                <span class="text-text">✗</span>
                 {% endif %}
             </button>
         </form>

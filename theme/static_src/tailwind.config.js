@@ -29,6 +29,19 @@ export default {
           dark: '#4338ca',
         },
         header: '#0d1b2a',
+        background: {
+          DEFAULT: '#ffffff',
+          dark: '#1e293b',
+        },
+        text: {
+          DEFAULT: '#0f172a',
+          light: '#f8fafc',
+        },
+        accent: {
+          DEFAULT: '#2563eb',
+          light: '#3b82f6',
+          dark: '#1e40af',
+        },
         gray: {
           50: '#f8fafc',
           100: '#f1f5f9',

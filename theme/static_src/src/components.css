@@ -1,29 +1,29 @@
 @layer components {
   .card {
-    @apply bg-white rounded-lg shadow p-4;
+    @apply bg-background rounded-lg shadow p-4;
   }
   .badge {
     @apply inline-block px-2 py-0.5 rounded-full text-xs font-bold;
   }
   .badge-blue {
-    @apply bg-blue-600 text-white;
+    @apply bg-accent text-text;
   }
   .badge-yellow {
-    @apply bg-yellow-400 text-black;
+    @apply bg-accent text-text;
   }
   .badge-green {
-    @apply bg-green-600 text-white;
+    @apply bg-accent text-text;
   }
   .badge-red {
-    @apply bg-red-600 text-white;
+    @apply bg-accent text-text;
   }
   .badge-gray {
-    @apply bg-gray-500 text-white;
+    @apply bg-background text-text;
   }
   .alert {
     @apply p-2 rounded;
   }
   .alert-success {
-    @apply p-2 rounded bg-green-100 text-green-800;
+    @apply p-2 rounded bg-background text-text;
   }
 }
