@@ -3,6 +3,7 @@ export default {
     "@tailwindcss/postcss": {},
     "postcss-simple-vars": {},
     "postcss-nested": {},
+    "autoprefixer": {},
   },
 }
 
