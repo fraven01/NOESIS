@@ -20,9 +20,9 @@
 </head>
 <body class="flex flex-col min-h-screen bg-white text-gray-900">
     <header style="background-color: #020a1d;" class="text-white border-b items-center">
-        <div class="container mx-auto flex items-center justify-between p-4">
-            <div class="text-xl font-semibold">
-                <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="NEOMIND Logo" class="h-14 inline"></a>
+        <div class="container mx-auto flex items-center justify-between p-4" style="background-color: #020a1d;">
+            <div class="text-xl font-semibold bg-[#020a1d]">
+                <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="NEOMIND Logo" class="h-14 inline" style="background-color: #020a1d;"></a>
             </div>
             <nav class="space-x-4">
                 <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="mr-2 hover:underline">&larr; Zurück</a>
