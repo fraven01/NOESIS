@@ -6,7 +6,11 @@ function initMarkdownEditor(idPrefix) {
     const cancelBtn = document.getElementById(`${idPrefix}-cancel`);
     if (!view || !textarea || !editBtn || !saveBtn || !cancelBtn) return;
 
-    let editor = null;
+    // Mehrfache Initialisierung vermeiden
+    if (textarea.dataset.editorInitialized) {
+        return;
+    }
+    textarea.dataset.editorInitialized = "true";
 
     editBtn.addEventListener('click', () => {
         view.classList.add('hidden');
@@ -14,15 +18,16 @@ function initMarkdownEditor(idPrefix) {
         editBtn.classList.add('hidden');
         saveBtn.classList.remove('hidden');
         cancelBtn.classList.remove('hidden');
-        if (!editor) {
-            editor = new EasyMDE({ element: textarea });
+        if (!textarea._markdownEditor) {
+            textarea._markdownEditor = new EasyMDE({ element: textarea });
         }
     });
 
     cancelBtn.addEventListener('click', () => {
+        const editor = textarea._markdownEditor;
         if (editor) {
             editor.toTextArea();
-            editor = null;
+            textarea._markdownEditor = null;
         }
         textarea.classList.add('hidden');
         view.classList.remove('hidden');
@@ -32,6 +37,7 @@ function initMarkdownEditor(idPrefix) {
     });
 
     saveBtn.addEventListener('click', () => {
+        const editor = textarea._markdownEditor;
         if (editor) {
             textarea.value = editor.value();
         }
