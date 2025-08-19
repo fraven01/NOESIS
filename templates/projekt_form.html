@@ -23,13 +23,13 @@
                 {% if software_list %}
                     {% for name in software_list %}
                     <div class="flex items-center space-x-2">
-                        {% include 'partials/_form_input.html' with name='software_typen' value=name base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}
+                        {% include 'partials/_form_input.html' with name='software_typen' value=name base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
                         {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
                     </div>
                     {% endfor %}
                 {% else %}
                     <div class="flex items-center space-x-2">
-                        {% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}
+                        {% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
                         {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
                     </div>
                 {% endif %}
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addSoftwareBtn = document.getElementById('add-software-btn');
     const container = document.getElementById('software-inputs-container');
 
-    const inputTemplate = `{% filter escapejs %}{% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 p-2 focus:border-primary focus:ring-primary' %}{% endfilter %}`;
+    const inputTemplate = `{% filter escapejs %}{% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}{% endfilter %}`;
     const removeBtnTemplate = `{% filter escapejs %}{% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}{% endfilter %}`;
 
     function addSoftwareField(value = '') {
