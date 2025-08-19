@@ -38,7 +38,7 @@
 
                     <form action="{% url 'logout' %}" method="post" class="inline">
                         {% csrf_token %}
-                        {% include 'partials/_button.html' with type='submit' label='Abmelden' variant='secondary' classes='bg-transparent hover:underline px-0 py-0' %}
+                        {% include 'partials/_button.html' with type='submit' label='Abmelden' variant='secondary' classes='bg-transparent text-gray-300 hover:underline px-0 py-0' %}
                     </form>
 
                 {% else %}
