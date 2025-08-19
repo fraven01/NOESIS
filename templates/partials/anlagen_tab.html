@@ -3,15 +3,15 @@
 <div class="overflow-x-auto">
 <table class="mb-4 w-full text-left">
     <thead>
-        <tr>
-            {% if show_nr %}<th class="px-2 py-1">Nr.</th>{% endif %}
-            <th class="px-2 py-1">Bezeichnung</th>
-            <th class="px-2 py-1">Hochgeladen am</th>
-            <th class="px-2 py-1">Version</th>
-            <th class="px-2 py-1 text-center">Analyse bearbeiten</th>
-            <th class="px-2 py-1 text-center">Vergleich</th>
-            <th class="px-2 py-1 text-center">Geprüft</th>
-            <th class="px-2 py-1 text-center">Verhandlungsfähig</th>
+        <tr class="bg-background dark:bg-background-dark">
+            {% if show_nr %}<th class="px-2 py-1 bg-background dark:bg-background-dark">Nr.</th>{% endif %}
+            <th class="px-2 py-1 bg-background dark:bg-background-dark">Bezeichnung</th>
+            <th class="px-2 py-1 bg-background dark:bg-background-dark">Hochgeladen am</th>
+            <th class="px-2 py-1 bg-background dark:bg-background-dark">Version</th>
+            <th class="px-2 py-1 text-center bg-background dark:bg-background-dark">Analyse bearbeiten</th>
+            <th class="px-2 py-1 text-center bg-background dark:bg-background-dark">Vergleich</th>
+            <th class="px-2 py-1 text-center bg-background dark:bg-background-dark">Geprüft</th>
+            <th class="px-2 py-1 text-center bg-background dark:bg-background-dark">Verhandlungsfähig</th>
         </tr>
     </thead>
     <tbody id="anlage-table-body">
