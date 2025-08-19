@@ -44,6 +44,9 @@
                 {% else %}
                     <a href="/login/" class="hover:underline">Anmelden</a>
                 {% endif %}
+                <button id="theme-toggle" class="ml-2" aria-label="Farbschema umschalten">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
             </nav>
         </div>
     </header>
@@ -66,6 +69,7 @@
     </footer>
     <script src="{% static 'js/utils.js' %}"></script>
     <script src="{% static 'js/file_upload.js' %}"></script>
+    <script src="{% static 'js/theme_toggle.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <script src="{% static 'js/markdown_editor.js' %}"></script>
     {% block extra_js %}{% endblock %}
