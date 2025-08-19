@@ -60,6 +60,11 @@ PYCODE
   fi
 }
 
+build_static() {
+  echo "Baue CSS mit Tailwind..."
+  npm --prefix theme/static_src run build
+}
+
 if [ "${1:-}" = "migrate" ]; then
   wait_for_db
   run_migrations
@@ -75,6 +80,7 @@ elif [ "${1:-}" = "web" ]; then
     run_migrations
     maybe_create_superuser
   fi
+  build_static
   echo "Starte Gunicorn..."
   exec gunicorn noesis.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers ${WORKERS:-2}
 else

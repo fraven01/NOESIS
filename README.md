@@ -21,6 +21,10 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
 4. Installiere zusätzliche Systempakete wie `pandoc`, damit der Export nach
    DOCX funktioniert. Unter Debian/Ubuntu lautet der Befehl beispielsweise
    `sudo apt-get install pandoc`.
+5. Baue die CSS-Dateien mit Tailwind:
+   ```bash
+   npm --prefix theme/static_src run build
+   ```
 
 ## Entwickler-Setup
 
