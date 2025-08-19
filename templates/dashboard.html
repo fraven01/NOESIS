@@ -3,6 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Meine Aufnahmen</h1>
+<div class="overflow-x-auto">
 <table class="min-w-full">
     <thead>
         <tr class="text-left border-b">
@@ -23,4 +24,5 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

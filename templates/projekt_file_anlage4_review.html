@@ -9,6 +9,7 @@
 {% include 'partials/version_switcher.html' %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
+    <div class="overflow-x-auto">
     <table class="table-auto w-full border">
         <thead>
             <tr>
@@ -43,6 +44,7 @@
 {% endfor %}
         </tbody>
     </table>
+    </div>
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-4 py-2 rounded' %}
 </form>

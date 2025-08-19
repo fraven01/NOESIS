@@ -29,6 +29,7 @@
 </div>
 {% if parent_gaps %}
 <h2 class="text-xl font-semibold mt-6">Offene Gaps aus Version {{ parent.version }}</h2>
+<div class="overflow-x-auto">
 <table class="table-auto w-full border mt-2">
   <thead>
     <tr>
@@ -61,6 +62,7 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 <div class="mt-4">
   <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück zum Projekt</a>

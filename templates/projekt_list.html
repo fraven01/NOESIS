@@ -9,6 +9,7 @@
 {% include 'partials/_button.html' with href=admin_url label='Admin' variant='danger' classes='ml-2' %}
 {% endif %}
 <form method="get" action="{% url 'projekt_list' %}">
+<div class="overflow-x-auto">
 <table class="min-w-full mt-4">
     <thead>
         <tr class="text-left border-b">
@@ -34,6 +35,7 @@
         {% include 'partials/_project_list_rows.html' %}
     </tbody>
 </table>
+</div>
 
 </form>
 <script>

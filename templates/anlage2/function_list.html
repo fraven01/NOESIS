@@ -7,6 +7,7 @@
     <a href="{% url 'anlage2_function_import' %}" class="px-4 py-2 bg-success text-background rounded">Importieren</a>
     <a href="{% url 'anlage2_function_export' %}" class="px-4 py-2 bg-accent text-background rounded">Exportieren</a>
 </div>
+<div class="overflow-x-auto">
 <table class="min-w-full">
     <thead>
         <tr class="border-b text-left">
@@ -34,4 +35,5 @@
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}
