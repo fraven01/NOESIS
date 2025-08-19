@@ -29,7 +29,10 @@ export default {
           light: '#6366f1',
           dark: '#4338ca',
         },
-        header: '#0d1b2a',
+        header: {
+          DEFAULT: '#0d1b2a',
+          dark: '#1e293b',
+        },
         background: {
           DEFAULT: '#ffffff',
           dark: '#1e293b',
