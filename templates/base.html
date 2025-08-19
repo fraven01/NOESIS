@@ -18,13 +18,13 @@
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="flex flex-col min-h-screen bg-background text-text">
-    <header class="bg-header text-background border-b items-center">
+<body class="flex flex-col min-h-screen bg-background text-text dark:bg-background-dark dark:text-text-light">
+    <header class="bg-header text-background border-b items-center dark:bg-header-dark dark:text-text-light">
         <div class="container mx-auto flex items-center justify-between p-4">
             <div class="text-xl font-semibold">
                 <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="NEOMIND Logo" class="h-14 inline"></a>
             </div>
-            <nav class="text-background space-x-4">
+            <nav class="text-background dark:text-text-light space-x-4">
                 <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="mr-2 hover:underline hover:text-accent-light">&larr; Zurück</a>
                 <a href="/" class="hover:underline hover:text-accent-light">Startseite</a>
                 {% if user.is_authenticated %}
@@ -64,7 +64,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-background text-center py-4">
+    <footer class="bg-background text-text text-center py-4 dark:bg-background-dark dark:text-text-light">
         <p>&copy; 2025 Frank Vendolsky</p>
     </footer>
     <script src="{% static 'js/utils.js' %}"></script>
