@@ -17,7 +17,7 @@
     {% endif %}
 
     <form method="get" class="inline-block">
-        <button name="rescan" value="1" class="px-4 py-2 bg-gray-600 text-background rounded">Rescan</button>
+        <button name="rescan" value="1" class="px-4 py-2 bg-background-dark text-background rounded">Rescan</button>
     </form>
     <a href="{% url 'upload_recording' %}" class="px-4 py-2 bg-accent text-background rounded">Datei hochladen</a>
     {% if is_admin %}
@@ -49,7 +49,7 @@
             {{ rec.audio_file.name|basename|truncatechars:30 }}
             {% if rec.transcript_file %}<i class="fas fa-check text-success ml-2"></i>{% endif %}
         </p>
-        <p class="text-xs text-gray-500">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
+        <p class="text-xs text-text opacity-70">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
     </div>
     {% empty %}
     <p>Keine Aufnahmen vorhanden.</p>
@@ -59,7 +59,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {% for rec in recordings %}
         {% if rec.transcript_file %}
-        <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 bg-gray-50 hover:bg-gray-100 text-sm">
+        <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 bg-background hover:bg-background-dark text-sm">
             <h3 class="font-semibold flex items-center">
                 <i class="fas fa-file-alt text-success mr-2"></i>
                 {{ rec.audio_file.name|basename|truncatechars:30 }}
@@ -79,7 +79,7 @@
         </div>
         <div class="p-4 bg-background">
             <h3 class="text-lg font-semibold mb-2">Transcript Verwaltung</h3>
-            <p class="text-gray-600">Alle Einträge prüfen und bereinigen</p>
+            <p class="text-text opacity-70">Alle Einträge prüfen und bereinigen</p>
         </div>
     </a>
 </div>

@@ -5,16 +5,16 @@
 <div class="max-w-screen-2xl mx-auto">
     <section class="p-4">
         <div class="flex flex-col md:flex-row gap-6">
-            <aside class="w-full md:w-64 bg-gray-50 p-4 border-r border-gray-200">
+            <aside class="w-full md:w-64 bg-background p-4 border-r border-gray-200">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="space-y-4 text-sm">
             <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
+                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
                 <a href="{% url 'admin_projects' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Liste</a><br>
                 <a href="{% url 'admin_project_statuses' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Status</a><br>
             </div>
             <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
+                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
                 {% with current=request.resolver_match.url_name %}
                 <div>
                     <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
@@ -67,13 +67,13 @@
                 {% endwith %}
             </div>
             <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
+                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
                 <a href="{% url 'admin_llm_roles' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Rollen</a><br>
                 <a href="{% url 'admin_prompts' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Prompts</a><br>
                 <a href="{% url 'admin_models' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Modelle</a><br>
             </div>
             <div>
-                <h3 class="font-semibold text-gray-500 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
+                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
                 <a href="{% url 'admin_user_list' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Benutzer verwalten</a><br>
                 <a href="{% url 'admin:auth_group_changelist' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Gruppen</a><br>
             </div>
