@@ -9,8 +9,8 @@
     {% csrf_token %}
     {{ form.justification.label_tag }}
     {{ form.justification }}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Speichern</button>
-    <a href="{% url 'justification_delete' project_file.id function_name %}" class="bg-red-600 text-white px-4 py-2 rounded ml-2">Begründung löschen</a>
+    <button type="submit" class="bg-accent text-background px-4 py-2 rounded">Speichern</button>
+    <a href="{% url 'justification_delete' project_file.id function_name %}" class="bg-error text-background px-4 py-2 rounded ml-2">Begründung löschen</a>
 </form>
 {% endblock %}
 

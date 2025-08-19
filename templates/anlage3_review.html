@@ -15,29 +15,29 @@
     <tbody>
     {% for a in anlagen %}
         <tr class="border-t">
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-blue-700 underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-accent-dark underline">{{ a.upload.name|basename }}</a></td>
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'projekt_file_check_view' a.pk %}?llm=1">
                     {% csrf_token %}
-                    <button class="bg-purple-600 text-white px-2 py-1 rounded">LLM-Prüfung</button>
+                    <button class="bg-primary text-background px-2 py-1 rounded">LLM-Prüfung</button>
                 </form>
             </td>
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
                     {% csrf_token %}
                     <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-green-600 text-white{% else %}bg-gray-300{% endif %}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-success text-background{% else %}bg-gray-300{% endif %}">
                         {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
                     </button>
                 </form>
             </td>
             <td class="px-2 py-1 text-center space-x-1">
-                <a href="{% url 'projekt_file_edit_json' a.pk %}" class="bg-purple-600 text-white px-2 py-1 rounded">Analyse bearbeiten</a>
+                <a href="{% url 'projekt_file_edit_json' a.pk %}" class="bg-primary text-background px-2 py-1 rounded">Analyse bearbeiten</a>
                 <form method="post" action="{% url 'projekt_file_delete_result' a.pk %}" class="inline">
                     {% csrf_token %}
-                    <button class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Ergebnis wirklich löschen?')">Ergebnis löschen</button>
+                    <button class="bg-error text-background px-2 py-1 rounded" onclick="return confirm('Ergebnis wirklich löschen?')">Ergebnis löschen</button>
                 </form>
-                <a href="{{ a.upload.url }}" class="bg-blue-600 text-white px-2 py-1 rounded">Download</a>
+                <a href="{{ a.upload.url }}" class="bg-accent text-background px-2 py-1 rounded">Download</a>
             </td>
         </tr>
         {% if a.analysis_json %}
@@ -48,7 +48,7 @@
                 </div>
                 <div class="mt-1 space-x-2">
                     <a href="{% url 'projekt_file_edit_json' a.pk %}" class="btn-action">Bearbeiten</a>
-                    <a href="{{ a.upload.url }}" class="text-blue-700 underline">Download</a>
+                    <a href="{{ a.upload.url }}" class="text-accent-dark underline">Download</a>
                 </div>
             </td>
         </tr>
@@ -58,5 +58,5 @@
     {% endfor %}
     </tbody>
 </table>
-<a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück</a>
+<a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück</a>
 {% endblock %}

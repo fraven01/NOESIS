@@ -52,7 +52,7 @@
             </tbody>
         </table>
         </div>
-        <button type="submit" name="action" value="save_table" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        <button type="submit" name="action" value="save_table" class="mt-6 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
     </div>
     <div id="tab-general" class="tab-content">
         <div>
@@ -79,7 +79,7 @@
             <div id="parser-order-inputs"></div>
             {{ config_form.parser_order.errors }}
         </div>
-        <button type="submit" name="action" value="save_general" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        <button type="submit" name="action" value="save_general" class="mt-6 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
     </div>
     <div id="tab-rules" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln</h2>
@@ -89,7 +89,7 @@
         <div class="mt-2 space-x-2">
             <!-- HTMX-Funktion vorübergehend deaktiviert -->
             <button type="button" class="px-3 py-1 bg-gray-300 rounded" disabled>Neue Regel hinzufügen</button>
-            <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+            <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
         </div>
     </div>
     <div id="tab-rules2" class="tab-content">
@@ -97,7 +97,7 @@
         <div class="overflow-x-auto">
             {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb raw_actions=raw_actions action_formsets=action_formsets %}
         </div>
-        <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+        <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
     </div>
     <div id="tab-a4" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Anlage 4 Parser</h2>
@@ -122,7 +122,7 @@
                 {{ a4_parser_form.fachbereiche_phrase }}
                 {{ a4_parser_form.fachbereiche_phrase.errors }}
             </div>
-            <button type="submit" name="action" value="save_a4" class="px-4 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700">Speichern</button>
+            <button type="submit" name="action" value="save_a4" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
         </div>
     </div>
 </form>
@@ -135,9 +135,9 @@ function showTab(tab){
     document.querySelectorAll('[data-tab]').forEach(btn=>{
         if(btn.dataset.tab===tab){
             btn.classList.remove('bg-gray-200','text-gray-600','border-b-0');
-            btn.classList.add('bg-white','text-blue-600','font-semibold','border-b-transparent');
+            btn.classList.add('bg-background','text-accent','font-semibold','border-b-transparent');
         }else{
-            btn.classList.remove('bg-white','text-blue-600','font-semibold','border-b-transparent');
+            btn.classList.remove('bg-background','text-accent','font-semibold','border-b-transparent');
             btn.classList.add('bg-gray-200','text-gray-600','border-b-0');
         }
     });

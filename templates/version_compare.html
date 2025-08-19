@@ -9,7 +9,7 @@
       Aktuelle Version (v{{ file.version }})
       <form method="post" action="{% url 'delete_project_file_version' file.pk %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+        <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
     <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ file.manual_analysis_json|default:file.analysis_json|tojson }}</pre>
@@ -20,7 +20,7 @@
       Vorherige Version (v{{ parent.version }})
       <form method="post" action="{% url 'delete_project_file_version' parent.pk %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+        <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
     <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
@@ -49,12 +49,12 @@
         <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline">
           <input type="hidden" name="result_id" value="{{ gap.id }}">
           <input type="hidden" name="action" value="carry">
-          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Übernehmen</button>
+          <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Übernehmen</button>
         </form>
         <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline ms-2">
           <input type="hidden" name="result_id" value="{{ gap.id }}">
           <input type="hidden" name="action" value="fix">
-          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Behoben</button>
+          <button type="submit" class="bg-success text-background px-2 py-1 rounded">Behoben</button>
         </form>
       </td>
     </tr>
@@ -63,6 +63,6 @@
 </table>
 {% endif %}
 <div class="mt-4">
-  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück zum Projekt</a>
+  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück zum Projekt</a>
 </div>
 {% endblock %}

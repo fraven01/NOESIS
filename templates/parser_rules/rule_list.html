@@ -3,9 +3,9 @@
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Regeln für Exakten Parser</h1>
 <div class="mb-4 space-x-2">
-    <a href="{% url 'parser_rule_add' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Neue Regel</a>
-    <a href="{% url 'anlage2_parser_rule_import' %}" class="px-4 py-2 bg-green-600 text-white rounded">Importieren</a>
-    <a href="{% url 'anlage2_parser_rule_export' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Exportieren</a>
+    <a href="{% url 'parser_rule_add' %}" class="px-4 py-2 bg-accent text-background rounded">Neue Regel</a>
+    <a href="{% url 'anlage2_parser_rule_import' %}" class="px-4 py-2 bg-success text-background rounded">Importieren</a>
+    <a href="{% url 'anlage2_parser_rule_export' %}" class="px-4 py-2 bg-accent text-background rounded">Exportieren</a>
 </div>
 <table class="min-w-full">
     <thead>
@@ -22,12 +22,12 @@
             <td class="py-1">{{ r.regel_name }}</td>
             <td class="py-1">{{ r.erkennungs_phrase }}</td>
             <td class="py-1 text-center">
-                <a href="{% url 'parser_rule_edit' r.id %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
+                <a href="{% url 'parser_rule_edit' r.id %}" class="px-2 py-1 bg-accent text-background rounded">Bearbeiten</a>
             </td>
             <td class="py-1 text-center">
                 <form method="post" action="{% url 'parser_rule_delete' r.id %}" class="inline">
                     {% csrf_token %}
-                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Regel wirklich löschen?');">Löschen</button>
+                    <button type="submit" class="px-2 py-1 bg-error text-background rounded" onclick="return confirm('Regel wirklich löschen?');">Löschen</button>
                 </form>
             </td>
         </tr>

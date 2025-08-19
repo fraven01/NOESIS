@@ -10,7 +10,7 @@
             <option value="{{ g.id }}" {% if selected_group and g.id == selected_group.id %}selected{% endif %}>{{ g.name }}</option>
         {% endfor %}
     </select>
-    <a href="{% url 'admin:auth_group_add' %}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded">Neue Rolle</a>
+    <a href="{% url 'admin:auth_group_add' %}" class="ml-2 px-2 py-1 bg-accent text-background rounded">Neue Rolle</a>
 </div>
 <div id="role-form">
     {% if selected_group %}
