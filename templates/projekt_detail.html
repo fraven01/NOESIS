@@ -47,7 +47,7 @@
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
 <nav class="flex space-x-2 mb-4" id="anlage-tabs-nav">
   {% for nr in anlage_numbers %}
-  <button class="anlage-tab px-3 py-1 border-b-2 {% if forloop.first %}border-primary text-primary{% else %}border-transparent text-gray-600{% endif %}"
+  <button class="anlage-tab px-3 py-1 border-b-2 {% if forloop.first %}border-primary text-primary{% else %}border-transparent text-gray-600 dark:text-gray-300{% endif %}"
           hx-get="{% url 'hx_project_anlage_tab' projekt.pk nr %}"
           hx-target="#anlage-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-nr="{{ nr }}">
@@ -66,7 +66,7 @@
           hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
           hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-tab="tech">Technische Prüfung</button>
-  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-gray-600"
+  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-gray-600 dark:text-gray-300"
           hx-get="{% url 'hx_project_software_tab' projekt.pk 'gutachten' %}"
           hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-tab="gutachten">Gutachten</button>
@@ -240,17 +240,17 @@ document.addEventListener('htmx:beforeRequest',function(e){
   if(t.classList.contains('anlage-tab')){
     document.querySelectorAll('.anlage-tab').forEach(b=>{
       b.classList.remove('border-primary','text-primary');
-      b.classList.add('border-transparent','text-gray-600');
+      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
     });
-    t.classList.remove('border-transparent','text-gray-600');
+    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
     t.classList.add('border-primary','text-primary');
   }
   if(t.classList.contains('software-tab')){
     document.querySelectorAll('.software-tab').forEach(b=>{
       b.classList.remove('border-primary','text-primary');
-      b.classList.add('border-transparent','text-gray-600');
+      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
     });
-    t.classList.remove('border-transparent','text-gray-600');
+    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
     t.classList.add('border-primary','text-primary');
   }
 });

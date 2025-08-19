@@ -34,10 +34,10 @@
         Anlage {{ nr }}:
         {% if file %}
           <a href="{{ file.upload.url }}" class="underline" title="{{ file.upload.name|clean_filename }}">{{ file.upload.name|clean_filename }}</a>
-          {% if file.processing_status == 'COMPLETE' %}<i class="fas fa-check text-success"></i>{% elif file.processing_status == 'FAILED' %}<i class="fas fa-times text-error"></i>{% elif file.processing_status == 'PROCESSING' %}{% include 'partials/spinner.html' %}{% else %}<i class="fas fa-clock text-gray-500"></i>{% endif %}
-          {% if file.verhandlungsfaehig %}<i class="fas fa-handshake text-success ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fas fa-handshake-slash text-gray-400 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
+{% if file.processing_status == 'COMPLETE' %}<i class="fas fa-check text-success"></i>{% elif file.processing_status == 'FAILED' %}<i class="fas fa-times text-error"></i>{% elif file.processing_status == 'PROCESSING' %}{% include 'partials/spinner.html' %}{% else %}<i class="fas fa-clock text-gray-500 dark:text-gray-400"></i>{% endif %}
+{% if file.verhandlungsfaehig %}<i class="fas fa-handshake text-success ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fas fa-handshake-slash text-gray-400 dark:text-gray-500 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
         {% else %}
-          <span class="text-gray-500">fehlt</span>
+          <span class="text-gray-500 dark:text-gray-400">fehlt</span>
         {% endif %}
       </li>
       {% endwith %}
