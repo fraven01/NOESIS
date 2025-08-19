@@ -25,7 +25,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="file_id" value="{{ f.id }}">
-                    <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Anlage wirklich löschen?');">Löschen</button>
+                    <button type="submit" class="px-2 py-1 bg-error text-background rounded" onclick="return confirm('Anlage wirklich löschen?');">Löschen</button>
                 </form>
             </td>
         </tr>
@@ -41,7 +41,7 @@
 <form method="post" class="mb-4">
     {% csrf_token %}
     <input type="hidden" name="action" value="delete_gutachten">
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Gutachten wirklich löschen?');">Gutachten löschen</button>
+    <button type="submit" class="px-4 py-2 bg-error text-background rounded" onclick="return confirm('Gutachten wirklich löschen?');">Gutachten löschen</button>
 </form>
 {% else %}
 <p class="mb-4">Kein Gutachten vorhanden.</p>
@@ -52,7 +52,7 @@
 <form method="post" class="mb-4">
     {% csrf_token %}
     <input type="hidden" name="action" value="delete_classification">
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Bewertung wirklich löschen?');">Bewertung löschen</button>
+    <button type="submit" class="px-4 py-2 bg-error text-background rounded" onclick="return confirm('Bewertung wirklich löschen?');">Bewertung löschen</button>
 </form>
 {% else %}
 <p class="mb-4">Keine Bewertung vorhanden.</p>
@@ -63,7 +63,7 @@
 <form method="post" class="mb-4">
     {% csrf_token %}
     <input type="hidden" name="action" value="delete_gap_report">
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('GAP-Bericht wirklich löschen?');">GAP-Bericht löschen</button>
+    <button type="submit" class="px-4 py-2 bg-error text-background rounded" onclick="return confirm('GAP-Bericht wirklich löschen?');">GAP-Bericht löschen</button>
 </form>
 {% else %}
 <p class="mb-4">Kein GAP-Bericht vorhanden.</p>

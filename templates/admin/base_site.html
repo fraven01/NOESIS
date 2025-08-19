@@ -13,7 +13,7 @@
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="space-y-4 text-sm">
             <div>
-                <a href="/projects-admin/" class="flex items-center px-3 py-2 rounded bg-blue-600 text-white font-semibold">
+                <a href="/projects-admin/" class="flex items-center px-3 py-2 rounded bg-accent text-background font-semibold">
                     <i class="fas fa-project-diagram fa-fw mr-2"></i>
                     Projekt-Admin
                 </a>
@@ -25,15 +25,15 @@
                     <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}rotate-180{% endif %}"></i>
                 </h3>
                 <div class="accordion-content pl-2 space-y-1 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_llm_roles' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_llm_roles' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin_llm_roles' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'admin_llm_roles' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-user-gear fa-fw mr-2"></i>
                         LLM-Rollen
                     </a>
-                    <a href="{% url 'admin_prompts' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_prompts' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin_prompts' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'admin_prompts' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-pencil-alt fa-fw mr-2"></i>
                         Prompts
                     </a>
-                    <a href="{% url 'admin_models' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_models' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin_models' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'admin_models' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-robot fa-fw mr-2"></i>
                         LLM-Modelle
                     </a>
@@ -47,19 +47,19 @@
                     <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_sys in 'admin_user_list auth_group_changelist' %}rotate-180{% endif %}"></i>
                 </h3>
                 <div class="accordion-content pl-2 space-y-1 {% if open_sys in 'admin_user_list auth_group_changelist' %}block{% else %}hidden{% endif %}">
-                    <a href="{% url 'admin_user_list' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_user_list' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin_user_list' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'admin_user_list' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-users fa-fw mr-2"></i>
                         Benutzer verwalten
                     </a>
-                    <a href="{% url 'admin:auth_group_changelist' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'auth_group_changelist' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin:auth_group_changelist' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'auth_group_changelist' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-user-shield fa-fw mr-2"></i>
                         Gruppen
                     </a>
-                    <a href="{% url 'admin_role_editor' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'admin_role_editor' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'admin_role_editor' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'admin_role_editor' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-check-square fa-fw mr-2"></i>
                         Rollen &amp; Rechte
                     </a>
-                    <a href="{% url 'config_transfer' %}" class="flex items-center px-3 py-2 rounded text-blue-700 hover:bg-blue-100 {% if request.resolver_match.url_name == 'config_transfer' %}bg-blue-600 text-white font-semibold{% endif %}">
+                    <a href="{% url 'config_transfer' %}" class="flex items-center px-3 py-2 rounded text-accent-dark hover:bg-accent-light {% if request.resolver_match.url_name == 'config_transfer' %}bg-accent text-background font-semibold{% endif %}">
                         <i class="fas fa-exchange-alt fa-fw mr-2"></i>
                         Konfigurationen übertragen
                     </a>

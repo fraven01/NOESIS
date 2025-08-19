@@ -12,7 +12,7 @@
 
 <form method="post" action="{% url 'delete_gap_report' projekt.pk %}" class="inline-block">
     {% csrf_token %}
-    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Bericht verwerfen &amp; neu generieren</button>
+    <button type="submit" class="bg-error text-background px-4 py-2 rounded">Bericht verwerfen &amp; neu generieren</button>
 </form>
 {% endblock %}
 {% block extra_js %}

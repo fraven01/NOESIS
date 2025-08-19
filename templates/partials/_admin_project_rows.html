@@ -7,9 +7,9 @@
             {% include 'partials/status_badge.html' with status_key=p.status.key label=p.status.name %}
         </td>
         <td class="py-1 text-center flex items-center justify-center space-x-2">
-            <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-blue-600 text-white rounded">Bearbeiten</a>
-            <a href="{% url 'admin_project_cleanup' p.pk %}" class="px-2 py-1 bg-yellow-600 text-white rounded">Bereinigen</a>
-            <button type="submit" name="delete_single" value="{{ p.id }}" form="post-actions-form" class="px-2 py-1 bg-red-600 text-white rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
+            <a href="{% url 'projekt_edit' p.pk %}" class="px-2 py-1 bg-accent text-text rounded">Bearbeiten</a>
+            <a href="{% url 'admin_project_cleanup' p.pk %}" class="px-2 py-1 bg-accent text-text rounded">Bereinigen</a>
+            <button type="submit" name="delete_single" value="{{ p.id }}" form="post-actions-form" class="px-2 py-1 bg-accent text-text rounded" onclick="return confirm('Projekt wirklich löschen?');">Löschen</button>
         </td>
         <td class="py-1 text-center"><input type="checkbox" name="selected_projects" value="{{ p.id }}" form="post-actions-form" class="form-checkbox"></td>
     </tr>

@@ -11,7 +11,7 @@
   {% for v in versions %}
   <form method="post" action="{% url 'delete_project_file_version' v.pk %}" class="inline">
     {% csrf_token %}
-    <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded" onclick="return confirm('Sind Sie sicher?')">v{{ v.version }} löschen</button>
+    <button type="submit" class="bg-error text-background px-2 py-1 rounded" onclick="return confirm('Sind Sie sicher?')">v{{ v.version }} löschen</button>
   </form>
   {% endfor %}
 </div>

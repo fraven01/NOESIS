@@ -13,25 +13,25 @@
     {% csrf_token %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {% for rec in recordings %}
-        <div class="border rounded p-4 shadow {% if rec.incomplete %}bg-red-50{% endif %}">
+        <div class="border rounded p-4 shadow {% if rec.incomplete %}bg-error-light{% endif %}">
             <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600">{{ rec.created_at|date:'d.m.Y H:i' }}</span>
                 <input type="checkbox" name="delete" value="{{ rec.id }}" class="form-checkbox"/>
             </div>
             <p class="font-semibold mt-1">{{ rec.audio_file.name|basename }}</p>
             {% if rec.audio_missing %}
-            <p class="text-red-600 text-sm">Audio fehlt</p>
+            <p class="text-error text-sm">Audio fehlt</p>
             {% else %}
             <audio controls src="{{ rec.audio_file.url }}" class="w-full mt-1"></audio>
             {% endif %}
             {% if rec.transcript_file %}
                 {% if rec.transcript_missing %}
-                <p class="text-red-600 text-sm mt-1">Transcript fehlt</p>
+                <p class="text-error text-sm mt-1">Transcript fehlt</p>
                 {% else %}
                 <p class="text-sm whitespace-pre-line mt-1">{{ rec.excerpt }}</p>
                 {% endif %}
             {% else %}
-                <p class="text-red-600 text-sm mt-1">Transcript fehlt</p>
+                <p class="text-error text-sm mt-1">Transcript fehlt</p>
             {% endif %}
             {% if rec.notes %}
             <p class="text-xs text-gray-500 mt-2">{{ rec.notes }}</p>
@@ -43,7 +43,7 @@
     </div>
     {% if recordings %}
     <div class="mt-4">
-        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Einträge wirklich löschen?');">Löschen</button>
+        <button type="submit" class="px-4 py-2 bg-error text-background rounded" onclick="return confirm('Einträge wirklich löschen?');">Löschen</button>
     </div>
     {% endif %}
 </form>

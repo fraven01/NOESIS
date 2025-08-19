@@ -30,14 +30,14 @@
           {% csrf_token %}
           <input type="hidden" name="action" value="negotiate">
           <input type="hidden" name="question" value="{{ row.num }}">
-          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Verhandlungsfähig</button>
+          <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Verhandlungsfähig</button>
         </form>
         <form method="post" class="inline">
           {% csrf_token %}
           <input type="hidden" name="action" value="add_gap">
           <input type="hidden" name="question" value="{{ row.num }}">
           <input type="hidden" name="note" value="Offen">
-          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Gap hinzufügen</button>
+          <button type="submit" class="bg-success text-background px-2 py-1 rounded">Gap hinzufügen</button>
         </form>
       </td>
     </tr>
@@ -66,7 +66,7 @@
         {% if row.parent.hinweis %}<p>Hinweis: {{ row.parent.hinweis }}</p>{% endif %}
         {% if row.parent.vorschlag %}<p>Vorschlag: {{ row.parent.vorschlag }}</p>{% endif %}
       </td>
-      <td class="border px-2 {% if row.changed %}bg-yellow-100{% endif %}">
+      <td class="border px-2 {% if row.changed %}bg-warning/20{% endif %}">
         {% if row.current.answer %}<p>{{ row.current.answer }}</p>{% endif %}
         {% if row.current.hinweis %}<p>Hinweis: {{ row.current.hinweis }}</p>{% endif %}
         {% if row.current.vorschlag %}<p>Vorschlag: {{ row.current.vorschlag }}</p>{% endif %}
@@ -76,6 +76,6 @@
   </tbody>
 </table>
 <div class="mt-4">
-  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-black px-4 py-2 rounded">Zurück zum Projekt</a>
+  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück zum Projekt</a>
 </div>
 {% endblock %}
