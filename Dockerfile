@@ -30,15 +30,11 @@ RUN chmod +x /app/entrypoint.sh
 
 
 # Schritt 7: Frontend-Abhängigkeiten installieren und CSS bauen
-# Wechseln in das Verzeichnis, in dem sich die package.json befindet
 WORKDIR /app/theme/static_src
-RUN npm install
+RUN npm install && npm run build
 
-# Zurück zum Hauptverzeichnis für die Django-Befehle
+# Zurück zum Hauptverzeichnis für die weiteren Django-Befehle
 WORKDIR /app
-
-# TailwindCSS kompilieren
-RUN python manage.py tailwind build
 
 # Schritt 8: Statische Dateien für die Produktion sammeln
 # Django sammelt alle statischen Dateien (inkl. dem kompilierten CSS) an einem Ort
