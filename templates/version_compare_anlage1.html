@@ -4,6 +4,7 @@
 <h1 class="text-2xl font-semibold mb-4">Anlage 1: Version {{ file.version }} mit Vorgänger vergleichen</h1>
 <h2 class="text-xl font-semibold mb-2">GAP-Fragen</h2>
 {% if gap_rows %}
+<div class="overflow-x-auto">
 <table class="table-auto w-full border">
   <thead>
     <tr>
@@ -44,11 +45,13 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <p>Keine offenen Gaps.</p>
 {% endif %}
 
 <h2 class="text-xl font-semibold mt-6">Alle Fragen</h2>
+<div class="overflow-x-auto">
 <table class="table-auto w-full border mt-2">
   <thead>
     <tr>
@@ -75,6 +78,7 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 <div class="mt-4">
   <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück zum Projekt</a>
 </div>

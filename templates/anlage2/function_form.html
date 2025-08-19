@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% if funktion %}
 <h2 class="text-xl font-semibold mt-8 mb-2">Unterfragen</h2>
 <a href="{% url 'anlage2_subquestion_new' funktion.id %}" class="inline-block mb-2 px-3 py-1 bg-success text-background rounded">Neue Unterfrage</a>
+<div class="overflow-x-auto">
 <table class="min-w-full">
     <thead>
         <tr class="border-b text-left">
@@ -85,5 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
 {% endblock %}
