@@ -9,7 +9,7 @@
 <div class="max-w-screen-2xl mx-auto">
     <section class="flex-1 p-4">
         <div class="flex flex-col md:flex-row gap-6">
-            <aside class="bg-gray-50 p-4 border-r border-gray-200 overflow-y-auto w-full md:w-64 flex-shrink-0">
+            <aside class="bg-background p-4 border-r border-gray-200 overflow-y-auto w-full md:w-64 flex-shrink-0">
         <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
         <nav class="space-y-4 text-sm">
             <div>
@@ -20,7 +20,7 @@
             </div>
             <div>
                 {% with open_ki=request.resolver_match.url_name %}
-                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-gray-600 uppercase tracking-wider text-sm">
+                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-text opacity-70 uppercase tracking-wider text-sm">
                     <span>KI-Konfiguration</span>
                     <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_ki in 'admin_llm_roles admin_prompts admin_models' %}rotate-180{% endif %}"></i>
                 </h3>
@@ -42,7 +42,7 @@
             </div>
             <div>
                 {% with open_sys=request.resolver_match.url_name %}
-                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-gray-600 uppercase tracking-wider text-sm">
+                <h3 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer text-text opacity-70 uppercase tracking-wider text-sm">
                     <span>Systemverwaltung</span>
                     <i data-accordion-icon class="fas fa-chevron-down ml-2 transition-transform duration-300 {% if open_sys in 'admin_user_list auth_group_changelist' %}rotate-180{% endif %}"></i>
                 </h3>
