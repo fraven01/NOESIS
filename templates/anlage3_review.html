@@ -15,7 +15,7 @@
     <tbody>
     {% for a in anlagen %}
         <tr class="border-t">
-            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-accent-dark underline">{{ a.upload.name|basename }}</a></td>
+            <td class="px-2 py-1"><a href="{{ a.upload.url }}" class="text-accent-dark dark:text-accent-light underline">{{ a.upload.name|basename }}</a></td>
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'projekt_file_check_view' a.pk %}?llm=1">
                     {% csrf_token %}
@@ -48,7 +48,7 @@
                 </div>
                 <div class="mt-1 space-x-2">
                     <a href="{% url 'projekt_file_edit_json' a.pk %}" class="btn-action">Bearbeiten</a>
-                    <a href="{{ a.upload.url }}" class="text-accent-dark underline">Download</a>
+                    <a href="{{ a.upload.url }}" class="text-accent-dark dark:text-accent-light underline">Download</a>
                 </div>
             </td>
         </tr>
