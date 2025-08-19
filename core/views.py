@@ -139,7 +139,7 @@ from .parser_manager import parser_manager
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
-from .utils import get_project_file, start_analysis_for_file
+from .utils import get_project_file, start_analysis_for_file, has_any_gap
 from django.forms import formset_factory, modelformset_factory
 
 
@@ -3032,25 +3032,7 @@ def projekt_detail(request, pk):
         nr: projekt.anlagen.filter(anlage_nr=nr).last() for nr in range(1, 7)
     }
 
-    can_gap_report = False
-    pf1 = get_project_file(projekt, 1)
-    if pf1 and pf1.question_review:
-        for val in pf1.question_review.values():
-            if isinstance(val, dict) and (val.get("hinweis") or val.get("vorschlag")):
-                can_gap_report = True
-                break
-    if not can_gap_report:
-        pf2 = get_project_file(projekt, 2)
-        if (
-            pf2
-            and AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf2)
-            .filter(
-                (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
-                | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
-            )
-            .exists()
-        ):
-            can_gap_report = True
+    can_gap_report = has_any_gap(projekt)
 
     context = {
         "projekt": projekt,

@@ -34,6 +34,7 @@ from ..models import (
     Anlage4Config,
     Anlage4ParserConfig,
     ZweckKategorieA,
+    Anlage5Review,
 )
 from ..docx_utils import (
     extract_text,
@@ -4948,6 +4949,62 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(self.pf1.gap_summary, "")
         self.assertEqual(self.pf2.gap_summary, "")
 
+
+class ProjektDetailGapTests(NoesisTestCase):
+    def setUp(self):
+        self.client.login(username=self.superuser.username, password="pass")
+
+    def test_anlage1_gap_sets_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("a.txt", b"data"),
+            question_review={"1": {"vorschlag": "V"}},
+        )
+        resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
+        self.assertTrue(resp.context["can_gap_report"])
+
+    def test_anlage2_gap_sets_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf2 = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("b.txt", b"data"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf2,
+            funktion=func,
+            supervisor_notes="Hinweis",
+        )
+        resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
+        self.assertTrue(resp.context["can_gap_report"])
+
+    def test_anlage4_gap_sets_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("c.txt", b"data"),
+            manual_comment="Hinweis",
+        )
+        resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
+        self.assertTrue(resp.context["can_gap_report"])
+
+    def test_anlage5_gap_sets_flag(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf5 = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=5,
+            upload=SimpleUploadedFile("d.txt", b"data"),
+        )
+        ZweckKategorieA.objects.all().delete()
+        ZweckKategorieA.objects.create(beschreibung="A")
+        ZweckKategorieA.objects.create(beschreibung="B")
+        Anlage5Review.objects.create(project_file=pf5)
+        resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
+        self.assertTrue(resp.context["can_gap_report"])
 
 class ManualGapDetectionTests(TestCase):
     """Tests für die Funktion ``_has_manual_gap``."""
