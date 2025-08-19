@@ -45,9 +45,9 @@
             </form>
         </div>
         <p class="mt-1 flex items-center break-all">
-            <i class="fas fa-microphone text-accent mr-2"></i>
+            <i class="fa-solid fa-microphone text-accent mr-2"></i>
             {{ rec.audio_file.name|basename|truncatechars:30 }}
-            {% if rec.transcript_file %}<i class="fas fa-check text-success ml-2"></i>{% endif %}
+            {% if rec.transcript_file %}<i class="fa-solid fa-check text-success ml-2"></i>{% endif %}
         </p>
         <p class="text-xs text-text opacity-70">{{ rec.created_at|date:'d.m.Y H:i' }}</p>
     </div>
@@ -61,7 +61,7 @@
         {% if rec.transcript_file %}
         <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 bg-background hover:bg-background-dark text-sm">
             <h3 class="font-semibold flex items-center">
-                <i class="fas fa-file-alt text-success mr-2"></i>
+                <i class="fa-solid fa-file-alt text-success mr-2"></i>
                 {{ rec.audio_file.name|basename|truncatechars:30 }}
             </h3>
             <p class="text-sm whitespace-pre-line mt-1">{{ rec.excerpt }}</p>
@@ -75,7 +75,7 @@
 <div class="mt-8">
     <a href="{% url 'admin_talkdiary' %}" class="block rounded-lg overflow-hidden shadow-lg transform transition duration-300 hover:scale-105">
         <div class="h-32 bg-gradient-to-r from-primary to-primary-dark text-background flex items-center justify-center">
-            <i class="fas fa-tools text-background text-4xl"></i>
+            <i class="fa-solid fa-tools text-background text-4xl"></i>
         </div>
         <div class="p-4 bg-background">
             <h3 class="text-lg font-semibold mb-2">Transcript Verwaltung</h3>
