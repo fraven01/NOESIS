@@ -2,7 +2,7 @@
 {% block title %}Anlage 6 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 6 prüfen</h1>
-<p><a href="{{ anlage.upload.url }}" class="text-accent-dark underline">Download</a></p>
+<p><a href="{{ anlage.upload.url }}" class="text-accent-dark dark:text-accent-light underline">Download</a></p>
 <form method="post" class="space-y-4">
     {% csrf_token %}
     <div>
