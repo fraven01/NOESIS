@@ -11,6 +11,7 @@ BTN_VARIANTS = {
     "purple": "bg-purple-600 text-white hover:bg-purple-700",
     "muted": "bg-gray-200 hover:bg-gray-300 text-gray-800",
     "disabled": "bg-gray-300 text-gray-500 cursor-not-allowed",
+    "link": "bg-transparent text-white hover:bg-transparent hover:underline",
 }
 
 @register.simple_tag
