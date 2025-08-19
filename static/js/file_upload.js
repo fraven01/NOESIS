@@ -154,7 +154,10 @@
         const form = input ? input.closest('form') : null;
         const container = document.getElementById('preview-container');
         const anlageSelect = document.getElementById('id_anlage_nr');
-        const submitButton = form ? form.querySelector('[type=submit]') : null;
+        // Submit-Button im gesamten Dokument suchen, falls er nicht direkt im Formular liegt
+        const submitButton = form
+            ? (document.querySelector(`[type=submit][form="${form.id}"]`) || form.querySelector('[type=submit]'))
+            : null;
 
         const uploadUrl = form ? (form.getAttribute('hx-post') || form.action) : '';
         const projMatch = uploadUrl.match(/projekte\/(\d+)\//);
