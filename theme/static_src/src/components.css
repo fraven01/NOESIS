@@ -6,27 +6,27 @@
     @apply inline-block px-2 py-0.5 rounded-full text-xs font-bold;
   }
   .badge-blue {
-    @apply bg-accent text-text;
+    @apply bg-accent text-text dark:bg-accent-dark dark:text-text-light;
   }
   .badge-yellow {
-    @apply bg-warning text-text;
+    @apply bg-warning text-text dark:bg-warning-dark dark:text-text-light;
   }
   .badge-green {
-    @apply bg-success text-text;
+    @apply bg-success text-text dark:bg-success-dark dark:text-text-light;
   }
   .badge-red {
-    @apply bg-error text-text;
+    @apply bg-error text-text dark:bg-error-dark dark:text-text-light;
   }
   .badge-gray {
-    @apply bg-background text-text;
+    @apply bg-background text-text dark:bg-background-dark dark:text-text-light;
   }
   .alert {
     @apply p-2 rounded;
   }
   .alert-success {
-    @apply p-2 rounded bg-success text-text;
+    @apply p-2 rounded bg-success text-text dark:bg-success-dark dark:text-text-light;
   }
   .alert-error {
-    @apply p-2 rounded bg-error text-text;
+    @apply p-2 rounded bg-error text-text dark:bg-error-dark dark:text-text-light;
   }
 }
