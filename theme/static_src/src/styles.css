@@ -4,6 +4,13 @@
   --color-primary: #2563eb;
   --color-primary-light: #3b82f6;
   --color-primary-dark: #1e40af;
+  --color-background: #ffffff;
+  --color-background-dark: #1e293b;
+  --color-text: #0f172a;
+  --color-text-light: #f8fafc;
+  --color-accent: #2563eb;
+  --color-accent-light: #3b82f6;
+  --color-accent-dark: #1e40af;
 }
 
 @import "./components.css";

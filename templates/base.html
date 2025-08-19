@@ -18,8 +18,8 @@
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="flex flex-col min-h-screen bg-white text-gray-900">
-    <header class="bg-header text-white border-b items-center">
+<body class="flex flex-col min-h-screen bg-background text-text">
+    <header class="bg-header text-background border-b items-center">
         <div class="container mx-auto flex items-center justify-between p-4">
             <div class="text-xl font-semibold">
                 <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="NEOMIND Logo" class="h-14 inline"></a>
@@ -38,7 +38,7 @@
 
                     <form action="{% url 'logout' %}" method="post" class="inline">
                         {% csrf_token %}
-                        {% include 'partials/_button.html' with type='submit' label='Abmelden' variant='secondary' classes='bg-transparent text-gray-300 hover:underline px-0 py-0' %}
+                        {% include 'partials/_button.html' with type='submit' label='Abmelden' variant='secondary' classes='bg-transparent text-text hover:underline px-0 py-0' %}
                     </form>
 
                 {% else %}
@@ -61,7 +61,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-gray-100 text-center py-4">
+    <footer class="bg-background text-center py-4">
         <p>&copy; 2025 Frank Vendolsky</p>
     </footer>
     <script src="{% static 'js/utils.js' %}"></script>
