@@ -22,15 +22,15 @@
             <div id="software-inputs-container" class="space-y-2">
                 {% if software_list %}
                     {% for name in software_list %}
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                         {% include 'partials/_form_input.html' with name='software_typen' value=name base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
-                        {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
+                        {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn mt-2 sm:mt-0' %}
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                         {% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
-                        {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}
+                        {% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn mt-2 sm:mt-0' %}
                     </div>
                 {% endif %}
             </div>
@@ -73,11 +73,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('software-inputs-container');
 
     const inputTemplate = `{% filter escapejs %}{% include 'partials/_form_input.html' with name='software_typen' base_classes='flex-grow rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}{% endfilter %}`;
-    const removeBtnTemplate = `{% filter escapejs %}{% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn' %}{% endfilter %}`;
+    const removeBtnTemplate = `{% filter escapejs %}{% include 'partials/_button.html' with type='button' label='Entfernen' variant='danger-light' classes='px-2 py-1 text-sm rounded remove-software-btn mt-2 sm:mt-0' %}{% endfilter %}`;
 
     function addSoftwareField(value = '') {
         const wrapper = document.createElement('div');
-        wrapper.className = 'flex items-center space-x-2';
+        wrapper.className = 'flex flex-col sm:flex-row sm:items-center gap-2';
         wrapper.innerHTML = inputTemplate + removeBtnTemplate;
         const input = wrapper.querySelector('input[name="software_typen"]');
         input.value = value;
