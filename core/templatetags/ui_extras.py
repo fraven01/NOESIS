@@ -4,7 +4,7 @@ register = template.Library()
 
 BTN_VARIANTS = {
     "primary": "bg-primary text-text dark:text-text-light hover:bg-primary-dark",
-    "secondary": "bg-background text-text dark:text-text-light hover:bg-background-dark",
+    "secondary": "border border-primary text-primary bg-transparent hover:bg-primary-light",
     "success": "bg-success text-text dark:text-text-light hover:bg-success-dark",
     "danger": "bg-error text-text dark:text-text-light hover:bg-error-dark",
     "danger-light": "bg-error-light text-error-dark dark:text-error-dark hover:bg-error-lighter",

@@ -60,5 +60,6 @@
     </tbody>
 </table>
 </div>
-<a href="{% url 'projekt_detail' projekt.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück</a>
+{% url 'projekt_detail' projekt.pk as back_url %}
+{% include 'partials/_button.html' with href=back_url label='Zurück' variant='secondary' classes='px-4 py-2 rounded' %}
 {% endblock %}

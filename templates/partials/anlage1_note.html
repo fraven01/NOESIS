@@ -3,18 +3,16 @@
 {% if editing %}
   <form hx-post="{% url 'hx_anlage1_note' anlage.pk num field %}"
         hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML" class="space-y-2">
+    {% url 'hx_anlage1_note' anlage.pk num field as abbrechen_url %}
     <textarea name="text" rows="3" class="w-full border rounded p-2">{{ text }}</textarea>
     <div class="space-x-2">
-      <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Speichern</button>
-      <button type="button" class="bg-gray-300 text-text px-2 py-1 rounded"
-              hx-get="{% url 'hx_anlage1_note' anlage.pk num field %}"
-              hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML">Abbrechen</button>
+      {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-2 py-1 rounded' %}
+      {% include 'partials/_button.html' with type='button' label='Abbrechen' variant='secondary' classes='px-2 py-1 rounded' attrs='hx-get="'|add:abbrechen_url|add:'" hx-target="#note-'|add:field|add:'-'|add:num|add:'" hx-swap="outerHTML"' %}
     </div>
   </form>
 {% else %}
   <div class="prose max-w-none">{{ text|markdownify }}</div>
-  <button type="button" class="mt-1 bg-gray-200 px-2 py-1 rounded"
-          hx-get="{% url 'hx_anlage1_note' anlage.pk num field %}?edit=1"
-          hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML">Bearbeiten</button>
+  {% url 'hx_anlage1_note' anlage.pk num field as edit_url %}
+  {% include 'partials/_button.html' with type='button' label='Bearbeiten' variant='secondary' classes='mt-1 px-2 py-1 rounded' attrs='hx-get="'|add:edit_url|add:'?edit=1" hx-target="#note-'|add:field|add:'-'|add:num|add:'" hx-swap="outerHTML"' %}
 {% endif %}
 </div>
