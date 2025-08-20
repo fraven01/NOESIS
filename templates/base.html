@@ -28,7 +28,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen bg-background text-text dark:bg-background-dark dark:text-text-light">
-    <header class="bg-header text-text-light border-b items-center">
+    <header class="bg-header text-text-light dark:text-text-light border-b items-center">
         <div class="container mx-auto p-4 flex flex-col md:flex-row md:items-center md:justify-between">
             <div class="flex items-center justify-between w-full md:w-auto">
                 <div class="text-xl font-semibold">
@@ -38,16 +38,16 @@
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
-            <nav id="nav-menu" class="hidden flex-col md:flex md:flex-row md:items-center text-text-light space-y-2 md:space-y-0 md:space-x-4 mt-2 md:mt-0">
-                <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="md:mr-2 hover:underline hover:text-accent-light">&larr; Zurück</a>
-                <a href="/" class="hover:underline hover:text-accent-light">Startseite</a>
+            <nav id="nav-menu" class="hidden flex-col md:flex md:flex-row md:items-center text-text-light dark:text-text-light space-y-2 md:space-y-0 md:space-x-4 mt-2 md:mt-0">
+                <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="md:mr-2 text-text-light dark:text-text-light hover:underline hover:text-accent-light">&larr; Zurück</a>
+                <a href="/" class="text-text-light dark:text-text-light hover:underline hover:text-accent-light">Startseite</a>
                 {% if user.is_authenticated %}
-                    <a href="/account/" class="hover:underline hover:text-accent-light">Mein Konto</a>
+                    <a href="/account/" class="text-text-light dark:text-text-light hover:underline hover:text-accent-light">Mein Konto</a>
                     {% if user.is_superuser or is_admin %}
-                        <a href="/projects-admin/" class="hover:underline hover:text-accent-light">Projekt-Admin</a>
+                        <a href="/projects-admin/" class="text-text-light dark:text-text-light hover:underline hover:text-accent-light">Projekt-Admin</a>
                     {% endif %}
                     {% if user.is_staff %}
-                        <a href="/admin/" class="hover:underline hover:text-accent-light">System-Admin</a>
+                        <a href="/admin/" class="text-text-light dark:text-text-light hover:underline hover:text-accent-light">System-Admin</a>
                     {% endif %}
 
                     <form action="{% url 'logout' %}" method="post" class="md:inline">
@@ -56,7 +56,7 @@
                     </form>
 
                 {% else %}
-                    <a href="/login/" class="hover:underline hover:text-accent-light">Anmelden</a>
+                    <a href="/login/" class="text-text-light dark:text-text-light hover:underline hover:text-accent-light">Anmelden</a>
                 {% endif %}
                 <button id="theme-toggle" class="md:ml-2 text-text-light hover:text-accent-light" aria-label="Farbschema umschalten">
                     <i class="fa-solid fa-moon"></i>
