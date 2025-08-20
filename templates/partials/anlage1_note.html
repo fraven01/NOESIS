@@ -1,0 +1,20 @@
+{% load recording_extras %}
+<div id="note-{{ field }}-{{ num }}">
+{% if editing %}
+  <form hx-post="{% url 'hx_anlage1_note' anlage.pk num field %}"
+        hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML" class="space-y-2">
+    <textarea name="text" rows="3" class="w-full border rounded p-2">{{ text }}</textarea>
+    <div class="space-x-2">
+      <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Speichern</button>
+      <button type="button" class="bg-gray-300 text-text px-2 py-1 rounded"
+              hx-get="{% url 'hx_anlage1_note' anlage.pk num field %}"
+              hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML">Abbrechen</button>
+    </div>
+  </form>
+{% else %}
+  <div class="prose max-w-none">{{ text|markdownify }}</div>
+  <button type="button" class="mt-1 bg-gray-200 px-2 py-1 rounded"
+          hx-get="{% url 'hx_anlage1_note' anlage.pk num field %}?edit=1"
+          hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML">Bearbeiten</button>
+{% endif %}
+</div>

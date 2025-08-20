@@ -3806,32 +3806,13 @@ def projekt_file_edit_json(request, pk):
             ergebnis_logger.info("%s\nDOC: %s\nAI: %s", name, doc_str, ai_str)
 
     if anlage.anlage_nr == 1:
-        if request.method == "POST":
-            form = Anlage1ReviewForm(request.POST)
-            if form.is_valid() and gap_form.is_valid():
-                data = form.get_json()
-                anlage.question_review = data
-                gap_form.save()
-                anlage.save(update_fields=["question_review"])
-                logger.info(
-                    "Anlage1 Review gespeichert: %s Einträge",
-                    len(data),
-                )
-                return redirect("projekt_detail", pk=anlage.project.pk)
-        else:
-            init = anlage.question_review
-            if not init:
-                init = _analysis1_to_initial(anlage)
-            form = Anlage1ReviewForm(initial=init)
         template = "projekt_file_anlage1_review.html"
-        answers: dict[str, str] = {}
+        data = anlage.question_review or _analysis1_to_initial(anlage)
         numbers = get_anlage1_numbers()
         q_data = (
             anlage.analysis_json.get("questions", {}) if anlage.analysis_json else {}
         )
-        for i in numbers:
-            answers[str(i)] = q_data.get(str(i), {}).get("answer", "")
-
+        answers = {str(i): q_data.get(str(i), {}).get("answer", "") for i in numbers}
         question_objs = list(Anlage1Question.objects.order_by("num"))
         if not question_objs:
             question_objs = [
@@ -3845,18 +3826,20 @@ def projekt_file_edit_json(request, pk):
                 for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
             ]
         questions = {q.num: q.text for q in question_objs}
-
-        qa = [
-            (
-                i,
-                questions.get(i, ""),
-                answers.get(str(i), ""),
-                form[f"q{i}_hinweis"],
-                form[f"q{i}_vorschlag"],
-                form[f"q{i}_ok"],
+        qa = []
+        for i in numbers:
+            entry = data.get(str(i), {})
+            qa.append(
+                {
+                    "num": i,
+                    "question": questions.get(i, ""),
+                    "answer": answers.get(str(i), ""),
+                    "hinweis": entry.get("hinweis", ""),
+                    "vorschlag": entry.get("vorschlag", ""),
+                    "ok": entry.get("ok", False),
+                }
             )
-            for i in numbers
-        ]
+        form = None
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
         parser_form = ParserSettingsForm(
@@ -4991,6 +4974,58 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     }
 
     return render(request, "partials/review_row.html", context)
+
+
+@login_required
+@require_POST
+def hx_toggle_anlage1_ok(request, pk: int, num: int):
+    """Schaltet die Verhandlungsfähigkeit einer Frage um."""
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, anlage.project):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    data = anlage.question_review or {}
+    entry = data.get(str(num), {})
+    entry["ok"] = not entry.get("ok", False)
+    data[str(num)] = entry
+    anlage.question_review = data
+    anlage.save(update_fields=["question_review"])
+
+    context = {"anlage": anlage, "num": num, "is_ok": entry["ok"]}
+    return render(request, "partials/anlage1_negotiable.html", context)
+
+
+@login_required
+def hx_anlage1_note(request, pk: int, num: int, field: str):
+    """Zeigt oder speichert eine Notiz zu einer Frage aus Anlage 1."""
+    if field not in {"hinweis", "vorschlag"}:
+        raise Http404
+
+    anlage = get_object_or_404(BVProjectFile, pk=pk)
+
+    if not _user_can_edit_project(request.user, anlage.project):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    data = anlage.question_review or {}
+    entry = data.get(str(num), {})
+    if request.method == "POST":
+        entry[field] = request.POST.get("text", "")
+        data[str(num)] = entry
+        anlage.question_review = data
+        anlage.save(update_fields=["question_review"])
+        editing = False
+    else:
+        editing = request.GET.get("edit") == "1"
+
+    context = {
+        "anlage": anlage,
+        "num": num,
+        "field": field,
+        "text": entry.get(field, ""),
+        "editing": editing,
+    }
+    return render(request, "partials/anlage1_note.html", context)
 
 
 @login_required
