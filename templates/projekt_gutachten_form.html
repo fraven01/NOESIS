@@ -4,7 +4,7 @@
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }}</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
-    <textarea name="prompt" rows="15" class="w-full border rounded p-2">{{ prompt }}</textarea>
+      <textarea name="prompt" rows="15" class="w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ prompt }}</textarea>
     <div>
         <label for="model_category" class="font-semibold">LLM-Modell:</label>
         {% for key, data in categories.items %}

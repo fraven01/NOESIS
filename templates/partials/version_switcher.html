@@ -1,7 +1,7 @@
 {% if versions|length > 1 %}
 <div class="mb-4">
   <label for="version-select" class="font-semibold mr-2">Version:</label>
-  <select id="version-select" class="border rounded p-1">
+    <select id="version-select" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded p-1 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     {% for v in versions %}
       <option value="{{ v.version }}" {% if v.version == current_version %}selected{% endif %}>Version {{ v.version }}</option>
     {% endfor %}

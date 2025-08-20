@@ -12,7 +12,7 @@
 {% if projekt.gutachten_function_note %}
 <div class="mt-4">
     <label class="font-semibold">LLM-Vorschlag:</label>
-    <textarea class="border rounded w-full p-2" rows="6" readonly>{{ projekt.gutachten_function_note }}</textarea>
+      <textarea class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800" rows="6" readonly>{{ projekt.gutachten_function_note }}</textarea>
 </div>
 {% endif %}
 <form id="llm-check-form" class="mt-4">

@@ -4,7 +4,7 @@
 <h1 class="text-2xl font-semibold mb-4">KI-Begründung bearbeiten</h1>
 <form method="post" class="space-y-4">
     {% csrf_token %}
-    <textarea name="ki_begruendung" rows="5" class="w-full border rounded p-2">{{ ki_begruendung }}</textarea>
+      <textarea name="ki_begruendung" rows="5" class="w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ ki_begruendung }}</textarea>
     {% if object_type == 'function' %}
     <input type="hidden" name="function" value="{{ object.id }}">
     {% else %}
