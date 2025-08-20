@@ -336,6 +336,16 @@ urlpatterns = [
         name="hx_toggle_negotiable",
     ),
     path(
+        "hx/anlage1/toggle/<int:pk>/<int:num>/",
+        views.hx_toggle_anlage1_ok,
+        name="hx_toggle_anlage1_ok",
+    ),
+    path(
+        "hx/anlage1/note/<int:pk>/<int:num>/<str:field>/",
+        views.hx_anlage1_note,
+        name="hx_anlage1_note",
+    ),
+    path(
         "hx/anlage/<int:pk>/toggle/<str:field>/",
         views.hx_toggle_project_file_flag,
         name="hx_toggle_project_file_flag",

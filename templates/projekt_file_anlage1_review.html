@@ -3,37 +3,27 @@
 {% block title %}Anlage 1 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 1 Fragen prüfen</h1>
-<form method="post" class="space-y-4">
-    {% csrf_token %}
-    <div class="overflow-x-auto">
-    <table class="table-auto w-full border">
-        <thead>
-            <tr>
-                <th class="border px-2">Nr.</th>
-                <th class="border px-2">Frage</th>
-                <th class="border px-2">Antwort</th>
-                <th class="border px-2">Interne Arbeitsanmerkung (Gap-Analyse)</th>
-                <th class="border px-2">(Extern) Anmerkungen für den Fachbereich</th>
-                <th class="border px-2">Verhandlungsfähig</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for num, question, ans, hinweis_field, vorschlag_field, ok_field in qa %}
-            <tr>
-                <td class="border px-2">{{ num }}</td>
-                <td class="border px-2">{{ question }}</td>
-                <td class="border px-2">{{ ans|markdownify }}</td>
-                <td class="border px-2">{{ hinweis_field }}</td>
-                <td class="border px-2">{{ vorschlag_field }}</td>
-                <td class="border px-2">{{ ok_field }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="space-y-4">
+    {% for q in qa %}
+    <div class="p-4 border rounded space-y-2">
+        <div class="font-semibold">{{ q.num }}. {{ q.question }}</div>
+        <div class="prose max-w-none">{{ q.answer|markdownify }}</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <h3 class="text-sm font-semibold">Interne Arbeitsanmerkung</h3>
+                {% include 'partials/anlage1_note.html' with anlage=anlage num=q.num field='hinweis' text=q.hinweis editing=False %}
+            </div>
+            <div>
+                <h3 class="text-sm font-semibold">(Extern) Anmerkungen</h3>
+                {% include 'partials/anlage1_note.html' with anlage=anlage num=q.num field='vorschlag' text=q.vorschlag editing=False %}
+            </div>
+            <div class="flex flex-col">
+                <h3 class="text-sm font-semibold mb-1">Verhandlungsfähig</h3>
+                {% include 'partials/anlage1_negotiable.html' with anlage=anlage num=q.num is_ok=q.ok %}
+            </div>
+        </div>
     </div>
-    <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
-    <div class="space-x-2 mt-2">
-        {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-4 py-2 rounded' %}
-    </div>
-</form>
+    {% endfor %}
+</div>
+<p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
 {% endblock %}

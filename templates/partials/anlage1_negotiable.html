@@ -1,0 +1,6 @@
+<button type="button"
+    hx-post="{% url 'hx_toggle_anlage1_ok' anlage.pk num %}"
+    hx-target="this" hx-swap="outerHTML"
+    class="inline-flex items-center justify-center px-2 py-1 border rounded {% if is_ok %}bg-success/20 text-success-dark{% else %}bg-error-light text-error-dark{% endif %}">
+    {% if is_ok %}✅{% else %}❌{% endif %}
+</button>
