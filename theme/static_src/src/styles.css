@@ -1,3 +1,5 @@
+@config "../tailwind.config.js";
+@custom-variant dark (&:where(.dark &));
 @import "tailwindcss";
 
 @theme {
@@ -23,13 +25,6 @@
 }
 
 @import "./components.css";
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--color-background-dark);
-    --color-text: var(--color-text-light);
-  }
-}
 
 html.dark {
   --color-background: var(--color-background-dark);
