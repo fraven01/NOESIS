@@ -3500,7 +3500,7 @@ class GutachtenLLMCheckTests(NoesisTestCase):
         with patch("core.views.check_gutachten_functions") as mock_func:
             mock_func.return_value = "Hinweis"
             resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("gutachten_view", args=[self.gutachten.pk]))
+        self.assertRedirects(resp, reverse("projekt_initial_pruefung", args=[self.projekt.pk]))
         self.projekt.refresh_from_db()
         self.assertEqual(self.projekt.gutachten_function_note, "Hinweis")
 

@@ -531,11 +531,6 @@ urlpatterns = [
         name="anlage3_review",
     ),
     path(
-        "work/gutachten/<int:pk>/view/",
-        views.gutachten_view,
-        name="gutachten_view",
-    ),
-    path(
         "work/gutachten/<int:pk>/download/",
         views.gutachten_download,
         name="gutachten_download",
