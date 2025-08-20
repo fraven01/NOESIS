@@ -1,14 +1,19 @@
 import forms from '@tailwindcss/forms';
 
+const brandBlue = {
+  DEFAULT: '#2563eb',
+  light: '#3b82f6',
+  dark: '#1e40af',
+};
+
 export const btnVariants = {
-  primary: 'bg-primary text-text hover:bg-primary-dark',
-  secondary: 'bg-background text-text hover:bg-background-dark',
-  success: 'bg-success text-text hover:bg-success-dark',
-  danger: 'bg-error text-text hover:bg-error-dark',
-  'danger-light': 'bg-error-light hover:bg-error-lighter text-error-dark',
-  purple: 'bg-accent text-text hover:bg-accent-dark',
-  muted: 'bg-background hover:bg-background-dark text-text',
-  disabled: 'bg-background text-text cursor-not-allowed',
+  primary: 'bg-primary text-text dark:text-text-light hover:bg-primary-dark',
+  secondary: 'bg-background text-text dark:text-text-light hover:bg-background-dark',
+  success: 'bg-success text-text dark:text-text-light hover:bg-success-dark',
+  danger: 'bg-error text-text dark:text-text-light hover:bg-error-dark',
+  'danger-light': 'bg-error-light text-error-dark dark:text-error-dark hover:bg-error-lighter',
+  muted: 'bg-background text-text dark:text-text-light hover:bg-background-dark',
+  disabled: 'bg-background text-text dark:text-text-light cursor-not-allowed',
 };
 
 export default {
@@ -24,11 +29,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#4f46e5',
-          light: '#6366f1',
-          dark: '#4338ca',
-        },
+        primary: brandBlue,
         header: {
           DEFAULT: '#0d1b2a',
           dark: '#0d1b2a',
@@ -41,11 +42,7 @@ export default {
           DEFAULT: '#0f172a',
           light: '#f8fafc',
         },
-        accent: {
-          DEFAULT: '#2563eb',
-          light: '#3b82f6',
-          dark: '#1e40af',
-        },
+        accent: brandBlue,
         success: {
           DEFAULT: '#059669',
           dark: '#047857',

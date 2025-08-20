@@ -12,7 +12,7 @@
     {% endfor %}
     {% include 'partials/_button.html' with type='submit' label='Neu prüfen' variant='primary' classes='px-4 py-2 rounded ml-2' %}
     {% if anlage.anlage_nr == 2 %}
-    {% include 'partials/_button.html' with type='submit' name='llm' value='1' label='LLM-Check' variant='purple' classes='px-4 py-2 rounded ml-2' %}
+    {% include 'partials/_button.html' with type='submit' name='llm' value='1' label='LLM-Check' variant='primary' classes='px-4 py-2 rounded ml-2' %}
     {% endif %}
 </form>
 <form method="post" class="space-y-4">
