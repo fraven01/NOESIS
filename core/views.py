@@ -3008,6 +3008,10 @@ def projekt_detail(request, pk):
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
 
+    first_gutachten = (
+        Gutachten.objects.filter(software_knowledge__project=projekt).first()
+    )
+
     # Letzte Aktivitäten aus Statusänderungen und Dateiuploads sammeln
     activities = []
     for h in projekt.status_history.order_by("-changed_at")[:5]:
@@ -3051,8 +3055,18 @@ def projekt_detail(request, pk):
         "software_list": software_list,
         "activities": activities,
         "can_gap_report": can_gap_report,
+        "first_gutachten": first_gutachten,
     }
     return render(request, "projekt_detail.html", context)
+
+
+@login_required
+def projekt_initial_pruefung(request, pk):
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+    context = {"projekt": projekt}
+    return render(request, "projekt_initial_pruefung.html", context)
 
 
 @login_required
