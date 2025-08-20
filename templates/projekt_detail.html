@@ -22,11 +22,11 @@
         ✎
     </a>
 </p>
-<form method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4 flex items-center space-x-2">
+<form id="status-update-form" method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4 flex items-center space-x-2">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
     {% include 'partials/_form_select.html' with name='status' id='status' options=status_choices value=projekt.status.key classes='' %}
-    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' variant='primary' classes='' %}
+    {% include 'partials/_button.html' with id='status-update-btn' type='submit' label='Aktualisieren' variant='primary' classes='' %}
 </form>
 <p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline">Gap-Analyse herunterladen</a>
@@ -36,7 +36,7 @@
 <p class="mb-4">
     {% if can_gap_report %}
     {% url 'gap_report_view' projekt.pk as gap_url %}
-    {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='primary' %}
+    {% include 'partials/_button.html' with id='gap-report-btn' href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='primary' %}
     {% else %}
     {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='disabled' disabled=True %}
     {% endif %}
@@ -147,6 +147,23 @@ if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
 
  const start=document.getElementById('start-checks');
  if(start){start.addEventListener('click',startChecks);}
+
+ const statusForm=document.getElementById('status-update-form');
+ if(statusForm){
+   statusForm.addEventListener('submit',()=>{
+     const btn=document.getElementById('status-update-btn');
+     showSpinner(btn,'Aktualisiere...');
+   });
+ }
+
+ const gapBtn=document.getElementById('gap-report-btn');
+ if(gapBtn){
+   gapBtn.addEventListener('click',e=>{
+     e.preventDefault();
+     showSpinner(gapBtn,'Erstelle...');
+     window.location=gapBtn.href;
+   });
+ }
 
  document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
    button.addEventListener('click',function(event){
