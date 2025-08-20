@@ -7,8 +7,16 @@
     function setTheme(theme) {
         if (theme === 'dark') {
             root.classList.add('dark');
+            if (icon) {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
         } else {
             root.classList.remove('dark');
+            if (icon) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
         }
         try {
             localStorage.setItem(storageKey, theme);
@@ -17,18 +25,14 @@
         }
     }
 
+    const icon = toggleBtn ? toggleBtn.querySelector('i') : null;
+
     function initTheme() {
-        if (root.classList.contains('dark')) {
-            return;
-        }
-        try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored === 'dark') {
-                root.classList.add('dark');
-            }
-        } catch (e) {
-            // localStorage ist möglicherweise nicht verfügbar
-        }
+
+        const stored = localStorage.getItem(storageKey);
+        const theme = stored || (root.classList.contains('dark') ? 'dark' : 'light');
+        setTheme(theme);
+
     }
 
     document.addEventListener('DOMContentLoaded', function () {
