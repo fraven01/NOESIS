@@ -69,7 +69,8 @@ def start_analysis_for_file(file_id: int) -> str | None:
     """Startet die Analyse f\xFCr die Projektdatei mit ``file_id``.
 
     Setzt den Status auf ``PROCESSING`` und plant die zugeh\xF6rigen
-    Hintergrund-Tasks \u00fcber ``async_task`` ein. Die ID des ersten geplanten
+    Hintergrund-Tasks \u00fcber ``async_task`` ein. Die Tasks werden erst nach
+    erfolgreichem Speichern des Status gestartet. Die ID des ersten geplanten
     Tasks wird zur\u00fcckgegeben, nicht vorhandene Anlagen werden ignoriert.
     """
 
@@ -80,18 +81,23 @@ def start_analysis_for_file(file_id: int) -> str | None:
     tasks = file_obj.get_analysis_tasks()
     if not tasks:
         return None
-
     file_obj.processing_status = BVProjectFile.PROCESSING
     file_obj.save(update_fields=["processing_status"])
 
     task_id: str | None = None
-    try:
-        for func, arg in tasks:
-            tid = async_task(func, arg)
-            if task_id is None:
-                task_id = tid
-    except Exception:  # pragma: no cover - loggen genügt
-        logger.exception("Fehler beim Starten der Analyse")
+
+    def enqueue_tasks() -> None:
+        nonlocal task_id
+        try:
+            for func, arg in tasks:
+                tid = async_task(func, arg)
+                if task_id is None:
+                    task_id = tid
+        except Exception:  # pragma: no cover - loggen genügt
+            logger.exception("Fehler beim Starten der Analyse")
+            update_file_status(file_id, BVProjectFile.FAILED)
+
+    transaction.on_commit(enqueue_tasks)
     return task_id
 
 
