@@ -112,15 +112,15 @@
     </table>
     <div class="mb-2">
         {% if allow_ai_check %}
-        {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' variant='success' classes='px-2 py-1 rounded' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
+        {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' variant='success' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
         {% endif %}
         <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-accent text-background px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
     </div>
     </div>
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     <div class="space-x-2 mt-2">
-        {% include 'partials/_button.html' with type='reset' id='reset-fields' label='Reset' variant='secondary' classes='px-4 py-2 rounded' %}
-        {% include 'partials/_button.html' with type='button' id='btn-reset-all-reviews' label='Alle Bewertungen zurücksetzen' variant='secondary' classes='px-4 py-2 rounded' %}
+        {% include 'partials/_button.html' with type='reset' id='reset-fields' label='Reset' variant='secondary' %}
+        {% include 'partials/_button.html' with type='button' id='btn-reset-all-reviews' label='Alle Bewertungen zurücksetzen' variant='secondary' %}
     </div>
 </form>
 <details>

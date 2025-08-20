@@ -8,8 +8,8 @@ const brandBlue = {
 
 export const btnVariants = {
 
-  primary: 'bg-primary text-background hover:bg-primary-dark',
-  secondary: 'bg-background text-text dark:text-text-light hover:bg-background-dark',
+  primary: 'bg-primary text-background dark:text-text-light hover:bg-primary-dark',
+  secondary: 'border border-primary text-primary bg-transparent hover:bg-primary-light',
 
   success: 'bg-success text-text dark:text-text-light hover:bg-success-dark',
   danger: 'bg-error text-text dark:text-text-light hover:bg-error-dark',

@@ -6,10 +6,10 @@
 <div class="space-x-2 mt-4">
     {% if project_file %}
     {% url 'projekt_file_edit_json' project_file.pk as back_url %}
-    {% include 'partials/_button.html' with href=back_url label='Zurück' variant='secondary' classes='px-4 py-2 rounded' %}
+    {% include 'partials/_button.html' with href=back_url label='Zurück' variant='secondary' %}
     {% else %}
     {% url 'projekt_detail' result.project.pk as back_url %}
-    {% include 'partials/_button.html' with href=back_url label='Zurück' variant='secondary' classes='px-4 py-2 rounded' %}
+    {% include 'partials/_button.html' with href=back_url label='Zurück' variant='secondary' %}
     {% endif %}
 </div>
 {% endblock %}

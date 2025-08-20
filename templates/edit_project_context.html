@@ -6,6 +6,6 @@
     {% csrf_token %}
     {{ form.project_prompt.label_tag }}
     {{ form.project_prompt }}
-    {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-4 py-2 rounded' %}
+    {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' %}
 </form>
 {% endblock %}

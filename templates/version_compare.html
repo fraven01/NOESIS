@@ -66,6 +66,6 @@
 {% endif %}
 {% url 'projekt_detail' file.project.pk as project_url %}
 <div class="mt-4">
-  {% include 'partials/_button.html' with href=project_url label='Zurück zum Projekt' variant='secondary' classes='px-4 py-2 rounded' %}
+{% include 'partials/_button.html' with href=project_url label='Zurück zum Projekt' variant='secondary' %}
 </div>
 {% endblock %}

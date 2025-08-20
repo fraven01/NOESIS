@@ -6,8 +6,8 @@
 {% url 'admin_anlage2_config_export' as export_url %}
 {% url 'admin_anlage2_config_import' as import_url %}
 <div class="mb-4 space-x-2">
-    {% include 'partials/_button.html' with href=export_url label='Exportieren' variant='secondary' classes='px-4 py-2 rounded' %}
-    {% include 'partials/_button.html' with href=import_url label='Importieren' variant='secondary' classes='px-4 py-2 rounded' %}
+    {% include 'partials/_button.html' with href=export_url label='Exportieren' variant='secondary' %}
+    {% include 'partials/_button.html' with href=import_url label='Importieren' variant='secondary' %}
 </div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
