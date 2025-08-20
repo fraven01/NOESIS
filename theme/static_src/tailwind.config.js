@@ -1,4 +1,5 @@
 import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
 
 const brandBlue = {
   DEFAULT: '#2563eb',
@@ -83,8 +84,27 @@ export default {
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
       },
+      typography: ({ theme }) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': theme('colors.text.DEFAULT'),
+            '--tw-prose-headings': theme('colors.text.DEFAULT'),
+            '--tw-prose-links': theme('colors.accent.DEFAULT'),
+            '--tw-prose-bold': theme('colors.text.DEFAULT'),
+          },
+        },
+        invert: {
+          css: {
+            '--tw-prose-body': theme('colors.text.light'),
+            '--tw-prose-headings': theme('colors.text.light'),
+            '--tw-prose-links': theme('colors.accent.light'),
+            '--tw-prose-bold': theme('colors.text.light'),
+            '--tw-prose-counters': theme('colors.text.light'),
+            '--tw-prose-bullets': theme('colors.text.light'),
+          },
+        },
+      }),
     },
   },
-  plugins: [forms],
+  plugins: [forms, typography],
 };
-

@@ -14,7 +14,7 @@
             <td class="px-2 py-1">{{ row.name }}</td>
             <td class="px-2 py-1">
             {% if row.entry and row.entry.gutachten %}
-                <div class="prose max-w-none">
+                <div class="prose dark:prose-invert max-w-none">
                     {{ row.entry.gutachten.text|markdownify }}
                 </div>
             {% elif row.entry %}
