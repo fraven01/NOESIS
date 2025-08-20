@@ -5,7 +5,8 @@
 <p>Möchten Sie die Regel für '{{ object.get_field_name_display }}' wirklich löschen?</p>
 <form method="post" class="mt-4 space-x-2">
     {% csrf_token %}
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">Bestätigen</button>
-    <a href="{% url 'anlage3_rule_list' %}" class="px-4 py-2 bg-gray-300 rounded">Abbrechen</a>
+    {% include 'partials/_button.html' with type='submit' label='Bestätigen' variant='danger' %}
+    {% url 'anlage3_rule_list' as cancel_url %}
+    {% include 'partials/_button.html' with href=cancel_url label='Abbrechen' variant='secondary' %}
 </form>
 {% endblock %}
