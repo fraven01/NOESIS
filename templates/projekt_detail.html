@@ -104,10 +104,10 @@ function renderLLM(data){
  if(!data.ist_llm_geprueft && !data.llm_initial_output){
    sec.innerHTML=`<button id="run" class="bg-success text-background px-4 py-2 rounded">LLM-Check starten</button>`;
  }else if(data.ist_llm_geprueft && !data.llm_validated){
-   sec.innerHTML=`<div class="text-error mb-2">LLM-Check unvollständig oder technisch fehlerhaft.</div>
-   <textarea id="edit" class="border rounded w-full p-2 mb-2">${data.llm_initial_output||''}</textarea>
-   <input id="context" type="text" placeholder="Weiterer Kontext" class="border rounded w-full p-2 mb-2 hidden">
-   <div class="space-x-2">
+    sec.innerHTML=`<div class="text-error mb-2">LLM-Check unvollständig oder technisch fehlerhaft.</div>
+    <textarea id="edit" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 mb-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">${data.llm_initial_output||''}</textarea>
+    <input id="context" type="text" placeholder="Weiterer Kontext" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 mb-2 hidden focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <div class="space-x-2">
      <button id="edit-btn" class="bg-primary text-background px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
      <button id="ctx-btn" class="bg-primary text-background px-4 py-2 rounded">Zusätzlichen Kontext & erneut prüfen</button>
    </div>`;

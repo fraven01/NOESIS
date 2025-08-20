@@ -33,7 +33,7 @@
       {% endfor %}
     </div>
     <form hx-post="{% url 'hx_supervision_save_notes' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="space-y-2">
-      <textarea name="notes" rows="2" class="border rounded w-full p-2">{{ row.notes }}</textarea>
+        <textarea name="notes" rows="2" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ row.notes }}</textarea>
       <div class="space-x-2">
         <button type="submit" class="bg-accent text-text px-2 py-1 rounded">Speichern</button>
         <button type="button"

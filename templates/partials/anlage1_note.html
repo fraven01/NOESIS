@@ -4,7 +4,7 @@
   <form hx-post="{% url 'hx_anlage1_note' anlage.pk num field %}"
         hx-target="#note-{{ field }}-{{ num }}" hx-swap="outerHTML" class="space-y-2">
     {% url 'hx_anlage1_note' anlage.pk num field as abbrechen_url %}
-    <textarea name="text" rows="3" class="w-full border rounded p-2">{{ text }}</textarea>
+      <textarea name="text" rows="3" class="w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ text }}</textarea>
     <div class="space-x-2">
       {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-2 py-1 rounded' %}
       {% include 'partials/_button.html' with type='button' label='Abbrechen' variant='secondary' classes='px-2 py-1 rounded' attrs='hx-get="'|add:abbrechen_url|add:'" hx-target="#note-'|add:field|add:'-'|add:num|add:'" hx-swap="outerHTML"' %}
