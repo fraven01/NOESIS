@@ -66,18 +66,15 @@
 
 
 <div class="card">
-<h2 class="text-xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h2>
-<nav class="flex space-x-2 mb-4">
-  <button class="software-tab px-3 py-1 border-b-2 border-primary text-primary"
-          hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
-          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
-          data-tab="tech">Technische Prüfung</button>
-  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-gray-600 dark:text-gray-300"
-          hx-get="{% url 'hx_project_software_tab' projekt.pk 'gutachten' %}"
-          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
-          data-tab="gutachten">Gutachten</button>
-</nav>
-<div id="software-tab-content" hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}" hx-trigger="load"></div>
+<h2 class="text-xl font-semibold mb-4">Prüfungen</h2>
+<div class="space-x-2">
+    {% url 'projekt_initial_pruefung' projekt.pk as init_url %}
+    {% include 'partials/_button.html' with href=init_url label='Initial-Pr\u00fcfung' variant='primary' %}
+    {% if first_gutachten %}
+        {% url 'gutachten_view' first_gutachten.id as gutachten_url %}
+        {% include 'partials/_button.html' with href=gutachten_url label='Gutachten anzeigen' variant='secondary' %}
+    {% endif %}
+</div>
 </div>
 </div>
 <div class="hidden lg:block lg:w-1/3 mt-4 lg:mt-0">

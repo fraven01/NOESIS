@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load recording_extras %}
+{% block title %}Initial-Prüfung {{ projekt.title }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Initial-Prüfung der Software-Komponenten</h1>
+<div class="card">
+<nav class="flex space-x-2 mb-4">
+  <button class="software-tab px-3 py-1 border-b-2 border-primary text-primary"
+          hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
+          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
+          data-tab="tech">Technische Prüfung</button>
+  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-gray-600 dark:text-gray-300"
+          hx-get="{% url 'hx_project_software_tab' projekt.pk 'gutachten' %}"
+          hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
+          data-tab="gutachten">Gutachten</button>
+</nav>
+<div id="software-tab-content" hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}" hx-trigger="load"></div>
+</div>
+<script>
+function attachHandlers(){
+ document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
+   button.addEventListener('click',function(event){
+     event.preventDefault();
+     const knowledgeId=this.dataset.knowledgeId;
+     const url='{% url 'ajax_start_gutachten_generation' projekt.pk %}';
+     const body=new FormData();
+     body.append('knowledge_id',knowledgeId);
+     this.classList.add('disabled');
+     const status=document.getElementById('gutachten-status-'+knowledgeId);
+     showSpinner(this, 'Erstelle...');
+     fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+       .then(r=>r.json()).then(data=>{
+         const tid=data.task_id;
+         const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+         const iv=setInterval(()=>{
+           fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+             if(d.status==='SUCCESS'){
+               clearInterval(iv);location.reload();
+             }else if(d.status==='FAIL'){
+               clearInterval(iv);
+               if(status){status.textContent='Fehler';}
+               hideSpinner(button);
+               button.classList.remove('disabled');
+             }
+           });
+         },3000);
+       }).catch(()=>{
+         if(status){status.textContent='Fehler';}
+         hideSpinner(button);
+         button.classList.remove('disabled');
+       });
+   });
+ });
+ document.querySelectorAll('.retry-check-btn, .start-initial-check-btn').forEach(btn=>{
+   btn.addEventListener('click',function(){
+     const knowledgeId=this.dataset.knowledgeId;
+     const body=new FormData();
+     body.append('knowledge_id',knowledgeId);
+     showSpinner(btn, 'Prüfung...');
+     fetch('{% url "ajax_rerun_initial_check" %}',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:body})
+       .then(r=>r.json()).then(data=>{
+         const tid=data.task_id;
+         const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+         const iv=setInterval(()=>{
+           fetch(tmpl.replace('dummy',tid)).then(r=>r.json()).then(d=>{
+             if(d.status==='SUCCESS'||d.status==='FAIL'){
+               clearInterval(iv);window.location.reload();
+             }
+           });
+         },3000);
+       }).catch(()=>{hideSpinner(btn);});
+   });
+ });
+ const start=document.getElementById('start-checks');
+ if(start){start.addEventListener('click',startChecks);}
+}
+function startChecks(){
+ const btn=document.getElementById('start-checks');
+ showSpinner(btn, 'Prüfung läuft...');
+ fetch('{% url 'ajax_start_initial_checks' projekt.pk %}',{
+   method:'POST',
+   headers:{'X-CSRFToken':getCookie('csrftoken')}
+ }).then(r=>r.json()).then(data=>{
+   const tasks=data.tasks||[];
+   const tmpl='{% url "ajax_check_task_status" "dummy" %}';
+   let done=0;
+   tasks.forEach(t=>{
+     const iv=setInterval(()=>{
+       fetch(tmpl.replace('dummy',t.task_id)).then(r=>r.json()).then(d=>{
+         if(d.status==='SUCCESS'||d.status==='FAIL'){
+            clearInterval(iv);done++;
+            if(done===tasks.length){window.location.reload();}
+         }
+       });
+     },3000);
+   });
+ }).catch(()=>{alert('Fehler beim Start'); hideSpinner(btn);});
+}
+document.addEventListener('DOMContentLoaded',attachHandlers);
+document.addEventListener('htmx:afterSwap',attachHandlers);
+document.addEventListener('htmx:beforeRequest',function(e){
+  const t=e.target;
+  if(t.classList.contains('software-tab')){
+    document.querySelectorAll('.software-tab').forEach(b=>{
+      b.classList.remove('border-primary','text-primary');
+      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
+    });
+    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
+    t.classList.add('border-primary','text-primary');
+  }
+});
+</script>
+{% endblock %}

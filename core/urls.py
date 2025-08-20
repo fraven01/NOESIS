@@ -259,6 +259,11 @@ urlpatterns = [
     path("work/projekte/", views.projekt_list, name="projekt_list"),
     path("work/projekte/neu/", views.projekt_create, name="projekt_create"),
     path("work/projekte/<int:pk>/", views.projekt_detail, name="projekt_detail"),
+    path(
+        "work/projekte/<int:pk>/initial-pruefung/",
+        views.projekt_initial_pruefung,
+        name="projekt_initial_pruefung",
+    ),
     path("work/projekte/<int:pk>/bearbeiten/", views.projekt_edit, name="projekt_edit"),
     path(
         "work/projekte/<int:pk>/context/",
