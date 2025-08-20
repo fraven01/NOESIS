@@ -32,9 +32,9 @@
 <p class="mb-4">
     {% if can_gap_report %}
     {% url 'gap_report_view' projekt.pk as gap_url %}
-    {% include 'partials/_button.html' with id='gap-report-btn' href=gap_url label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='primary' %}
+    {% include 'partials/_button.html' with id='gap-report-btn' href=gap_url label='GAP-Bericht für Fachbereich erstellen' variant='primary' %}
     {% else %}
-    {% include 'partials/_button.html' with label='GAP-Bericht f\u00fcr Fachbereich erstellen' variant='disabled' disabled=True %}
+    {% include 'partials/_button.html' with label='GAP-Bericht für Fachbereich erstellen' variant='disabled' disabled=True %}
     {% endif %}
 </p>
 </div>
@@ -59,7 +59,7 @@
 <h2 class="text-xl font-semibold mb-4">Prüfungen</h2>
 <div class="space-x-2">
     {% url 'projekt_initial_pruefung' projekt.pk as init_url %}
-    {% include 'partials/_button.html' with href=init_url label='Initial-Pr\u00fcfung' variant='primary' %}
+    {% include 'partials/_button.html' with href=init_url label='Initial-Prüfung' variant='primary' %}
     {% if first_gutachten %}
         {% url 'gutachten_view' first_gutachten.id as gutachten_url %}
         {% include 'partials/_button.html' with href=gutachten_url label='Gutachten anzeigen' variant='secondary' %}
