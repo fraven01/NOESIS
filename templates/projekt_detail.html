@@ -12,16 +12,6 @@
 <div class="lg:flex lg:space-x-4">
 <div class="w-full lg:w-2/3 space-y-6">
 <div class="card">
-<p class="mb-2"><strong>Aktueller Status:</strong> {{ projekt.status.name }}</p>
-<p class="mb-2"><strong>Beschreibung:</strong> {{ projekt.beschreibung|markdownify }}</p>
-<p class="mb-2"><strong>Software-Typen:</strong> {{ projekt.software_string }}</p>
-<p class="mb-2">
-    <strong>Projekt Kontext:</strong>
-    {{ projekt.project_prompt|truncatewords:20 }}
-    <a href="{% url 'edit_project_context' projekt.pk %}" class="ml-2" title="Bearbeiten">
-        ✎
-    </a>
-</p>
 <form id="status-update-form" method="post" action="{% url 'projekt_status_update' projekt.pk %}" class="mb-4 flex items-center space-x-2">
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
