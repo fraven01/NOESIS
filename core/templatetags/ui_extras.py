@@ -3,7 +3,7 @@ from django import template
 register = template.Library()
 
 BTN_VARIANTS = {
-    "primary": "bg-primary text-text dark:text-text-light hover:bg-primary-dark",
+    "primary": "bg-primary text-background hover:bg-primary-dark",
     "secondary": "bg-background text-text dark:text-text-light hover:bg-background-dark",
     "success": "bg-success text-text dark:text-text-light hover:bg-success-dark",
     "danger": "bg-error text-text dark:text-text-light hover:bg-error-dark",
