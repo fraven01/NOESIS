@@ -1,6 +1,6 @@
 {% load recording_extras %}
 {% url 'hx_project_anlage_tab' projekt.pk anlage_nr as base_url %}
-<div class="overflow-x-auto">
+<div class="overflow-x-auto hidden md:block">
 <table class="mb-4 w-full text-left">
     <thead>
         <tr class="bg-background dark:bg-background-dark">
@@ -33,6 +33,25 @@
     {% endif %}
     </div>
 {% endif %}
+</div>
+
+<div class="space-y-4 md:hidden">
+    {% for a in anlagen %}
+        {% include 'partials/anlage_card.html' with anlage=a show_nr=show_nr %}
+    {% empty %}
+        <p>Keine Anlagen vorhanden</p>
+    {% endfor %}
+    {% if page_obj %}
+    <div class="flex justify-between items-center">
+        {% if page_obj.has_previous %}
+            {% include 'partials/_button.html' with type='button' label='«' variant='secondary' classes='px-2 py-1 rounded' attrs='hx-get="'|add:base_url|add:'?page='|add:page_obj.previous_page_number|add:'" hx-target="#anlage-tab-content"' %}
+        {% endif %}
+        <span>Seite {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            {% include 'partials/_button.html' with type='button' label='»' variant='secondary' classes='px-2 py-1 rounded' attrs='hx-get="'|add:base_url|add:'?page='|add:page_obj.next_page_number|add:'" hx-target="#anlage-tab-content"' %}
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 <div id="anlage-dropzone" data-upload-url="{% url 'projekt_file_upload' projekt.pk %}"
