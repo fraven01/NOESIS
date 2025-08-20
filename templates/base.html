@@ -17,7 +17,6 @@
     </script>
     {% tailwind_css %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -83,11 +82,8 @@
         <p>&copy; 2025 Frank Vendolsky</p>
     </footer>
     <script src="{% static 'js/utils.js' %}"></script>
-    <script src="{% static 'js/file_upload.js' %}"></script>
     <script src="{% static 'js/theme_toggle.js' %}"></script>
     <script src="{% static 'js/menu_toggle.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
-    <script src="{% static 'js/markdown_editor.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

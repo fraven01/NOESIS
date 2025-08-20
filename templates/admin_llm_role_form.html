@@ -1,4 +1,5 @@
 {% extends 'admin_base.html' %}
+{% load static %}
 {% block extra_head %}{{ block.super }}{% endblock %}
 {% block title %}{% if role %}Rolle bearbeiten{% else %}Neue Rolle{% endif %}{% endblock %}
 {% block admin_content %}
@@ -24,6 +25,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/markdown_editor.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     initMarkdownEditor('roleprompt');

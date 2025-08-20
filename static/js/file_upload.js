@@ -163,13 +163,13 @@
         const projMatch = uploadUrl.match(/projekte\/(\d+)\//);
         const projectId = projMatch ? projMatch[1] : null;
 
+        if (!input || !dropzone || !form || !container) return;
+
         // Warnungselement für doppelte Anlagennummern
         const dupWarning = document.createElement('div');
         dupWarning.className = 'text-red-600 p-2 border border-red-400 rounded mb-2 hidden';
         dupWarning.textContent = 'Mehrere Dateien besitzen dieselbe Anlage-Nummer.';
         container.parentNode.insertBefore(dupWarning, container);
-
-        if (!input || !dropzone || !form || !container) return;
 
         let currentFiles = [];
 

@@ -1,3 +1,30 @@
+// Hilfsfunktionen zum Laden der EasyMDE-Ressourcen
+let easymdeLoader = null;
+
+function loadEasyMDE() {
+    if (window.EasyMDE || (window.customElements && customElements.get('mce-autosize-textarea'))) {
+        return Promise.resolve();
+    }
+    if (!easymdeLoader) {
+        easymdeLoader = new Promise((resolve, reject) => {
+            const cssId = 'easymde-css';
+            if (!document.getElementById(cssId)) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css';
+                link.id = cssId;
+                document.head.appendChild(link);
+            }
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    return easymdeLoader;
+}
+
 function initMarkdownEditor(idPrefix) {
     const view = document.getElementById(`${idPrefix}-view`);
     const textarea = document.getElementById(`${idPrefix}-textarea`);
@@ -12,7 +39,8 @@ function initMarkdownEditor(idPrefix) {
     }
     textarea.dataset.editorInitialized = "true";
 
-    editBtn.addEventListener('click', () => {
+    editBtn.addEventListener('click', async () => {
+        await loadEasyMDE();
         view.classList.add('hidden');
         textarea.classList.remove('hidden');
         editBtn.classList.add('hidden');

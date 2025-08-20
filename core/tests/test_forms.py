@@ -155,7 +155,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
     def test_edit_page_has_mde(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.get(url)
-        self.assertContains(resp, "easymde.min.css")
+        self.assertContains(resp, "markdown_editor.js")
 
 
 class GutachtenEditDeleteTests(NoesisTestCase):
@@ -195,7 +195,7 @@ class GutachtenEditDeleteTests(NoesisTestCase):
     def test_edit_page_has_mde(self):
         url = reverse("gutachten_edit", args=[self.gutachten.pk])
         resp = self.client.get(url)
-        self.assertContains(resp, "easymde.min.css")
+        self.assertContains(resp, "markdown_editor.js")
 
     def test_delete_removes_file(self):
         url = reverse("gutachten_delete", args=[self.gutachten.pk])
@@ -219,7 +219,7 @@ class KnowledgeDescriptionEditTests(NoesisTestCase):
     def test_edit_page_has_mde(self):
         url = reverse("edit_knowledge_description", args=[self.knowledge.pk])
         resp = self.client.get(url)
-        self.assertContains(resp, "easymde.min.css")
+        self.assertContains(resp, "markdown_editor.js")
 
     def test_edit_updates_description(self):
         url = reverse("edit_knowledge_description", args=[self.knowledge.pk])
