@@ -521,13 +521,28 @@ if os.environ.get("K_SERVICE"):
 #    LOGGING["handlers"]["console"]["encoding"] = "utf-8"
 
 # Django-Q Konfiguration
+
+# Standardwerte für Entwicklung und Produktion festlegen
+Q_CLUSTER_WORKERS_DEFAULT = os.cpu_count() or 1
+Q_CLUSTER_TIMEOUT_DEFAULT = 1200
+Q_CLUSTER_RETRY_DEFAULT = 1300
+
+if not DEBUG:
+    # Kürzere Intervalle und mehr Worker in der Produktion
+    Q_CLUSTER_WORKERS_DEFAULT = 4
+    Q_CLUSTER_TIMEOUT_DEFAULT = 60
+    Q_CLUSTER_RETRY_DEFAULT = 70
+
 Q_CLUSTER = {
     "name": "noesis_q",
-    # Anzahl der Worker aus ENV oder der Anzahl der CPU-Kerne ableiten
-    "workers": int(os.environ.get("Q_CLUSTER_WORKERS", os.cpu_count() or 1)),
+    "workers": int(
+        os.environ.get("Q_CLUSTER_WORKERS", Q_CLUSTER_WORKERS_DEFAULT)
+    ),
     "recycle": 500,
-    "timeout": 1200,
-    "retry": 1300,
+    "timeout": int(
+        os.environ.get("Q_CLUSTER_TIMEOUT", Q_CLUSTER_TIMEOUT_DEFAULT)
+    ),
+    "retry": int(os.environ.get("Q_CLUSTER_RETRY", Q_CLUSTER_RETRY_DEFAULT)),
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
