@@ -1,14 +1,20 @@
 {% load recording_extras %}
 <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded space-y-4">
-  <section>
+  <section class="bg-white dark:bg-gray-700 p-3 rounded space-y-2">
     <h3 class="font-semibold mb-2">Projekt-Steckbrief</h3>
-    <p class="text-lg font-semibold">{{ projekt.title }}</p>
-    {% include 'partials/status_badge.html' with status_key=projekt.status.key label=projekt.status.name %}
-    <p class="mt-1 text-sm"><strong>Software:</strong> {{ projekt.software_string }}</p>
-    <p class="mt-1 text-sm"><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
+    <div>
+      <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Basis</h4>
+      <p class="text-lg font-semibold">{{ projekt.title }}</p>
+      {% include 'partials/status_badge.html' with status_key=projekt.status.key label=projekt.status.name %}
+    </div>
+    <div>
+      <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Details</h4>
+      <p class="mt-1 text-sm"><strong>Software:</strong> {{ projekt.software_string }}</p>
+      <p class="mt-1 text-sm"><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
+    </div>
   </section>
 
-  <section>
+  <section class="bg-white dark:bg-gray-700 p-3 rounded">
     <h3 class="font-semibold mb-2">Status &amp; Nächste Schritte</h3>
     <p class="text-sm">Geprüft: {{ num_reviewed }} / {{ num_attachments }}</p>
     <p class="text-sm">Initial-Prüfung: <span id="knowledge-progress">{{ knowledge_checked }} / {{ total_software }}</span> Komponenten analysiert</p>
@@ -25,7 +31,7 @@
     </ul>
   </section>
 
-  <section>
+  <section class="bg-white dark:bg-gray-700 p-3 rounded">
     <h3 class="font-semibold mb-2">Anlagen-Übersicht</h3>
     <ul class="space-y-1 text-sm">
       {% for nr in anlage_numbers %}
