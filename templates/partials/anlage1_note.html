@@ -11,7 +11,7 @@
     </div>
   </form>
 {% else %}
-  <div class="prose max-w-none">{{ text|markdownify }}</div>
+  <div class="prose dark:prose-invert max-w-none">{{ text|markdownify }}</div>
   {% url 'hx_anlage1_note' anlage.pk num field as edit_url %}
   {% include 'partials/_button.html' with type='button' label='Bearbeiten' variant='secondary' classes='mt-1 px-2 py-1 rounded' attrs='hx-get="'|add:edit_url|add:'?edit=1" hx-target="#note-'|add:field|add:'-'|add:num|add:'" hx-swap="outerHTML"' %}
 {% endif %}
