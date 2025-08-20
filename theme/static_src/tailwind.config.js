@@ -31,7 +31,7 @@ export default {
         },
         header: {
           DEFAULT: '#0d1b2a',
-          dark: '#1e293b',
+          dark: '#0d1b2a',
         },
         background: {
           DEFAULT: '#ffffff',
