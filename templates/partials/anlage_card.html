@@ -1,0 +1,72 @@
+{% load recording_extras %}
+{% if form %}
+<div class="card anlage-card p-4">
+    <form method="post" enctype="multipart/form-data" action="{% url 'hx_project_file_upload' projekt.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="anlage_nr" value="{{ form.anlage_nr }}">
+        {{ form.non_field_errors }}
+        {{ form.upload }} {{ form.upload.errors }}
+        {% if form.parser_mode %}
+        <div class="mt-2">
+            {{ form.parser_mode.label_tag }} {{ form.parser_mode }}
+            {{ form.parser_mode.errors }}
+        </div>
+        <div class="mt-2">
+            {{ form.parser_order.label_tag }} {{ form.parser_order }}
+            {{ form.parser_order.errors }}
+        </div>
+        {% endif %}
+        {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-2 py-1 mt-2' %}
+    </form>
+</div>
+{% else %}
+<div class="card anlage-card p-4">
+    {% if show_nr %}
+    <p><span class="font-semibold">Nr.:</span> {{ anlage.anlage_nr }}</p>
+    {% endif %}
+    <p><span class="font-semibold">Bezeichnung:</span> <a href="{{ anlage.upload.url }}" class="text-accent underline" title="{{ anlage.upload.name|clean_filename }}">Anlage {{ anlage.anlage_nr }}</a></p>
+    <p><span class="font-semibold">Hochgeladen am:</span> {{ anlage.created_at|date:"d.m.Y" }}</p>
+    <p><span class="font-semibold">Version:</span> {{ anlage.version }}</p>
+    <div class="mt-2">
+        <span class="font-semibold">Analyse bearbeiten:</span>
+        {% include 'partials/anlage_status.html' with anlage=anlage %}
+    </div>
+    <div class="mt-2">
+        <span class="font-semibold">Vergleich:</span>
+        {% if anlage.parent %}
+            {% url 'compare_versions' anlage.pk as compare_url %}
+            {% include 'partials/_button.html' with href=compare_url label='Mit Vorgänger vergleichen' variant='primary' classes='px-1 py-0.5 text-sm' %}
+        {% endif %}
+    </div>
+    <div class="mt-2 flex items-center gap-2">
+        <span class="font-semibold">Geprüft:</span>
+        <form hx-post="{% url 'hx_toggle_project_file_flag' anlage.pk 'manual_reviewed' %}"
+              hx-target="closest .anlage-card" hx-swap="outerHTML" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="value" value="{{ anlage.manual_reviewed|yesno:'0,1' }}">
+            <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Geprüft umschalten">
+                {% if anlage.manual_reviewed %}
+                <span class="text-accent">✓</span>
+                {% else %}
+                <span class="text-text">✗</span>
+                {% endif %}
+            </button>
+        </form>
+    </div>
+    <div class="mt-2 flex items-center gap-2">
+        <span class="font-semibold">Verhandlungsfähig:</span>
+        <form hx-post="{% url 'hx_toggle_project_file_flag' anlage.pk 'verhandlungsfaehig' %}"
+              hx-target="closest .anlage-card" hx-swap="outerHTML" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="value" value="{{ anlage.verhandlungsfaehig|yesno:'0,1' }}">
+            <button class="p-0 bg-transparent border-0 cursor-pointer text-base focus:outline-none" title="Verhandlungsfähigkeit umschalten">
+                {% if anlage.verhandlungsfaehig %}
+                <span class="text-accent">✓</span>
+                {% else %}
+                <span class="text-text">✗</span>
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
