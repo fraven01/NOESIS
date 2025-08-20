@@ -65,7 +65,17 @@
 </div>
 {% endif %}
 {% url 'projekt_detail' file.project.pk as project_url %}
+<div class="mt-4 flex justify-center gap-2">
+  <form method="post" action="{% url 'compare_versions' file.pk %}" class="inline">
+    {% csrf_token %}
+    {% include 'partials/_button.html' with type='submit' label='Mit Vorgänger vergleichen' variant='primary' classes='whitespace-nowrap' %}
+  </form>
+  <form method="post" action="{% url 'trigger_file_analysis' file.pk %}" class="inline">
+    {% csrf_token %}
+    {% include 'partials/_button.html' with type='submit' label='Erneut analysieren' variant='primary' classes='whitespace-nowrap' %}
+  </form>
+</div>
 <div class="mt-4">
-{% include 'partials/_button.html' with href=project_url label='Zurück zum Projekt' variant='secondary' %}
+  {% include 'partials/_button.html' with href=project_url label='Zurück zum Projekt' variant='secondary' %}
 </div>
 {% endblock %}
