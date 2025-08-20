@@ -29,9 +29,13 @@
     {% include 'partials/_button.html' with type='submit' label='Aktualisieren' variant='primary' %}
 </form>
 <p class="mb-4">
-    <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline">Gap-Analyse herunterladen</a>
+    <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline font-semibold inline-flex items-center">
+        <span class="mr-1">&#x2B07;</span>Gap-Analyse herunterladen
+    </a>
     |
-    <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-primary underline">Management Summary herunterladen</a>
+    <a href="{% url 'projekt_management_summary' projekt.pk %}" class="text-primary underline font-semibold inline-flex items-center">
+        <span class="mr-1">&#x2B07;</span>Management Summary herunterladen
+    </a>
 </p>
 <p class="mb-4">
     {% if can_gap_report %}
