@@ -3,7 +3,7 @@
     @apply bg-background rounded-lg shadow p-4;
   }
   .badge {
-    @apply inline-block px-2 py-0.5 rounded-full text-xs font-bold;
+    @apply inline-block px-2 py-0.5 rounded-full text-xs font-bold text-text dark:text-text-light;
   }
   .badge-blue {
     @apply bg-accent text-text dark:bg-accent-dark dark:text-text-light;
@@ -21,7 +21,7 @@
     @apply bg-background text-text dark:bg-background-dark dark:text-text-light;
   }
   .alert {
-    @apply p-2 rounded;
+    @apply p-2 rounded text-text dark:text-text-light;
   }
   .alert-success {
     @apply p-2 rounded bg-success text-text dark:bg-success-dark dark:text-text-light;

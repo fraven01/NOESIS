@@ -3,14 +3,13 @@ from django import template
 register = template.Library()
 
 BTN_VARIANTS = {
-    "primary": "bg-primary text-white hover:bg-primary-dark",
-    "secondary": "bg-gray-300 text-black hover:bg-gray-400",
-    "success": "bg-green-600 text-white hover:bg-green-700",
-    "danger": "bg-red-600 text-white hover:bg-red-700",
-    "danger-light": "bg-red-100 hover:bg-red-200 text-red-700",
-    "purple": "bg-purple-600 text-white hover:bg-purple-700",
-    "muted": "bg-gray-200 hover:bg-gray-300 text-gray-800",
-    "disabled": "bg-gray-300 text-gray-500 cursor-not-allowed",
+    "primary": "bg-primary text-text dark:text-text-light hover:bg-primary-dark",
+    "secondary": "bg-background text-text dark:text-text-light hover:bg-background-dark",
+    "success": "bg-success text-text dark:text-text-light hover:bg-success-dark",
+    "danger": "bg-error text-text dark:text-text-light hover:bg-error-dark",
+    "danger-light": "bg-error-light text-error-dark dark:text-error-dark hover:bg-error-lighter",
+    "muted": "bg-background text-text dark:text-text-light hover:bg-background-dark",
+    "disabled": "bg-background text-text dark:text-text-light cursor-not-allowed",
 }
 
 @register.simple_tag
