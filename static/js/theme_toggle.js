@@ -10,13 +10,24 @@
         } else {
             root.classList.remove('dark');
         }
-        localStorage.setItem(storageKey, theme);
+        try {
+            localStorage.setItem(storageKey, theme);
+        } catch (e) {
+            // localStorage ist möglicherweise nicht verfügbar
+        }
     }
 
     function initTheme() {
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-            setTheme(stored);
+        if (root.classList.contains('dark')) {
+            return;
+        }
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored === 'dark') {
+                root.classList.add('dark');
+            }
+        } catch (e) {
+            // localStorage ist möglicherweise nicht verfügbar
         }
     }
 
