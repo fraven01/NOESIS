@@ -3,7 +3,7 @@
 {% block title %}Gutachten anzeigen{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Gutachten für {{ projekt.title }}</h1>
-<div class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
+<div class="prose dark:prose-invert max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
 <p class="mt-4">
     <a href="{% url 'gutachten_edit' gutachten.id %}" class="text-accent-dark dark:text-accent-light underline">Bearbeiten</a>
     |
