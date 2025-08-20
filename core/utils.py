@@ -104,8 +104,7 @@ def start_analysis_for_file(file_id: int) -> str | None:
 @transaction.atomic
 def update_file_status(file_id: int, status: str) -> None:
     """Aktualisiert den Verarbeitungsstatus einer Projektdatei."""
-
-    pf = BVProjectFile.objects.get(pk=file_id)
+    pf = BVProjectFile.objects.select_for_update().get(pk=file_id)
     pf.processing_status = status
     pf.save(update_fields=["processing_status"])
 
