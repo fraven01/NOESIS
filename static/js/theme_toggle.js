@@ -18,15 +18,21 @@
                 icon.classList.add('fa-sun');
             }
         }
-        localStorage.setItem(storageKey, theme);
+        try {
+            localStorage.setItem(storageKey, theme);
+        } catch (e) {
+            // localStorage ist möglicherweise nicht verfügbar
+        }
     }
 
     const icon = toggleBtn ? toggleBtn.querySelector('i') : null;
 
     function initTheme() {
+
         const stored = localStorage.getItem(storageKey);
         const theme = stored || (root.classList.contains('dark') ? 'dark' : 'light');
         setTheme(theme);
+
     }
 
     document.addEventListener('DOMContentLoaded', function () {
