@@ -24,7 +24,7 @@
                 </div>
             {% endfor %}
             {{ af.non_form_errors }}
-            <button type="submit" name="action" value="add_action_row" class="px-2 py-1 bg-gray-300 rounded">+</button>
+            {% include 'partials/_button.html' with type='submit' name='action' value='add_action_row' label='+' variant='secondary' classes='px-2 py-1 rounded' %}
             <input type="hidden" name="action_prefix" value="{{ af.prefix }}">
         {% endwith %}
     </td>

@@ -6,6 +6,7 @@
 <form method="post">
     {% csrf_token %}
     <button type="submit" class="px-4 py-2 bg-error text-background rounded">Löschen</button>
-    <a href="{% url 'parser_rule_list' %}" class="ml-2 px-4 py-2 bg-gray-300 rounded">Abbrechen</a>
+    {% url 'parser_rule_list' as cancel_url %}
+    {% include 'partials/_button.html' with href=cancel_url label='Abbrechen' variant='secondary' classes='ml-2 px-4 py-2 rounded' %}
 </form>
 {% endblock %}
