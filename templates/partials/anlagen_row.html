@@ -17,7 +17,7 @@
                 {{ form.parser_order.errors }}
             </div>
             {% endif %}
-            <button type="submit" class="bg-accent text-text px-2 py-1 rounded mt-2">Speichern</button>
+            {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' classes='px-2 py-1 mt-2' %}
         </form>
     </td>
 </tr>
@@ -32,7 +32,8 @@
     </td>
     <td class="px-2 py-1 text-center">
         {% if anlage.parent %}
-            <a href="{% url 'compare_versions' anlage.pk %}" class="inline-block px-1 py-0.5 rounded bg-accent text-text text-sm hover:bg-accent-dark">Mit Vorgänger vergleichen</a>
+            {% url 'compare_versions' anlage.pk as compare_url %}
+            {% include 'partials/_button.html' with href=compare_url label='Mit Vorgänger vergleichen' variant='primary' classes='px-1 py-0.5 text-sm' %}
         {% endif %}
     </td>
     <td class="px-2 py-1 text-center">
