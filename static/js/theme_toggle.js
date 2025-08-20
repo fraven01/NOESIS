@@ -7,17 +7,26 @@
     function setTheme(theme) {
         if (theme === 'dark') {
             root.classList.add('dark');
+            if (icon) {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
         } else {
             root.classList.remove('dark');
+            if (icon) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
         }
         localStorage.setItem(storageKey, theme);
     }
 
+    const icon = toggleBtn ? toggleBtn.querySelector('i') : null;
+
     function initTheme() {
         const stored = localStorage.getItem(storageKey);
-        if (stored) {
-            setTheme(stored);
-        }
+        const theme = stored || (root.classList.contains('dark') ? 'dark' : 'light');
+        setTheme(theme);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
