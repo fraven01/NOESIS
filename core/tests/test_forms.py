@@ -181,14 +181,14 @@ class GutachtenEditDeleteTests(NoesisTestCase):
         self.gutachten = Gutachten.objects.create(software_knowledge=self.knowledge, text="Alt")
 
     def test_view_shows_content(self):
-        url = reverse("gutachten_view", args=[self.gutachten.pk])
-        resp = self.client.get(url)
+        url = reverse("hx_project_software_tab", args=[self.projekt.pk, "gutachten"])
+        resp = self.client.get(url, HTTP_HX_REQUEST="true")
         self.assertContains(resp, "Alt")
 
     def test_edit_updates_text(self):
         url = reverse("gutachten_edit", args=[self.gutachten.pk])
         resp = self.client.post(url, {"text": "Neu"})
-        self.assertRedirects(resp, reverse("gutachten_view", args=[self.gutachten.pk]))
+        self.assertRedirects(resp, reverse("projekt_initial_pruefung", args=[self.projekt.pk]))
         self.gutachten.refresh_from_db()
         self.assertEqual(self.gutachten.text, "Neu")
 

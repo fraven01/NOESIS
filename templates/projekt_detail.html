@@ -59,11 +59,7 @@
 <h2 class="text-xl font-semibold mb-4">Prüfungen</h2>
 <div class="space-x-2">
     {% url 'projekt_initial_pruefung' projekt.pk as init_url %}
-    {% include 'partials/_button.html' with href=init_url label='Initial-Prüfung' variant='primary' %}
-    {% if first_gutachten %}
-        {% url 'gutachten_view' first_gutachten.id as gutachten_url %}
-        {% include 'partials/_button.html' with href=gutachten_url label='Gutachten anzeigen' variant='secondary' %}
-    {% endif %}
+    {% include 'partials/_button.html' with href=init_url label='Initial-Prüfung und Gutachten' variant='primary' %}
 </div>
 </div>
 </div>

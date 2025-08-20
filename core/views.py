@@ -3008,9 +3008,6 @@ def projekt_detail(request, pk):
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
 
-    first_gutachten = (
-        Gutachten.objects.filter(software_knowledge__project=projekt).first()
-    )
 
     # Letzte Aktivitäten aus Statusänderungen und Dateiuploads sammeln
     activities = []
@@ -3055,7 +3052,6 @@ def projekt_detail(request, pk):
         "software_list": software_list,
         "activities": activities,
         "can_gap_report": can_gap_report,
-        "first_gutachten": first_gutachten,
     }
     return render(request, "projekt_detail.html", context)
 
@@ -5504,21 +5500,6 @@ def ajax_start_gutachten_generation(request, project_id):
 
 
 @login_required
-def gutachten_view(request, pk):
-    """Zeigt den Text eines Gutachtens an."""
-    gutachten = get_object_or_404(Gutachten, pk=pk)
-    projekt = gutachten.software_knowledge.project
-    context = {
-        "projekt": projekt,
-        "text": gutachten.text,
-        "gutachten": gutachten,
-        "categories": LLMConfig.get_categories(),
-        "category": "gutachten",
-    }
-    return render(request, "gutachten_view.html", context)
-
-
-@login_required
 def gutachten_download(request, pk):
     """Stellt das Gutachten als formatiertes DOCX bereit."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
@@ -5672,7 +5653,7 @@ def gutachten_edit(request, pk):
         gutachten.text = text
         gutachten.save(update_fields=["text"])
         messages.success(request, "Gutachten gespeichert")
-        return redirect("gutachten_view", pk=gutachten.pk)
+        return redirect("projekt_initial_pruefung", pk=projekt.pk)
     return render(
         request, "gutachten_edit.html", {"projekt": projekt, "text": gutachten.text}
     )
@@ -5709,7 +5690,7 @@ def gutachten_llm_check(request, pk):
     except Exception:
         logger.exception("LLM Fehler")
         messages.error(request, "LLM-Fehler beim Funktionscheck")
-    return redirect("gutachten_view", pk=gutachten.pk)
+    return redirect("projekt_initial_pruefung", pk=projekt.pk)
 
 
 @login_required
