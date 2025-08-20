@@ -26,7 +26,7 @@
     {% csrf_token %}
     <label for="status" class="font-semibold">Status:</label>
     {% include 'partials/_form_select.html' with name='status' id='status' options=status_choices value=projekt.status.key classes='' %}
-    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' variant='primary' classes='' %}
+    {% include 'partials/_button.html' with type='submit' label='Aktualisieren' variant='primary' %}
 </form>
 <p class="mb-4">
     <a href="{% url 'projekt_gap_analysis' projekt.pk %}" class="text-primary underline">Gap-Analyse herunterladen</a>
