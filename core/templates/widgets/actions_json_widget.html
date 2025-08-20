@@ -1,6 +1,6 @@
 <div id="{{ widget.attrs.id }}_container"></div>
 <input type="hidden" name="{{ widget.name }}" id="{{ widget.attrs.id }}" value="{{ widget.value }}">
-<button type="button" class="btn btn-sm btn-secondary mt-1" id="{{ widget.attrs.id }}_add">+ Aktion</button>
+{% include 'partials/_button.html' with type='button' id=widget.attrs.id|add:'_add' label='+ Aktion' variant='secondary' classes='text-sm px-2 py-1 mt-1' %}
 <script>
 (function(){
   const container=document.getElementById('{{ widget.attrs.id }}_container');

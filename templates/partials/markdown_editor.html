@@ -6,8 +6,8 @@
   <div id="{{ id_prefix }}-view" class="prose max-w-none bg-gray-100 p-2 rounded">{{ text|markdownify }}</div>
   <textarea id="{{ id_prefix }}-textarea" name="{{ name }}" rows="10" class="hidden w-full border rounded p-2">{{ text }}</textarea>
   <div class="flex space-x-2">
-    <button type="button" id="{{ id_prefix }}-edit" class="bg-accent text-background px-4 py-2 rounded">Bearbeiten</button>
-    <button type="submit" id="{{ id_prefix }}-save" class="hidden bg-accent text-background px-4 py-2 rounded">Speichern</button>
-    <button type="button" id="{{ id_prefix }}-cancel" class="hidden bg-gray-300 text-text px-4 py-2 rounded">Abbrechen</button>
+    {% include 'partials/_button.html' with type='button' id=id_prefix|add:'-edit' label='Bearbeiten' variant='primary' %}
+    {% include 'partials/_button.html' with type='submit' id=id_prefix|add:'-save' label='Speichern' variant='primary' classes='hidden' %}
+    {% include 'partials/_button.html' with type='button' id=id_prefix|add:'-cancel' label='Abbrechen' variant='secondary' classes='hidden' %}
   </div>
 </div>

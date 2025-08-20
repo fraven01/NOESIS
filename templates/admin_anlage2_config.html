@@ -4,8 +4,10 @@
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Konfiguration</h1>
 <div class="mb-4 space-x-2">
-    <a href="{% url 'admin_anlage2_config_export' %}" class="px-4 py-2 bg-gray-300 rounded">Exportieren</a>
-    <a href="{% url 'admin_anlage2_config_import' %}" class="px-4 py-2 bg-gray-300 rounded">Importieren</a>
+    {% url 'admin_anlage2_config_export' as export_url %}
+    {% url 'admin_anlage2_config_import' as import_url %}
+    {% include 'partials/_button.html' with href=export_url label='Exportieren' variant='secondary' %}
+    {% include 'partials/_button.html' with href=import_url label='Importieren' variant='secondary' %}
 </div>
 <form method="post" class="space-y-4">
     {% csrf_token %}
@@ -88,7 +90,7 @@
         </div>
         <div class="mt-2 space-x-2">
             <!-- HTMX-Funktion vorübergehend deaktiviert -->
-            <button type="button" class="px-3 py-1 bg-gray-300 rounded" disabled>Neue Regel hinzufügen</button>
+            {% include 'partials/_button.html' with type='button' label='Neue Regel hinzufügen' variant='disabled' classes='px-3 py-1' disabled=True %}
             <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
         </div>
     </div>

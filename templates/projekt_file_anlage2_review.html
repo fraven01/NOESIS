@@ -119,8 +119,8 @@
     </div>
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     <div class="space-x-2 mt-2">
-        <button type="reset" id="reset-fields" class="bg-gray-300 text-text px-4 py-2 rounded">Reset</button>
-        <button type="button" id="btn-reset-all-reviews" class="bg-gray-300 text-text px-4 py-2 rounded">Alle Bewertungen zurücksetzen</button>
+        {% include 'partials/_button.html' with type='reset' id='reset-fields' label='Reset' variant='secondary' classes='text-text' %}
+        {% include 'partials/_button.html' with type='button' id='btn-reset-all-reviews' label='Alle Bewertungen zurücksetzen' variant='secondary' classes='text-text' %}
     </div>
 </form>
 <details>

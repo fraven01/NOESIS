@@ -24,10 +24,12 @@
             <td class="px-2 py-1 text-center space-x-2">
             {% if row.entry %}
                 {% if row.entry.gutachten %}
-                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}" class="btn-action">Bearbeiten</a>
-                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}" class="btn-action">Download</a>
+                    {% url 'gutachten_edit' row.entry.gutachten.id as edit_url %}
+                    {% url 'gutachten_download' row.entry.gutachten.id as dl_url %}
+                    {% include 'partials/_button.html' with href=edit_url label='Bearbeiten' variant='primary' classes='text-sm px-2 py-1' %}
+                    {% include 'partials/_button.html' with href=dl_url label='Download' variant='primary' classes='text-sm px-2 py-1' %}
                 {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
+                    {% include 'partials/_button.html' with type='button' label='Gutachten erstellen' variant='primary' classes='text-sm px-2 py-1 generate-gutachten-btn' attrs='data-knowledge-id="'|add:row.entry.id|add:'"' %}
                 {% endif %}
                 <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
             {% endif %}

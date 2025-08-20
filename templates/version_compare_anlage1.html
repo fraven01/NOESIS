@@ -80,6 +80,7 @@
 </table>
 </div>
 <div class="mt-4">
-  <a href="{% url 'projekt_detail' file.project.pk %}" class="bg-gray-300 text-text px-4 py-2 rounded">Zurück zum Projekt</a>
+  {% url 'projekt_detail' file.project.pk as project_url %}
+  {% include 'partials/_button.html' with href=project_url label='Zurück zum Projekt' variant='secondary' %}
 </div>
 {% endblock %}

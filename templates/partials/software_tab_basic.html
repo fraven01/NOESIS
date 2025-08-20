@@ -34,13 +34,16 @@
             </td>
             <td class="px-2 py-1 text-center space-x-2">
             {% if row.entry and row.entry.is_known_by_llm is True %}
-                <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="btn-action">Bearbeiten</a>
-                <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn-action">Export</a>
-                <a href="{% url 'delete_knowledge_entry' row.entry.id %}" class="btn-action-delete">Löschen</a>
+                {% url 'edit_knowledge_description' row.entry.id as edit_url %}
+                {% url 'download_knowledge_as_word' row.entry.id as export_url %}
+                {% url 'delete_knowledge_entry' row.entry.id as delete_url %}
+                {% include 'partials/_button.html' with href=edit_url label='Bearbeiten' variant='primary' classes='text-sm px-2 py-1' %}
+                {% include 'partials/_button.html' with href=export_url label='Export' variant='primary' classes='text-sm px-2 py-1' %}
+                {% include 'partials/_button.html' with href=delete_url label='Löschen' variant='danger' classes='text-sm px-2 py-1' %}
             {% elif row.entry and row.entry.is_known_by_llm is False %}
-                <button type="button" class="btn btn-warning btn-sm retry-check-btn" data-knowledge-id="{{ row.entry.id }}">Erneut prüfen</button>
+                {% include 'partials/_button.html' with type='button' label='Erneut prüfen' variant='primary' classes='text-sm px-2 py-1 retry-check-btn' attrs='data-knowledge-id="'|add:row.entry.id|add:'"' %}
             {% else %}
-                <button type="button" class="btn btn-primary btn-sm start-initial-check-btn" data-knowledge-id="{{ row.entry.id|default:'' }}">Prüfung starten</button>
+                {% include 'partials/_button.html' with type='button' label='Prüfung starten' variant='primary' classes='text-sm px-2 py-1 start-initial-check-btn' attrs='data-knowledge-id="'|add:row.entry.id|add:'"' %}
             {% endif %}
             </td>
         </tr>
@@ -48,4 +51,4 @@
     </tbody>
 </table>
 </div>
-<button id="start-checks" class="bg-success text-background px-4 py-2 rounded">Prüfung starten</button>
+{% include 'partials/_button.html' with id='start-checks' label='Prüfung starten' variant='success' classes='text-background' %}
