@@ -69,9 +69,6 @@
 </div>
 <div class="hidden lg:block lg:w-1/3 mt-4 lg:mt-0">
 
-  <div id="projekt-cockpit" hx-get="{% url 'hx_project_cockpit' projekt.pk %}" hx-trigger="load">
-    {% include 'projekt_cockpit.html' %}
-  </div>
 
   {% include 'partials/projekt_cockpit.html' %}
 
