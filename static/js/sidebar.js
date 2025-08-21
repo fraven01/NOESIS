@@ -3,7 +3,7 @@
  */
 document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('menu-toggle');
+    const toggleBtn = document.getElementById('sidebar-toggle');
     const overlay = document.getElementById('sidebar-overlay');
     const storageKey = 'sidebar-open';
 
