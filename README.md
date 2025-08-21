@@ -55,6 +55,16 @@ Für alle Django-Managementbefehle muss die Umgebungsvariable
 falls keine Variable vorhanden ist.
 Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.txt` ausgeführt worden sein, damit alle benötigten Module verfügbar sind.
 
+## Sidebar-Struktur und Berechtigungssteuerung
+
+NOESIS stellt neben der Kachelnavigation auf dem Dashboard eine permanente Sidebar zur Verfügung. Die sichtbaren Einträge werden in `core/navigation.py` über die Konstante `NAV_ITEMS` definiert. Jeder Eintrag besteht aus einem Titel, einer Ziel-URL und einer erforderlichen Django-Berechtigung (`perm`).
+
+Beim Rendern prüft das System, welche Berechtigungen der angemeldete Benutzer besitzt. Nur Navigationselemente, für die die nötigen Rechte vorliegen, erscheinen in der Sidebar. Zusätzliche Punkte lassen sich hinzufügen, indem weitere Einträge in `NAV_ITEMS` angelegt und mit passenden Berechtigungen versehen werden.
+
+### Bedienung und parallele Nutzung
+
+Die Sidebar ermöglicht einen schnellen Modulwechsel und kann auf kleineren Bildschirmen ein- oder ausgeklappt werden. Sie steht parallel zur Dashboard-Kachelnavigation zur Verfügung; beide Wege führen zu denselben Ansichten und können beliebig kombiniert werden.
+
 ## Tests und Checks
 
 Vor jedem Commit **muss** laut `AGENTS.md` folgender Befehl erfolgreich laufen:
