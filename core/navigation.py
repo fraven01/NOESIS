@@ -21,6 +21,6 @@ NAV_ITEMS: List[NavItem] = [
     {
         "title": "Dashboard",
         "url": "home",
-        "perm": "app.view_model",
+        "perm": "core.view_bvproject",
     },
 ]
