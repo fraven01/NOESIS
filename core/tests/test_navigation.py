@@ -114,4 +114,6 @@ class NavigationSidebarTests(TestCase):
 
         self.assertContains(response, "Projekt-Admin")
         self.assertContains(response, "System-Admin")
+        self.assertContains(response, reverse("admin:auth_user_changelist"))
+        self.assertContains(response, reverse("admin:auth_group_changelist"))
 

@@ -88,15 +88,19 @@ def admin_navigation(request: HttpRequest) -> dict[str, list[AdminSection]]:
         )
 
     if request.user.is_superuser:
-        navigation.append(
-            {
-                "name": "System-Admin",
-                "tiles": [
-                    {"name": "Benutzer", "url_name": "admin:auth_user_changelist"},
-                    {"name": "Gruppen", "url_name": "admin:auth_group_changelist"},
-                ],
-            }
-        )
+        from django.contrib.admin import site as admin_site
+
+        system_tiles: list[AdminLink] = []
+        for app in admin_site.get_app_list(request):
+            for model in app["models"]:
+                system_tiles.append(
+                    {
+                        "name": model["name"],
+                        "url_name": f"admin:{app['app_label']}_{model['object_name'].lower()}_changelist",
+                    }
+                )
+
+        navigation.append({"name": "System-Admin", "tiles": system_tiles})
 
     return {"admin_navigation": navigation}
 
