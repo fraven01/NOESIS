@@ -31,18 +31,6 @@ html.dark {
   --color-text: var(--color-text-light);
 }
 
-@layer components {
-  .sidebar {
-    @apply fixed inset-y-0 left-0 z-40 w-64 transform transition-transform -translate-x-full md:relative md:translate-x-0 md:transform-none bg-background border-r text-text dark:bg-background-dark dark:text-text-light;
-  }
-  .sidebar-overlay {
-    @apply fixed inset-0 bg-black/50 z-30 hidden;
-  }
-  .sidebar-overlay-active {
-    @apply block;
-  }
-}
-
 /**
   * A catch-all path to Django template files, JavaScript, and Python files
   * that contain Tailwind CSS classes and will be scanned by Tailwind to generate the final CSS file.
