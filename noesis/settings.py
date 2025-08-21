@@ -104,6 +104,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.is_admin",
                 "core.context_processors.user_navigation",
+                "core.context_processors.admin_navigation",
             ],
             "libraries": {
                 "ui_extras": "core.templatetags.ui_extras",

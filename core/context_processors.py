@@ -49,3 +49,54 @@ def user_navigation(request: HttpRequest) -> dict[str, list[NavSection]]:
 
     return {"user_navigation": navigation}
 
+
+class AdminLink(TypedDict):
+    """Repräsentiert einen einzelnen Link innerhalb der Admin-Navigation."""
+
+    name: str
+    url_name: str
+
+
+class AdminSection(TypedDict):
+    """Ein Abschnitt der Admin-Navigation mit Titel und Links."""
+
+    name: str
+    tiles: list[AdminLink]
+
+
+def admin_navigation(request: HttpRequest) -> dict[str, list[AdminSection]]:
+    """Stellt die Navigationshierarchie für Admin-Bereiche bereit."""
+
+    if not request.user.is_authenticated:
+        return {"admin_navigation": []}
+
+    navigation: list[AdminSection] = []
+
+    if request.user.is_staff or request.user.groups.filter(name__iexact="admin").exists():
+        navigation.append(
+            {
+                "name": "Projekt-Admin",
+                "tiles": [
+                    {"name": "Projekt-Liste", "url_name": "admin_projects"},
+                    {"name": "Statusdefinitionen", "url_name": "admin_project_statuses"},
+                    {"name": "LLM-Rollen", "url_name": "admin_llm_roles"},
+                    {"name": "Prompts", "url_name": "admin_prompts"},
+                    {"name": "Modelle", "url_name": "admin_models"},
+                    {"name": "Benutzer verwalten", "url_name": "admin_user_list"},
+                ],
+            }
+        )
+
+    if request.user.is_superuser:
+        navigation.append(
+            {
+                "name": "System-Admin",
+                "tiles": [
+                    {"name": "Benutzer", "url_name": "admin:auth_user_changelist"},
+                    {"name": "Gruppen", "url_name": "admin:auth_group_changelist"},
+                ],
+            }
+        )
+
+    return {"admin_navigation": navigation}
+

@@ -54,7 +54,26 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.addEventListener('click', () => setSidebar(false));
     }
 
+    const accordionKey = 'sidebar-accordion';
     const accordionButtons = sidebar.querySelectorAll('.sidebar-accordion-btn');
+
+    try {
+        const activeAccordion = localStorage.getItem(accordionKey);
+        if (activeAccordion) {
+            const activeList = document.getElementById(activeAccordion);
+            const activeBtn = sidebar.querySelector(`.sidebar-accordion-btn[data-accordion-target="${activeAccordion}"]`);
+            if (activeList && activeBtn) {
+                activeList.classList.remove('hidden');
+                const icon = activeBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.add('rotate-180');
+                }
+            }
+        }
+    } catch (e) {
+        // localStorage ist möglicherweise nicht verfügbar
+    }
+
     accordionButtons.forEach((btn) => {
         const targetId = btn.getAttribute('data-accordion-target');
         const target = document.getElementById(targetId);
@@ -62,10 +81,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         btn.addEventListener('click', () => {
-            target.classList.toggle('hidden');
+            const hidden = target.classList.toggle('hidden');
             const icon = btn.querySelector('i');
             if (icon) {
                 icon.classList.toggle('rotate-180');
+            }
+            try {
+                localStorage.setItem(accordionKey, hidden ? '' : targetId);
+            } catch (e) {
+                // localStorage ist möglicherweise nicht verfügbar
             }
         });
     });

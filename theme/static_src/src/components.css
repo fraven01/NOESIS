@@ -42,4 +42,7 @@
   .sidebar-accordion-btn {
     @apply w-full flex items-center justify-between px-4 py-2 font-semibold rounded hover:bg-accent hover:text-text-light;
   }
+  .active-nav-link {
+    @apply bg-accent text-text-light font-semibold;
+  }
 }
