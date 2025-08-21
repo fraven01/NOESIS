@@ -103,7 +103,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.is_admin",
-                "core.context_processors.navigation_menu",
+                "core.context_processors.user_navigation",
             ],
             "libraries": {
                 "ui_extras": "core.templatetags.ui_extras",

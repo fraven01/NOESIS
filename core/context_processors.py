@@ -1,8 +1,11 @@
 """Kontextprozessoren für die Django-Templates."""
 
+from typing import TypedDict
+
+from django.db.models import Q
 from django.http import HttpRequest
 
-from .navigation import NAV_ITEMS, NavItem
+from .models import Area, Tile
 
 
 def is_admin(request: HttpRequest) -> dict[str, bool]:
@@ -13,11 +16,36 @@ def is_admin(request: HttpRequest) -> dict[str, bool]:
     return {"is_admin": False}
 
 
-def navigation_menu(request: HttpRequest) -> dict[str, list[NavItem]]:
-    """Liefert erlaubte Navigationseinträge für den aktuellen Benutzer."""
+class NavSection(TypedDict):
+    """Ein Abschnitt der Navigation bestehend aus Bereich und Kacheln."""
 
-    items: list[NavItem] = []
-    if request.user.is_authenticated:
-        items = [item for item in NAV_ITEMS if request.user.has_perm(item["perm"])]
-    return {"navigation": items}
+    area: Area
+    tiles: list[Tile]
+
+
+def user_navigation(request: HttpRequest) -> dict[str, list[NavSection]]:
+    """Ermittelt die Navigation für den aktuellen Benutzer.
+
+    Liefert für jeden zugänglichen Bereich eine Liste der sichtbaren Kacheln.
+    Der Rückgabewert hat folgende Struktur:
+
+    ``{"user_navigation": [{"area": Area, "tiles": [Tile, ...]}, ...]}``
+    """
+
+    from .views import get_user_tiles
+
+    if not request.user.is_authenticated:
+        return {"user_navigation": []}
+
+    areas = Area.objects.filter(
+        Q(userareaaccess__user=request.user)
+        | Q(groupareaaccess__group__in=request.user.groups.all())
+    ).distinct()
+
+    navigation: list[NavSection] = []
+    for area in areas:
+        tiles = get_user_tiles(request.user, area.slug)
+        navigation.append({"area": area, "tiles": tiles})
+
+    return {"user_navigation": navigation}
 

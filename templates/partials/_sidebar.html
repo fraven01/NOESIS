@@ -1,12 +1,15 @@
 <!-- Seitliche Navigationsleiste -->
 <nav class="p-4">
-    <ul class="flex flex-col space-y-2">
-        {% for item in navigation %}
+    {% for section in user_navigation %}
+    <h3 class="mb-2 font-semibold">{{ section.area.name }}</h3>
+    <ul class="flex flex-col space-y-2 mb-4">
+        {% for tile in section.tiles %}
         <li>
-            <a href="{% url item.url %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == item.url %}bg-accent text-text-light font-semibold{% endif %}">
-                {{ item.title }}
+            <a href="{% url tile.url_name %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == tile.url_name %}bg-accent text-text-light font-semibold{% endif %}">
+                {{ tile.name }}
             </a>
         </li>
         {% endfor %}
     </ul>
+    {% endfor %}
 </nav>
