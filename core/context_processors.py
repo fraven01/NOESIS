@@ -1,5 +1,7 @@
 """Kontextprozessoren für die Django-Templates."""
 
+from __future__ import annotations
+
 from typing import TypedDict
 
 from django.db.models import Q
@@ -57,11 +59,20 @@ class AdminLink(TypedDict):
     url_name: str
 
 
-class AdminSection(TypedDict):
-    """Ein Abschnitt der Admin-Navigation mit Titel und Links."""
+class AdminGroup(TypedDict, total=False):
+    """Untergruppe innerhalb der Admin-Navigation."""
 
     name: str
     tiles: list[AdminLink]
+    groups: list["AdminGroup"]
+
+
+class AdminSection(TypedDict, total=False):
+    """Ein Abschnitt der Admin-Navigation."""
+
+    name: str
+    tiles: list[AdminLink]
+    groups: list[AdminGroup]
 
 
 def admin_navigation(request: HttpRequest) -> dict[str, list[AdminSection]]:
@@ -73,19 +84,64 @@ def admin_navigation(request: HttpRequest) -> dict[str, list[AdminSection]]:
     navigation: list[AdminSection] = []
 
     if request.user.is_staff or request.user.groups.filter(name__iexact="admin").exists():
-        navigation.append(
+        project_groups: list[AdminGroup] = [
             {
-                "name": "Projekt-Admin",
+                "name": "Projekt-Konfiguration",
                 "tiles": [
                     {"name": "Projekt-Liste", "url_name": "admin_projects"},
                     {"name": "Statusdefinitionen", "url_name": "admin_project_statuses"},
+                ],
+            },
+            {
+                "name": "Anlagen-Konfiguration",
+                "groups": [
+                    {
+                        "name": "Anlage 1",
+                        "tiles": [{"name": "Fragen", "url_name": "admin_anlage1"}],
+                    },
+                    {
+                        "name": "Anlage 2",
+                        "tiles": [
+                            {"name": "Funktionen", "url_name": "anlage2_function_list"},
+                            {"name": "Globale Phrasen", "url_name": "anlage2_config"},
+                        ],
+                    },
+                    {
+                        "name": "Anlage 3",
+                        "tiles": [{"name": "Parser Regeln", "url_name": "anlage3_rule_list"}],
+                    },
+                    {
+                        "name": "Anlage 4",
+                        "tiles": [{"name": "Konfiguration", "url_name": "anlage4_config"}],
+                    },
+                    {
+                        "name": "Allgemein",
+                        "tiles": [
+                            {"name": "Exakter Parser Regeln", "url_name": "parser_rule_list"},
+                            {"name": "Zwecke verwalten", "url_name": "zweckkategoriea_list"},
+                            {"name": "Supervision-Notizen", "url_name": "supervisionnote_list"},
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": "KI-Konfiguration",
+                "tiles": [
                     {"name": "LLM-Rollen", "url_name": "admin_llm_roles"},
                     {"name": "Prompts", "url_name": "admin_prompts"},
-                    {"name": "Modelle", "url_name": "admin_models"},
-                    {"name": "Benutzer verwalten", "url_name": "admin_user_list"},
+                    {"name": "LLM-Modelle", "url_name": "admin_models"},
                 ],
-            }
-        )
+            },
+            {
+                "name": "Systemverwaltung",
+                "tiles": [
+                    {"name": "Benutzer verwalten", "url_name": "admin_user_list"},
+                    {"name": "Gruppen", "url_name": "admin:auth_group_changelist"},
+                ],
+            },
+        ]
+
+        navigation.append({"name": "Projekt-Admin", "groups": project_groups})
 
     if request.user.is_superuser:
         from django.contrib.admin import site as admin_site

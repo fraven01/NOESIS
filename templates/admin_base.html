@@ -4,102 +4,11 @@
 {% block content %}
 <div class="max-w-screen-2xl mx-auto">
     <section class="p-4">
-        <div class="flex flex-col md:flex-row gap-6">
-            <aside class="w-full md:w-64 bg-background p-4 border-r border-gray-200">
-        <h2 class="text-xl font-bold mb-4">Admin-Navigation</h2>
-        <nav class="space-y-4 text-sm">
-            <div>
-                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Projekt-Konfiguration</h3>
-                <a href="{% url 'admin_projects' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Liste</a><br>
-                <a href="{% url 'admin_project_statuses' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Projekt-Status</a><br>
-            </div>
-            <div>
-                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Anlagen-Konfiguration</h3>
-                {% with current=request.resolver_match.url_name %}
-                <div>
-                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
-                        <span>Anlage 1</span>
-                        <i data-accordion-icon class="fa-solid fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'admin_anlage1' %}rotate-180{% endif %}"></i>
-                    </h4>
-                    <div class="accordion-content pl-2 space-y-1 {% if current in 'admin_anlage1' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'admin_anlage1' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'admin_anlage1' %}bg-primary text-background{% else %}text-primary{% endif %}">Fragen</a>
-                    </div>
-                </div>
-                <div>
-                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
-                        <span>Anlage 2</span>
-                        <i data-accordion-icon class="fa-solid fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage2_function_list anlage2_config' %}rotate-180{% endif %}"></i>
-                    </h4>
-                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage2_function_list anlage2_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage2_function_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_function_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Funktionen</a>
-                        <a href="{% url 'anlage2_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage2_config' %}bg-primary text-background{% else %}text-primary{% endif %}">Globale Phrasen</a>
-                    </div>
-                </div>
-                <div>
-                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
-                        <span>Anlage 3</span>
-                        <i data-accordion-icon class="fa-solid fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage3_rule_list' %}rotate-180{% endif %}"></i>
-                    </h4>
-                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage3_rule_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage3_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage3_rule_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Parser Regeln</a>
-                    </div>
-                </div>
-                <div>
-                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
-                        <span>Anlage 4</span>
-                        <i data-accordion-icon class="fa-solid fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'anlage4_config' %}rotate-180{% endif %}"></i>
-                    </h4>
-                    <div class="accordion-content pl-2 space-y-1 {% if current in 'anlage4_config' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'anlage4_config' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'anlage4_config' %}bg-primary text-background{% else %}text-primary{% endif %}">Konfiguration</a>
-                    </div>
-                </div>
-                <div>
-                    <h4 data-accordion-header class="flex justify-between items-center font-semibold my-2 cursor-pointer">
-                        <span>Allgemein</span>
-                        <i data-accordion-icon class="fa-solid fa-chevron-down ml-2 transition-transform duration-300 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}rotate-180{% endif %}"></i>
-                    </h4>
-                    <div class="accordion-content pl-2 space-y-1 {% if current in 'parser_rule_list zweckkategoriea_list supervisionnote_list' %}block{% else %}hidden{% endif %}">
-                        <a href="{% url 'parser_rule_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'parser_rule_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Exakter Parser Regeln</a>
-                        <a href="{% url 'zweckkategoriea_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'zweckkategoriea_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Zwecke verwalten</a>
-                        <a href="{% url 'supervisionnote_list' %}" class="block px-2 py-1 rounded hover:bg-primary-light {% if current == 'supervisionnote_list' %}bg-primary text-background{% else %}text-primary{% endif %}">Supervision-Notizen</a>
-                    </div>
-                </div>
-                {% endwith %}
-            </div>
-            <div>
-                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">KI-Konfiguration</h3>
-                <a href="{% url 'admin_llm_roles' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Rollen</a><br>
-                <a href="{% url 'admin_prompts' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Prompts</a><br>
-                <a href="{% url 'admin_models' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">LLM-Modelle</a><br>
-            </div>
-            <div>
-                <h3 class="font-semibold text-text opacity-70 uppercase tracking-wider text-sm mb-2">Systemverwaltung</h3>
-                <a href="{% url 'admin_user_list' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Benutzer verwalten</a><br>
-                <a href="{% url 'admin:auth_group_changelist' %}" class="block px-2 py-1 rounded text-primary hover:bg-primary-light">Gruppen</a><br>
-            </div>
-        </nav>
-            </aside>
-            <div class="flex-1">
-                {% block admin_content %}{% endblock %}
-            </div>
-        </div>
+        {% block admin_content %}{% endblock %}
     </section>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 {{ block.super }}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('[data-accordion-header]').forEach(function(header) {
-            header.addEventListener('click', function() {
-                const content = header.nextElementSibling;
-                const icon = header.querySelector('[data-accordion-icon]');
-                content.classList.toggle('hidden');
-                if (icon) {
-                    icon.classList.toggle('rotate-180');
-                }
-            });
-        });
-    });
-</script>
 {% endblock %}
