@@ -32,7 +32,7 @@
         {% else %}
         {% for section in user_navigation %}
         <div class="mb-2">
-            <button class="w-full flex items-center justify-between px-4 py-2 font-semibold rounded hover:bg-accent hover:text-text-light sidebar-accordion-btn" data-accordion-target="nav-{{ forloop.counter }}">
+            <button class="sidebar-accordion-btn" data-accordion-target="nav-{{ forloop.counter }}">
                 <span>{{ section.area.name }}</span>
                 <i class="fa-solid fa-chevron-down transition-transform"></i>
             </button>
