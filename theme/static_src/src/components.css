@@ -45,4 +45,25 @@
   .active-nav-link {
     @apply bg-accent text-text-light font-semibold;
   }
+
+  /* Dark-Mode-Stile für den EasyMDE-Markdown-Editor */
+  .dark .CodeMirror,
+  .dark .CodeMirror-scroll {
+    @apply bg-background-dark text-text-light;
+  }
+  .dark .CodeMirror {
+    @apply border border-gray-700;
+  }
+  .dark .editor-toolbar {
+    @apply bg-background-dark text-text-light border border-gray-700;
+  }
+  .dark .editor-toolbar button {
+    @apply text-text-light;
+  }
+  .dark .editor-toolbar button:hover {
+    @apply bg-gray-700;
+  }
+  .dark .editor-statusbar {
+    @apply bg-background-dark text-text-light border-t border-gray-700;
+  }
 }
