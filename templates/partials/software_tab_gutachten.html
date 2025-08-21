@@ -1,39 +1,40 @@
 {% load recording_extras %}
-<div class="overflow-x-auto">
-<table class="mb-4 w-full text-left">
-    <thead>
-        <tr class="bg-background dark:bg-background-dark">
-            <th class="px-2 py-1 bg-background dark:bg-background-dark">Software</th>
-            <th class="px-2 py-1 bg-background dark:bg-background-dark">Gutachten</th>
-            <th class="px-2 py-1 text-center bg-background dark:bg-background-dark">Aktionen</th>
-        </tr>
-    </thead>
-    <tbody>
+<div class="space-y-4">
     {% for row in knowledge_rows %}
-        <tr class="border-t align-top">
-            <td class="px-2 py-1">{{ row.name }}</td>
-            <td class="px-2 py-1">
-            {% if row.entry and row.entry.gutachten %}
-                <div class="prose dark:prose-invert max-w-none">
-                    {{ row.entry.gutachten.text|markdownify }}
+        <div class="card p-4">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h3 class="font-semibold">{{ row.name }}</h3>
+                    <div>
+                        {% if row.entry and row.entry.gutachten %}
+                            {% include 'partials/status_badge.html' with status_key='ja' label='✓ Gutachten vorhanden' %}
+                        {% else %}
+                            {% include 'partials/status_badge.html' with status_key='nein' label='✗ Kein Gutachten' %}
+                        {% endif %}
+                    </div>
                 </div>
-            {% elif row.entry %}
-                <span class="text-sm text-gray-500 dark:text-gray-400">Noch kein Gutachten vorhanden</span>
-            {% endif %}
-            </td>
-            <td class="px-2 py-1 text-center space-x-2">
-            {% if row.entry %}
-                {% if row.entry.gutachten %}
-                    <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}" class="btn-action">Bearbeiten</a>
-                    <a href="{% url 'gutachten_download' row.entry.gutachten.id %}" class="btn-action">Download</a>
-                {% else %}
-                    <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
+                <div class="space-x-2">
+                    {% if row.entry %}
+                        {% if row.entry.gutachten %}
+                            <a href="{% url 'gutachten_edit' row.entry.gutachten.id %}" class="btn-action">Bearbeiten</a>
+                            <a href="{% url 'gutachten_download' row.entry.gutachten.id %}" class="btn-action">Download</a>
+                        {% else %}
+                            <button class="btn btn-sm btn-primary generate-gutachten-btn" data-knowledge-id="{{ row.entry.id }}">Gutachten erstellen</button>
+                        {% endif %}
+                        <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                {% if row.entry and row.entry.gutachten %}
+                    <div class="prose dark:prose-invert max-w-none">
+                        {{ row.entry.gutachten.text|markdownify }}
+                    </div>
+                {% elif row.entry %}
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Noch kein Gutachten vorhanden</span>
                 {% endif %}
-                <span class="gutachten-status-spinner ms-2" id="gutachten-status-{{ row.entry.id }}"></span>
-            {% endif %}
-            </td>
-        </tr>
+            </div>
+        </div>
     {% endfor %}
-    </tbody>
-</table>
 </div>
+
