@@ -1,29 +1,12 @@
 <!-- Seitliche Navigationsleiste -->
-<aside class="bg-background border-r text-text dark:bg-background-dark dark:text-text-light md:w-64">
-    <button id="sidebar-toggle" class="md:hidden w-full p-4 text-left border-b border-border dark:border-border-dark" aria-label="Navigation umschalten">
-        Menü
-    </button>
-    <nav id="sidebar-menu" class="hidden md:block">
-        <ul class="flex flex-col p-4 space-y-2">
-            {% for item in navigation %}
-            <li>
-                <a href="{% url item.url %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == item.url %}bg-accent text-text-light font-semibold{% endif %}">
-                    {{ item.title }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </nav>
-</aside>
-<script>
-// Einfaches Umschalten der Sichtbarkeit der Sidebar
-document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('sidebar-toggle');
-    const menu = document.getElementById('sidebar-menu');
-    if (toggle && menu) {
-        toggle.addEventListener('click', () => {
-            menu.classList.toggle('hidden');
-        });
-    }
-});
-</script>
+<nav class="p-4">
+    <ul class="flex flex-col space-y-2">
+        {% for item in navigation %}
+        <li>
+            <a href="{% url item.url %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == item.url %}bg-accent text-text-light font-semibold{% endif %}">
+                {{ item.title }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
