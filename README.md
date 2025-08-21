@@ -57,9 +57,7 @@ Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.tx
 
 ## Sidebar-Struktur und Berechtigungssteuerung
 
-NOESIS stellt neben der Kachelnavigation auf dem Dashboard eine permanente Sidebar zur Verfügung. Die sichtbaren Einträge werden in `core/navigation.py` über die Konstante `NAV_ITEMS` definiert. Jeder Eintrag besteht aus einem Titel, einer Ziel-URL und einer erforderlichen Django-Berechtigung (`perm`).
-
-Beim Rendern prüft das System, welche Berechtigungen der angemeldete Benutzer besitzt. Nur Navigationselemente, für die die nötigen Rechte vorliegen, erscheinen in der Sidebar. Zusätzliche Punkte lassen sich hinzufügen, indem weitere Einträge in `NAV_ITEMS` angelegt und mit passenden Berechtigungen versehen werden.
+NOESIS stellt neben der Kachelnavigation auf dem Dashboard eine permanente Sidebar zur Verfügung. Die sichtbaren Bereiche und Kacheln werden durch den Kontextprozessor `core.context_processors.user_navigation` ermittelt. Dieser berücksichtigt individuelle und gruppenbasierte Zugriffe auf Bereiche sowie die Berechtigungen für einzelne Kacheln.
 
 ### Bedienung und parallele Nutzung
 
