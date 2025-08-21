@@ -57,7 +57,7 @@ Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.tx
 
 ## Sidebar-Struktur und Berechtigungssteuerung
 
-NOESIS stellt neben der Kachelnavigation auf dem Dashboard eine permanente Sidebar zur Verfügung. Die sichtbaren Bereiche und Kacheln werden durch den Kontextprozessor `core.context_processors.user_navigation` ermittelt. Dieser berücksichtigt individuelle und gruppenbasierte Zugriffe auf Bereiche sowie die Berechtigungen für einzelne Kacheln.
+Die Sidebar wird dynamisch aus den Modellen `Area` und `Tile` erzeugt – ein statisches `NAV_ITEMS`-Array ist nicht mehr nötig. Der Kontextprozessor `core.context_processors.user_navigation` stellt für den angemeldeten Benutzer alle freigeschalteten Bereiche samt zugehöriger Tiles bereit. Zugriffe können direkt oder über Gruppen vergeben werden und berücksichtigen sowohl `UserAreaAccess`/`GroupAreaAccess` als auch `UserTileAccess`/`GroupTileAccess`. Befindet sich ein Benutzer nur in genau einem Bereich, werden dessen Tiles ohne Bereichsüberschrift angezeigt. Der ergänzende Kontextprozessor `core.context_processors.is_admin` liefert ein Flag, mit dem Template-Logik Admin-Links ein- oder ausblenden kann.
 
 ### Bedienung und parallele Nutzung
 
