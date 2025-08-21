@@ -34,39 +34,12 @@
                  <div class="text-xl font-semibold">
                      <a href="/"><img src="{% static 'images/noesis_logo.png' %}" alt="NEOMIND Logo" class="h-14 inline"></a>
                  </div>
-                 <div class="flex items-center space-x-2">
-                     <button id="menu-toggle" class="md:hidden text-text-light" aria-label="Menü umschalten">
-                         <i class="fa-solid fa-bars"></i>
-                     </button>
-                     <button id="sidebar-toggle" class="text-text-light" aria-label="Seitenleiste umschalten">
-                         <i class="fa-solid fa-table-columns"></i>
-                     </button>
-                 </div>
+                <div class="flex items-center space-x-2">
+                    <button id="sidebar-toggle" class="text-text-light" aria-label="Seitenleiste umschalten">
+                        <i class="fa-solid fa-table-columns"></i>
+                    </button>
+                </div>
              </div>
-            <nav id="nav-menu" class="hidden flex-col md:flex md:flex-row md:items-center text-text-light space-y-2 md:space-y-0 md:space-x-4 mt-2 md:mt-0">
-                <a href="{{ request.META.HTTP_REFERER|default:'#' }}" onclick="history.back(); return false;" class="md:mr-2 hover:underline hover:text-accent-light">&larr; Zurück</a>
-                <a href="/" class="hover:underline hover:text-accent-light">Startseite</a>
-                {% if user.is_authenticated %}
-                    <a href="/account/" class="hover:underline hover:text-accent-light">Mein Konto</a>
-                    {% if user.is_superuser or is_admin %}
-                        <a href="/projects-admin/" class="hover:underline hover:text-accent-light">Projekt-Admin</a>
-                    {% endif %}
-                    {% if user.is_staff %}
-                        <a href="/admin/" class="hover:underline hover:text-accent-light">System-Admin</a>
-                    {% endif %}
-
-                    <form action="{% url 'logout' %}" method="post" class="md:inline">
-                        {% csrf_token %}
-                        {% include 'partials/_button.html' with type='submit' label='Abmelden' variant='secondary' classes='bg-transparent hover:bg-transparent text-text-light hover:text-accent-light hover:underline px-0 py-0' %}
-                    </form>
-
-                {% else %}
-                    <a href="/login/" class="hover:underline hover:text-accent-light">Anmelden</a>
-                {% endif %}
-                <button id="theme-toggle" class="md:ml-2 text-text-light hover:text-accent-light" aria-label="Farbschema umschalten">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-            </nav>
         </div>
     </header>
 
@@ -94,7 +67,6 @@
     </footer>
      <script src="{% static 'js/utils.js' %}"></script>
      <script src="{% static 'js/theme_toggle.js' %}"></script>
-     <script src="{% static 'js/menu_toggle.js' %}"></script>
      <script src="{% static 'js/sidebar.js' %}"></script>
      {% block extra_js %}{% endblock %}
 </body>
