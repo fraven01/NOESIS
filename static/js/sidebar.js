@@ -53,4 +53,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (overlay) {
         overlay.addEventListener('click', () => setSidebar(false));
     }
+
+    const accordionButtons = sidebar.querySelectorAll('.sidebar-accordion-btn');
+    accordionButtons.forEach((btn) => {
+        const targetId = btn.getAttribute('data-accordion-target');
+        const target = document.getElementById(targetId);
+        if (!target) {
+            return;
+        }
+        btn.addEventListener('click', () => {
+            target.classList.toggle('hidden');
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('rotate-180');
+            }
+        });
+    });
 });
