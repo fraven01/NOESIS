@@ -41,6 +41,9 @@ html.dark {
   .sidebar-overlay-active {
     @apply block;
   }
+  .active-nav-link {
+    @apply bg-accent text-text-light font-semibold;
+  }
 }
 
 /**

@@ -1,6 +1,7 @@
 """Kontextprozessoren für die Django-Templates."""
 
 from typing import TypedDict
+from types import SimpleNamespace
 
 from django.db.models import Q
 from django.http import HttpRequest
@@ -46,6 +47,26 @@ def user_navigation(request: HttpRequest) -> dict[str, list[NavSection]]:
     for area in areas:
         tiles = get_user_tiles(request.user, area.slug)
         navigation.append({"area": area, "tiles": tiles})
+
+    # Admin-Bereiche integrieren
+    if request.user.is_staff or request.user.groups.filter(name__iexact="admin").exists():
+        project_admin_area = SimpleNamespace(name="Projekt-Admin", slug="projekt-admin")
+        project_admin_tiles = [
+            SimpleNamespace(name="Projekt-Liste", url_name="admin_projects"),
+            SimpleNamespace(name="Status-Definitionen", url_name="admin_project_statuses"),
+            SimpleNamespace(name="LLM-Rollen", url_name="admin_llm_roles"),
+            SimpleNamespace(name="Benutzer verwalten", url_name="admin_user_list"),
+            SimpleNamespace(name="Konfiguration", url_name="config_transfer"),
+        ]
+        navigation.append({"area": project_admin_area, "tiles": project_admin_tiles})
+
+    if request.user.is_superuser:
+        system_admin_area = SimpleNamespace(name="System-Admin", slug="system-admin")
+        system_admin_tiles = [
+            SimpleNamespace(name="Django Admin", url_name="admin:index"),
+            SimpleNamespace(name="Benutzer verwalten", url_name="admin:auth_user_changelist"),
+        ]
+        navigation.append({"area": system_admin_area, "tiles": system_admin_tiles})
 
     return {"user_navigation": navigation}
 
