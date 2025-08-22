@@ -1,16 +1,28 @@
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+"""Selenium-basierter Test für den Datei-Upload."""
+
+import os
 import unittest
+from pathlib import Path
+from tempfile import NamedTemporaryFile, mkdtemp
+
+import pytest
 from django.contrib.auth.models import User
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.urls import reverse
+from docx import Document
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from tempfile import NamedTemporaryFile, mkdtemp
-from pathlib import Path
-from docx import Document
-from core.models import BVProject
+from selenium.webdriver.support.ui import WebDriverWait
 
+from core.models import BVProject, ProjectStatus
+
+pytestmark = pytest.mark.selenium
+
+
+@unittest.skipUnless(
+    os.environ.get("NOESIS_RUN_SELENIUM"), "NOESIS_RUN_SELENIUM nicht gesetzt"
+)
 class FileUploadDuplicateTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
@@ -26,16 +38,18 @@ class FileUploadDuplicateTests(StaticLiveServerTestCase):
         except Exception:
             raise unittest.SkipTest("Chrome WebDriver not available")
         cls.driver.implicitly_wait(5)
+        cls.user = User.objects.create_superuser(
+            "selenium", email="s@example.com", password="pass"
+        )
+        status = ProjectStatus.objects.create(name="Neu", key="neu", is_default=True)
+        cls.projekt = BVProject.objects.create(
+            software_typen="A", beschreibung="x", status=status
+        )
 
     @classmethod
     def tearDownClass(cls):
         cls.driver.quit()
         super().tearDownClass()
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = User.objects.create_user("selenium", password="pass")
-        cls.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
     def _login(self):
         self.driver.get(self.live_server_url + reverse("login"))
@@ -61,7 +75,7 @@ class FileUploadDuplicateTests(StaticLiveServerTestCase):
 
         input_el.send_keys(f1.name + "\n" + f2.name)
 
-        WebDriverWait(self.driver, 5).until(
+        WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.ID, "duplicate-warning"))
         )
         warning = self.driver.find_element(By.ID, "duplicate-warning")

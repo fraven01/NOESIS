@@ -47,6 +47,19 @@ pip install -r requirements-dev.txt
 ```
 Selenium für die Browser-Tests wird durch diese zweite Datei installiert.
 
+Für die eigentliche Ausführung der Selenium-Tests ist zusätzlich ein
+Chrome- oder Chromium-Browser erforderlich. In CI-Umgebungen kann der
+WebDriver beispielsweise mit folgendem Befehl bereitgestellt werden:
+
+```bash
+sudo apt-get update && sudo apt-get install -y google-chrome-stable
+```
+
+Lokal müssen Browser und Treiber ebenfalls verfügbar sein. Die Tests
+werden nur ausgeführt, wenn die Umgebungsvariable
+`NOESIS_RUN_SELENIUM=1` gesetzt ist; andernfalls werden sie automatisch
+übersprungen.
+
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
 Für alle Django-Managementbefehle muss die Umgebungsvariable
