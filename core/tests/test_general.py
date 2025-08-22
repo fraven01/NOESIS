@@ -3183,10 +3183,15 @@ class TileVisibilityTests(NoesisTestCase):
 class LLMConfigNoticeMiddlewareTests(NoesisTestCase):
     def setUp(self):
         admin_group = Group.objects.create(name="admin")
-        self.user = User.objects.create_user("llmadmin", password="pass")
+        # Middleware benötigt einen Staff-Benutzer
+        self.user = User.objects.create_user(
+            "llmadmin", password="pass", is_staff=True
+        )
         self.user.groups.add(admin_group)
         self.client.login(username="llmadmin", password="pass")
-        LLMConfig.objects.create(models_changed=True)
+        cfg, _ = LLMConfig.objects.get_or_create()
+        cfg.models_changed = True
+        cfg.save()
 
     def test_message_shown(self):
         resp = self.client.get(reverse("home"))
