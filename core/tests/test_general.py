@@ -598,7 +598,14 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_anlage_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        with patch("core.signals.start_analysis_for_file"):
+        # Der Signal-Handler `auto_start_analysis` speichert die
+        # R\xFCckgabe von `start_analysis_for_file` als Task-ID. Wenn der
+        # Mock kein einfaches String-Ergebnis liefert, w\xFCrde ein
+        # `FieldError` auftreten. Daher liefern wir explizit eine
+        # Zeichenkette zur\xFCck.
+        with patch(
+            "core.signals.start_analysis_for_file", return_value="mocked_task_id"
+        ):
             pf = BVProjectFile.objects.create(
                 project=projekt,
                 anlage_nr=2,
