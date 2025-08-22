@@ -30,7 +30,7 @@ from django.core.management import call_command
 import io
 import zipfile
 from django.db import connection, transaction
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 import subprocess
 import whisper
 import torch
@@ -840,8 +840,17 @@ def _build_supervision_row(
 def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
     """Gruppiert Hauptfunktionen und Unterfragen für die Supervision."""
 
+    manual_true = FunktionsErgebnis.objects.filter(
+        anlage_datei=pf,
+        funktion=OuterRef("funktion"),
+        subquestion=OuterRef("subquestion"),
+        quelle="manuell",
+        technisch_verfuegbar=True,
+    )
+
     results = (
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+        .filter(Q(is_negotiable=True) | Exists(manual_true))
         .select_related("funktion", "subquestion")
         .order_by("funktion__name", "subquestion__id")
     )
