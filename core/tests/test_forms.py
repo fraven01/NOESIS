@@ -275,4 +275,14 @@ class BVProjectFileFormTests(NoesisTestCase):
         obj = form.save(commit=False)
         self.assertEqual(obj.anlage_nr, 2)
 
+    def test_manual_comment_is_optional(self):
+        form = BVProjectFileForm(
+            {"manual_comment": "Hinweis"},
+            {"upload": SimpleUploadedFile("Anlage_1.docx", b"d")},
+            anlage_nr=1,
+        )
+        self.assertTrue(form.is_valid())
+        obj = form.save(commit=False)
+        self.assertEqual(obj.manual_comment, "Hinweis")
+
 
