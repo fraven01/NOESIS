@@ -10,7 +10,7 @@
           hx-get="{% url 'hx_project_software_tab' projekt.pk 'tech' %}"
           hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-tab="tech">Technische Prüfung</button>
-  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-gray-600 dark:text-gray-300"
+  <button class="software-tab px-3 py-1 border-b-2 border-transparent text-muted"
           hx-get="{% url 'hx_project_software_tab' projekt.pk 'gutachten' %}"
           hx-target="#software-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-tab="gutachten">Gutachten</button>
@@ -104,9 +104,9 @@ document.addEventListener('htmx:beforeRequest',function(e){
   if(t.classList.contains('software-tab')){
     document.querySelectorAll('.software-tab').forEach(b=>{
       b.classList.remove('border-primary','text-primary');
-      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
+      b.classList.add('border-transparent','text-muted');
     });
-    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
+    t.classList.remove('border-transparent','text-muted');
     t.classList.add('border-primary','text-primary');
   }
 });

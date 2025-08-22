@@ -12,7 +12,7 @@
         <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
-    <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ file.manual_analysis_json|default:file.analysis_json|tojson }}</pre>
+    <pre class="whitespace-pre-wrap border p-2 bg-muted">{{ file.manual_analysis_json|default:file.analysis_json|tojson }}</pre>
   </div>
   {% if parent %}
   <div>
@@ -23,7 +23,7 @@
         <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
-    <pre class="whitespace-pre-wrap border p-2 bg-gray-100">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
+    <pre class="whitespace-pre-wrap border p-2 bg-muted">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
   </div>
   {% endif %}
 </div>

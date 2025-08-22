@@ -43,7 +43,7 @@
 <h2 class="text-xl font-semibold mb-4">Anlagen</h2>
 <nav class="flex space-x-2 mb-4" id="anlage-tabs-nav">
   {% for nr in anlage_numbers %}
-  <button class="anlage-tab px-3 py-1 border-b-2 {% if forloop.first %}border-primary text-primary{% else %}border-transparent text-gray-600 dark:text-gray-300{% endif %}"
+  <button class="anlage-tab px-3 py-1 border-b-2 {% if forloop.first %}border-primary text-primary{% else %}border-transparent text-muted{% endif %}"
           hx-get="{% url 'hx_project_anlage_tab' projekt.pk nr %}"
           hx-target="#anlage-tab-content" hx-swap="innerHTML" hx-push-url="false"
           data-nr="{{ nr }}">
@@ -96,7 +96,7 @@ function renderLLM(data){
    </div>`;
  }else if(data.ist_llm_geprueft && data.llm_validated){
   sec.innerHTML=`<button id="toggle" class="bg-success text-background px-4 py-2 rounded mb-2">Antwort ein-/ausblenden</button>
-  <div id="output" class="prose dark:prose-invert max-w-none bg-gray-100 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
+  <div id="output" class="prose dark:prose-invert max-w-none bg-muted p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
  }
  if(data.llm_initial_output){
   sec.innerHTML += `<button id="recheck" class="bg-primary text-background px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
@@ -243,17 +243,17 @@ document.addEventListener('htmx:beforeRequest',function(e){
   if(t.classList.contains('anlage-tab')){
     document.querySelectorAll('.anlage-tab').forEach(b=>{
       b.classList.remove('border-primary','text-primary');
-      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
+      b.classList.add('border-transparent','text-muted');
     });
-    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
+    t.classList.remove('border-transparent','text-muted');
     t.classList.add('border-primary','text-primary');
   }
   if(t.classList.contains('software-tab')){
     document.querySelectorAll('.software-tab').forEach(b=>{
       b.classList.remove('border-primary','text-primary');
-      b.classList.add('border-transparent','text-gray-600','dark:text-gray-300');
+      b.classList.add('border-transparent','text-muted');
     });
-    t.classList.remove('border-transparent','text-gray-600','dark:text-gray-300');
+    t.classList.remove('border-transparent','text-muted');
     t.classList.add('border-primary','text-primary');
   }
 });

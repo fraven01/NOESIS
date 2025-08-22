@@ -1,5 +1,5 @@
 <details class="border rounded" {% if row.has_discrepancy %}open{% endif %}>
-  <summary class="p-2 cursor-pointer {% if row.has_discrepancy %}bg-error-light{% else %}bg-gray-100{% endif %}">
+  <summary class="p-2 cursor-pointer {% if row.has_discrepancy %}bg-error-light{% else %}bg-muted{% endif %}">
     {{ row.name }}
     {% if row.has_discrepancy %}<span class="ms-2 text-error">⚠️</span>{% endif %}
   </summary>

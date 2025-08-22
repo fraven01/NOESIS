@@ -10,11 +10,11 @@
             <p class="text-error mb-4">{% trans 'Bitte gültige Zugangsdaten eingeben.' %}</p>
         {% endif %}
         <div class="mb-4">
-            <label for="id_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{% trans 'Benutzername' %}</label>
+            <label for="id_username" class="block text-sm font-medium text-muted mb-1">{% trans 'Benutzername' %}</label>
              <input type="text" name="username" id="id_username" class="w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded px-3 py-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800" autofocus required>
         </div>
         <div class="mb-6">
-            <label for="id_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{% trans 'Passwort' %}</label>
+            <label for="id_password" class="block text-sm font-medium text-muted mb-1">{% trans 'Passwort' %}</label>
              <input type="password" name="password" id="id_password" class="w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded px-3 py-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800" required>
         </div>
         <input type="hidden" name="next" value="{{ next }}" />
