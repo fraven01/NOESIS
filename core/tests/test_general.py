@@ -4478,6 +4478,61 @@ class SupervisionGapTests(NoesisTestCase):
         groups = _build_supervision_groups(pf)
         self.assertEqual(groups, [])
 
+    def test_subquestion_before_function_excluded_from_supervision(self):
+        """Unterfrage vor Hauptfunktion: Funktion wird dennoch übersprungen."""
+
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        sub = Anlage2SubQuestion.objects.create(funktion=func, frage_text="S?")
+
+        # Unterfrage zuerst anlegen, damit sie im Default-Ordering vor der Funktion steht
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+
+        # Hauptfunktion nachträglich als verhandlungsfähig markieren
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            is_negotiable_manual_override=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+
+        groups = _build_supervision_groups(pf)
+        self.assertEqual(groups, [])
+
     def test_ai_reason_uses_function_begruendung(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
