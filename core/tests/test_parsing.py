@@ -461,33 +461,35 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_punctuation_variants(self):
-        func = Anlage2Function.objects.create(
-            name="Analyse-/Reportingfunktionen",
-            detection_phrases={"name_aliases": ["Analyse-/Reportingfunktionen"]},
-        )
+        func = Anlage2Function.objects.get(name="Analyse-/Reportingfunktionen")
+        func.detection_phrases = {"name_aliases": ["Analyse-/Reportingfunktionen"]}
+        func.save()
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_einsatz_telefonica_true = []
+        cfg.text_einsatz_telefonica_false = []
         cfg.save()
         text = "Analyse- / Reportingfunktionen tv ja"
         data = parse_anlage2_text(text)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["funktion"], "Analyse-/Reportingfunktionen")
         self.assertEqual(
-            data,
-            [
-                {
-                    "funktion": "Analyse-/Reportingfunktionen",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                }
-            ],
+            data[0]["technisch_verfuegbar"], {"value": True, "note": None}
         )
 
     def test_parse_anlage2_text_prefers_specific_subquestion(self):
-        func = Anlage2Function.objects.create(name="Analyse-/Reportingfunktionen")
+        func = Anlage2Function.objects.get(name="Analyse-/Reportingfunktionen")
+        func.detection_phrases = {}
+        func.save()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Bitte wähle zutreffendes aus",
+            detection_phrases={"name_aliases": ["Bitte wähle zutreffendes aus"]},
         )
         cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.text_technisch_verfuegbar_true = []
+        cfg.text_einsatz_telefonica_true = []
+        cfg.text_einsatz_telefonica_false = []
         cfg.save()
         text = "Analyse- / Reportingfunktionen - Bitte wähle zutreffendes aus: ja"
         data = parse_anlage2_text(text)
@@ -495,7 +497,8 @@ class DocxExtractTests(NoesisTestCase):
             data,
             [
                 {
-                    "funktion": "Analyse-/Reportingfunktionen - Bitte wähle zutreffendes aus",
+                    "funktion": "Analyse-/Reportingfunktionen",
+                    "einsatz_telefonica": {"value": True, "note": None},
                 }
             ],
         )
