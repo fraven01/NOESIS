@@ -2243,6 +2243,8 @@ def admin_export_users_permissions(request):
             userareaaccess__user=user
         ).values_list("slug", flat=True)
         tiles = set(user.tiles.values_list("url_name", flat=True)) | set(group_tiles)
+
+
         areas = set(user_areas) | set(group_areas)
         data.append(
             {
