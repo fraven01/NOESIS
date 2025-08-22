@@ -13,7 +13,12 @@ function loadEasyMDE() {
                 link.rel = 'stylesheet';
                 link.href = 'https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css';
                 link.id = cssId;
-                document.head.appendChild(link);
+                const firstStylesheet = document.head.querySelector('link[rel="stylesheet"]');
+                if (firstStylesheet) {
+                    document.head.insertBefore(link, firstStylesheet);
+                } else {
+                    document.head.appendChild(link);
+                }
             }
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js';

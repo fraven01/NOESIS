@@ -47,23 +47,23 @@
   }
 
   /* Dark-Mode-Stile für den EasyMDE-Markdown-Editor */
-  .dark .CodeMirror,
-  .dark .CodeMirror-scroll {
+  .dark .EasyMDEContainer .CodeMirror,
+  .dark .EasyMDEContainer .CodeMirror-scroll {
     @apply bg-background-dark text-text-light;
   }
-  .dark .CodeMirror {
+  .dark .EasyMDEContainer .CodeMirror {
     @apply border border-gray-700;
   }
-  .dark .editor-toolbar {
+  .dark .EasyMDEContainer .editor-toolbar {
     @apply bg-background-dark text-text-light border border-gray-700;
   }
-  .dark .editor-toolbar button {
+  .dark .EasyMDEContainer .editor-toolbar button {
     @apply text-text-light;
   }
-  .dark .editor-toolbar button:hover {
+  .dark .EasyMDEContainer .editor-toolbar button:hover {
     @apply bg-gray-700;
   }
-  .dark .editor-statusbar {
+  .dark .EasyMDEContainer .editor-statusbar {
     @apply bg-background-dark text-text-light border-t border-gray-700;
   }
 }
