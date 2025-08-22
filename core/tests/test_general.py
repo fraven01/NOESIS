@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
-from django.test import TransactionTestCase
 from django.conf import settings
 from django.http import QueryDict
 from django.db import IntegrityError
@@ -362,7 +361,7 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         )
 
 
-class SeedInitialDataTests(TransactionTestCase):
+class SeedInitialDataTests(NoesisTestCase):
     """Tests für das Seeding der Antwortregeln."""
 
     def test_answer_rules_seeded(self) -> None:
@@ -384,7 +383,7 @@ class SeedInitialDataTests(TransactionTestCase):
             )
 
 
-class ExtractAnlageNrTests(TransactionTestCase):
+class ExtractAnlageNrTests(NoesisTestCase):
     """Tests für die Erkennung der Anlagen-Nummer aus Dateinamen."""
 
     def test_variants(self):
@@ -5035,7 +5034,7 @@ class ProjektDetailGapTests(NoesisTestCase):
         resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
         self.assertTrue(resp.context["can_gap_report"])
 
-class ManualGapDetectionTests(TransactionTestCase):
+class ManualGapDetectionTests(NoesisTestCase):
     """Tests für die Funktion ``_has_manual_gap``."""
 
     def test_detects_difference(self) -> None:
@@ -5086,7 +5085,7 @@ class ManualGapDetectionTests(TransactionTestCase):
         self.assertFalse(_has_manual_gap(doc_data, manual_data2))
 
 
-class ResolveValueLogicTests(TransactionTestCase):
+class ResolveValueLogicTests(NoesisTestCase):
     """Tests für die Feldpriorisierung in ``_resolve_value``."""
 
     def test_doc_overrides_ai_for_special_fields(self) -> None:

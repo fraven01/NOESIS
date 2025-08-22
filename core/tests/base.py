@@ -1,5 +1,5 @@
-from django.test import TransactionTestCase
+from django.test import TestCase
 
 
-class NoesisTestCase(TransactionTestCase):
+class NoesisTestCase(TestCase):
     pass
