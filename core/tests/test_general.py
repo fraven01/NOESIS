@@ -4478,6 +4478,84 @@ class SupervisionGapTests(NoesisTestCase):
         groups = _build_supervision_groups(pf)
         self.assertEqual(groups, [])
 
+    def test_non_negotiable_function_excluded_from_supervision(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            is_negotiable=False,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        groups = _build_supervision_groups(pf)
+        self.assertEqual(groups, [])
+
+    def test_non_negotiable_subquestion_excluded_from_supervision(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("f.txt", b"x"),
+        )
+        func = Anlage2Function.objects.create(name="Login")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            is_negotiable=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        sub = Anlage2SubQuestion.objects.create(funktion=func, frage_text="S?")
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            is_negotiable=False,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="parser",
+            technisch_verfuegbar=True,
+        )
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf,
+            funktion=func,
+            subquestion=sub,
+            quelle="ki",
+            technisch_verfuegbar=False,
+        )
+        groups = _build_supervision_groups(pf)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]["subrows"], [])
+
     def test_ai_reason_uses_function_begruendung(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
