@@ -518,7 +518,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertEqual(pf.verification_task_id, "")
         self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
 
-    def test_template_shows_disabled_state_when_task_running(self):
+    def test_template_shows_disabled_state_when_task_running(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             project=projekt,
@@ -526,14 +526,14 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
         )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
             resp = self.client.get(url)
         self.assertContains(resp, "Analyse läuft")
 
-    def test_hx_project_file_status_running(self):
+    def test_hx_project_file_status_running(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value="tid"):
             pf = BVProjectFile.objects.create(
@@ -542,7 +542,7 @@ class BVProjectFileTests(NoesisTestCase):
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 verification_task_id="tid",
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("hx_anlage_status", args=[pf.pk])
@@ -550,7 +550,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertContains(resp, "hx-trigger")
         self.assertContains(resp, "animate-spin")
 
-    def test_hx_project_file_status_ready(self):
+    def test_hx_project_file_status_ready(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value="tid"):
             pf = BVProjectFile.objects.create(
@@ -559,7 +559,7 @@ class BVProjectFileTests(NoesisTestCase):
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 verification_task_id="tid",
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=True)
@@ -573,7 +573,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertNotContains(resp, "hx-trigger")
         self.assertContains(resp, "Analyse bearbeiten")
 
-    def test_hx_anlage_status_processing(self):
+    def test_hx_anlage_status_processing(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -581,12 +581,12 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PROCESSING,
         )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "animate-spin")
 
-    def test_hx_anlage_status_ready(self):
+    def test_hx_anlage_status_ready(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         # Der Signal-Handler `auto_start_analysis` speichert die
         # R\xFCckgabe von `start_analysis_for_file` als Task-ID. Wenn der
@@ -603,13 +603,13 @@ class BVProjectFileTests(NoesisTestCase):
                 processing_status=BVProjectFile.COMPLETE,
                 analysis_json={},
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Analyse bearbeiten")
         self.assertContains(resp, "Erneut analysieren")
 
-    def test_hx_anlage_status_failed(self):
+    def test_hx_anlage_status_failed(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value=""):
             pf = BVProjectFile.objects.create(
@@ -618,14 +618,14 @@ class BVProjectFileTests(NoesisTestCase):
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 processing_status=BVProjectFile.FAILED,
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertNotContains(resp, "hx-trigger")
         self.assertContains(resp, "Analyse fehlgeschlagen")
         self.assertContains(resp, "Erneut versuchen")
 
-    def test_hx_anlage_status_pending(self):
+    def test_hx_anlage_status_pending(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value=""):
             pf = BVProjectFile.objects.create(
@@ -634,13 +634,13 @@ class BVProjectFileTests(NoesisTestCase):
                 upload=SimpleUploadedFile("a.txt", b"x"),
                 processing_status=BVProjectFile.PENDING,
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Analyse starten")
         self.assertContains(resp, "hx-trigger")
 
-    def test_hx_project_anlage_tab(self):
+    def test_hx_project_anlage_tab(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value=""):
             pf = BVProjectFile.objects.create(
@@ -648,14 +648,14 @@ class BVProjectFileTests(NoesisTestCase):
                 anlage_nr=1,
                 upload=SimpleUploadedFile("a.txt", b"x"),
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_project_anlage_tab", args=[projekt.pk, 1])
         resp = self.client.get(url)
         self.assertContains(resp, 'href="/media/bv_files/a_')
         self.assertContains(resp, '.txt"')
         self.assertContains(resp, "hx-trigger")
 
-    def test_hx_anlage_row(self):
+    def test_hx_anlage_row(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         with patch("core.signals.start_analysis_for_file", return_value=""):
             pf = BVProjectFile.objects.create(
@@ -663,21 +663,21 @@ class BVProjectFileTests(NoesisTestCase):
                 anlage_nr=1,
                 upload=SimpleUploadedFile("a.txt", b"x"),
             )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_anlage_row", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, 'href="/media/bv_files/a_')
         self.assertContains(resp, '.txt"')
         self.assertContains(resp, "hx-trigger")
 
-    def test_hx_toggle_project_file_flag(self):
+    def test_hx_toggle_project_file_flag(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_toggle_project_file_flag", args=[pf.pk, "manual_reviewed"])
         resp = self.client.post(
             url,
@@ -690,15 +690,15 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertContains(resp, "<tr")
         self.assertContains(resp, "fa-check")
 
-    def test_hx_project_software_tab(self):
+    def test_hx_project_software_tab(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         SoftwareKnowledge.objects.create(project=projekt, software_name="A")
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_project_software_tab", args=[projekt.pk, "tech"])
         resp = self.client.get(url)
         self.assertContains(resp, "Prüfung starten")
 
-    def test_trigger_file_analysis_starts_tasks(self):
+    def test_trigger_file_analysis_starts_tasks(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -706,7 +706,7 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PENDING,
         )
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         with patch("core.views.start_analysis_for_file", return_value="123") as mock_start:
             url = reverse("trigger_file_analysis", args=[pf.pk])
             resp = self.client.post(url)
@@ -2844,12 +2844,12 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
 
 class ProjektFileVersionDeletionTests(NoesisTestCase):
     def setUp(self):
-        self.user.is_staff = True
-        self.user.save()
-        self.client.login(username=self.user.username, password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
-    def test_delete_active_restores_parent(self):
+    def test_delete_active_restores_parent(self, user):
+        user.is_staff = True
+        user.save()
+        self.client.login(username=user.username, password="pass")
         v1 = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=1,
@@ -2874,7 +2874,10 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
         v1.refresh_from_db()
         self.assertTrue(v1.is_active)
 
-    def test_delete_inactive_repairs_chain(self):
+    def test_delete_inactive_repairs_chain(self, user):
+        user.is_staff = True
+        user.save()
+        self.client.login(username=user.username, password="pass")
         v1 = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=1,
@@ -4793,7 +4796,7 @@ class Anlage2ResetTests(NoesisTestCase):
             ).exists()
         )
 
-    def test_ajax_reset_all_reviews_resets_manual_fields(self):
+    def test_ajax_reset_all_reviews_resets_manual_fields(self, user):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -4824,7 +4827,7 @@ class Anlage2ResetTests(NoesisTestCase):
             quelle="manuell",
             technisch_verfuegbar=True,
         )
-        self.client.login(username=self.user.username, password="pw")
+        self.client.login(username=user.username, password="pw")
         url = reverse("ajax_reset_all_reviews", args=[pf.pk])
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
@@ -4857,7 +4860,7 @@ class Anlage2ResetTests(NoesisTestCase):
             ).exists()
         )
 
-    def test_hx_update_review_cell_toggles_manual_entry(self):
+    def test_hx_update_review_cell_toggles_manual_entry(self, superuser):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -4882,7 +4885,7 @@ class Anlage2ResetTests(NoesisTestCase):
             technisch_verfuegbar=False,
         )
 
-        self.client.login(username=self.superuser.username, password="pass")
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("hx_update_review_cell", args=[result.pk, "technisch_vorhanden"])
 
         resp = self.client.post(url, HTTP_HX_REQUEST="true")
@@ -4912,7 +4915,6 @@ class Anlage2ResetTests(NoesisTestCase):
 
 class GapReportTests(NoesisTestCase):
     def setUp(self):
-        self.client.login(username=self.superuser.username, password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf1 = BVProjectFile.objects.create(
             project=self.projekt,
@@ -4933,7 +4935,8 @@ class GapReportTests(NoesisTestCase):
             gap_notiz="Intern",
         )
 
-    def test_tasks_return_text(self):
+    def test_tasks_return_text(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         with patch("core.llm_tasks.query_llm", return_value="T1") as mock_q:
             text = summarize_anlage1_gaps(self.projekt)
         self.assertEqual(text, "T1")
@@ -4944,7 +4947,8 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(text, "T2")
         self.assertTrue(mock_q.called)
 
-    def test_view_saves_text(self):
+    def test_view_saves_text(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         url = reverse("gap_report_view", args=[self.projekt.pk])
         with patch("core.views.summarize_anlage1_gaps", return_value="A1"), patch(
             "core.views.summarize_anlage2_gaps", return_value="A2"
@@ -4959,7 +4963,8 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(self.pf1.gap_summary, "E1")
         self.assertEqual(self.pf2.gap_summary, "E2")
 
-    def test_delete_gap_report(self):
+    def test_delete_gap_report(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         self.pf1.gap_summary = "E1"
         self.pf2.gap_summary = "E2"
         self.pf1.save(update_fields=["gap_summary"])
@@ -4974,10 +4979,8 @@ class GapReportTests(NoesisTestCase):
 
 
 class ProjektDetailGapTests(NoesisTestCase):
-    def setUp(self):
-        self.client.login(username=self.superuser.username, password="pass")
-
-    def test_anlage1_gap_sets_flag(self):
+    def test_anlage1_gap_sets_flag(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             project=projekt,
@@ -4988,7 +4991,8 @@ class ProjektDetailGapTests(NoesisTestCase):
         resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
         self.assertTrue(resp.context["can_gap_report"])
 
-    def test_anlage2_gap_sets_flag(self):
+    def test_anlage2_gap_sets_flag(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf2 = BVProjectFile.objects.create(
             project=projekt,
@@ -5004,7 +5008,8 @@ class ProjektDetailGapTests(NoesisTestCase):
         resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
         self.assertTrue(resp.context["can_gap_report"])
 
-    def test_anlage4_gap_sets_flag(self):
+    def test_anlage4_gap_sets_flag(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         BVProjectFile.objects.create(
             project=projekt,
@@ -5015,7 +5020,8 @@ class ProjektDetailGapTests(NoesisTestCase):
         resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
         self.assertTrue(resp.context["can_gap_report"])
 
-    def test_anlage5_gap_sets_flag(self):
+    def test_anlage5_gap_sets_flag(self, superuser):
+        self.client.login(username=superuser.username, password="pass")
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf5 = BVProjectFile.objects.create(
             project=projekt,
