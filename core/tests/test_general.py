@@ -2154,11 +2154,13 @@ class LLMTasksTests(NoesisTestCase):
 
         pf = projekt.anlagen.get(anlage_nr=3)
         data = analyse_anlage3(pf.pk)
-        file_obj = pf
-        self.assertTrue(data["auto_ok"])  # pages <= 1
-        self.assertEqual(file_obj.analysis_json["auto_ok"], True)
-        if hasattr(file_obj, "verhandlungsfaehig"):
-            self.assertTrue(file_obj.verhandlungsfaehig)
+        pf.refresh_from_db()
+        result = data.get("result", {})
+        self.assertEqual(result.get("status"), "auto_ok")
+        self.assertEqual(result.get("pages"), 1)
+        self.assertEqual(pf.analysis_json.get("result", {}).get("status"), "auto_ok")
+        if hasattr(pf, "verhandlungsfaehig"):
+            self.assertTrue(pf.verhandlungsfaehig)
 
     def test_analyse_anlage3_manual_required(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2181,11 +2183,13 @@ class LLMTasksTests(NoesisTestCase):
 
         pf = projekt.anlagen.get(anlage_nr=3)
         data = analyse_anlage3(pf.pk)
-        file_obj = pf
-        self.assertTrue(data["manual_required"])  # pages > 1
-        self.assertEqual(file_obj.analysis_json["manual_required"], True)
-        if hasattr(file_obj, "verhandlungsfaehig"):
-            self.assertFalse(file_obj.verhandlungsfaehig)
+        pf.refresh_from_db()
+        result = data.get("result", {})
+        self.assertEqual(result.get("status"), "manual_required")
+        self.assertEqual(result.get("pages"), 2)
+        self.assertEqual(pf.analysis_json.get("result", {}).get("status"), "manual_required")
+        if hasattr(pf, "verhandlungsfaehig"):
+            self.assertFalse(pf.verhandlungsfaehig)
 
     def test_analyse_anlage3_pdf_auto_ok(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2206,9 +2210,11 @@ class LLMTasksTests(NoesisTestCase):
 
         pf = projekt.anlagen.get(anlage_nr=3)
         data = analyse_anlage3(pf.pk)
-        file_obj = pf
-        self.assertTrue(data["auto_ok"])  # pages <= 1
-        self.assertEqual(file_obj.analysis_json["auto_ok"], True)
+        pf.refresh_from_db()
+        result = data.get("result", {})
+        self.assertEqual(result.get("status"), "auto_ok")
+        self.assertEqual(result.get("pages"), 1)
+        self.assertEqual(pf.analysis_json.get("result", {}).get("status"), "auto_ok")
 
     def test_analyse_anlage3_pdf_manual_required(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2230,9 +2236,11 @@ class LLMTasksTests(NoesisTestCase):
 
         pf = projekt.anlagen.get(anlage_nr=3)
         data = analyse_anlage3(pf.pk)
-        file_obj = pf
-        self.assertTrue(data["manual_required"])  # pages > 1
-        self.assertEqual(file_obj.analysis_json["manual_required"], True)
+        pf.refresh_from_db()
+        result = data.get("result", {})
+        self.assertEqual(result.get("status"), "manual_required")
+        self.assertEqual(result.get("pages"), 2)
+        self.assertEqual(pf.analysis_json.get("result", {}).get("status"), "manual_required")
 
     def test_analyse_anlage3_multiple_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2804,7 +2812,7 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
             anlage_nr=3,
             upload=SimpleUploadedFile("d.txt", b"data"),
             text_content="Text",
-            analysis_json={"auto_ok": True},
+            analysis_json={"result": {"status": "auto_ok"}},
             manual_analysis_json={"functions": {}},
             verification_json={"functions": {}},
             manual_reviewed=True,

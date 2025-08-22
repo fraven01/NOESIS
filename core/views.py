@@ -912,7 +912,8 @@ def get_cockpit_context(projekt: BVProject) -> dict[str, Any]:
             }
         )
         data = f.analysis_json if isinstance(f.analysis_json, dict) else {}
-        if data.get("manual_required"):
+        status = data.get("result", {}).get("status")
+        if status == "manual_required":
             next_steps.append(f"Anlage {f.anlage_nr}: manuelle Prüfung notwendig")
         elif f.processing_status != BVProjectFile.COMPLETE:
             next_steps.append(f"Anlage {f.anlage_nr}: Analyse starten")
