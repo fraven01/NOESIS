@@ -777,13 +777,15 @@ def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
         anlage3_logger.debug("Seitenzahl der Datei: %s", pages)
 
         if pages <= 1:
-            data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
+            data = {
+                "task": "analyse_anlage3",
+                "result": {"status": "auto_ok", "pages": pages},
+            }
             verhandlungsfaehig = True
         else:
             data = {
                 "task": "analyse_anlage3",
-                "manual_required": True,
-                "pages": pages,
+                "result": {"status": "manual_required", "pages": pages},
             }
             verhandlungsfaehig = False
 
