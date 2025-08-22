@@ -362,11 +362,11 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
         project_file.project_id,
     )
-    # Vorhandene Ergebnisse für das gesamte Projekt entfernen, damit nur
-    # aktuelle Resultate berücksichtigt werden
+    # Vorherige Parser-Ergebnisse entfernen, KI-Bewertungen jedoch behalten
     FunktionsErgebnis.objects.filter(
         anlage_datei__project=project_file.project,
         anlage_datei__anlage_nr=2,
+        quelle="parser",
     ).delete()
     AnlagenFunktionsMetadaten.objects.filter(
         anlage_datei__project=project_file.project,
