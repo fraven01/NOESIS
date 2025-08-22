@@ -2226,7 +2226,11 @@ def admin_edit_user_permissions(request, user_id):
 @admin_required
 def admin_export_users_permissions(request):
     """Exportiert Benutzer, Gruppen und Tile-Zuordnungen als JSON."""
-    users = User.objects.all().prefetch_related("groups", "tiles").order_by("username")
+    users = (
+        User.objects.all()
+        .prefetch_related("groups", "tiles", "userareaaccess_set__area")
+        .order_by("username")
+    )
     data = []
     for user in users:
         group_tiles = Tile.objects.filter(groups__in=user.groups.all()).values_list(
@@ -2235,8 +2239,11 @@ def admin_export_users_permissions(request):
         group_areas = Area.objects.filter(groups__in=user.groups.all()).values_list(
             "slug", flat=True
         )
+        user_areas = Area.objects.filter(
+            userareaaccess__user=user
+        ).values_list("slug", flat=True)
         tiles = set(user.tiles.values_list("url_name", flat=True)) | set(group_tiles)
-        areas = set(user.areas.values_list("slug", flat=True)) | set(group_areas)
+        areas = set(user_areas) | set(group_areas)
         data.append(
             {
                 "username": user.username,
