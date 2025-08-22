@@ -47,8 +47,8 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
-            analysis_json={"old": {"value": True, "editable": True}},
+            manual_analysis_json={"0": {"ok": False, "nego": False, "note": ""}},
+            analysis_json={"items": ["Alt"]},
             verification_json={"functions": {}},
         )
         self.anlage1 = BVProjectFile.objects.create(
@@ -56,7 +56,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
+            manual_analysis_json={},
             analysis_json={
                 "questions": {
                     "1": {
@@ -75,56 +75,46 @@ class ProjektFileJSONEditTests(NoesisTestCase):
         resp = self.client.post(
             url,
             {
-                "analysis_json": '{"new": 1}',
-                "manual_analysis_json": '{"manual": 2}',
+                "analysis_json": '{"items": ["Neu"]}',
+                "manual_analysis_json": '{"0": {"note": "Hinweis"}}',
             },
         )
         self.assertEqual(resp.status_code, 302)
         self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json["new"], 1)
-        self.assertEqual(self.file.manual_analysis_json["manual"], 2)
+        self.assertEqual(self.file.analysis_json["items"], ["Neu"])
+        self.assertEqual(self.file.manual_analysis_json["0"]["note"], "Hinweis")
         path = generate_gap_analysis(self.projekt)
         try:
             doc = Document(path)
             text = "\n".join(p.text for p in doc.paragraphs)
-            self.assertIn('"manual": 2', text)
-            self.assertNotIn('"old": true', text.lower())
+            self.assertIn('"note": "Hinweis"', text)
+            self.assertNotIn('"Alt"', text)
         finally:
             path.unlink(missing_ok=True)
 
     def test_invalid_json_shows_error(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
-        resp = self.client.post(
-            url,
-            {"analysis_json": "{", "manual_analysis_json": "{}"},
-        )
+        self.file.analysis_json = {"items": []}
+        self.file.save(update_fields=["analysis_json"])
+        resp = self.client.post(url, {"analysis_json": "{", "manual_analysis_json": "{}"})
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
-        self.assertEqual(
-            self.file.analysis_json, {"old": {"value": True, "editable": True}}
-        )
+        self.assertEqual(self.file.analysis_json, {"items": []})
 
     def test_question_review_saved(self):
-        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
-        resp = self.client.post(
-            url,
-            {"q1_ok": "on"},
-        )
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        url = reverse("hx_toggle_anlage1_ok", args=[self.anlage1.pk, 1])
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
         self.anlage1.refresh_from_db()
         self.assertTrue(self.anlage1.question_review["1"]["ok"])
         self.assertNotIn("note", self.anlage1.question_review["1"])
 
     def test_question_review_extended_fields_saved(self):
-        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
-        resp = self.client.post(
-            url,
-            {
-                "q1_hinweis": "Fehlt",
-                "q1_vorschlag": "Mehr Infos",
-            },
-        )
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        url = reverse("hx_anlage1_note", args=[self.anlage1.pk, 1, "hinweis"])
+        self.client.post(url, {"text": "Fehlt"})
+        url = reverse("hx_anlage1_note", args=[self.anlage1.pk, 1, "vorschlag"])
+        resp = self.client.post(url, {"text": "Mehr Infos"})
+        self.assertEqual(resp.status_code, 200)
         self.anlage1.refresh_from_db()
         data = self.anlage1.question_review["1"]
         self.assertEqual(data["hinweis"], "Fehlt")
@@ -148,12 +138,18 @@ class ProjektFileJSONEditTests(NoesisTestCase):
 
         url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
         resp = self.client.get(url)
-        form = resp.context["form"]
-        self.assertEqual(form.initial["q1_hinweis"], "H")
-        self.assertEqual(form.initial["q1_vorschlag"], "V")
+        qa = resp.context["qa"]
+        self.assertEqual(qa[0]["hinweis"], "H")
+        self.assertEqual(qa[0]["vorschlag"], "V")
 
     def test_edit_page_has_mde(self):
-        url = reverse("projekt_file_edit_json", args=[self.file.pk])
+        pf = BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=5,
+            upload=SimpleUploadedFile("c.txt", b"data"),
+            text_content="Text",
+        )
+        url = reverse("projekt_file_edit_json", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "markdown_editor.js")
 
