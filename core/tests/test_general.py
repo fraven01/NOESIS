@@ -116,6 +116,7 @@ from django.core.management import call_command
 from django.test import override_settings
 from django.conf import settings
 import json
+import pytest
 
 
 def create_statuses() -> None:
@@ -137,12 +138,6 @@ def create_statuses() -> None:
             is_default=key == "NEW",
             is_done_status=key == "ENDGEPRUEFT",
         )
-
-
-def setUpModule():
-    pass
-
-
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     projekt = BVProject.objects.create(**kwargs)
     for name in software or []:
@@ -369,6 +364,17 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _seed_db(django_db_setup, django_db_blocker) -> None:
+    """Initialisiert einmalig die Testdatenbank."""
+    with django_db_blocker.unblock():
+        seed_test_data()
+        User.objects.create_user("baseuser", password="pass")
+        User.objects.create_superuser(
+            "basesuper", "admin@example.com", password="pass"
+        )
+
+
 class SeedInitialDataTests(TestCase):
     """Tests für das Seeding der Antwortregeln."""
 
@@ -395,12 +401,10 @@ class NoesisTestCase(TestCase):
     """Basisklasse für alle Tests mit gefüllter Datenbank."""
 
     @classmethod
-    def setUpTestData(cls):
-        seed_test_data()
-        cls.user = User.objects.create_user("baseuser", password="pass")
-        cls.superuser = User.objects.create_superuser(
-            "basesuper", "admin@example.com", password="pass"
-        )
+    def setUpTestData(cls) -> None:
+        """Stellt die global angelegten Testbenutzer bereit."""
+        cls.user = User.objects.get(username="baseuser")
+        cls.superuser = User.objects.get(username="basesuper")
 
 
 class ExtractAnlageNrTests(TestCase):
