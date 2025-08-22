@@ -19,6 +19,22 @@ def _seed_db(django_db_setup, django_db_blocker) -> None:
         )
 
 
+@pytest.fixture
+def user(db) -> "User":
+    """Gibt den Basisbenutzer zurück."""
+    from django.contrib.auth.models import User
+
+    return User.objects.get(username="baseuser")
+
+
+@pytest.fixture
+def superuser(db) -> "User":
+    """Gibt den Basis-Superuser zurück."""
+    from django.contrib.auth.models import User
+
+    return User.objects.get(username="basesuper")
+
+
 @pytest.fixture(autouse=True)
 def mock_llm_api_calls():
     """Ersetzt externe LLM-Aufrufe durch statische Antworten."""
