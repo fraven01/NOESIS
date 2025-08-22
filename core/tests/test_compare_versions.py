@@ -26,7 +26,7 @@ class CompareVersionsAnlage1Tests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Hinweis: H")
-        self.assertContains(resp, "bg-yellow-100")
+        self.assertContains(resp, "bg-warning/20")
         self.client.post(url, {"action": "negotiate"})
         current.refresh_from_db()
         self.assertTrue(current.verhandlungsfaehig)
