@@ -1495,6 +1495,12 @@ def worker_verify_feature(
     model_name: str | None = None,
 ) -> dict[str, bool | str | None]:
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
+    verification_result = {
+        "technisch_verfuegbar": None,
+        "ki_begruendung": "",
+        "ki_beteiligt": None,
+        "ki_beteiligt_begruendung": "",
+    }
 
     try:
         pf = BVProjectFile.objects.select_related("project").get(pk=file_id)
@@ -1503,7 +1509,7 @@ def worker_verify_feature(
             "Anlage-2-Datei %s fehlt. Prüfung wird beendet.",
             file_id,
         )
-        return {}
+        return verification_result
 
     projekt = pf.project
     project_id = projekt.pk
@@ -1745,13 +1751,15 @@ def worker_verify_feature(
             ).strip()
             ki_logger.debug("[%s] Antwort KI-Begründung: %s", project_id, ai_reason)
 
-    # Ergebnisdictionary für Datenbank und Rückgabewert
-    verification_result = {
-        "technisch_verfuegbar": result,
-        "ki_begruendung": justification,
-        "ki_beteiligt": ai_involved,
-        "ki_beteiligt_begruendung": ai_reason,
-    }
+    # Ergebnisdictionary für Datenbank und Rückgabewert aktualisieren
+    verification_result.update(
+        {
+            "technisch_verfuegbar": result,
+            "ki_begruendung": justification,
+            "ki_beteiligt": ai_involved,
+            "ki_beteiligt_begruendung": ai_reason,
+        }
+    )
     ki_logger.debug(
         "[%s] Ergebnis-Objekt: %s",
         project_id,
@@ -1810,7 +1818,7 @@ def worker_verify_feature(
 
             pf.pk,
         )
-        return {}
+        return verification_result
     except IntegrityError as exc:
         if not BVProjectFile.objects.filter(pk=pf.pk).exists():
             logger.warning(
@@ -1819,14 +1827,14 @@ def worker_verify_feature(
             )
         else:
             logger.error("Integritätsfehler beim Speichern der Ergebnisse: %s", exc)
-        return {}
+        return verification_result
     except DatabaseError:
         if not BVProjectFile.objects.filter(pk=pf.pk).exists():
             logger.warning(
                 "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
                 pf.pk,
             )
-            return {}
+            return verification_result
         logger.warning(
             "Datensatz wurde während der Verarbeitung gelöscht. Speichern wird übersprungen.",
         )
@@ -1838,7 +1846,7 @@ def worker_verify_feature(
                 "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
                 pf.pk,
             )
-            return {}
+            return verification_result
         return verification_result
 
 
@@ -1860,7 +1868,7 @@ def worker_verify_feature(
             begruendung=justification,
             ki_beteiligt_begruendung=ai_reason,
         )
-        return {}
+        return verification_result
     except Exception as exc:  # noqa: BLE001
         logger.error("Ergebnis konnte nicht gespeichert werden: %s", exc)
         return verification_result
