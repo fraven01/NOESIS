@@ -57,6 +57,7 @@ from ..parsers import AbstractParser
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from io import BytesIO
 from docx import Document
 import shutil
 from PIL import Image
@@ -1652,21 +1653,45 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_run_anlage2_analysis_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        content = "Login: tv: ja; tel: nein; lv: nein; ki: ja"
-        upload = SimpleUploadedFile("b.txt", b"x")
+
+        doc = Document()
+        table = doc.add_table(rows=2, cols=5)
+        table.cell(0, 0).text = "Funktion"
+        table.cell(0, 1).text = "Technisch vorhanden"
+        table.cell(0, 2).text = "Einsatz bei Telefónica"
+        table.cell(0, 3).text = "Zur LV-Kontrolle"
+        table.cell(0, 4).text = "KI-Beteiligung"
+        table.cell(1, 0).text = "Login"
+        table.cell(1, 1).text = "Ja"
+        table.cell(1, 2).text = "Nein"
+        table.cell(1, 3).text = "Nein"
+        table.cell(1, 4).text = "Ja"
+
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        upload = SimpleUploadedFile("b.docx", buffer.read())
+
         pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=2,
             upload=upload,
-            text_content=content,
+            text_content="Login: tv: ja; tel: nein; lv: nein; ki: ja",
         )
         func = Anlage2Function.objects.create(name="Login")
         cfg = Anlage2Config.get_instance()
+        cfg.parser_mode = "table_only"
+        cfg.parser_order = ["table"]
         cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.text_technisch_verfuegbar_false = []
+        cfg.text_einsatz_telefonica_true = []
         cfg.text_einsatz_telefonica_false = ["nein"]
+        cfg.text_zur_lv_kontrolle_true = []
         cfg.text_zur_lv_kontrolle_false = ["nein"]
         cfg.text_ki_beteiligung_true = ["ja"]
+        cfg.text_ki_beteiligung_false = []
         cfg.save()
+        AntwortErkennungsRegel.objects.all().delete()
 
         result = run_anlage2_analysis(pf)
         expected = [
