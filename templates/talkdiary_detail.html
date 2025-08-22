@@ -3,7 +3,7 @@
 {% block title %}Transcript{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">{{ recording.audio_file.name|basename }}</h1>
-<p class="text-sm text-gray-600 dark:text-gray-300 mb-4">{{ recording.created_at|date:'d.m.Y H:i' }} - {{ recording.bereich }}</p>
+<p class="text-sm text-muted mb-4">{{ recording.created_at|date:'d.m.Y H:i' }} - {{ recording.bereich }}</p>
 <audio controls src="{{ recording.audio_file.url }}" class="mb-4 w-full"></audio>
 <div class="prose dark:prose-invert max-w-none">
     {{ transcript_text|markdownify }}

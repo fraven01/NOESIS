@@ -61,6 +61,7 @@ export default {
           DEFAULT: '#facc15',
           dark: '#eab308',
         },
+        muted: 'var(--color-muted)',
         gray: {
           50: '#f8fafc',
           100: '#f1f5f9',
