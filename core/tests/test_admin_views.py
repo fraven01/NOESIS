@@ -149,12 +149,12 @@ class AdminModelsViewTests(NoesisTestCase):
         self.user = User.objects.create_user("amodel", password="pass")
         self.user.groups.add(admin_group)
         self.client.login(username="amodel", password="pass")
-        self.cfg = LLMConfig.objects.create(
-            default_model="a",
-            gutachten_model="a",
-            anlagen_model="a",
-            available_models=["a", "b"],
-        )
+        self.cfg = LLMConfig.get_instance()
+        self.cfg.default_model = "a"
+        self.cfg.gutachten_model = "a"
+        self.cfg.anlagen_model = "a"
+        self.cfg.available_models = ["a", "b"]
+        self.cfg.save()
 
     def test_update_models(self):
         url = reverse("admin_models")
