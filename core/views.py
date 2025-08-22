@@ -5003,7 +5003,9 @@ def hx_toggle_anlage1_ok(request, pk: int, num: int):
     anlage.save(update_fields=["question_review"])
 
     context = {"anlage": anlage, "num": num, "is_ok": entry["ok"]}
-    return render(request, "partials/anlage1_negotiable.html", context)
+    if request.headers.get("HX-Request") or getattr(request, "htmx", False):
+        return render(request, "partials/anlage1_negotiable.html", context)
+    return redirect("projekt_detail", pk=anlage.project.pk)
 
 
 @login_required
