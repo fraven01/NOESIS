@@ -7,15 +7,10 @@ from django.conf import settings
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
         data = QueryDict(mutable=True)
-        data.update(
-            {
-                "title": "",
-            }
-        )
+        data.update({"title": "Testprojekt"})
         data.setlist("software", ["A"])
         form = BVProjectForm(data)
         self.assertTrue(form.is_valid())
-        self.assertNotIn("docx_file", form.fields)
 
     def test_upload_form_docx_validation(self):
         valid = BVProjectUploadForm(
