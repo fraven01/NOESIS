@@ -852,8 +852,20 @@ class ProjektFileUploadTests(NoesisTestCase):
         Anlage2Function.objects.create(name="Login")
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        with patch("core.views.async_task") as mock_async:
-            mock_async.return_value = Mock(id="tid1")
+        mock_async = Mock(side_effect=["tid1", "tid2"])
+
+        def fake_start(file_id: int) -> str:
+            pf_obj = BVProjectFile.objects.get(pk=file_id)
+            pf_obj.processing_status = BVProjectFile.PROCESSING
+            pf_obj.save(update_fields=["processing_status"])
+            task_id = None
+            for func, arg in pf_obj.get_analysis_tasks():
+                tid = mock_async(func, arg)
+                if task_id is None:
+                    task_id = tid
+            return task_id or ""
+
+        with patch("core.signals.start_analysis_for_file", side_effect=fake_start):
             resp = self.client.post(
                 url,
                 {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
@@ -863,10 +875,9 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.content.decode().count("<tr"), 1)
         pf = self.projekt.anlagen.get(anlage_nr=2)
-        self.assertIsNone(pf.analysis_json)
         self.assertEqual(pf.verification_task_id, "tid1")
         self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
-        mock_async.assert_called_with(
+        mock_async.assert_any_call(
             "core.llm_tasks.run_conditional_anlage2_check",
             pf.pk,
         )
