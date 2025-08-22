@@ -679,9 +679,9 @@ def worker_generate_gutachten(
 ) -> str:
     """Erzeugt im Hintergrund ein Gutachten.
 
-    Ist ``software_type_id`` angegeben, wird ein Gutachten f\u00fcr die
+    Ist ``software_type_id`` angegeben, wird ein Gutachten für die
     entsprechende Software erstellt. Andernfalls erzeugt die Funktion ein
-    Gesamtgutachten f\u00fcr das Projekt.
+    Gesamtgutachten für das Projekt.
     """
 
     logger.info("worker_generate_gutachten gestartet für Projekt %s", project_id)
@@ -689,7 +689,7 @@ def worker_generate_gutachten(
         projekt = BVProject.objects.get(pk=project_id)
     except BVProject.DoesNotExist:
         logger.warning(
-            "Task f\u00fcr Gutachten-Erstellung (Projekt-ID: %s) gestartet, "
+            "Task für Gutachten-Erstellung (Projekt-ID: %s) gestartet, "
             "aber das Projekt existiert nicht mehr. Breche ab.",
             project_id,
         )
@@ -908,28 +908,12 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
 
 
 def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
-    """Pr\xfcft die erste Anlage nach neuem Schema."""
+    """Extrahiert Frage-Antwort-Paare aus Anlage 1 per Parser."""
+
     try:
         anlage = BVProjectFile.objects.get(pk=file_id)
-    except (
-        BVProjectFile.DoesNotExist
-    ) as exc:  # pragma: no cover - sollte selten passieren
+    except (BVProjectFile.DoesNotExist) as exc:  # pragma: no cover - sollte selten passieren
         raise ValueError("Anlage 1 fehlt") from exc
-
-    question_objs = list(Anlage1Question.objects.order_by("num"))
-    if not question_objs:
-        question_objs = [
-            Anlage1Question(
-                num=i,
-                text=t,
-                enabled=True,
-                parser_enabled=True,
-                llm_enabled=True,
-            )
-            for i, t in enumerate(ANLAGE1_QUESTIONS, start=1)
-        ]
-
-    cfg = Anlage1Config.objects.first()
 
     # Debug-Log für den zu parsenden Text
     anlage1_logger.debug(
@@ -940,20 +924,12 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     save_fields = ["processing_status"]
     try:
         parsed = parse_anlage1_questions(anlage.text_content)
-
-        if parsed:
-            anlage1_logger.info("Strukturiertes Dokument erkannt. Parser wird verwendet.")
-            questions = {
-                str(q.num): {"answer": parsed.get(str(q.num), {}).get("answer")}
-                for q in question_objs
-            }
-            data = {"task": "check_anlage1", "source": "parser", "questions": questions}
-        else:
-            data = {"task": "check_anlage1", "questions": {}}
+        data = {"questions": parsed or {}}
 
         anlage.analysis_json = data
         anlage.processing_status = BVProjectFile.COMPLETE
         save_fields.append("analysis_json")
+        update_file_status(anlage.pk, BVProjectFile.COMPLETE)
     except Exception:
         anlage.processing_status = BVProjectFile.FAILED
         update_file_status(anlage.pk, BVProjectFile.FAILED)
@@ -982,7 +958,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     Das Ergebnis wird als JSON im Analysefeld der Anlage gespeichert.
     """
     projekt = BVProject.objects.get(pk=projekt_id)
-    anlage2_logger.debug("Starte check_anlage2 f\u00fcr Projekt %s", projekt_id)
+    anlage2_logger.debug("Starte check_anlage2 für Projekt %s", projekt_id)
     try:
         anlage = projekt.anlagen.get(anlage_nr=2)
     except (
@@ -1047,7 +1023,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             # Sonst LLM befragen
             prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
             anlage2_logger.debug(
-                "LLM Prompt f\u00fcr Funktion '%s': %s", func.name, prompt_text
+                "LLM Prompt für Funktion '%s': %s", func.name, prompt_text
             )
             prompt_obj = Prompt(
                 name="tmp",
@@ -1062,7 +1038,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
             anlage2_logger.debug(
-                "LLM Antwort f\u00fcr Funktion '%s': %s", func.name, reply
+                "LLM Antwort für Funktion '%s': %s", func.name, reply
             )
             try:
                 raw = json.loads(reply)
@@ -1105,7 +1081,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 anlage2_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
             prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
             anlage2_logger.debug(
-                "LLM Prompt f\u00fcr Subfrage '%s': %s", sub.frage_text, prompt_text
+                "LLM Prompt für Subfrage '%s': %s", sub.frage_text, prompt_text
             )
             prompt_obj = Prompt(
                 name="tmp",
@@ -1120,7 +1096,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
             anlage2_logger.debug(
-                "LLM Antwort f\u00fcr Subfrage '%s': %s", sub.frage_text, reply
+                "LLM Antwort für Subfrage '%s': %s", sub.frage_text, reply
             )
             try:
                 s_raw = json.loads(reply)
@@ -1218,7 +1194,7 @@ def worker_anlage4_evaluate(
     """Bewertet eine Auswertung aus Anlage 4 im Hintergrund."""
 
     anlage4_logger.info(
-        "worker_anlage4_evaluate gestartet f\u00fcr Datei %s Index %s",
+        "worker_anlage4_evaluate gestartet für Datei %s Index %s",
         project_file_id,
         index,
     )
@@ -1245,7 +1221,7 @@ def worker_anlage4_evaluate(
     anlage4_logger.debug("Anlage4 Raw Response #%s: %s", index, reply)
     data = _parse_llm_json(reply)
     anlage4_logger.debug("Anlage4 Parsed JSON #%s: %s", index, data)
-    anlage4_logger.debug("Ergebnis f\u00fcr Auswertung #%s: %s", index, data)
+    anlage4_logger.debug("Ergebnis für Auswertung #%s: %s", index, data)
 
     analysis = pf.analysis_json or {"items": []}
     items = analysis.get("items") or []
@@ -1485,7 +1461,7 @@ def run_conditional_anlage2_check(
             if doc_ok:
                 positive_funcs.append(func)
 
-        # Unterfragen f\u00fcr positive Funktionen parallel pr\u00fcfen
+        # Unterfragen für positive Funktionen parallel pr\u00fcfen
         sub_task_ids: list[str] = []
         for func in positive_funcs:
             for sub in func.anlage2subquestion_set.all():
@@ -1582,7 +1558,7 @@ def worker_verify_feature(
         if object_type == "function":
             prompt_obj = Prompt(
                 text=(
-                    "Du bist ein Experte f\u00fcr IT-Systeme und Software-Architektur. "
+                    "Du bist ein Experte für IT-Systeme und Software-Architektur. "
                     "Bewerte die folgende Aussage ausschlie\u00dflich basierend auf deinem "
                     "allgemeinen Wissen \u00fcber die Software '{software_name}'. "
                     'Antworte NUR mit "Ja", "Nein" oder "Unsicher". '
@@ -1673,7 +1649,7 @@ def worker_verify_feature(
             else:
                 just_prompt_obj = Prompt(
                     text=(
-                        " [SYSTEM]\nDu bist Fachautor*in f\u00fcr IT-Mitbestimmung (\xa787 Abs. 1 Nr. 6 BetrVG).\n"
+                        " [SYSTEM]\nDu bist Fachautor*in für IT-Mitbestimmung (\xa787 Abs. 1 Nr. 6 BetrVG).\n"
                         "Antworte Unterfrage pr\u00e4gnant in **maximal zwei S\u00e4tzen** (insgesamt \u2264 65 W\u00f6rter) und erf\u00fclle folgende Regeln :\n\n"
                         "1. Starte Teil A mit \u201eTypischer Zweck: \u2026\u201c  \n2. Starte Teil B mit \u201eKontrolle: Ja, \u2026\u201c oder \u201eKontrolle: Nein, \u2026\u201c.  \n"
                         "3. Nenne exakt die \u00fcbergebene Funktion/Eigenschaft, erfinde nichts dazu.  \n"
@@ -2091,7 +2067,7 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
 
     anlage = BVProjectFile.objects.get(pk=file_id)
     projekt_id = anlage.project_id
-    anlage5_logger.info("check_anlage5 gestartet f\u00fcr Projekt %s", projekt_id)
+    anlage5_logger.info("check_anlage5 gestartet für Projekt %s", projekt_id)
 
     path = Path(anlage.upload.path)
     anlage5_logger.debug("Pfad der Anlage 5: %s", path)
@@ -2166,7 +2142,7 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
         "purposes": [p.id for p in found_purposes],
         "sonstige": other_text,
     }
-    anlage5_logger.info("check_anlage5 beendet f\u00fcr Projekt %s mit %s", projekt_id, result)
+    anlage5_logger.info("check_anlage5 beendet für Projekt %s mit %s", projekt_id, result)
     return result
 
 def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) -> str:
@@ -2215,7 +2191,7 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
         return f"[FEHLER: Platzhalter {e} im Prompt nicht gefunden]"
 
     llm_logger.debug(
-        "Finaler Prompt f\u00fcr summarize_anlage1_gaps:\n%s",
+        "Finaler Prompt für summarize_anlage1_gaps:\n%s",
         final_prompt_text,
     )
 
@@ -2289,7 +2265,7 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
         return f"[FEHLER: Platzhalter {e} im Prompt nicht gefunden]"
 
     llm_logger.debug(
-        "Finaler Prompt f\u00fcr summarize_anlage2_gaps:\n%s",
+        "Finaler Prompt für summarize_anlage2_gaps:\n%s",
         final_prompt_text,
     )
 
