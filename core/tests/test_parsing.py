@@ -499,7 +499,7 @@ class DocxExtractTests(NoesisTestCase):
             data,
             [
                 {
-                    "funktion": "Analyse-/Reportingfunktionen - Bitte wähle zutreffendes aus",
+                    "funktion": "Analyse-/Reportingfunktionen: Bitte wähle zutreffendes aus",
                 }
             ],
         )

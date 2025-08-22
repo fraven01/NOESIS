@@ -114,14 +114,22 @@ def apply_tokens(
     text_part: str,
     token_map: Dict[str, List[Tuple[str, bool]]],
     threshold: int = FUZZY_THRESHOLD,
-) -> None:
-    """Wendet Token-Regeln auf einen Textabschnitt an."""
+) -> str:
+    """Wendet Token-Regeln auf einen Textabschnitt an.
+
+    Zusätzlich wird der erkannte Token-Text aus ``text_part`` entfernt und der
+    bereinigte Rest zurückgegeben. Dadurch verhindern wir, dass anschließend
+    ausgeführte Antwort-Regeln (z.B. die allgemeinen "Antwort Ja/Nein"-Regeln)
+    auf zufälligen Fragmenten anschlagen.
+    """
+
     detail_logger.debug("Prüfe Tokens in '%s'", text_part)
+    remaining = text_part
     for field, items in token_map.items():
         if field in entry:
             continue
         for phrase, value in sorted(items, key=lambda t: len(t[0]), reverse=True):
-            if fuzzy_match(phrase, text_part, threshold):
+            if fuzzy_match(phrase, remaining, threshold):
                 detail_logger.debug(
                     "  -> Regel '%s' gefunden. Setzt '%s' auf '%s'.",
                     phrase,
@@ -129,7 +137,10 @@ def apply_tokens(
                     value,
                 )
                 entry[field] = {"value": value, "note": None}
+                remaining = re.sub(re.escape(phrase), "", remaining, flags=re.I).strip()
                 break
+
+    return remaining
 
 
 def apply_rules(
@@ -247,11 +258,12 @@ def extract_function_segments(text: str) -> list[tuple[str, str]]:
 
         found_key = None
         found_alias = None
-        line_norm = _normalize(line.split(":", 1)[0])
+        base_part = line.split(":", 1)[0]
+        line_norm = _normalize(base_part)
 
         for func_id, aliases in sub_aliases.items():
             for alias_norm, sub in aliases:
-                if line_norm.startswith(alias_norm):
+                if alias_norm in line_norm:
                     func = func_map[func_id]
                     found_key = f"{func.name}: {sub.frage_text}"
                     found_alias = sub.frage_text
@@ -298,7 +310,7 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
         if ":" in func_name:
             main_name = func_name.split(":", 1)[0]
             main_entry = results.get(main_name)
-            if not main_entry or main_entry.get("technisch_verfuegbar", {}).get("value") is not True:
+            if main_entry and main_entry.get("technisch_verfuegbar", {}).get("value") is not True:
                 continue
 
         entry = results.setdefault(func_name, {"funktion": func_name})
@@ -309,8 +321,9 @@ def parse_anlage2_text(text: str) -> List[dict[str, object]]:
 
 
         line_entry: dict[str, object] = {}
-        apply_tokens(line_entry, text_part, token_map)
-        apply_rules(line_entry, text_part, rules, func_name=func_name)
+        if ":" not in func_name:
+            cleaned_text = apply_tokens(line_entry, text_part, token_map)
+            apply_rules(line_entry, cleaned_text, rules, func_name=func_name)
         for key, value in line_entry.items():
             entry[key] = value
 
