@@ -3214,8 +3214,10 @@ class AreaImageTests(NoesisTestCase):
         work.image.save("w.png", SimpleUploadedFile("w.png", b"d"), save=True)
         personal.image.save("p.png", SimpleUploadedFile("p.png", b"d"), save=True)
         resp = self.client.get(reverse("home"))
-        self.assertContains(resp, f'alt="{work.name}"', html=False)
-        self.assertContains(resp, f'alt="{personal.name}"', html=False)
+        self.assertContains(resp, reverse("work"))
+        self.assertContains(resp, reverse("personal"))
+        self.assertContains(resp, "Arbeitsassistent")
+        self.assertContains(resp, "Persönlicher Bereich")
 
 
 class RecordingDeleteTests(NoesisTestCase):
