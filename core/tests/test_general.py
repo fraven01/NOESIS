@@ -362,11 +362,10 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
 
 
 class SeedInitialDataTests(NoesisTestCase):
-    """Tests für das Seeding der Antwortregeln."""
+    """Stellt sicher, dass die Seed-Daten vorhanden sind."""
 
     def test_answer_rules_seeded(self) -> None:
-        """Prüft, ob die Antwortregeln angelegt werden."""
-        call_command("seed_initial_data")
+        """Prüft die durch die globale Fixture angelegten Antwortregeln."""
         from ..initial_data_constants import INITIAL_ANSWER_RULES
 
         for rule in INITIAL_ANSWER_RULES:
