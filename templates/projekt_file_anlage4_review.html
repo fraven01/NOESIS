@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load recording_extras %}
+{% load recording_extras static %}
 {% block extra_head %}
 {{ block.super }}
 {% endblock %}
@@ -48,4 +48,12 @@
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
     {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' %}
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/markdown_editor.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () =>
+    document.querySelectorAll('textarea').forEach(el => initMarkdownEditor(el.id)));
+</script>
 {% endblock %}
