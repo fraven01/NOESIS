@@ -4639,7 +4639,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 "core.llm_tasks.parse_anlage2_table",
                 return_value=[{"funktion": "Login"}],
             ),
-            patch("core.llm_tasks.parse_anlage2_text", return_value=[]),
+            patch("core.text_parser.parse_anlage2_text", return_value=[]),
         ):
             run_anlage2_analysis(pf)
         results = AnlagenFunktionsMetadaten.objects.filter(
