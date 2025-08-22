@@ -3182,7 +3182,21 @@ def anlage4_review(request, pk):
         )
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
         if form.is_valid() and gap_form.is_valid():
-            project_file.manual_analysis_json = form.get_json()
+            # Vorhandene manuelle Bewertungen holen und nur die
+            # übermittelten Felder aktualisieren
+            existing = project_file.manual_analysis_json or {}
+            form_json = form.get_json()
+            for idx in range(len(items)):
+                key = str(idx)
+                current = existing.get(key, {})
+                if f"item{idx}_ok" in request.POST:
+                    current["ok"] = form_json.get(key, {}).get("ok", False)
+                if f"item{idx}_nego" in request.POST:
+                    current["nego"] = form_json.get(key, {}).get("nego", False)
+                if f"item{idx}_note" in request.POST:
+                    current["note"] = form_json.get(key, {}).get("note", "")
+                existing[key] = current
+            project_file.manual_analysis_json = existing
             gap_form.save()
             project_file.save(update_fields=["manual_analysis_json"])
             anlage4_logger.info(
