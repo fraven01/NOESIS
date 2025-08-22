@@ -21,7 +21,7 @@ def test_funktions_ergebnisse_sind_versionsabhaengig(db):
     """Prüft, dass Ergebnisse pro Anlagen-Version getrennt gespeichert werden."""
     ProjectStatus.objects.create(name="Offen", is_default=True)
     projekt = BVProject.objects.create(title="P")
-    funktion = Anlage2Function.objects.create(name="Login")
+    funktion = Anlage2Function.objects.get(name="Login")
     pf1 = BVProjectFile.objects.create(
         project=projekt,
         anlage_nr=2,
@@ -63,7 +63,7 @@ def test_neue_version_nutzt_vorhandene_ki_ergebnisse(db):
     """Bei vorhandenen Ergebnissen wird keine neue KI-Prüfung gestartet."""
     ProjectStatus.objects.create(name="Offen", is_default=True)
     projekt = BVProject.objects.create(title="P")
-    funktion = Anlage2Function.objects.create(name="Login")
+    funktion = Anlage2Function.objects.get(name="Login")
     pf1 = BVProjectFile.objects.create(
         project=projekt,
         anlage_nr=2,
@@ -89,7 +89,7 @@ def test_new_version_copies_ai_results(db):
     """KI-Ergebnisse werden in neue Versionen übernommen."""
     ProjectStatus.objects.create(name="Offen", is_default=True)
     projekt = BVProject.objects.create(title="P")
-    funktion = Anlage2Function.objects.create(name="Login")
+    funktion = Anlage2Function.objects.get(name="Login")
     with patch("core.signals.start_analysis_for_file"):
         pf1 = BVProjectFile.objects.create(
             project=projekt,
@@ -134,7 +134,7 @@ def test_manual_ai_check_disabled(client, db):
     user = User.objects.create_user("u")
     client.force_login(user)
     projekt = BVProject.objects.create(title="P")
-    funktion = Anlage2Function.objects.create(name="Login")
+    funktion = Anlage2Function.objects.get(name="Login")
     pf1 = BVProjectFile.objects.create(
         project=projekt,
         anlage_nr=2,
