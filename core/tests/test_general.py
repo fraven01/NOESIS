@@ -814,6 +814,27 @@ class ProjektFileUploadTests(NoesisTestCase):
         file_obj = self.projekt.anlagen.get(anlage_nr=3)
         self.assertEqual(file_obj.text_content, "")
 
+    def test_upload_without_anlage_nr_uses_filename(self):
+        """Nutzt die Anlagen-Nummer aus dem Dateinamen."""
+        doc = Document()
+        doc.add_paragraph("Inhalt")
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        doc.save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage 4 - Entwurf.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+
+        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
+        resp = self.client.post(
+            url,
+            {"upload": upload, "manual_comment": ""},
+            format="multipart",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=4).exists())
+
     def test_anlage2_upload_queues_check(self):
         doc = Document()
         table = doc.add_table(rows=2, cols=2)

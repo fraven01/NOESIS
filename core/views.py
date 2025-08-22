@@ -5191,9 +5191,13 @@ def hx_project_file_upload(request, pk: int):
         except ValueError:
             anlage_nr = None
 
+    data = request.POST.copy()
+    if anlage_nr is not None and not data.get("anlage_nr"):
+        data["anlage_nr"] = str(anlage_nr)
+
     # ``request.FILES`` kann bei ``multiple``-Uploads eine Liste enthalten.
     # Das Formular erwartet jedoch genau eine Datei.
-    form = BVProjectFileForm(request.POST, {"upload": upload}, anlage_nr=anlage_nr)
+    form = BVProjectFileForm(data, {"upload": upload}, anlage_nr=anlage_nr)
 
     if form.is_valid() and anlage_nr:
         saved_file = _save_project_file(projekt, form=form)
