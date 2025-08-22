@@ -211,6 +211,7 @@ class BVProjectFileForm(forms.ModelForm):
             "upload",
             "parser_mode",
             "parser_order",
+            "manual_comment",
         ]
         labels = {
             "upload": "Datei",
@@ -238,6 +239,7 @@ class BVProjectFileForm(forms.ModelForm):
     def __init__(self, *args, anlage_nr=None, **kwargs):
         self.anlage_nr = anlage_nr
         super().__init__(*args, **kwargs)
+        self.fields["manual_comment"].required = False
         if self.anlage_nr is None:
             self.anlage_nr = getattr(self.instance, "anlage_nr", None)
         nr = self.anlage_nr
@@ -273,6 +275,8 @@ class BVProjectFileForm(forms.ModelForm):
 
     def save(self, commit: bool = True) -> BVProjectFile:
         obj = super().save(commit=False)
+        if self.anlage_nr is not None:
+            obj.anlage_nr = self.anlage_nr
         if "parser_mode" in self.cleaned_data:
             obj.parser_mode = self.cleaned_data.get("parser_mode") or ""
         if "parser_order" in self.cleaned_data:
