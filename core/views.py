@@ -3124,8 +3124,12 @@ def anlage3_file_review(request, pk):
         meta = Anlage3Metadata(project_file=project_file)
 
     if request.method == "POST":
-        form = Anlage3MetadataForm(request.POST, instance=meta)
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+            if gap_form.is_valid():
+                gap_form.save()
+                return redirect("projekt_detail", pk=project_file.project.pk)
+        form = Anlage3MetadataForm(request.POST, instance=meta)
         if form.is_valid() and gap_form.is_valid():
             form.save()
             gap_form.save()
@@ -3175,15 +3179,17 @@ def anlage4_review(request, pk):
         items = project_file.analysis_json.get("items") or []
 
     if request.method == "POST":
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+            if gap_form.is_valid():
+                gap_form.save()
+                return redirect("projekt_detail", pk=project_file.project.pk)
         form = Anlage4ReviewForm(
             request.POST,
             items=items,
             initial=project_file.manual_analysis_json,
         )
-        gap_form = BVGapNotesForm(request.POST, instance=project_file)
         if form.is_valid() and gap_form.is_valid():
-            # Vorhandene manuelle Bewertungen holen und nur die
-            # übermittelten Felder aktualisieren
             existing = project_file.manual_analysis_json or {}
             form_json = form.get_json()
             for idx in range(len(items)):
@@ -3274,8 +3280,12 @@ def anlage5_review(request, pk):
         initial["sonstige"] = review.sonstige_zwecke
 
     if request.method == "POST":
-        form = Anlage5ReviewForm(request.POST)
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+            if gap_form.is_valid():
+                gap_form.save()
+                return redirect("projekt_detail", pk=project_file.project.pk)
+        form = Anlage5ReviewForm(request.POST)
         if form.is_valid() and gap_form.is_valid():
             if review is None:
                 review = Anlage5Review.objects.create(project_file=project_file)
@@ -3811,6 +3821,15 @@ def projekt_file_edit_json(request, pk):
             anlage_nr=anlage.anlage_nr,
         ).order_by("version")
     )
+
+    if (
+        request.method == "POST"
+        and set(request.POST.keys())
+        <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}
+        and gap_form.is_valid()
+    ):
+        gap_form.save()
+        return redirect("projekt_detail", pk=anlage.project.pk)
 
     if request.method == "GET" and anlage.anlage_nr == 2:
         results = AnlagenFunktionsMetadaten.objects.filter(
@@ -6225,8 +6244,12 @@ def anlage6_review(request, pk):
         raise Http404
 
     if request.method == "POST":
-        form = Anlage6ReviewForm(request.POST, instance=project_file)
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+            if gap_form.is_valid():
+                gap_form.save()
+                return redirect("projekt_detail", pk=project_file.project.pk)
+        form = Anlage6ReviewForm(request.POST, instance=project_file)
         if form.is_valid() and gap_form.is_valid():
             form.save()
             gap_form.save()
