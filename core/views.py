@@ -2239,10 +2239,12 @@ def admin_export_users_permissions(request):
         group_areas = Area.objects.filter(groups__in=user.groups.all()).values_list(
             "slug", flat=True
         )
+        user_areas = Area.objects.filter(
+            userareaaccess__user=user
+        ).values_list("slug", flat=True)
         tiles = set(user.tiles.values_list("url_name", flat=True)) | set(group_tiles)
-        user_areas = Area.objects.filter(userareaaccess__user=user).values_list(
-            "slug", flat=True
-        )
+
+
         areas = set(user_areas) | set(group_areas)
         data.append(
             {
