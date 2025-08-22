@@ -168,7 +168,11 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     apps.get_model("core", "LLMRole").objects.all().delete()
     AntwortErkennungsRegel.objects.all().delete()
     Anlage4Config.objects.all().delete()
+    Anlage4ParserConfig.objects.all().delete()
     LLMConfig.objects.all().delete()
+    apps.get_model("core", "ZweckKategorieA").objects.all().delete()
+    apps.get_model("core", "Anlage3ParserRule").objects.all().delete()
+    apps.get_model("core", "SupervisionStandardNote").objects.all().delete()
     from django.apps import apps as django_apps
     from core.management.commands.seed_initial_data import (
         create_initial_data,
@@ -194,6 +198,11 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
             )
             Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
     create_statuses()
+
+    # Erforderliche Konfigurationen bereitstellen
+    LLMConfig.objects.get_or_create()
+    Anlage4Config.objects.get_or_create()
+    Anlage4ParserConfig.objects.get_or_create()
 
     # Anlage1 Fragen aktualisieren
     Anlage1QuestionModel = apps.get_model("core", "Anlage1Question")
