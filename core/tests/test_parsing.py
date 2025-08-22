@@ -1132,6 +1132,8 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         """Die Analyse nutzt die übergebene Konfiguration."""
         Anlage4ParserConfig.objects.all().delete()
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
+        cfg.delimiter_phrase = "Y"
+        cfg.save()
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
             project=projekt,
