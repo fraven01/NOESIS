@@ -362,16 +362,23 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
         "[%s] - PARSER START - Beginne Dokumenten-Analyse.",
         project_file.project_id,
     )
+    # Vorhandene Ergebnisse für das gesamte Projekt entfernen, damit nur
+    # aktuelle Resultate berücksichtigt werden
+    FunktionsErgebnis.objects.filter(
+        anlage_datei__project=project_file.project,
+        anlage_datei__anlage_nr=2,
+    ).delete()
+    AnlagenFunktionsMetadaten.objects.filter(
+        anlage_datei__project=project_file.project,
+        anlage_datei__anlage_nr=2,
+    ).delete()
+
     # Prüfen, ob im Anschluss noch eine KI-Prüfung erfolgen soll
     needs_followup = not FunktionsErgebnis.objects.filter(
         anlage_datei__project=project_file.project,
         anlage_datei__anlage_nr=2,
         quelle="ki",
     ).exists()
-
-    # Alte Ergebnisse zur Datei entfernen, damit nur aktuelle Resultate
-    # berücksichtigt werden
-    AnlagenFunktionsMetadaten.objects.filter(anlage_datei=project_file).delete()
 
     cfg = Anlage2Config.get_instance()
     token_map = build_token_map(cfg)
