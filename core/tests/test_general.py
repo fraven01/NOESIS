@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from django.urls import reverse
-from django.test import TestCase
+from django.test import TransactionTestCase
 from django.conf import settings
 from django.http import QueryDict
 from django.db import IntegrityError
@@ -62,7 +62,6 @@ from docx import Document
 import shutil
 from PIL import Image
 import fitz
-from django.conf import settings
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from ..forms import (
@@ -114,7 +113,6 @@ from ..reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
 from django.core.management import call_command
 from django.test import override_settings
-from django.conf import settings
 import json
 import pytest
 
@@ -375,7 +373,7 @@ def _seed_db(django_db_setup, django_db_blocker) -> None:
         )
 
 
-class SeedInitialDataTests(TestCase):
+class SeedInitialDataTests(TransactionTestCase):
     """Tests für das Seeding der Antwortregeln."""
 
     def test_answer_rules_seeded(self) -> None:
@@ -397,7 +395,7 @@ class SeedInitialDataTests(TestCase):
             )
 
 
-class NoesisTestCase(TestCase):
+class NoesisTestCase(TransactionTestCase):
     """Basisklasse für alle Tests mit gefüllter Datenbank."""
 
     @classmethod
@@ -407,7 +405,7 @@ class NoesisTestCase(TestCase):
         cls.superuser = User.objects.get(username="basesuper")
 
 
-class ExtractAnlageNrTests(TestCase):
+class ExtractAnlageNrTests(TransactionTestCase):
     """Tests für die Erkennung der Anlagen-Nummer aus Dateinamen."""
 
     def test_variants(self):
@@ -5052,7 +5050,7 @@ class ProjektDetailGapTests(NoesisTestCase):
         resp = self.client.get(reverse("projekt_detail", args=[projekt.pk]))
         self.assertTrue(resp.context["can_gap_report"])
 
-class ManualGapDetectionTests(TestCase):
+class ManualGapDetectionTests(TransactionTestCase):
     """Tests für die Funktion ``_has_manual_gap``."""
 
     def test_detects_difference(self) -> None:
@@ -5103,7 +5101,7 @@ class ManualGapDetectionTests(TestCase):
         self.assertFalse(_has_manual_gap(doc_data, manual_data2))
 
 
-class ResolveValueLogicTests(TestCase):
+class ResolveValueLogicTests(TransactionTestCase):
     """Tests für die Feldpriorisierung in ``_resolve_value``."""
 
     def test_doc_overrides_ai_for_special_fields(self) -> None:
