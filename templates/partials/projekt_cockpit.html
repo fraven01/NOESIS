@@ -1,20 +1,20 @@
 {% load recording_extras %}
-<div class="bg-gray-100 dark:bg-gray-800 p-4 rounded space-y-4">
-  <section class="bg-white dark:bg-gray-700 p-3 rounded space-y-2">
+<div class="bg-background dark:bg-background-dark p-4 rounded space-y-4">
+  <section class="bg-background dark:bg-background-dark p-3 rounded space-y-2">
     <h3 class="font-semibold mb-2">Projekt-Steckbrief</h3>
     <div>
-      <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Basis</h4>
+      <h4 class="text-sm font-semibold text-text dark:text-text-light mb-1">Basis</h4>
       <p class="text-lg font-semibold">{{ projekt.title }}</p>
       {% include 'partials/status_badge.html' with status_key=projekt.status.key label=projekt.status.name %}
     </div>
     <div>
-      <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Details</h4>
+      <h4 class="text-sm font-semibold text-text dark:text-text-light mb-1">Details</h4>
       <p class="mt-1 text-sm"><strong>Software:</strong> {{ projekt.software_string }}</p>
       <p class="mt-1 text-sm"><strong>Erstellt am:</strong> {{ projekt.created_at|date:"d.m.Y" }}</p>
     </div>
   </section>
 
-  <section class="bg-white dark:bg-gray-700 p-3 rounded">
+  <section class="bg-background dark:bg-background-dark p-3 rounded">
     <h3 class="font-semibold mb-2">Status &amp; Nächste Schritte</h3>
     <p class="text-sm">Geprüft: {{ num_reviewed }} / {{ num_attachments }}</p>
     <p class="text-sm">Initial-Prüfung: <span id="knowledge-progress">{{ knowledge_checked }} / {{ total_software }}</span> Komponenten analysiert</p>
@@ -31,7 +31,7 @@
     </ul>
   </section>
 
-  <section class="bg-white dark:bg-gray-700 p-3 rounded">
+  <section class="bg-background dark:bg-background-dark p-3 rounded">
     <h3 class="font-semibold mb-2">Anlagen-Übersicht</h3>
     <ul class="space-y-1 text-sm">
       {% for nr in anlage_numbers %}
@@ -40,10 +40,10 @@
         Anlage {{ nr }}:
         {% if file %}
           <a href="{{ file.upload.url }}" class="underline" title="{{ file.upload.name|clean_filename }}">{{ file.upload.name|clean_filename }}</a>
-{% if file.processing_status == 'COMPLETE' %}<i class="fa-solid fa-check text-success"></i>{% elif file.processing_status == 'FAILED' %}<i class="fa-solid fa-times text-error"></i>{% elif file.processing_status == 'PROCESSING' %}{% include 'partials/spinner.html' %}{% else %}<i class="fa-solid fa-clock text-gray-500 dark:text-gray-400"></i>{% endif %}
-{% if file.verhandlungsfaehig %}<i class="fa-solid fa-handshake text-success ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fa-solid fa-handshake-slash text-gray-400 dark:text-gray-500 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
+{% if file.processing_status == 'COMPLETE' %}<i class="fa-solid fa-check text-success"></i>{% elif file.processing_status == 'FAILED' %}<i class="fa-solid fa-times text-error"></i>{% elif file.processing_status == 'PROCESSING' %}{% include 'partials/spinner.html' %}{% else %}<i class="fa-solid fa-clock text-text opacity-70 dark:text-text-light dark:opacity-70"></i>{% endif %}
+{% if file.verhandlungsfaehig %}<i class="fa-solid fa-handshake text-success ml-1" title="Verhandlungsfähig"></i>{% else %}<i class="fa-solid fa-handshake-slash text-text opacity-50 dark:text-text-light dark:opacity-50 ml-1" title="Nicht verhandlungsfähig"></i>{% endif %}
         {% else %}
-          <span class="text-gray-500 dark:text-gray-400">fehlt</span>
+          <span class="text-text opacity-70 dark:text-text-light dark:opacity-70">fehlt</span>
         {% endif %}
       </li>
       {% endwith %}
