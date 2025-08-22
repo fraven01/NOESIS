@@ -46,7 +46,7 @@ def user_navigation(request: HttpRequest) -> dict[str, list[NavSection]]:
 
     navigation: list[NavSection] = []
     for area in areas:
-        tiles = get_user_tiles(request.user, area.slug)
+        _, tiles = get_user_tiles(request.user, area.slug)
         navigation.append({"area": area, "tiles": tiles})
 
     return {"user_navigation": navigation}
