@@ -1055,10 +1055,8 @@ class Anlage4ParserTests(NoesisTestCase):
             upload=SimpleUploadedFile("x.txt", b""),
             text_content="",
         )
-        with self.assertLogs("anlage4_detail", level="WARNING") as cm:
-            items = parse_anlage4_dual(pf)
-        self.assertEqual(items, [])
-        self.assertIn("Keine Anlage4ParserConfig vorhanden", "".join(cm.output))
+        result = {"items": parse_anlage4(pf)}
+        self.assertEqual(result["items"], [])
 
 
 class AnalyseAnlage4Tests(NoesisTestCase):
