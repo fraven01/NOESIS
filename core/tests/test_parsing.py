@@ -1,3 +1,4 @@
+from .base import NoesisTestCase
 from .test_general import *
 from ..anlage4_parser import parse_anlage4_dual
 from ..models import Anlage4ParserConfig

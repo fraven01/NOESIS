@@ -1,8 +1,9 @@
 """Tests für die Sidebar-Navigation."""
 
 from django.contrib.auth.models import Group, User
-from django.test import TestCase
 from django.urls import reverse
+
+from .base import NoesisTestCase
 
 from core.models import (
     Area,
@@ -12,7 +13,7 @@ from core.models import (
 )
 
 
-class NavigationSidebarTests(TestCase):
+class NavigationSidebarTests(NoesisTestCase):
     """Überprüfung der sichtbaren Bereiche, Tiles und Admin-Links."""
 
     @staticmethod
@@ -27,24 +28,24 @@ class NavigationSidebarTests(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         """Legt Bereiche, Tiles und Nutzer für die Tests an."""
+        super().setUpTestData()
 
-        cls.area_work = Area.objects.create(slug="work", name="Arbeitsbereich")
+        cls.area_work = Area.objects.create(slug="work-test", name="Arbeitsbereich")
         cls.area_private = Area.objects.create(
-            slug="personal", name="Privatbereich"
+            slug="personal-test", name="Privatbereich"
         )
 
         cls.tile_dashboard = Tile.objects.create(
-            slug="dashboard", name="Dashboard", url_name="home"
+            slug="dashboard-test", name="Dashboard", url_name="home"
         )
         cls.tile_dashboard.areas.add(cls.area_work)
-
         cls.tile_account = Tile.objects.create(
-            slug="account-tile", name="Privatkachel", url_name="account"
+            slug="account-tile-test", name="Privatkachel", url_name="account"
         )
         cls.tile_account.areas.add(cls.area_private)
 
         cls.tile_hidden = Tile.objects.create(
-            slug="hidden", name="Versteckt", url_name="home"
+            slug="hidden-test", name="Versteckt", url_name="home"
         )
         cls.tile_hidden.areas.add(cls.area_work)
 
@@ -61,7 +62,7 @@ class NavigationSidebarTests(TestCase):
         cls.user_carol = User.objects.create_user("carol", password="pw")
         cls._grant_access(cls.user_carol, [cls.area_work], [cls.tile_dashboard])
 
-        cls.admin_group = Group.objects.create(name="Admin")
+        cls.admin_group = Group.objects.create(name="AdminTest")
         cls.user_dave = User.objects.create_user("dave", password="pw")
         cls.user_dave.groups.add(cls.admin_group)
         cls._grant_access(cls.user_dave, [cls.area_work], [cls.tile_dashboard])
