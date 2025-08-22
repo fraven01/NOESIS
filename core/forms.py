@@ -321,11 +321,23 @@ class BVProjectFileJSONForm(forms.ModelForm):
 
 
 class BVGapNotesForm(forms.ModelForm):
-    """Formular f\u00fcr GAP-Notizen ohne Benutzereingabe."""
+    """Formular zum Bearbeiten der GAP-Notizen."""
 
     class Meta:
         model = BVProjectFile
-        fields: list[str] = []
+        fields = ["gap_summary", "gap_notiz"]
+        labels = {
+            "gap_summary": "Gap-Zusammenfassung",
+            "gap_notiz": "Interne Notiz",
+        }
+        widgets = {
+            "gap_summary": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 3}
+            ),
+            "gap_notiz": forms.Textarea(
+                attrs={"class": "border rounded p-2", "rows": 3}
+            ),
+        }
 
 
 class Anlage1ReviewForm(forms.Form):
