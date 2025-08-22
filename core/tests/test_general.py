@@ -741,11 +741,16 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             processing_status=BVProjectFile.PENDING,
         )
-        with patch.object(BVProjectFile, "get_analysis_tasks", return_value=[("f.q", pf.pk)]), \
-            patch("core.utils.async_task") as mock_async:
+        with patch.object(
+            BVProjectFile,
+            "get_analysis_tasks",
+            return_value=[("core.llm_tasks.check_anlage1", pf.pk)],
+        ), patch("core.utils.async_task") as mock_async, patch(
+            "core.utils.transaction.on_commit", side_effect=lambda func: func()
+        ):
             mock_async.return_value = "t1"
             task_id = start_analysis_for_file(pf.pk)
-        mock_async.assert_called_with("f.q", pf.pk)
+        mock_async.assert_called_with("core.llm_tasks.check_anlage1", pf.pk)
         self.assertEqual(task_id, "t1")
         pf.refresh_from_db()
         self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
