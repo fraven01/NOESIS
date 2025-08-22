@@ -99,7 +99,16 @@ class ProjektFileJSONEditTests(NoesisTestCase):
     def test_question_review_saved(self):
         url = reverse("hx_toggle_anlage1_ok", args=[self.anlage1.pk, 1])
         resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.anlage1.refresh_from_db()
+        self.assertTrue(self.anlage1.question_review["1"]["ok"])
+        self.assertNotIn("note", self.anlage1.question_review["1"])
+
+    def test_question_review_saved_htmx(self):
+        url = reverse("hx_toggle_anlage1_ok", args=[self.anlage1.pk, 1])
+        resp = self.client.post(url, HTTP_HX_REQUEST="true")
         self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "partials/anlage1_negotiable.html")
         self.anlage1.refresh_from_db()
         self.assertTrue(self.anlage1.question_review["1"]["ok"])
         self.assertNotIn("note", self.anlage1.question_review["1"])
