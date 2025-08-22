@@ -838,7 +838,20 @@ def _build_supervision_row(
 
 
 def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
-    """Gruppiert Hauptfunktionen und Unterfragen für die Supervision."""
+    """Gruppiert Hauptfunktionen und Unterfragen für die Supervision.
+
+    Funktionen, die manuell als verhandlungsfähig markiert wurden, werden
+    vollständig ignoriert.
+    """
+
+    # IDs von Funktionen, bei denen die Verhandlungsfähigkeit manuell
+    # überschrieben wurde. Diese werden samt Unterfragen übersprungen.
+    overridden_funcs = set(
+        AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei=pf,
+            is_negotiable_manual_override=True,
+        ).values_list("funktion_id", flat=True)
+    )
 
     results = (
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
@@ -847,12 +860,8 @@ def _build_supervision_groups(pf: BVProjectFile) -> list[dict]:
     )
 
     grouped: dict[int, dict] = {}
-    skipped_funcs: set[int] = set()
     for r in results:
-        if r.subquestion_id is None and r.is_negotiable_manual_override:
-            skipped_funcs.add(r.funktion_id)
-            continue
-        if r.funktion_id in skipped_funcs:
+        if r.funktion_id in overridden_funcs:
             continue
         row_data = _build_supervision_row(r, pf)
         if not row_data["has_discrepancy"]:
