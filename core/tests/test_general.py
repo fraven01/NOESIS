@@ -3984,7 +3984,14 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         self.user = User.objects.create_user("cfgadmin", password="pass")
         self.user.groups.add(admin_group)
         self.client.login(username="cfgadmin", password="pass")
+        # Anlage2Config ist ein Singleton. Für die Tests müssen wir die
+        # globale Instanz verwenden und die benötigten Felder direkt darauf
+        # setzen.
         self.cfg = Anlage2Config.get_instance()
+        self.cfg.parser_mode = "auto"
+        self.cfg.parser_order = ["exact"]
+        self.cfg.text_technisch_verfuegbar_true = ["ja"]
+        self.cfg.save()
 
     def test_export_contains_headings_and_phrases(self):
         Anlage2ColumnHeading.objects.create(
@@ -3998,7 +4005,9 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
             actions_json=[{"field": "technisch_verfuegbar", "value": True}],
             prioritaet=0,
         )
-        a4 = Anlage4ParserConfig.objects.create(delimiter_phrase="X")
+        a4 = Anlage4ParserConfig.objects.first()
+        a4.delimiter_phrase = "X"
+        a4.save()
         url = reverse("admin_anlage2_config_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
