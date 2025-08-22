@@ -2238,29 +2238,11 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
         )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * 9):
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            data = check_anlage1(file_obj.pk)
-        answers = {
-            "1": "A1",
-            "2": "A2",
-        }
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected_questions = {
-            str(i): {
-                "answer": answers.get(str(i), "leer"),
-                "status": "ok",
-                "hinweis": "",
-                "vorschlag": "",
-            }
-            for i in nums
-        }
         file_obj = projekt.anlagen.get(anlage_nr=1)
-        self.assertEqual(data["source"], "parser")
-        self.assertEqual(data["questions"]["1"]["answer"], "A1")
-        self.assertEqual(data["questions"]["2"]["answer"], "A2")
-        self.assertEqual(file_obj.analysis_json, data)
+        data = check_anlage1(file_obj.pk)
+        expected = {"questions": parse_anlage1_questions(text)}
+        self.assertEqual(data, expected)
+        self.assertEqual(file_obj.analysis_json, expected)
 
     def test_parse_anlage1_questions_extra(self):
         Anlage1Question.objects.create(
@@ -2281,11 +2263,8 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content=text,
         )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        with patch("core.llm_tasks.query_llm", side_effect=[eval_reply] * len(nums)):
-            file_obj = projekt.anlagen.get(anlage_nr=1)
-            data = check_anlage1(file_obj.pk)
+        file_obj = projekt.anlagen.get(anlage_nr=1)
+        data = check_anlage1(file_obj.pk)
         q_data = data["questions"]
         self.assertEqual(q_data["10"]["answer"], "A10")
 
@@ -2511,104 +2490,22 @@ class ProjektFileCheckViewTests(NoesisTestCase):
 
     def test_file_check_endpoint_saves_json(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
-        expected = {
-            "task": "check_anlage1",
-            "version": 1,
-            "anlage": 1,
-            "companies": {"value": None, "editable": True},
-            "departments": {"value": None, "editable": True},
-            "it_integration_summary": {"value": None, "editable": True},
-            "vendors": {"value": None, "editable": True},
-            "question4_raw": {"value": None, "editable": True},
-            "purpose_summary": {"value": None, "editable": True},
-            "purpose_missing": {"value": None, "editable": True},
-            "documentation_links": {"value": None, "editable": True},
-            "replaced_systems": {"value": None, "editable": True},
-            "legacy_functions": {"value": None, "editable": True},
-            "question9_raw": {"value": None, "editable": True},
-            "inconsistencies": {"value": None, "editable": True},
-            "keywords": {"value": None, "editable": True},
-            "plausibility_score": {"value": None, "editable": True},
-            "manual_comments": {"value": None, "editable": True},
-        }
-        llm_reply = json.dumps(
-            {
-                "companies": None,
-                "departments": None,
-                "vendors": None,
-                "question4_raw": None,
-                "purpose_summary": None,
-                "documentation_links": None,
-                "replaced_systems": None,
-                "legacy_functions": None,
-                "question9_raw": None,
-            }
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch(
-            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
-        ):
-            resp = self.client.post(url)
+        resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         resp_json = resp.json()
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {
-            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
-            for i in nums
-        }
+        expected = {"questions": {}}
         self.assertEqual(file_obj.analysis_json, expected)
         self.assertEqual(resp_json["analysis"], expected)
 
     def test_file_check_pk_endpoint_saves_json(self):
         file_obj = self.projekt.anlagen.get(anlage_nr=1)
         url = reverse("projekt_file_check_pk", args=[file_obj.pk])
-        expected = {
-            "task": "check_anlage1",
-            "version": 1,
-            "anlage": 1,
-            "companies": {"value": None, "editable": True},
-            "departments": {"value": None, "editable": True},
-            "it_integration_summary": {"value": None, "editable": True},
-            "vendors": {"value": None, "editable": True},
-            "question4_raw": {"value": None, "editable": True},
-            "purpose_summary": {"value": None, "editable": True},
-            "purpose_missing": {"value": None, "editable": True},
-            "documentation_links": {"value": None, "editable": True},
-            "replaced_systems": {"value": None, "editable": True},
-            "legacy_functions": {"value": None, "editable": True},
-            "question9_raw": {"value": None, "editable": True},
-            "inconsistencies": {"value": None, "editable": True},
-            "keywords": {"value": None, "editable": True},
-            "plausibility_score": {"value": None, "editable": True},
-            "manual_comments": {"value": None, "editable": True},
-        }
-        llm_reply = json.dumps(
-            {
-                "companies": None,
-                "departments": None,
-                "vendors": None,
-                "question4_raw": None,
-                "purpose_summary": None,
-                "documentation_links": None,
-                "replaced_systems": None,
-                "legacy_functions": None,
-                "question9_raw": None,
-            }
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch(
-            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
-        ):
-            resp = self.client.post(url)
+        resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
         resp_json = resp.json()
         file_obj.refresh_from_db()
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {
-            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
-            for i in nums
-        }
+        expected = {"questions": {}}
         self.assertEqual(file_obj.analysis_json, expected)
         self.assertEqual(resp_json["analysis"], expected)
 
@@ -2941,59 +2838,18 @@ class ProjektFileCheckResultTests(NoesisTestCase):
 
     def test_get_runs_check_and_redirects_to_edit(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
-        expected = {
-            "task": "check_anlage1",
-            "version": 1,
-            "anlage": 1,
-            "companies": {"value": None, "editable": True},
-            "departments": {"value": None, "editable": True},
-            "it_integration_summary": {"value": None, "editable": True},
-            "vendors": {"value": None, "editable": True},
-            "question4_raw": {"value": None, "editable": True},
-            "purpose_summary": {"value": None, "editable": True},
-            "purpose_missing": {"value": None, "editable": True},
-            "documentation_links": {"value": None, "editable": True},
-            "replaced_systems": {"value": None, "editable": True},
-            "legacy_functions": {"value": None, "editable": True},
-            "question9_raw": {"value": None, "editable": True},
-            "inconsistencies": {"value": None, "editable": True},
-            "keywords": {"value": None, "editable": True},
-            "plausibility_score": {"value": None, "editable": True},
-            "manual_comments": {"value": None, "editable": True},
-        }
-        llm_reply = json.dumps(
-            {
-                "companies": None,
-                "departments": None,
-                "vendors": None,
-                "question4_raw": None,
-                "purpose_summary": None,
-                "documentation_links": None,
-                "replaced_systems": None,
-                "legacy_functions": None,
-                "question9_raw": None,
-            }
-        )
-        eval_reply = json.dumps({"status": "ok", "hinweis": "", "vorschlag": ""})
-        with patch(
-            "core.llm_tasks.query_llm", side_effect=[llm_reply] + [eval_reply] * 9
-        ):
-            resp = self.client.get(url)
+        resp = self.client.get(url)
         self.assertRedirects(
             resp, reverse("projekt_file_edit_json", args=[self.file.pk])
         )
         self.file.refresh_from_db()
-        nums = [q.num for q in Anlage1Question.objects.order_by("num")]
-        expected["questions"] = {
-            str(i): {"answer": "leer", "status": "ok", "hinweis": "", "vorschlag": ""}
-            for i in nums
-        }
+        expected = {"questions": {}}
         self.assertEqual(self.file.analysis_json, expected)
 
     def test_post_triggers_check_and_redirects(self):
         url = reverse("projekt_file_check_view", args=[self.file.pk])
         with patch("core.views.check_anlage1") as mock_func:
-            mock_func.return_value = {"task": "check_anlage1"}
+            mock_func.return_value = {"questions": {}}
             resp = self.client.post(url)
         self.assertRedirects(
             resp, reverse("projekt_file_edit_json", args=[self.file.pk])
@@ -3353,7 +3209,7 @@ class ModelSelectionTests(NoesisTestCase):
     def test_file_check_uses_category(self):
         url = reverse("projekt_file_check", args=[self.projekt.pk, 1])
         with patch("core.views.check_anlage1") as mock_func:
-            mock_func.return_value = {"task": "check_anlage1"}
+            mock_func.return_value = {"questions": {}}
             resp = self.client.post(url, {"model_category": "anlagen"})
         self.assertEqual(resp.status_code, 200)
         mock_func.assert_called_with(
@@ -3372,7 +3228,7 @@ class ModelSelectionTests(NoesisTestCase):
             "projekt_file_check_view", args=[self.projekt.anlagen.first().pk]
         )
         with patch("core.views.check_anlage1") as mock_func:
-            mock_func.return_value = {"task": "check_anlage1"}
+            mock_func.return_value = {"questions": {}}
             resp = self.client.get(view_url)
         self.assertRedirects(
             resp,
