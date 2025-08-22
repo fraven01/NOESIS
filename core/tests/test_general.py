@@ -521,7 +521,7 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             verification_task_id="tid",
         )
-        Anlage2Function.objects.create(name="Login")
+        Anlage2Function.objects.get(name="Login")
         with (
             patch("core.llm_tasks.query_llm", return_value="{}"),
             patch("core.llm_tasks.async_task") as mock_async,
@@ -850,7 +850,7 @@ class ProjektFileUploadTests(NoesisTestCase):
             upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
         Path(tmp.name).unlink(missing_ok=True)
 
-        Anlage2Function.objects.create(name="Login")
+        Anlage2Function.objects.get(name="Login")
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         mock_async = Mock(side_effect=["tid1", "tid2"])
@@ -884,7 +884,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         )
 
     def test_second_anlage2_version_skips_ai_check(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         first = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=2,
@@ -1231,7 +1231,7 @@ class BVProjectModelTests(NoesisTestCase):
 class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
     def test_manual_result_field(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=2,
@@ -1528,7 +1528,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Anlagetext",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": True})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
@@ -1550,7 +1550,7 @@ class LLMTasksTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": True})
         with (
             patch("core.llm_tasks.query_llm", return_value=llm_reply),
@@ -1579,7 +1579,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
@@ -1596,7 +1596,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testinhalt Anlage2",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
@@ -1631,7 +1631,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=upload,
             text_content="ignored",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
 
         with patch("core.llm_tasks.query_llm") as mock_q:
             data = check_anlage2(projekt.pk)
@@ -1678,7 +1678,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=upload,
             text_content="Login: tv: ja; tel: nein; lv: nein; ki: ja",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.parser_mode = "table_only"
         cfg.parser_order = ["table"]
@@ -1732,7 +1732,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=upload,
             text_content=content,
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["ja"]
         cfg.save()
@@ -1992,7 +1992,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
 
         result = run_anlage2_analysis(pf)
 
@@ -2016,7 +2016,8 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
 
         result = run_anlage2_analysis(pf)
@@ -2039,7 +2040,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="Logn: ja",
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["ja"]
         cfg.save()
@@ -2067,7 +2068,7 @@ class LLMTasksTests(NoesisTestCase):
             text_content="",
             processing_status=BVProjectFile.PROCESSING,
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         FunktionsErgebnis.objects.create(
             anlage_datei=pf,
             funktion=func,
@@ -2091,7 +2092,7 @@ class LLMTasksTests(NoesisTestCase):
             text_content="",
             processing_status=BVProjectFile.PROCESSING,
         )
-        Anlage2Function.objects.create(name="Login")
+        Anlage2Function.objects.get(name="Login")
 
         run_anlage2_analysis(pf)
 
@@ -2606,7 +2607,8 @@ class Anlage2ReviewTests(NoesisTestCase):
             },
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Login")
+        self.func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
         self.sub = Anlage2SubQuestion.objects.create(
             funktion=self.func, frage_text="Warum?"
         )
@@ -3334,7 +3336,7 @@ class FunctionImportExportTests(NoesisTestCase):
         self.client.login(username="adminie", password="pass")
 
     def test_export_returns_json(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
         url = reverse("anlage2_function_export")
         resp = self.client.get(url)
@@ -3379,10 +3381,10 @@ class FunctionImportExportTests(NoesisTestCase):
         )
 
     def test_roundtrip_preserves_aliases(self):
-        func = Anlage2Function.objects.create(
-            name="Login",
-            detection_phrases={"name_aliases": ["Sign in"]},
-        )
+        func = Anlage2Function.objects.get(name="Login")
+        func.detection_phrases = {"name_aliases": ["Sign in"]}
+        func.save()
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Warum?",
@@ -3443,7 +3445,8 @@ class FeatureVerificationTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Export")
+        self.func = Anlage2Function.objects.get(name="Export")
+        Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
         self.sub = Anlage2SubQuestion.objects.create(
             funktion=self.func,
             frage_text="Warum?",
@@ -3726,7 +3729,7 @@ class EditKIJustificationTests(NoesisTestCase):
                 "Export": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}
             },
         )
-        self.func = Anlage2Function.objects.create(name="Export")
+        self.func = Anlage2Function.objects.get(name="Export")
 
     def test_get_returns_form(self):
         url = (
@@ -3769,7 +3772,7 @@ class JustificationDetailEditTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Export")
+        self.func = Anlage2Function.objects.get(name="Export")
         FunktionsErgebnis.objects.create(
             anlage_datei=self.file,
             funktion=self.func,
@@ -3796,7 +3799,7 @@ class KIInvolvementDetailEditTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Export")
+        self.func = Anlage2Function.objects.get(name="Export")
         FunktionsErgebnis.objects.create(
             anlage_datei=self.file,
             funktion=self.func,
@@ -3830,7 +3833,8 @@ class VerificationToInitialTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Export")
+        self.func = Anlage2Function.objects.get(name="Export")
+        Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
         self.sub = Anlage2SubQuestion.objects.create(
             funktion=self.func,
             frage_text="Warum?",
@@ -4158,7 +4162,8 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             analysis_json={},
             verification_json={"functions": {}},
         )
-        self.func = Anlage2Function.objects.create(name="Login")
+        self.func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
 
     def test_manual_result_saved(self):
         url = reverse("ajax_save_anlage2_review")
@@ -4481,7 +4486,8 @@ class SupervisionGapTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("f.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
@@ -4531,7 +4537,8 @@ class SupervisionGapTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("f.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         sub = Anlage2SubQuestion.objects.create(funktion=func, frage_text="S?")
 
         # Unterfrage zuerst anlegen, damit sie im Default-Ordering vor der Funktion steht
@@ -4584,7 +4591,7 @@ class SupervisionGapTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("f.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         res = AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf, funktion=func)
         FunktionsErgebnis.objects.create(
             anlage_datei=pf,
@@ -4619,7 +4626,7 @@ class Anlage2ResetTests(NoesisTestCase):
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
         Anlage2Function.objects.all().delete()
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf_old,
             funktion=func,
@@ -4660,7 +4667,7 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf_old,
             funktion=func,
@@ -4729,7 +4736,7 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=3,
             upload=SimpleUploadedFile("b.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf, funktion=func)
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=other_pf, funktion=func
@@ -4756,7 +4763,7 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         res = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
@@ -4820,7 +4827,7 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         result = AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf,
             funktion=func,
@@ -4881,7 +4888,7 @@ class GapReportTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
         )
-        self.func = Anlage2Function.objects.create(name="Login")
+        self.func = Anlage2Function.objects.get(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=self.pf2,
             funktion=self.func,
@@ -4951,7 +4958,7 @@ class ProjektDetailGapTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
         )
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf2,
             funktion=func,

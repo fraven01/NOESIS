@@ -363,10 +363,10 @@ class DocxExtractTests(NoesisTestCase):
 
 
     def test_parse_anlage2_text(self):
-        func = Anlage2Function.objects.create(
-            name="Login",
-            detection_phrases={"name_aliases": ["login"]},
-        )
+        func = Anlage2Function.objects.get(name="Login")
+        func.detection_phrases = {"name_aliases": ["login"]}
+        func.save()
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Warum?",
@@ -392,7 +392,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_default_aliases(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Warum?",
@@ -444,7 +445,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_normalizes_variants(self):
-        func = Anlage2Function.objects.create(name="User Login")
+        func = Anlage2Function.objects.get(name="User Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["tv ja"]
         cfg.save()
@@ -461,10 +462,11 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_punctuation_variants(self):
-        func = Anlage2Function.objects.create(
-            name="Analyse-/Reportingfunktionen",
-            detection_phrases={"name_aliases": ["Analyse-/Reportingfunktionen"]},
-        )
+        func = Anlage2Function.objects.get(name="Analyse-/Reportingfunktionen")
+        func.detection_phrases = {
+            "name_aliases": ["Analyse-/Reportingfunktionen"]
+        }
+        func.save()
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["tv ja"]
         cfg.save()
@@ -481,7 +483,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_prefers_specific_subquestion(self):
-        func = Anlage2Function.objects.create(name="Analyse-/Reportingfunktionen")
+        func = Anlage2Function.objects.get(name="Analyse-/Reportingfunktionen")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Bitte wähle zutreffendes aus",
@@ -501,7 +504,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_merges_duplicate_functions(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["tv ja"]
         cfg.text_ki_beteiligung_false = ["ki nein"]
@@ -520,7 +523,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_updates_values_without_function(self):
-        func = Anlage2Function.objects.create(name="Analyse")
+        func = Anlage2Function.objects.get(name="Analyse")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
         cfg.text_zur_lv_kontrolle_false = ["kein lv"]
@@ -539,7 +542,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_fuzzy_match(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["ja"]
         cfg.save()
@@ -547,7 +550,7 @@ class DocxExtractTests(NoesisTestCase):
         self.assertEqual(data, [])
 
     def test_parse_anlage2_text_fuzzy_token_phrase(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["ja bitte"]
         cfg.save()
@@ -555,7 +558,7 @@ class DocxExtractTests(NoesisTestCase):
         self.assertEqual(data, [])
 
     def test_parse_anlage2_text_fuzzy_rule_phrase(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AntwortErkennungsRegel.objects.create(
             regel_name="aktiv",
             erkennungs_phrase="aktivv",
@@ -565,7 +568,7 @@ class DocxExtractTests(NoesisTestCase):
         self.assertEqual(data, [])
 
     def test_parse_anlage2_text_multiple_rules_priority(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
         AntwortErkennungsRegel.objects.create(
             regel_name="a",
             erkennungs_phrase="foo",
@@ -591,7 +594,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_parse_anlage2_text_unknown_question(self):
-        Anlage2Function.objects.create(name="Login")
+        Anlage2Function.objects.get(name="Login")
         cfg = Anlage2Config.get_instance()
         cfg.text_technisch_verfuegbar_true = ["ja"]
         cfg.save()
@@ -606,7 +609,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_subquestion_skipped_when_main_absent(self):
-        func = Anlage2Function.objects.create(name="Anwesenheit")
+        func = Anlage2Function.objects.get(name="Anwesenheit")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Grund?",
@@ -627,7 +631,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_subquestion_processed_when_main_present(self):
-        func = Anlage2Function.objects.create(name="Anwesenheit")
+        func = Anlage2Function.objects.get(name="Anwesenheit")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(
             funktion=func,
             frage_text="Grund?",
@@ -650,8 +655,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_exact_parser_handles_segments(self):
-        func1 = Anlage2Function.objects.create(name="Login")
-        func2 = Anlage2Function.objects.create(name="Analyse")
+        func1 = Anlage2Function.objects.get(name="Login")
+        func2 = Anlage2Function.objects.get(name="Analyse")
         AntwortErkennungsRegel.objects.create(
             regel_name="aktiv", erkennungs_phrase="aktiv",
             actions_json=[{"field": "technisch_verfuegbar", "value": True}],
@@ -683,7 +688,8 @@ class DocxExtractTests(NoesisTestCase):
         )
 
     def test_exact_parser_subquestion_requires_main(self):
-        func = Anlage2Function.objects.create(name="Login")
+        func = Anlage2Function.objects.get(name="Login")
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
         Anlage2SubQuestion.objects.create(funktion=func, frage_text="Grund?")
         AntwortErkennungsRegel.objects.create(
             regel_name="tv", erkennungs_phrase="ja",
