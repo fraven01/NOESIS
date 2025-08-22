@@ -117,7 +117,6 @@ from .base import NoesisTestCase
 
 
 def create_statuses() -> None:
-    ProjectStatus.objects.all().delete()
     data = [
         ("NEW", "Neu"),
         ("CLASSIFIED", "Klassifiziert"),
@@ -128,12 +127,14 @@ def create_statuses() -> None:
         ("ENDGEPRUEFT", "Endgeprüft"),
     ]
     for idx, (key, name) in enumerate(data, start=1):
-        ProjectStatus.objects.create(
-            name=name,
+        ProjectStatus.objects.update_or_create(
             key=key,
-            ordering=idx,
-            is_default=key == "NEW",
-            is_done_status=key == "ENDGEPRUEFT",
+            defaults={
+                "name": name,
+                "ordering": idx,
+                "is_default": key == "NEW",
+                "is_done_status": key == "ENDGEPRUEFT",
+            },
         )
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     projekt = BVProject.objects.create(**kwargs)
@@ -145,27 +146,9 @@ def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
 def seed_test_data(*, skip_prompts: bool = False) -> None:
     """Befüllt die Test-Datenbank mit Initialdaten.
 
-    Bestehende Einträge werden zuvor gelöscht. Optional können die
+    Bestehende Einträge werden bei Bedarf überschrieben. Optional können die
     Prompt-Definitionen übersprungen werden.
     """
-    BVProject.objects.all().delete()
-    Prompt.objects.all().delete()
-    Tile.objects.all().delete()
-    Area.objects.all().delete()
-    Anlage2Function.objects.all().delete()
-    Anlage2SubQuestion.objects.all().delete()
-    Anlage2ColumnHeading.objects.all().delete()
-    Anlage2Config.objects.all().delete()
-    Anlage1Question.objects.all().delete()
-    apps.get_model("core", "Anlage1QuestionVariant").objects.all().delete()
-    apps.get_model("core", "LLMRole").objects.all().delete()
-    AntwortErkennungsRegel.objects.all().delete()
-    Anlage4Config.objects.all().delete()
-    Anlage4ParserConfig.objects.all().delete()
-    LLMConfig.objects.all().delete()
-    apps.get_model("core", "ZweckKategorieA").objects.all().delete()
-    apps.get_model("core", "Anlage3ParserRule").objects.all().delete()
-    apps.get_model("core", "SupervisionStandardNote").objects.all().delete()
     from django.apps import apps as django_apps
     from core.management.commands.seed_initial_data import (
         create_initial_data,
@@ -1699,7 +1682,6 @@ class LLMTasksTests(NoesisTestCase):
         cfg.text_ki_beteiligung_true = ["ja"]
         cfg.text_ki_beteiligung_false = []
         cfg.save()
-        AntwortErkennungsRegel.objects.all().delete()
 
         result = run_anlage2_analysis(pf)
         expected = [
@@ -2492,18 +2474,17 @@ class CheckAnlage5Tests(NoesisTestCase):
             upload=SimpleUploadedFile("a.docx", b""),
             text_content="",
         )
-        ZweckKategorieA.objects.all().delete()
-        cat1 = ZweckKategorieA.objects.create(beschreibung="A")
-        cat2 = ZweckKategorieA.objects.create(beschreibung="B")
-        text = f"{cat1.beschreibung} {cat2.beschreibung}"
+        purposes = list(ZweckKategorieA.objects.values_list("beschreibung", flat=True))
+        text = " ".join(purposes)
+        expected_ids = list(ZweckKategorieA.objects.values_list("pk", flat=True))
         with patch("core.llm_tasks.extract_text", return_value=text):
             data = check_anlage5(pf.pk)
         pf.refresh_from_db()
         review = pf.anlage5review
-        self.assertEqual(set(data["purposes"]), {cat1.pk, cat2.pk})
+        self.assertEqual(set(data["purposes"]), set(expected_ids))
         self.assertTrue(pf.verhandlungsfaehig)
         self.assertEqual(
-            set(review.found_purposes.values_list("pk", flat=True)), {cat1.pk, cat2.pk}
+            set(review.found_purposes.values_list("pk", flat=True)), set(expected_ids)
         )
 
     def test_check_anlage5_detects_other_text(self):
@@ -3358,21 +3339,20 @@ class ModelSelectionTests(NoesisTestCase):
 
 class FunctionImportExportTests(NoesisTestCase):
     def setUp(self):
-        Anlage2Function.objects.all().delete()
         admin_group = Group.objects.create(name="admin")
         self.user = User.objects.create_user("adminie", password="pass")
         self.user.groups.add(admin_group)
         self.client.login(username="adminie", password="pass")
+        self.func = Anlage2Function.objects.create(name="Anmelden")
 
     def test_export_returns_json(self):
-        func = Anlage2Function.objects.get(name="Anmelden")
-        Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
+        Anlage2SubQuestion.objects.create(funktion=self.func, frage_text="Warum?")
         url = reverse("anlage2_function_export")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
-        self.assertEqual(data[0]["name"], "Anmelden")
-        self.assertEqual(data[0]["subquestions"][0]["frage_text"], "Warum?")
+        entry = next(item for item in data if item["name"] == "Anmelden")
+        self.assertEqual(entry["subquestions"][0]["frage_text"], "Warum?")
 
     def test_import_creates_functions(self):
         payload = json.dumps([{"name": "Anmelden", "subquestions": ["Frage"]}])
@@ -4655,6 +4635,7 @@ class Anlage2ResetTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("reset", password="pw")
         self.client.login(username="reset", password="pw")
+        self.func = Anlage2Function.objects.create(name="Anmelden")
 
     def test_run_anlage2_analysis_resets_results(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -4663,15 +4644,13 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
-        Anlage2Function.objects.all().delete()
-        func = Anlage2Function.objects.get(name="Anmelden")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf_old,
-            funktion=func,
+            funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             anlage_datei=pf_old,
-            funktion=func,
+            funktion=self.func,
             quelle="parser",
         )
         pf = BVProjectFile.objects.create(
@@ -4688,12 +4667,13 @@ class Anlage2ResetTests(NoesisTestCase):
         ):
             run_anlage2_analysis(pf)
         results = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__project=projekt
+            anlage_datei__project=projekt,
+            subquestion__isnull=True,
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei__project=projekt,
-            funktion=func,
+            funktion=self.func,
             quelle="parser",
         ).first()
         self.assertIsNotNone(fe)
@@ -4705,14 +4685,13 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("old.txt", b"x"),
         )
-        func = Anlage2Function.objects.get(name="Anmelden")
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=pf_old,
-            funktion=func,
+            funktion=self.func,
         )
         FunktionsErgebnis.objects.create(
             anlage_datei=pf_old,
-            funktion=func,
+            funktion=self.func,
             quelle="ki",
             technisch_verfuegbar=False,
         )
@@ -5026,7 +5005,6 @@ class ProjektDetailGapTests(NoesisTestCase):
             anlage_nr=5,
             upload=SimpleUploadedFile("d.txt", b"data"),
         )
-        ZweckKategorieA.objects.all().delete()
         ZweckKategorieA.objects.create(beschreibung="A")
         ZweckKategorieA.objects.create(beschreibung="B")
         Anlage5Review.objects.create(project_file=pf5)

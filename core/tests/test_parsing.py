@@ -1129,7 +1129,6 @@ class AnalyseAnlage4Tests(NoesisTestCase):
 
     def test_passes_config_to_parser(self):
         """Die Analyse nutzt die übergebene Konfiguration."""
-        Anlage4ParserConfig.objects.all().delete()
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         cfg.delimiter_phrase = "Y"
         cfg.save()
