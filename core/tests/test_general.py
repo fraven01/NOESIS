@@ -2890,7 +2890,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         self.assertRedirects(
             resp, reverse("projekt_file_edit_json", args=[self.file.pk])
         )
-        mock_func.assert_called_with(self.projekt.pk, model_name=None)
+        mock_func.assert_called_with(self.file.pk, model_name=None)
 
     def test_anlage2_uses_parser_by_default(self):
         url = reverse("projekt_file_check_view", args=[self.file2.pk])
