@@ -185,13 +185,21 @@ def _get_whisper_model():
     return _WHISPER_MODEL
 
 
-def get_user_tiles(user, bereich: str) -> list[Tile]:
-    """Gibt alle Tiles zurück, auf die ``user`` in ``bereich`` Zugriff hat."""
+def get_user_tiles(user, bereich: str) -> tuple[list[Area], list[Tile]]:
+    """Ermittelt Bereiche und Tiles, auf die ``user`` Zugriff hat.
 
-    qs = Tile.objects.filter(areas__slug=bereich).filter(
+    Liefert eine Liste aller zugänglichen Bereiche sowie die Tiles im
+    angegebenen ``bereich``.
+    """
+
+    areas = Area.objects.filter(
+        Q(userareaaccess__user=user)
+        | Q(groupareaaccess__group__in=user.groups.all())
+    ).distinct()
+    tiles = Tile.objects.filter(areas__slug=bereich).filter(
         Q(groups__in=user.groups.all()) | Q(users=user)
-    )
-    return list(qs.distinct())
+    ).distinct()
+    return list(areas), list(tiles)
 
 
 def _user_can_edit_project(user: User, projekt: BVProject) -> bool:
@@ -936,8 +944,8 @@ def get_cockpit_context(projekt: BVProject) -> dict[str, Any]:
 def home(request):
     # Logic from codex/prüfen-und-weiterleiten-basierend-auf-tile-typ
     # Assuming get_user_tiles is defined elsewhere and correctly retrieves tiles
-    tiles_personal = get_user_tiles(request.user, Tile.PERSONAL)
-    tiles_work = get_user_tiles(request.user, Tile.WORK)
+    _, tiles_personal = get_user_tiles(request.user, Tile.PERSONAL)
+    _, tiles_work = get_user_tiles(request.user, Tile.WORK)
 
     if tiles_personal and not tiles_work:
         return redirect("personal")
@@ -958,7 +966,7 @@ def home(request):
 @login_required
 def work(request):
     is_admin = request.user.groups.filter(name__iexact="admin").exists()
-    tiles = get_user_tiles(request.user, Tile.WORK)
+    _, tiles = get_user_tiles(request.user, Tile.WORK)
     context = {
         "is_admin": is_admin,
         "tiles": tiles,
@@ -969,7 +977,7 @@ def work(request):
 @login_required
 def personal(request):
     is_admin = request.user.groups.filter(name__iexact="admin").exists()
-    tiles = get_user_tiles(request.user, Tile.PERSONAL)
+    _, tiles = get_user_tiles(request.user, Tile.PERSONAL)
     context = {
         "is_admin": is_admin,
         "tiles": tiles,
