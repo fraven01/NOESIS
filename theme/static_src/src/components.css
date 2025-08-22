@@ -45,4 +45,19 @@
   .active-nav-link {
     @apply bg-accent text-text-light font-semibold;
   }
+
+  .dark .CodeMirror,
+  .dark .editor-toolbar,
+  .dark .editor-statusbar {
+    @apply bg-background-dark text-text-light border border-gray-700;
+  }
+
+  .dark .editor-toolbar button {
+    @apply text-text-light;
+  }
+
+  .dark .editor-toolbar button:hover,
+  .dark .editor-toolbar button.active {
+    @apply bg-gray-700 text-text-light;
+  }
 }
