@@ -459,6 +459,21 @@ class BVProjectFileTests(NoesisTestCase):
             projekt.delete()
             self.assertFalse(os.path.exists(file_path))
 
+    def test_auto_start_analysis_saves_task_id(self):
+        """Die Analyse-ID wird nach dem Upload gespeichert."""
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        with patch(
+            "core.signals.start_analysis_for_file", return_value="tid"
+        ) as mock_start:
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=1,
+                upload=SimpleUploadedFile("a.txt", b"data"),
+            )
+        mock_start.assert_called_with(pf.pk)
+        pf.refresh_from_db()
+        self.assertEqual(pf.verification_task_id, "tid")
+
     def test_json_form_shows_analysis_field_for_anlage3(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(

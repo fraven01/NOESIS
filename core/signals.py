@@ -51,5 +51,8 @@ def auto_start_analysis(sender, instance: BVProjectFile, created: bool, **kwargs
     if not created:
         return
 
-    start_analysis_for_file(instance.pk)
+    task_id = start_analysis_for_file(instance.pk)
+    if task_id:
+        instance.verification_task_id = task_id
+        instance.save(update_fields=["verification_task_id"])
 
