@@ -515,12 +515,13 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_check_functions_clears_task_id(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            verification_task_id="tid",
-        )
+        with patch("core.signals.start_analysis_for_file", return_value="tid"):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                verification_task_id="tid",
+            )
         Anlage2Function.objects.get(name="Anmelden")
         with (
             patch("core.llm_tasks.query_llm", return_value="{}"),
@@ -553,12 +554,13 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_project_file_status_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            verification_task_id="tid",
-        )
+        with patch("core.signals.start_analysis_for_file", return_value="tid"):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                verification_task_id="tid",
+            )
         self.client.login(username=self.superuser.username, password="pass")
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=None)
@@ -569,19 +571,26 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_project_file_status_ready(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            verification_task_id="tid",
-        )
+        with patch("core.signals.start_analysis_for_file", return_value="tid"):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                verification_task_id="tid",
+            )
         self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("hx_anlage_status", args=[pf.pk])
         with patch("core.models.fetch") as mock_fetch:
             mock_fetch.return_value = SimpleNamespace(success=True)
-            url = reverse("hx_anlage_status", args=[pf.pk])
             resp = self.client.get(url)
+        self.assertContains(resp, "hx-trigger")
+        # Finalen Status simulieren
+        pf.processing_status = BVProjectFile.COMPLETE
+        pf.verification_task_id = ""
+        pf.save()
+        resp = self.client.get(url)
         self.assertNotContains(resp, "hx-trigger")
-        self.assertContains(resp, "Prüfen")
+        self.assertContains(resp, "Analyse bearbeiten")
 
     def test_hx_anlage_status_processing(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -621,55 +630,63 @@ class BVProjectFileTests(NoesisTestCase):
 
     def test_hx_anlage_status_failed(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            processing_status=BVProjectFile.FAILED,
-        )
+        with patch("core.signals.start_analysis_for_file", return_value=""):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                processing_status=BVProjectFile.FAILED,
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
+        self.assertNotContains(resp, "hx-trigger")
         self.assertContains(resp, "Analyse fehlgeschlagen")
         self.assertContains(resp, "Erneut versuchen")
 
     def test_hx_anlage_status_pending(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            processing_status=BVProjectFile.PENDING,
-        )
+        with patch("core.signals.start_analysis_for_file", return_value=""):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=2,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+                processing_status=BVProjectFile.PENDING,
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_status", args=[pf.pk])
         resp = self.client.get(url)
         self.assertContains(resp, "Analyse starten")
+        self.assertContains(resp, "hx-trigger")
 
     def test_hx_project_anlage_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-        )
+        with patch("core.signals.start_analysis_for_file", return_value=""):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=1,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_project_anlage_tab", args=[projekt.pk, 1])
         resp = self.client.get(url)
-        self.assertContains(resp, "a.txt")
+        self.assertContains(resp, 'href="/media/bv_files/a_')
+        self.assertContains(resp, '.txt"')
         self.assertContains(resp, "hx-trigger")
 
     def test_hx_anlage_row(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-        )
+        with patch("core.signals.start_analysis_for_file", return_value=""):
+            pf = BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=1,
+                upload=SimpleUploadedFile("a.txt", b"x"),
+            )
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_anlage_row", args=[pf.pk])
         resp = self.client.get(url)
-        self.assertContains(resp, "a.txt")
+        self.assertContains(resp, 'href="/media/bv_files/a_')
+        self.assertContains(resp, '.txt"')
         self.assertContains(resp, "hx-trigger")
 
     def test_hx_toggle_project_file_flag(self):
