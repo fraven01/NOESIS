@@ -1229,19 +1229,25 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
 
     def test_get_runs_analysis_and_redirects(self):
         url = reverse("projekt_file_analyse_anlage4", args=[self.file.pk])
-        with patch("core.views.analyse_anlage4_async") as mock_func:
-            mock_func.return_value = {}
+        with patch("core.views.connection.vendor", new="postgresql"), patch(
+            "core.views.async_task"
+        ) as mock_task:
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
-        mock_func.assert_called_with(self.file.pk)
+        mock_task.assert_called_with(
+            "core.llm_tasks.analyse_anlage4_async", self.file.pk
+        )
 
     def test_post_runs_analysis_and_redirects(self):
         url = reverse("projekt_file_analyse_anlage4", args=[self.file.pk])
-        with patch("core.views.analyse_anlage4_async") as mock_func:
-            mock_func.return_value = {}
+        with patch("core.views.connection.vendor", new="postgresql"), patch(
+            "core.views.async_task"
+        ) as mock_task:
             resp = self.client.post(url)
         self.assertRedirects(resp, reverse("anlage4_review", args=[self.file.pk]))
-        mock_func.assert_called_with(self.file.pk)
+        mock_task.assert_called_with(
+            "core.llm_tasks.analyse_anlage4_async", self.file.pk
+        )
 
 
 class WorkerAnlage4EvaluateTests(NoesisTestCase):
