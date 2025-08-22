@@ -1,3 +1,4 @@
+from .base import NoesisTestCase
 from .test_general import *
 from ..forms import Anlage5ReviewForm, BVProjectFileForm
 from ..models import ZweckKategorieA

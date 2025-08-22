@@ -1,3 +1,4 @@
+from .base import NoesisTestCase
 from .test_general import *
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse

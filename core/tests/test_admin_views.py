@@ -1,3 +1,4 @@
+from .base import NoesisTestCase
 from .test_general import *
 
 class AdminProjectsTests(NoesisTestCase):

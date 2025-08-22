@@ -114,7 +114,7 @@ from unittest.mock import patch, ANY, Mock, call
 from django.core.management import call_command
 from django.test import override_settings
 import json
-import pytest
+from .base import NoesisTestCase
 
 
 def create_statuses() -> None:
@@ -362,17 +362,6 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
         )
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _seed_db(django_db_setup, django_db_blocker) -> None:
-    """Initialisiert einmalig die Testdatenbank."""
-    with django_db_blocker.unblock():
-        seed_test_data()
-        User.objects.create_user("baseuser", password="pass")
-        User.objects.create_superuser(
-            "basesuper", "admin@example.com", password="pass"
-        )
-
-
 class SeedInitialDataTests(TransactionTestCase):
     """Tests für das Seeding der Antwortregeln."""
 
@@ -393,16 +382,6 @@ class SeedInitialDataTests(TransactionTestCase):
                 obj.actions_json,
                 rule["actions"],
             )
-
-
-class NoesisTestCase(TransactionTestCase):
-    """Basisklasse für alle Tests mit gefüllter Datenbank."""
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        """Stellt die global angelegten Testbenutzer bereit."""
-        cls.user = User.objects.get(username="baseuser")
-        cls.superuser = User.objects.get(username="basesuper")
 
 
 class ExtractAnlageNrTests(TransactionTestCase):

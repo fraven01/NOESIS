@@ -2,13 +2,13 @@ from datetime import timedelta
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import TestCase
 from django.utils import timezone
 
+from .base import NoesisTestCase
 from core.models import BVProject, BVProjectFile, ProjectStatus
 
 
-class FailStaleProcessingCommandTests(TestCase):
+class FailStaleProcessingCommandTests(NoesisTestCase):
     """Tests für den fail_stale_processing-Command."""
 
     def test_marks_old_entries_failed(self) -> None:
