@@ -3,6 +3,7 @@ from ..anlage4_parser import parse_anlage4_dual
 from ..models import Anlage4ParserConfig
 from ..docx_utils import _normalize_header_text
 from ..parsers import ExactParser
+from ..llm_tasks import worker_a4_plausibility as check_anlage4_item_plausibility
 
 class DocxExtractTests(NoesisTestCase):
     def test_extract_text(self):
@@ -1062,28 +1063,74 @@ class Anlage4ParserTests(NoesisTestCase):
 
 class AnalyseAnlage4Tests(NoesisTestCase):
     def test_task_stores_json(self):
-        cfg = Anlage4Config.objects.create(prompt_template="Antwort:")
-        projekt = BVProject.objects.create(software_typen="A")
+        """Prüft, dass der Parser Stammdaten korrekt speichert."""
+        pcfg = Anlage4ParserConfig.objects.create(
+            delimiter_phrase="Name",
+            gesellschaften_phrase="Gesellschaft",
+            fachbereiche_phrase="Bereich",
+        )
+        projekt = BVProject.objects.create(software_typen="A", title="Test")
         pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=4,
-            upload=SimpleUploadedFile("a.docx", b""),
-            text_content="Zweck: A",
-            anlage4_config=cfg,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Name A\nGesellschaft X\nBereich Y",
+            anlage4_parser_config=pcfg,
         )
+        with patch("core.llm_tasks.worker_a4_plausibility"), patch(
+            "core.llm_tasks.worker_anlage4_evaluate"
+        ):
+            data = analyse_anlage4_async(pf.pk)
+        pf.refresh_from_db()
+        expected = {
+            "name_der_auswertung": "A",
+            "gesellschaften": "X",
+            "fachbereiche": "Y",
+        }
+        self.assertEqual(data["items"][0]["structured"], expected)
+        self.assertEqual(pf.analysis_json["items"][0]["structured"], expected)
+
+    def test_check_anlage4_item_plausibility(self):
+        """LLM-Task ergänzt Plausibilitätsdaten im JSON."""
+        pcfg = Anlage4ParserConfig.objects.create(
+            delimiter_phrase="Name",
+            gesellschaften_phrase="Gesellschaft",
+            fachbereiche_phrase="Bereich",
+        )
+        projekt = BVProject.objects.create(software_typen="A", title="Projekt")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=4,
+            upload=SimpleUploadedFile("a.txt", b""),
+            text_content="Name A\nGesellschaft X\nBereich Y",
+            anlage4_parser_config=pcfg,
+        )
+        # Parser ausführen ohne LLM-Prüfung
+        with patch("core.llm_tasks.worker_a4_plausibility"), patch(
+            "core.llm_tasks.worker_anlage4_evaluate"
+        ):
+            analyse_anlage4_async(pf.pk)
+        pf.refresh_from_db()
+
+        structured = {
+            **pf.analysis_json["items"][0]["structured"],
+            "kontext": projekt.title,
+        }
         with patch(
             "core.llm_tasks.query_llm",
             return_value='{"plausibilitaet":"hoch","score":0.8,"begruendung":"ok"}',
         ):
-            data = analyse_anlage4(projekt.pk)
+            check_anlage4_item_plausibility(structured, pf.pk, 0)
+
         pf.refresh_from_db()
-        self.assertEqual(data["items"][0]["plausibility"]["plausibilitaet"], "hoch")
-        self.assertEqual(
-            pf.analysis_json["items"][0]["plausibility"]["begruendung"],
-            "ok",
-        )
+        item = pf.analysis_json["items"][0]["plausibility"]
+        self.assertEqual(item["plausibilitaet"], "hoch")
+        self.assertEqual(item["score"], 0.8)
+        self.assertEqual(item["begruendung"], "ok")
 
     def test_passes_config_to_parser(self):
+        """Die Analyse nutzt die übergebene Konfiguration."""
+        Anlage4ParserConfig.objects.all().delete()
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
@@ -1095,8 +1142,10 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         )
         with patch(
             "core.llm_tasks.parse_anlage4", return_value=[]
-        ) as m_parse, patch("core.llm_tasks.query_llm", return_value="{}"):
-            analyse_anlage4(projekt.pk)
+        ) as m_parse, patch("core.llm_tasks.worker_a4_plausibility"), patch(
+            "core.llm_tasks.worker_anlage4_evaluate"
+        ):
+            analyse_anlage4_async(pf.pk)
         m_parse.assert_called_once_with(pf, cfg)
 
     def test_dual_parser_used_when_parser_config(self):
