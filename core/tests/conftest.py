@@ -13,10 +13,12 @@ def _seed_db(django_db_setup, django_db_blocker) -> None:
 
     with django_db_blocker.unblock():
         seed_test_data()
-        User.objects.create_user("baseuser", password="pass")
-        User.objects.create_superuser(
-            "basesuper", "admin@example.com", password="pass"
-        )
+        if not User.objects.filter(username="baseuser").exists():
+            User.objects.create_user("baseuser", password="pass")
+        if not User.objects.filter(username="basesuper").exists():
+            User.objects.create_superuser(
+                "basesuper", "admin@example.com", password="pass"
+            )
 
 
 @pytest.fixture
