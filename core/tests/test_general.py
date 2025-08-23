@@ -1764,7 +1764,7 @@ class LLMTasksTests(NoesisTestCase):
         self.assertTrue(parser_fe.technisch_verfuegbar)
         self.assertTrue(ai_fe.technisch_verfuegbar)
 
-    def test_parser_manager_fallback(self):
+    def test_parser_manager_no_fallback_on_error(self):
         class FailParser(AbstractParser):
             name = "fail"
 
@@ -1780,13 +1780,13 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(FailParser)
         parser_manager.register(DummyParser)
         cfg = Anlage2Config.get_instance()
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
         cfg.parser_order = ["fail", "dummy"]
-        cfg.parser_mode = "manager"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         doc = Document()
-        table = doc.add_table(rows=1, cols=1)
+        doc.add_table(rows=1, cols=1)
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
         doc.save(tmp.name)
         tmp.close()
@@ -1799,16 +1799,18 @@ class LLMTasksTests(NoesisTestCase):
         )
 
         try:
-            result = parser_manager.parse_anlage2(pf)
+            with patch.object(DummyParser, "parse", wraps=DummyParser.parse) as m_dummy:
+                result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("fail")
             parser_manager._parsers.pop("dummy")
-            cfg.parser_order = ["table"]
-            cfg.parser_mode = "auto"
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
             cfg.save()
 
-        self.assertEqual(result, [{"funktion": "Dummy"}])
+        self.assertEqual(result, [])
+        m_dummy.assert_not_called()
 
     def test_parser_manager_order(self):
         class P1(AbstractParser):
@@ -1826,8 +1828,8 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(P1)
         parser_manager.register(P2)
         cfg = Anlage2Config.get_instance()
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
         cfg.parser_order = ["two", "one"]
-        cfg.parser_mode = "manager"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1849,8 +1851,8 @@ class LLMTasksTests(NoesisTestCase):
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("one")
             parser_manager._parsers.pop("two")
-            cfg.parser_order = ["table"]
-            cfg.parser_mode = "auto"
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
             cfg.save()
 
         self.assertEqual(result, [{"val": 2}])
@@ -1871,8 +1873,8 @@ class LLMTasksTests(NoesisTestCase):
         parser_manager.register(P1)
         parser_manager.register(P2)
         cfg = Anlage2Config.get_instance()
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
         cfg.parser_order = ["p1", "p2"]
-        cfg.parser_mode = "manager"
         cfg.save()
 
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1899,15 +1901,15 @@ class LLMTasksTests(NoesisTestCase):
             Path(tmp.name).unlink(missing_ok=True)
             parser_manager._parsers.pop("p1", None)
             parser_manager._parsers.pop("p2", None)
-            cfg.parser_order = ["table"]
-            cfg.parser_mode = "auto"
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
             cfg.save()
 
         m_tab.assert_not_called()
         m_text.assert_not_called()
         self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
-    def test_run_anlage2_analysis_auto_prefers_table(self):
+    def test_parser_manager_uses_table_when_configured(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -1916,21 +1918,27 @@ class LLMTasksTests(NoesisTestCase):
             text_content="t",
         )
         cfg = Anlage2Config.get_instance()
-
-        cfg.parser_mode = "auto"
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
         cfg.parser_order = ["table", "exact"]
         cfg.save()
         table_result = [{"funktion": "Anmelden"}]
-        with (
-            patch("core.parsers.parse_anlage2_table", return_value=table_result),
-            patch(
-                "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
-            ) as m_exact,
-        ):
-            result = parser_manager.parse_anlage2(pf)
+        try:
+            with (
+                patch("core.parsers.TableParser.parse", return_value=table_result) as m_table,
+                patch(
+                    "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
+                ) as m_exact,
+            ):
+                result = parser_manager.parse_anlage2(pf)
+        finally:
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
+            cfg.save()
+        m_table.assert_called_once()
+        m_exact.assert_not_called()
         self.assertEqual(result, table_result)
 
-    def test_run_anlage2_analysis_auto_fallback_empty_table(self):
+    def test_parser_manager_no_fallback_on_empty(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -1939,17 +1947,48 @@ class LLMTasksTests(NoesisTestCase):
             text_content="t",
         )
         cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "auto"
-        cfg.parser_order = ["exact", "table"]
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
+        cfg.parser_order = ["table", "exact"]
         cfg.save()
-        with (
-            patch("core.parsers.parse_anlage2_table", return_value=[{"funktion": "Anmelden"}]) as m_table,
-            patch("core.parsers.ExactParser.parse", return_value=[]) as m_exact,
-        ):
-            result = parser_manager.parse_anlage2(pf)
-        m_exact.assert_called_once()
+        try:
+            with (
+                patch("core.parsers.TableParser.parse", return_value=[]) as m_table,
+                patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
+            ):
+                result = parser_manager.parse_anlage2(pf)
+        finally:
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
+            cfg.save()
         m_table.assert_called_once()
-        self.assertEqual(result, [{"funktion": "Anmelden"}])
+        m_exact.assert_not_called()
+        self.assertEqual(result, [])
+
+    def test_parser_manager_uses_exact_by_default(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=2,
+            upload=SimpleUploadedFile("a.txt", b"x"),
+            text_content="t",
+        )
+        cfg = Anlage2Config.get_instance()
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
+        cfg.parser_order = ["exact"]
+        cfg.save()
+        try:
+            with (
+                patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
+                patch("core.parsers.TableParser.parse") as m_table,
+            ):
+                result = parser_manager.parse_anlage2(pf)
+        finally:
+            cfg.parser_order = old_order
+            cfg.parser_mode = old_mode
+            cfg.save()
+        m_exact.assert_called_once()
+        m_table.assert_not_called()
+        self.assertEqual(result, [{"funktion": "Alt"}])
 
     def test_parser_manager_exact_parser_segments(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1972,9 +2011,13 @@ class LLMTasksTests(NoesisTestCase):
             actions_json=[{"field": "einsatz_telefonica", "value": False}],
         )
         cfg = Anlage2Config.get_instance()
+        old_order, old_mode = cfg.parser_order, cfg.parser_mode
         cfg.parser_mode = "exact_only"
         cfg.save()
         result = parser_manager.parse_anlage2(pf)
+        cfg.parser_order = old_order
+        cfg.parser_mode = old_mode
+        cfg.save()
         self.assertEqual(
             result,
             [

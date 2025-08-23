@@ -27,7 +27,7 @@ class ParserManager:
         return list(self._parsers.keys())
 
     def parse_anlage2(self, project_file: BVProjectFile) -> list[dict[str, object]]:
-        """Führt die Parser gemäß Konfiguration aus."""
+        """Führt den gewählten Parser gemäß Konfiguration aus."""
         logger.debug(
             "Parse Datei %s (%s)",
             project_file.pk,
@@ -39,41 +39,37 @@ class ParserManager:
         logger.debug("Parser-Modus: %s Reihenfolge: %s", mode, order)
 
         if mode == "table_only":
-            return self._run_single("table", project_file)
-        if mode == "exact_only":
-            return self._run_single("exact", project_file)
-        if mode == "text_only":
-            candidates = [n for n in order if n in {"text", "exact"}]
-            if not candidates:
-                candidates = [n for n in ("text", "exact") if n in self._parsers]
-        else:  # auto or unknown mode
-            candidates = order
+            name = "table"
+        elif mode == "exact_only":
+            name = "exact"
+        elif mode == "text_only":
+            name = "text"
+        else:  # auto or unbekannt
+            name = order[0]
 
-        for name in candidates:
-            parser = self.get(name)
-            if parser is None:
-                logger.warning("Unbekannter Parser: %s", name)
-                continue
-            logger.debug("Starte Parser: %s", name)
-            try:
-                result = parser.parse(project_file)
-            except Exception as exc:  # pragma: no cover - Fehlkonfiguration
-                logger.error("Parser '%s' Fehler: %s", name, exc)
-                result = []
-            if result:
-                logger.debug(
-                    "Parser '%s' lieferte %s Einträge", name, len(result)
-                )
-                logger.info(
-                    "Parser '%s' lieferte %s Einträge für Datei %s",
-                    name,
-                    len(result),
-                    project_file.upload.name,
-                )
-                return result
-        logger.debug("Keine Parser lieferten Ergebnisse")
+        parser = self.get(name)
+        if parser is None:
+            logger.warning("Unbekannter Parser: %s", name)
+            return []
+        logger.debug("Starte Parser: %s", name)
+        try:
+            result = parser.parse(project_file)
+        except Exception as exc:  # pragma: no cover - Fehlkonfiguration
+            logger.error("Parser '%s' Fehler: %s", name, exc)
+            return []
+        if result:
+            logger.debug("Parser '%s' lieferte %s Einträge", name, len(result))
+            logger.info(
+                "Parser '%s' lieferte %s Einträge für Datei %s",
+                name,
+                len(result),
+                project_file.upload.name,
+            )
+            return result
+        logger.debug("Parser '%s' lieferte keine Ergebnisse", name)
         logger.warning(
-            "Kein Parser erzielte Treffer für Datei %s",
+            "Parser '%s' erzielte keine Treffer für Datei %s",
+            name,
             project_file.upload.name,
         )
         return []
