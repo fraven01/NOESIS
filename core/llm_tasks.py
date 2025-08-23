@@ -2202,7 +2202,7 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
 
     context = {
         "system_name": projekt.title or projekt.software_string,
-        "gap_list": gap_list_string.strip(),
+        "fragen": gap_list_string.strip(),
     }
 
     try:
