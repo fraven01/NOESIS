@@ -675,7 +675,7 @@ class BVProjectFileTests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertTrue(pf.manual_reviewed)
         self.assertContains(resp, "<tr")
-        self.assertContains(resp, "fa-check")
+        self.assertContains(resp, "✓")
 
     def test_hx_project_software_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
