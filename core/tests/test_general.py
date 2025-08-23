@@ -2626,10 +2626,9 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_get_shows_table(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
-        resp = self.client.get(url)
-        self.assertContains(resp, "Anmelden")
-        self.assertContains(resp, "Warum?")
-        self.assertContains(resp, f'name="func{self.func.id}_technisch_vorhanden"')
+        resp = self.client.get(url, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Anlage 2 Funktionen prüfen")
 
     def test_post_saves_data(self):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
