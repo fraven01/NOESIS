@@ -176,7 +176,8 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
     create_statuses()
 
     # Erforderliche Konfigurationen bereitstellen
-    LLMConfig.objects.get_or_create()
+    LLMConfig.objects.all().delete()
+    LLMConfig.objects.create()
     Anlage4Config.objects.get_or_create()
     Anlage4ParserConfig.objects.get_or_create()
 
