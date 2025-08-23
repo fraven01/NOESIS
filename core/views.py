@@ -3667,13 +3667,11 @@ def projekt_file_check(request, pk, nr):
     func = funcs.get(nr_int)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
-    category = request.POST.get("model_category")
-    model = LLMConfig.get_default(category) if category else None
     try:
         anlage = BVProjectFile.objects.filter(project_id=pk, anlage_nr=nr_int).first()
         if not anlage:
             return JsonResponse({"error": "not found"}, status=404)
-        func(anlage.pk, model_name=model)
+        func(anlage.pk)
         anlage.refresh_from_db()
         analysis = anlage.analysis_json
     except ValueError as exc:
@@ -3712,10 +3710,8 @@ def projekt_file_check_pk(request, pk):
     func = funcs.get(anlage.anlage_nr)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
-    category = request.POST.get("model_category")
-    model = LLMConfig.get_default(category) if category else None
     try:
-        func(anlage.pk, model_name=model)
+        func(anlage.pk)
         anlage.refresh_from_db()
         analysis = anlage.analysis_json
     except RuntimeError:
@@ -3768,11 +3764,8 @@ def projekt_file_check_view(request, pk):
     func = funcs.get(anlage.anlage_nr)
     if not func:
         raise Http404
-
-    category = request.GET.get("model_category")
-    model = LLMConfig.get_default(category) if category else None
     try:
-        func(anlage.pk, model_name=model)
+        func(anlage.pk)
     except RuntimeError:
         messages.error(request, "Missing LLM credentials from environment.")
     except Exception:
