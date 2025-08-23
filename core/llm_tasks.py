@@ -204,7 +204,7 @@ def _parse_llm_json(reply: str) -> dict:
 
 def parse_anlage1_questions(
     text_content: str,
-) -> dict[str, dict[str, str | None]] | None:
+) -> dict[str, dict[str, str | None]]:
     """Sucht die Texte der Anlage-1-Fragen und extrahiert die Antworten."""
     anlage1_logger.debug(
         "parse_anlage1_questions: Aufruf mit text_content=%r",
@@ -212,7 +212,7 @@ def parse_anlage1_questions(
     )
     if not text_content:
         anlage1_logger.debug("parse_anlage1_questions: Kein Text übergeben.")
-        return None
+        return {}
 
     text_content = _clean_text(text_content)
 
@@ -229,7 +229,7 @@ def parse_anlage1_questions(
             questions.append(q)
     if not questions:
         anlage1_logger.debug("parse_anlage1_questions: Keine aktiven Fragen vorhanden.")
-        return None
+        return {}
 
     matches: list[tuple[int, int, int, str]] = []
     for q in questions:
@@ -259,7 +259,7 @@ def parse_anlage1_questions(
 
     if not matches:
         anlage1_logger.debug("parse_anlage1_questions: Keine Fragen im Text gefunden.")
-        return None
+        return {}
 
     matches.sort(key=lambda x: x[0])
     parsed: dict[str, dict[str, str | None]] = {}
@@ -277,11 +277,8 @@ def parse_anlage1_questions(
             parsed[str(num)]["answer"],
         )
 
-    anlage1_logger.debug(
-        "parse_anlage1_questions: Ergebnis: %r",
-        parsed if parsed else None,
-    )
-    return parsed if parsed else None
+    anlage1_logger.debug("parse_anlage1_questions: Ergebnis: %r", parsed)
+    return parsed
 
 
 def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list[str] | None:
@@ -931,7 +928,7 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     save_fields = ["processing_status"]
     try:
         parsed = parse_anlage1_questions(anlage.text_content)
-        data = {"questions": parsed or {}}
+        data = {"questions": parsed}
 
         anlage.analysis_json = data
         anlage.processing_status = BVProjectFile.COMPLETE
