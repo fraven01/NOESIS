@@ -2476,6 +2476,12 @@ class LLMTasksTests(NoesisTestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1.2"}})
 
+    def test_parse_anlage1_questions_returns_empty_dict(self):
+        """Bei fehlenden Treffern wird ein leeres Dict zur\u00fcckgegeben."""
+        text = "Es gibt hier keine Fragen."
+        parsed = parse_anlage1_questions(text)
+        self.assertEqual(parsed, {})
+
     def test_generate_gutachten_twice_replaces_file(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         first = generate_gutachten(projekt.pk, text="Alt")
