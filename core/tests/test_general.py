@@ -4703,6 +4703,7 @@ class Anlage2ResetTests(NoesisTestCase):
 
     def setUp(self):
         self.user = User.objects.create_user("reset", password="pw")
+        self.superuser = User.objects.get(username="basesuper")
         self.client.login(username="reset", password="pw")
         self.func = Anlage2Function.objects.create(name="Anmelden")
 
@@ -4804,7 +4805,7 @@ class Anlage2ResetTests(NoesisTestCase):
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei__project=projekt,
-            funktion=func,
+            funktion=self.func,
             quelle="ki",
         ).first()
         self.assertTrue(fe.technisch_verfuegbar)
@@ -4842,7 +4843,7 @@ class Anlage2ResetTests(NoesisTestCase):
             ).exists()
         )
 
-    def test_ajax_reset_all_reviews_resets_manual_fields(self, user):
+    def test_ajax_reset_all_reviews_resets_manual_fields(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -4873,7 +4874,7 @@ class Anlage2ResetTests(NoesisTestCase):
             quelle="manuell",
             technisch_verfuegbar=True,
         )
-        self.client.login(username=user.username, password="pw")
+        self.client.login(username=self.user.username, password="pw")
         url = reverse("ajax_reset_all_reviews", args=[pf.pk])
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 200)
@@ -4906,7 +4907,7 @@ class Anlage2ResetTests(NoesisTestCase):
             ).exists()
         )
 
-    def test_hx_update_review_cell_toggles_manual_entry(self, superuser):
+    def test_hx_update_review_cell_toggles_manual_entry(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -4931,7 +4932,7 @@ class Anlage2ResetTests(NoesisTestCase):
             technisch_verfuegbar=False,
         )
 
-        self.client.login(username=superuser.username, password="pass")
+        self.client.login(username=self.superuser.username, password="pass")
         url = reverse("hx_update_review_cell", args=[result.pk, "technisch_vorhanden"])
 
         resp = self.client.post(url, HTTP_HX_REQUEST="true")
