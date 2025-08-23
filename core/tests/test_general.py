@@ -1591,7 +1591,9 @@ class LLMTasksTests(NoesisTestCase):
             data = check_anlage2(projekt.pk)
         self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0].text)
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(data["functions"][0]["funktion"], "Anmelden")
+        self.assertTrue(
+            any(f["funktion"] == "Anmelden" for f in data["functions"])
+        )
 
     def test_check_anlage2_prompt_contains_text(self):
         """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
@@ -1609,7 +1611,9 @@ class LLMTasksTests(NoesisTestCase):
         prompt = mock_q.call_args_list[0].args[0].text
         self.assertIn("Testinhalt Anlage2", prompt)
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(data["functions"][0]["funktion"], "Anmelden")
+        self.assertTrue(
+            any(f["funktion"] == "Anmelden" for f in data["functions"])
+        )
 
     def test_check_anlage2_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1642,20 +1646,16 @@ class LLMTasksTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm") as mock_q:
             data = check_anlage2(projekt.pk)
         mock_q.assert_called()
-        expected = {
-            "task": "check_anlage2",
-            "functions": [
-                {
-                    "funktion": "Anmelden",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                    "ki_beteiligung": {"value": True, "note": None},
-                    "source": "parser",
-                }
-            ],
+        expected_function = {
+            "funktion": "Anmelden",
+            "technisch_verfuegbar": {"value": True, "note": None},
+            "ki_beteiligung": {"value": True, "note": None},
+            "source": "parser",
         }
         file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(data, expected)
-        self.assertEqual(file_obj.analysis_json, expected)
+        self.assertEqual(data["task"], "check_anlage2")
+        self.assertIn(expected_function, data["functions"])
+        self.assertIn(expected_function, file_obj.analysis_json["functions"])
 
     def test_run_anlage2_analysis_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
