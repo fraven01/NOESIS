@@ -518,7 +518,7 @@ class BVProjectFileTests(NoesisTestCase):
             mock_fetch.return_value = SimpleNamespace(success=None)
             url = reverse("projekt_detail", args=[projekt.pk])
             resp = self.client.get(url)
-        self.assertContains(resp, "Analyse läuft")
+        self.assertContains(resp, "Analyse läuft")  # Statusmeldung bei laufender Analyse
 
     def test_hx_project_file_status_running(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
