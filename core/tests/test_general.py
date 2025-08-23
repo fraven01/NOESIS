@@ -2641,6 +2641,9 @@ class ProjektFileCheckViewTests(NoesisTestCase):
 class Anlage2ReviewTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
+        patcher = patch("core.signals.start_analysis_for_file", return_value="")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.user = User.objects.create_user("rev", password="pass")
         self.client.login(username="rev", password="pass")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
