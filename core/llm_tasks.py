@@ -1786,6 +1786,13 @@ def worker_verify_feature(
         sub_obj = obj_to_check
     tv = verification_result.get("technisch_verfuegbar")
     ki_bet = verification_result.get("ki_beteiligt")
+    # Vor dem Speichern prüfen, ob die Datei noch existiert
+    if not BVProjectFile.objects.filter(pk=pf.pk).exists():
+        logger.warning(
+            "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Ergebnisse werden nicht gespeichert.",
+            pf.pk,
+        )
+        return {}
     logger.debug(
         "Update or create AnlagenFunktionsMetadaten: anlage_datei=%s funktion_id=%s subquestion=%s",
         pf.pk,
