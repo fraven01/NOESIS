@@ -210,7 +210,10 @@ def create_initial_data(apps) -> None:
         ),
         (
             "gap_report_anlage1",
-            "Fasse alle Hinweise und Vorschläge aus Anlage 1 zu einem kurzen Text für den Fachbereich. Nutze {fragen} als Input.",
+            (
+                "Fasse alle Hinweise und Vorschläge aus Anlage 1 zu einem kurzen Text für den Fachbereich. "
+                "Die folgenden Fragen dienen als Input:\n\n{fragen}"
+            ),
             True,
         ),
         (
