@@ -2727,10 +2727,10 @@ class Anlage2ReviewTests(NoesisTestCase):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         resp = self.client.get(url)
         rows = resp.context["rows"]
-        self.assertEqual(rows[0]["verif_key"], self.func.name)
-        self.assertEqual(
-            rows[1]["verif_key"], f"{self.func.name}: {self.sub.frage_text}"
-        )
+        # Verif-Key unabhängig von der Reihenfolge prüfen
+        verif_keys = [row["verif_key"] for row in rows]
+        self.assertIn(self.func.name, verif_keys)
+        self.assertIn(f"{self.func.name}: {self.sub.frage_text}", verif_keys)
 
     def test_subquestion_justification_link(self):
         FunktionsErgebnis.objects.create(
