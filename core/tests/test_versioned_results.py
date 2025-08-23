@@ -90,7 +90,7 @@ def test_new_version_copies_ai_results(db):
     ProjectStatus.objects.create(name="Offen", is_default=True)
     projekt = BVProject.objects.create(title="P")
     funktion = Anlage2Function.objects.create(name="Anmelden")
-    with patch("core.signals.start_analysis_for_file"):
+    with patch("core.signals.start_analysis_for_file", return_value="tid"):
         pf1 = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=2,
@@ -115,7 +115,7 @@ def test_new_version_copies_ai_results(db):
     with open(tmp.name, "rb") as fh:
         upload = SimpleUploadedFile("b.docx", fh.read())
     Path(tmp.name).unlink(missing_ok=True)
-    with patch("core.signals.start_analysis_for_file"):
+    with patch("core.signals.start_analysis_for_file", return_value="tid"):
         pf2 = _save_project_file(projekt, upload=upload, anlage_nr=2)
 
     assert pf2.verification_json == pf1.verification_json
