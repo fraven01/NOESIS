@@ -782,15 +782,29 @@ def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
         anlage3_logger.debug("Seitenzahl der Datei: %s", pages)
 
         if pages <= 1:
-            data = {"task": "analyse_anlage3", "auto_ok": True, "pages": pages}
+            note = "Dokument umfasst eine Seite oder weniger."
             verhandlungsfaehig = True
+            data = {
+                "task": "analyse_anlage3",
+                "auto_ok": True,
+                "pages": pages,
+                "verhandlungsfaehig": {
+                    "value": verhandlungsfaehig,
+                    "note": note,
+                },
+            }
         else:
+            note = "Dokument umfasst mehr als eine Seite."
+            verhandlungsfaehig = False
             data = {
                 "task": "analyse_anlage3",
                 "manual_required": True,
                 "pages": pages,
+                "verhandlungsfaehig": {
+                    "value": verhandlungsfaehig,
+                    "note": note,
+                },
             }
-            verhandlungsfaehig = False
 
         anlage3_logger.debug("Analyseergebnis: %s", data)
 
@@ -805,7 +819,10 @@ def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
             result = data
 
     anlage3_logger.debug("Analyse abgeschlossen mit Ergebnis: %s", result)
-    return result or {}
+    return result or {
+        "task": "analyse_anlage3",
+        "verhandlungsfaehig": {"value": None, "note": None},
+    }
 
 
 def _read_pdf_images(path: Path) -> list[bytes]:
