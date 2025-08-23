@@ -2204,7 +2204,7 @@ class LLMTasksTests(NoesisTestCase):
         data = analyse_anlage3(pf.pk)
         pf.refresh_from_db()
         file_obj = pf
-        self.assertEqual(data["pages"]["value"], 1)
+        self.assertEqual(data["pages"], 1)
         self.assertTrue(data["verhandlungsfaehig"]["value"])
         self.assertTrue(file_obj.analysis_json["verhandlungsfaehig"]["value"])
         if hasattr(file_obj, "verhandlungsfaehig"):
@@ -2233,7 +2233,7 @@ class LLMTasksTests(NoesisTestCase):
         data = analyse_anlage3(pf.pk)
         pf.refresh_from_db()
         file_obj = pf
-        self.assertEqual(data["pages"]["value"], 2)
+        self.assertEqual(data["pages"], 2)
         self.assertFalse(data["verhandlungsfaehig"]["value"])
         self.assertFalse(file_obj.analysis_json["verhandlungsfaehig"]["value"])
         if hasattr(file_obj, "verhandlungsfaehig"):
@@ -2260,7 +2260,7 @@ class LLMTasksTests(NoesisTestCase):
         data = analyse_anlage3(pf.pk)
         pf.refresh_from_db()
         file_obj = pf
-        self.assertEqual(data["pages"]["value"], 1)
+        self.assertEqual(data["pages"], 1)
         self.assertTrue(data["verhandlungsfaehig"]["value"])
         self.assertTrue(file_obj.analysis_json["verhandlungsfaehig"]["value"])
 
@@ -2286,7 +2286,7 @@ class LLMTasksTests(NoesisTestCase):
         data = analyse_anlage3(pf.pk)
         pf.refresh_from_db()
         file_obj = pf
-        self.assertEqual(data["pages"]["value"], 2)
+        self.assertEqual(data["pages"], 2)
         self.assertFalse(data["verhandlungsfaehig"]["value"])
         self.assertFalse(file_obj.analysis_json["verhandlungsfaehig"]["value"])
 
