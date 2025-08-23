@@ -1139,6 +1139,7 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         cfg = Anlage4Config.objects.create(regex_patterns=[r"Zweck: (.+)"])
         cfg.delimiter_phrase = "Y"
         cfg.save()
+        Anlage4ParserConfig.objects.all().delete()
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -1147,12 +1148,14 @@ class AnalyseAnlage4Tests(NoesisTestCase):
             text_content="Zweck: A",
             anlage4_config=cfg,
         )
+        from core.llm_tasks import analyse_anlage4_async as _analyse_anlage4_worker
+
         with patch(
             "core.llm_tasks.parse_anlage4", return_value=[]
         ) as m_parse, patch("core.llm_tasks.worker_a4_plausibility"), patch(
             "core.llm_tasks.worker_anlage4_evaluate"
         ):
-            analyse_anlage4_async(pf.pk)
+            _analyse_anlage4_worker(pf.pk)
         m_parse.assert_called_once_with(pf, cfg)
 
     def test_dual_parser_used_when_parser_config(self):
