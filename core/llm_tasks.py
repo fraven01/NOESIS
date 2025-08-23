@@ -1829,9 +1829,9 @@ def worker_verify_feature(
                 "Anlage-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
                 pf.pk,
             )
-        else:
-            logger.error("Integritätsfehler beim Speichern der Ergebnisse: %s", exc)
-        return verification_result
+            return {}
+        logger.error("Integritätsfehler beim Speichern der Ergebnisse: %s", exc)
+        return {}
     except DatabaseError:
         if not BVProjectFile.objects.filter(pk=pf.pk).exists():
             logger.warning(
