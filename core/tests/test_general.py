@@ -2882,11 +2882,10 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
 class ProjektFileVersionDeletionTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        self.superuser = User.objects.get(username="basesuper")
 
-    def test_delete_active_restores_parent(self, user):
-        user.is_staff = True
-        user.save()
-        self.client.login(username=user.username, password="pass")
+    def test_delete_active_restores_parent(self):
+        self.client.login(username=self.superuser.username, password="pass")
         v1 = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=1,
@@ -2911,10 +2910,8 @@ class ProjektFileVersionDeletionTests(NoesisTestCase):
         v1.refresh_from_db()
         self.assertTrue(v1.is_active)
 
-    def test_delete_inactive_repairs_chain(self, user):
-        user.is_staff = True
-        user.save()
-        self.client.login(username=user.username, password="pass")
+    def test_delete_inactive_repairs_chain(self):
+        self.client.login(username=self.superuser.username, password="pass")
         v1 = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=1,
