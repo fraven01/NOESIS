@@ -278,7 +278,8 @@ def parse_anlage1_questions(
         )
 
     anlage1_logger.debug("parse_anlage1_questions: Ergebnis: %r", parsed)
-    return parsed
+    # Immer ein leeres Dict zurückgeben, falls keine Treffer vorhanden sind
+    return parsed or {}
 
 
 def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list[str] | None:
