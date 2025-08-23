@@ -6,3 +6,4 @@ honcho
 pytest
 rich
 selenium
+pytest-django
