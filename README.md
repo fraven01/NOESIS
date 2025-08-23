@@ -39,7 +39,7 @@ pip install -r requirements-dev.txt
 
 Installiere vor jedem Testlauf **alle** Abhängigkeiten aus beiden
 Anforderungsdateien, sonst schlagen `python manage.py makemigrations --check`
-und `python manage.py test` fehl:
+und `pytest` fehl:
 
 ```bash
 pip install -r requirements.txt
@@ -63,9 +63,9 @@ werden nur ausgeführt, wenn die Umgebungsvariable
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
 Für alle Django-Managementbefehle muss die Umgebungsvariable
-`DJANGO_SECRET_KEY` gesetzt sein. Beim Aufruf von
-`python manage.py test` wird automatisch `dummy_test_key` verwendet,
-falls keine Variable vorhanden ist.
+`DJANGO_SECRET_KEY` gesetzt sein. Beim Aufruf der Tests über `pytest`
+wird automatisch `dummy_test_key` verwendet, falls keine Variable
+vorhanden ist.
 Vor dem Einsatz der Managementbefehle muss zudem `pip install -r requirements.txt` ausgeführt worden sein, damit alle benötigten Module verfügbar sind.
 
 ## Sidebar-Struktur und Berechtigungssteuerung
@@ -85,8 +85,10 @@ python manage.py makemigrations --check
 ```
 
 Im Anschluss empfiehlt es sich, noch `python manage.py migrate`,
-`python manage.py seed_initial_data` und `python manage.py test`
-auszuführen.
+`python manage.py seed_initial_data` und `pytest`
+auszuführen. LLM-API-Aufrufe werden in den Tests durch ein
+`pytest`-Fixture automatisch gemockt, sodass keine externen
+Requests stattfinden.
 
 ### Commit-Richtlinien
 
