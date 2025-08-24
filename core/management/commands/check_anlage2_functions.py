@@ -9,8 +9,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("file_id", type=int)
-        parser.add_argument("--model", dest="model", default=None)
 
-    def handle(self, file_id, model=None, **options):
-        run_conditional_anlage2_check(file_id, model_name=model)
+    def handle(self, file_id, **options):
+        run_conditional_anlage2_check(file_id)
         print_markdown("Prüfung abgeschlossen")

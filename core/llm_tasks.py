@@ -312,7 +312,6 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
         reply = query_llm(
             prompt_obj,
             {},
-            model_name=None,
             model_type="anlagen",
             project_prompt=project_prompt,
         )
@@ -597,7 +596,7 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
 
 
 
-def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
+def classify_system(projekt_id: int) -> dict:
     """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     base_obj = Prompt.objects.filter(name__iexact="classify_system").first()
@@ -616,7 +615,6 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
     reply = query_llm(
         prompt_obj,
         {},
-        model_name=model_name,
         model_type="default",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -633,7 +631,7 @@ def classify_system(projekt_id: int, model_name: str | None = None) -> dict:
 
 
 def generate_gutachten(
-    projekt_id: int, text: str | None = None, model_name: str | None = None
+    projekt_id: int, text: str | None = None
 ) -> Path:
     """Erstellt ein Gutachten-Dokument mithilfe eines LLM."""
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -654,7 +652,6 @@ def generate_gutachten(
         text = query_llm(
             prompt_obj,
             {},
-            model_name=model_name,
             model_type="gutachten",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
@@ -699,8 +696,6 @@ def worker_generate_gutachten(
             project_id,
         )
         return ""
-    model = LLMConfig.get_default("gutachten")
-
     base_obj = Prompt.objects.filter(name__iexact="generate_gutachten").first()
     prefix = (
         base_obj.text
@@ -724,11 +719,10 @@ def worker_generate_gutachten(
     text = query_llm(
         prompt_obj,
         {},
-        model_name=model,
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
-    path = generate_gutachten(projekt.id, text, model_name=model)
+    path = generate_gutachten(projekt.id, text)
 
     if knowledge:
         gutachten, _ = Gutachten.objects.get_or_create(software_knowledge=knowledge)
@@ -740,7 +734,7 @@ def worker_generate_gutachten(
 
 
 @updates_file_status
-def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
+def analyse_anlage3(file_id: int) -> dict:
     """Analysiert die dritte Anlage hinsichtlich der Seitenzahl.
 
     Erkennt automatisch ein kleines Dokument (eine Seite oder weniger) und
@@ -748,14 +742,11 @@ def analyse_anlage3(file_id: int, model_name: str | None = None) -> dict:
     manueller Check erforderlich.
 
     :param file_id: ID der analysierten Datei
-    :param model_name: Optionaler Name des LLM-Modells (wird aktuell
-        nicht verwendet)
     """
 
     anlage3_logger.debug(
-        "Starte analyse_anlage3 für Datei %s mit Modell %s",
+        "Starte analyse_anlage3 für Datei %s",
         file_id,
-        model_name,
     )
     pf = BVProjectFile.objects.get(pk=file_id)
     projekt = pf.project
@@ -818,7 +809,7 @@ def _read_pdf_images(path: Path) -> list[bytes]:
         return []
 
 
-def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict:
+def check_anlage3_vision(projekt_id: int) -> dict:
     """Prüft Anlage 3 anhand der enthaltenen Bilder."""
 
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -832,7 +823,11 @@ def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict
         if prompt_obj
         else "Prüfe die folgende Anlage auf Basis der Bilder. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
     )
-    model = model_name or LLMConfig.get_default("vision")
+    model = (
+        prompt_obj.model.model_name
+        if prompt_obj and prompt_obj.model
+        else LLMConfig.get_default("vision")
+    )
     result: dict | None = None
     for anlage in anlagen:
         path = Path(anlage.upload.path)
@@ -869,7 +864,7 @@ def check_anlage3_vision(projekt_id: int, model_name: str | None = None) -> dict
     return result or {}
 
 
-def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> dict:
+def _check_anlage(projekt_id: int, nr: int) -> dict:
     """Pr\xfcft eine Anlage und speichert das Ergebnis."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
@@ -896,7 +891,6 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     reply = query_llm(
         prompt_obj,
         {},
-        model_name=model_name,
         model_type="anlagen",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -912,7 +906,7 @@ def _check_anlage(projekt_id: int, nr: int, model_name: str | None = None) -> di
     return data
 
 
-def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
+def check_anlage1(file_id: int) -> dict:
     """Extrahiert Frage-Antwort-Paare aus Anlage 1 per Parser."""
 
     try:
@@ -953,7 +947,7 @@ def check_anlage1(file_id: int, model_name: str | None = None) -> dict:
     return data
 
 
-def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
+def check_anlage2(projekt_id: int) -> dict:
     """Prüft die zweite Anlage.
 
     Für jede Funktion aus Anlage 2 wird geprüft, ob sie in der Tabelle der Anlage vorhanden ist.
@@ -1038,7 +1032,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             reply = query_llm(
                 prompt_obj,
                 {},
-                model_name=model_name,
                 model_type="anlagen",
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
@@ -1096,7 +1089,6 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
             reply = query_llm(
                 prompt_obj,
                 {},
-                model_name=model_name,
                 model_type="anlagen",
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
@@ -1134,7 +1126,7 @@ def check_anlage2(projekt_id: int, model_name: str | None = None) -> dict:
     return data
 
 
-def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
+def analyse_anlage4(projekt_id: int) -> dict:
     """Analysiert die vierte Anlage."""
     projekt = BVProject.objects.get(pk=projekt_id)
     try:
@@ -1177,7 +1169,6 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
         reply = query_llm(
             prompt_obj,
             {},
-            model_name=model_name,
             model_type="anlagen",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
@@ -1194,7 +1185,7 @@ def analyse_anlage4(projekt_id: int, model_name: str | None = None) -> dict:
 
 
 def worker_anlage4_evaluate(
-    item_text: str, project_file_id: int, index: int, model_name: str | None = None
+    item_text: str, project_file_id: int, index: int
 ) -> dict:
     """Bewertet eine Auswertung aus Anlage 4 im Hintergrund."""
 
@@ -1219,7 +1210,6 @@ def worker_anlage4_evaluate(
     reply = query_llm(
         prompt_obj,
         {},
-        model_name=model_name,
         model_type="anlagen",
         project_prompt=pf.project.project_prompt,
     )
@@ -1247,7 +1237,7 @@ def worker_anlage4_evaluate(
 
 
 
-def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name: str | None = None) -> dict:
+def worker_a4_plausibility(structured: dict, pf_id: int, index: int) -> dict:
     """Bewertet einen strukturierten Eintrag."""
 
     pf = BVProjectFile.objects.get(pk=pf_id)
@@ -1263,7 +1253,6 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
     reply = query_llm(
         prompt_obj,
         {},
-        model_name=model_name,
         model_type="anlagen",
         project_prompt=pf.project.project_prompt,
     )
@@ -1284,7 +1273,7 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int, model_name:
 
 
 @updates_file_status
-def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
+def analyse_anlage4_async(file_id: int) -> dict:
     """Startet die asynchrone Analyse von Anlage 4."""
 
     anlage = BVProjectFile.objects.get(pk=file_id)
@@ -1321,14 +1310,12 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
                     {**item["structured"], "kontext": projekt.title},
                     anlage.pk,
                     idx,
-                    model_name,
                 )
             else:
                 worker_anlage4_evaluate(
                     item["text"],
                     anlage.pk,
                     idx,
-                    model_name,
                 )
             anlage4_logger.debug("A4 Eval Task #%s ausgef\u00fchrt", idx)
         anlage.refresh_from_db(fields=["analysis_json"])
@@ -1340,7 +1327,6 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
                     {**item["structured"], "kontext": projekt.title},
                     anlage.pk,
                     idx,
-                    model_name,
                 )
             else:
                 async_task(
@@ -1348,7 +1334,6 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
                     item["text"],
                     anlage.pk,
                     idx,
-                    model_name,
                 )
             anlage4_logger.debug("A4 Eval Task #%s geplant", idx)
 
@@ -1356,7 +1341,7 @@ def analyse_anlage4_async(file_id: int, model_name: str | None = None) -> dict:
 
 
 def check_anlage2_functions(
-    projekt_id: int, model_name: str | None = None
+    projekt_id: int
 ) -> list[dict]:
     """Pr\xfcft alle Funktionen aus Anlage 2 einzeln."""
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -1384,7 +1369,6 @@ def check_anlage2_functions(
         reply = query_llm(
             prompt_obj,
             {},
-            model_name=model_name,
             model_type="anlagen",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
@@ -1418,7 +1402,7 @@ def check_anlage2_functions(
 
 @updates_file_status
 def run_conditional_anlage2_check(
-    file_id: int, model_name: str | None = None
+    file_id: int
 ) -> None:
     """Prüft Hauptfunktionen und deren Unterfragen bei positivem Ergebnis."""
 
@@ -1448,7 +1432,6 @@ def run_conditional_anlage2_check(
                 pf.pk,
                 "function",
                 func.id,
-                model_name,
             )
 
         positive_funcs: list[Anlage2Function] = []
@@ -1476,7 +1459,6 @@ def run_conditional_anlage2_check(
                         pf.pk,
                         "subquestion",
                         sub.id,
-                        model_name,
                     )
                 )
 
@@ -1497,7 +1479,6 @@ def worker_verify_feature(
     file_id: int,
     object_type: str,
     object_id: int,
-    model_name: str | None = None,
 ) -> dict[str, bool | str | None]:
     """Pr\u00fcft im Hintergrund das Vorhandensein einer Einzelfunktion."""
     verification_result = {
@@ -1598,7 +1579,6 @@ def worker_verify_feature(
         reply = query_llm(
             prompt_obj,
             context,
-            model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
@@ -1679,7 +1659,6 @@ def worker_verify_feature(
         justification = query_llm(
             just_prompt_obj,
             context,
-            model_name=model_name,
             model_type="anlagen",
             temperature=0.1,
             project_prompt=projekt.project_prompt if just_prompt_obj.use_project_context else None,
@@ -1706,7 +1685,6 @@ def worker_verify_feature(
                 query_llm(
                     ai_check_obj,
                     {"software_name": context["software_name"], "function_name": name},
-                    model_name=model_name,
                     model_type="anlagen",
                     temperature=0.1,
                     project_prompt=projekt.project_prompt if ai_check_obj.use_project_context else None,
@@ -1749,7 +1727,6 @@ def worker_verify_feature(
                     "function_name": name,
                     "subquestion_text": context.get("subquestion_text", ""),
                 },
-                model_name=model_name,
                 model_type="anlagen",
                 temperature=0.1,
                 project_prompt=projekt.project_prompt if ai_just_obj.use_project_context else None,
@@ -1957,14 +1934,14 @@ def worker_run_initial_check(
     return result
 
 
-def worker_run_anlage3_vision(project_id: int, model_name: str | None = None) -> dict:
+def worker_run_anlage3_vision(project_id: int) -> dict:
     """Führt die Vision-Prüfung für Anlage 3 im Hintergrund aus."""
 
     logger.info(
         "worker_run_anlage3_vision gestartet für Projekt %s",
         project_id,
     )
-    result = check_anlage3_vision(project_id, model_name=model_name)
+    result = check_anlage3_vision(project_id)
     logger.info(
         "worker_run_anlage3_vision beendet für Projekt %s",
         project_id,
@@ -1972,7 +1949,7 @@ def worker_run_anlage3_vision(project_id: int, model_name: str | None = None) ->
     return result
 
 
-def check_gutachten_functions(projekt_id: int, model_name: str | None = None) -> str:
+def check_gutachten_functions(projekt_id: int) -> str:
     """Prüft das Gutachten auf fehlende Funktionen."""
     projekt = BVProject.objects.get(pk=projekt_id)
     if not projekt.gutachten_file:
@@ -1998,7 +1975,6 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
     reply = query_llm(
         prompt_obj,
         {},
-        model_name=model_name,
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -2007,7 +1983,7 @@ def check_gutachten_functions(projekt_id: int, model_name: str | None = None) ->
     return reply
 
 
-def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -> dict[str, str]:
+def worker_generate_gap_summary(result_id: int) -> dict[str, str]:
     """Erzeugt interne und externe Gap-Texte für ein Review-Ergebnis."""
 
     logger.info("worker_generate_gap_summary gestartet für Result %s", result_id)
@@ -2079,11 +2055,8 @@ def worker_generate_gap_summary(result_id: int, model_name: str | None = None) -
 
 
 @updates_file_status
-def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
-    """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke.
-
-    Das optionale Argument ``model_name`` ist derzeit ohne Funktion und dient
-    lediglich der Vereinheitlichung der API.\n    """
+def check_anlage5(file_id: int) -> dict:
+    """Pr\u00fcft Anlage 5 auf vorhandene Standardzwecke."""
 
     anlage = BVProjectFile.objects.get(pk=file_id)
     projekt_id = anlage.project_id
@@ -2165,7 +2138,7 @@ def check_anlage5(file_id: int, model_name: str | None = None) -> dict:
     anlage5_logger.info("check_anlage5 beendet für Projekt %s mit %s", projekt_id, result)
     return result
 
-def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) -> str:
+def summarize_anlage1_gaps(projekt: BVProject) -> str:
     """Fasst die GAP-Notizen aus Anlage 1 zusammen."""
 
     pf = get_project_file(projekt, 1)
@@ -2225,14 +2198,13 @@ def summarize_anlage1_gaps(projekt: BVProject, model_name: str | None = None) ->
     text = query_llm(
         prompt_obj,
         {},
-        model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
 
     return text
 
-def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) -> str:
+def summarize_anlage2_gaps(projekt: BVProject) -> str:
     """Fasst die GAP-Notizen aus Anlage 2 zusammen."""
 
     pf = get_project_file(projekt, 2)
@@ -2299,7 +2271,6 @@ def summarize_anlage2_gaps(projekt: BVProject, model_name: str | None = None) ->
     text = query_llm(
         prompt_obj,
         {},
-        model_name=model_name or LLMConfig.get_default("gutachten"),
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()

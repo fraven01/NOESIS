@@ -22,7 +22,6 @@ def _timestamp() -> str:
 def query_llm(
     prompt_object: "Prompt",
     context_data: dict,
-    model_name: str | None = None,
     model_type: str = "default",
     temperature: float = 0.5,
     project_prompt: str | None = None,
@@ -31,7 +30,9 @@ def query_llm(
     from .models import LLMConfig, LLMRole, Prompt
 
     correlation_id = str(uuid.uuid4())
-    if model_name is None:
+    if prompt_object.model and getattr(prompt_object.model, "model_name", None):
+        model_name = prompt_object.model.model_name
+    else:
         model_name = LLMConfig.get_default(model_type)
 
     final_role_prompt = ""
@@ -71,10 +72,8 @@ def query_llm(
     )
 
     final_prompt_to_llm = prompt
-    model_name_to_use = model_name
-
     logger.debug(
-        f"--- PROMPT SENT TO MODEL {model_name_to_use} ---\n{final_prompt_to_llm}\n--------------------"
+        f"--- PROMPT SENT TO MODEL {model_name} ---\n{final_prompt_to_llm}\n--------------------"
     )
 
     if not settings.GOOGLE_API_KEY and not settings.OPENAI_API_KEY:

@@ -10,12 +10,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("file_id", type=int)
-        parser.add_argument("--model", dest="model", default=None)
 
-    def handle(self, file_id, model=None, **options):
+    def handle(self, file_id, **options):
         if connection.vendor == "sqlite":
-            data = analyse_anlage4_async(file_id, model_name=model)
+            data = analyse_anlage4_async(file_id)
             text = f"```json\n{json.dumps(data, indent=2, ensure_ascii=False)}\n```"
             print_markdown(text)
         else:
-            async_task("core.llm_tasks.analyse_anlage4_async", file_id, model_name=model)
+            async_task("core.llm_tasks.analyse_anlage4_async", file_id)
