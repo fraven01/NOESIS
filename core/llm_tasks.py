@@ -1930,14 +1930,12 @@ def worker_run_initial_check(
             else "initial_check_knowledge"
         )
         prompt_knowledge = Prompt.objects.get(name=prompt_name)
-        prompt1_text = prompt_knowledge.text.format(
-            name=software_name,
-            user_context=user_context or "",
-        )
-        tmp_prompt = Prompt(text=prompt1_text, use_system_role=False)
         reply1 = query_llm(
-            tmp_prompt,
-            {},
+            prompt_knowledge,
+            {
+                "name": software_name,
+                "user_context": user_context or "",
+            },
             model_type="default",
             project_prompt=sk.project.project_prompt,
         )
