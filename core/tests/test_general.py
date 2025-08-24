@@ -379,7 +379,7 @@ class BVProjectFileTests(NoesisTestCase):
     def setUp(self) -> None:  # pragma: no cover - setup
         super().setUp()
         self.anmelden_func = Anlage2Function.objects.create(name="Anmelden")
-        self.superuser = User.objects.get(username="basesuper")
+        self.superuser = User.objects.get(username="frank")
 
     def test_create_project_with_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2864,7 +2864,7 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
 class ProjektFileVersionDeletionTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.superuser = User.objects.get(username="basesuper")
+        self.superuser = User.objects.get(username="frank")
 
     def test_delete_active_restores_parent(self):
         self.client.login(username=self.superuser.username, password="pass")
@@ -4609,7 +4609,7 @@ class Anlage2ResetTests(NoesisTestCase):
 
     def setUp(self):
         super().setUp()
-        self.superuser = User.objects.get(username="basesuper")
+        self.superuser = User.objects.get(username="frank")
         self.client.login(username=self.superuser.username, password="pass")
         self.func = Anlage2Function.objects.create(name="Anmelden")
 
@@ -4869,7 +4869,7 @@ class Anlage2ResetTests(NoesisTestCase):
 class GapReportTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
-        self.superuser = User.objects.get(username="basesuper")
+        self.superuser = User.objects.get(username="frank")
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.pf1 = BVProjectFile.objects.create(
             project=self.projekt,
@@ -4936,7 +4936,7 @@ class GapReportTests(NoesisTestCase):
 class ProjektDetailGapTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
-        self.superuser = User.objects.get(username="basesuper")
+        self.superuser = User.objects.get(username="frank")
         self.func = Anlage2Function.objects.create(name="Anmelden")
 
     def test_anlage1_gap_sets_flag(self):
