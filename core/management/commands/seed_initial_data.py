@@ -47,6 +47,13 @@ def create_initial_data(apps) -> None:
     AntwortErkennungsRegel = apps.get_model("core", "AntwortErkennungsRegel")
     Prompt = apps.get_model("core", "Prompt")
     SupervisionStandardNote = apps.get_model("core", "SupervisionStandardNote")
+
+    # Bestehende Prompts aktualisieren: {funktionen} -> {gap_list}
+    gap_prompt = Prompt.objects.filter(name="gap_report_anlage2").first()
+    if gap_prompt and "{funktionen}" in gap_prompt.text:
+        gap_prompt.text = gap_prompt.text.replace("{funktionen}", "{gap_list}")
+        gap_prompt.save(update_fields=["text"])
+
     standard_group, _ = Group.objects.get_or_create(name="Standard-Benutzer")
     admin_group, _ = Group.objects.get_or_create(name="Projekt-Admins")
 
