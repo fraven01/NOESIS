@@ -2236,11 +2236,13 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
 
     gap_list_string = ""
     for entry in entries:
-        gap_list_string += f"- **{entry['funktion']}" + (f" ({entry['unterfrage']})" if entry['unterfrage'] else "") + "**\n"
-        if entry["extern"]:
-            gap_list_string += f"  - Anmerkung (extern): {entry['extern']}\n"
-        if entry["intern"]:
-            gap_list_string += f"  - Notiz (intern): {entry['intern']}\n"
+        gap_list_string += (
+            f"- **{entry['funktion']}"
+            + (f" ({entry['unterfrage']})" if entry['unterfrage'] else "")
+            + "**\n"
+        )
+        gap_list_string += f"  - KI‑Begründung: {entry['extern']}\n"
+        gap_list_string += f"  - Prüferkommentar: {entry['intern']}\n"
 
     prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage2").first()
     if not prompt_template:
