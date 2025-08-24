@@ -1758,7 +1758,7 @@ def worker_verify_feature(
     # Vor dem Speichern prüfen, ob die Datei noch existiert
     if not BVProjectFile.objects.filter(pk=pf.pk).exists():
         logger.warning(
-            "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Ergebnisse werden nicht gespeichert.",
+            "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Ergebnis wird verworfen.",
             pf.pk,
         )
         return {}
