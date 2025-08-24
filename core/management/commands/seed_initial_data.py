@@ -225,6 +225,7 @@ def create_initial_data(apps) -> None:
                 "Die folgenden Fragen dienen als Input:\n\n{fragen}"
             ),
             True,
+            "gutachten",
         ),
         (
             "gap_report_anlage2",
@@ -236,6 +237,7 @@ def create_initial_data(apps) -> None:
                 "{gap_list}"
             ),
             True,
+            "gutachten",
         ),
     ]
 
@@ -279,8 +281,18 @@ def create_initial_data(apps) -> None:
 
     for q in INITIAL_ANLAGE1_QUESTIONS:
         prompts.append((f"anlage1_q{q['num']}", q["text"], True))
-    for name, text, use_system_role in prompts:
-        Prompt.objects.update_or_create(name=name, defaults={"text": text, "use_system_role": use_system_role})
+    for entry in prompts:
+        if len(entry) == 3:
+            name, text, use_system_role = entry
+            defaults = {"text": text, "use_system_role": use_system_role}
+        else:
+            name, text, use_system_role, model = entry
+            defaults = {
+                "text": text,
+                "use_system_role": use_system_role,
+                "model": model,
+            }
+        Prompt.objects.update_or_create(name=name, defaults=defaults)
 
     # 12. SupervisionStandardNote
     print("\n[12] Verarbeite SupervisionStandardNotes...")
