@@ -41,11 +41,11 @@ INITIAL_AREAS = {
 
 # 2. Projekt-Status
 INITIAL_PROJECT_STATUSES = [
-    {"key": "new", "name": "Neu", "ordering": 10, "is_default": True},
-    {"key": "in_progress", "name": "In Bearbeitung", "ordering": 20},
-    {"key": "review", "name": "In Prüfung", "ordering": 30},
-    {"key": "done", "name": "Abgeschlossen", "ordering": 40, "is_done_status": True},
-    {"key": "archived", "name": "Archiviert", "ordering": 50},
+    {"key": "NEW", "name": "Neu", "ordering": 10, "is_default": True},
+    {"key": "IN_PROGRESS", "name": "In Bearbeitung", "ordering": 20},
+    {"key": "REVIEW", "name": "In Prüfung", "ordering": 30},
+    {"key": "DONE", "name": "Abgeschlossen", "ordering": 40, "is_done_status": True},
+    {"key": "ARCHIVED", "name": "Archiviert", "ordering": 50},
 ]
 
 # 3. LLM-Rollen (aus llm_roles.json)

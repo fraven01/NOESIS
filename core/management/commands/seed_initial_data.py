@@ -78,7 +78,10 @@ def create_initial_data(apps) -> None:
     # 2. Projekt-Status
     print("\n[2] Verarbeite Projekt-Status...")
     for status_data in INITIAL_PROJECT_STATUSES:
-        ProjectStatus.objects.update_or_create(key=status_data["key"], defaults=status_data)
+        ProjectStatus.objects.update_or_create(
+            key__iexact=status_data["key"],
+            defaults=status_data,
+        )
 
     # 3. LLM-Rollen
     print("\n[3] Verarbeite LLM-Rollen...")
