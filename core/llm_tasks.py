@@ -2184,12 +2184,12 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
         text=final_prompt_text,
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
+        model=prompt_template.model,
     )
 
     text = query_llm(
         prompt_obj,
         {},
-        model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
 
@@ -2259,12 +2259,12 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
         text=final_prompt_text,
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
+        model=prompt_template.model,
     )
 
     text = query_llm(
         prompt_obj,
         {},
-        model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
 
