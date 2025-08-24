@@ -5,6 +5,7 @@ from django.http import QueryDict
 from django.db import IntegrityError
 from types import SimpleNamespace
 import os
+import re
 
 
 from django.apps import apps
@@ -2356,8 +2357,9 @@ class LLMTasksTests(NoesisTestCase):
         # Frage-Texte ohne Präfix "Frage X:" speichern
         q1 = Anlage1Question.objects.get(num=1)
         q2 = Anlage1Question.objects.get(num=2)
-        q1.text = q1.text.split(": ", 1)[1]
-        q2.text = q2.text.split(": ", 1)[1]
+        prefix = r"^Frage\s+\d+(?:\.\d+)?[:.]?\s*"
+        q1.text = re.sub(prefix, "", q1.text)
+        q2.text = re.sub(prefix, "", q2.text)
         q1.save(update_fields=["text"])
         q2.save(update_fields=["text"])
         v1 = q1.variants.first()
