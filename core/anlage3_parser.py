@@ -1,3 +1,5 @@
+"""Parser für Anlage 3."""
+
 import logging
 import re
 from pathlib import Path
@@ -6,6 +8,7 @@ from typing import Dict
 from docx import Document
 
 from .models import BVProjectFile, Anlage3ParserRule
+from .docx_utils import get_docx_page_count
 
 logger = logging.getLogger("anlage3_detail")
 result_logger = logging.getLogger("anlage3_result")
@@ -35,9 +38,14 @@ def _normalize(text: str) -> str:
     return text
 
 
-def is_verhandlungsfaehig(data: Dict[str, str]) -> bool:
-    """Prüft, ob alle Felder gefüllt sind."""
-    return all(data.get(k, "").strip() for k in ("name", "beschreibung", "zeitraum", "art"))
+def _is_single_page(path: Path) -> bool:
+    """Prüft, ob das Dokument genau eine Seite hat."""
+
+    try:
+        return get_docx_page_count(path) == 1
+    except Exception:  # pragma: no cover - Fehler beim Zählen
+        logger.exception("Fehler beim Seitenzählen von %s", path)
+        return False
 
 
 def parse_anlage3(project_file: BVProjectFile) -> Dict[str, object]:
@@ -83,9 +91,7 @@ def parse_anlage3(project_file: BVProjectFile) -> Dict[str, object]:
             before, after = text.split(":", 1)
             handle_pair(before, after)
 
-    result["verhandlungsfaehig"] = is_verhandlungsfaehig(
-        {k: str(result[k]) for k in ("name", "beschreibung", "zeitraum", "art")}
-    )
+    result["verhandlungsfaehig"] = _is_single_page(path)
 
     logger.debug("Anlage3 Parser Ergebnis: %s", result)
     result_logger.debug("Anlage3 Endergebnis: %s", result)

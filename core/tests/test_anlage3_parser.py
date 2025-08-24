@@ -24,24 +24,16 @@ class Anlage3ParserTests(NoesisTestCase):
 
     def test_verhandlungsfaehig_true(self):
         doc = Document()
-        table = doc.add_table(rows=4, cols=2)
-        table.cell(0, 0).text = "Name der Auswertung"
-        table.cell(0, 1).text = "Test"
-        table.cell(1, 0).text = "Beschreibung"
-        table.cell(1, 1).text = "Desc"
-        table.cell(2, 0).text = "Zeitraum"
-        table.cell(2, 1).text = "2024"
-        table.cell(3, 0).text = "Art der Auswertung"
-        table.cell(3, 1).text = "Art"
+        doc.add_paragraph("Nur eine Seite")
         pf = self._create_file(doc)
         data = parse_anlage3(pf)
         self.assertTrue(data["verhandlungsfaehig"])
 
     def test_verhandlungsfaehig_false(self):
         doc = Document()
-        table = doc.add_table(rows=1, cols=2)
-        table.cell(0, 0).text = "Name der Auswertung"
-        table.cell(0, 1).text = "Test"
+        doc.add_paragraph("Seite 1")
+        doc.add_page_break()
+        doc.add_paragraph("Seite 2")
         pf = self._create_file(doc)
         data = parse_anlage3(pf)
         self.assertFalse(data["verhandlungsfaehig"])

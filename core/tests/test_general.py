@@ -2181,7 +2181,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
-        self.assertTrue(pf.verhandlungsfaehig)
+
+        self.assertTrue(data["auto_ok"])
+        self.assertTrue(file_obj.analysis_json["auto_ok"])
+
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertTrue(file_obj.verhandlungsfaehig)
 
@@ -2209,7 +2212,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
-        self.assertFalse(pf.verhandlungsfaehig)
+
+        self.assertTrue(data["manual_required"])
+        self.assertTrue(file_obj.analysis_json["manual_required"])
+
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
 
@@ -2235,7 +2241,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
-        self.assertTrue(pf.verhandlungsfaehig)
+
+        self.assertTrue(data["auto_ok"])
+        self.assertTrue(file_obj.analysis_json["auto_ok"])
+
 
     def test_analyse_anlage3_pdf_manual_required(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2260,7 +2269,9 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
-        self.assertFalse(pf.verhandlungsfaehig)
+
+        self.assertTrue(data["manual_required"])
+        self.assertTrue(file_obj.analysis_json["manual_required"])
 
     def test_analyse_anlage3_multiple_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2319,6 +2330,7 @@ class LLMTasksTests(NoesisTestCase):
         data = check_anlage1(file_obj.pk)
         file_obj.refresh_from_db()
         expected = {"questions": parse_anlage1_questions(text)}
+        file_obj.refresh_from_db()
         self.assertEqual(data, expected)
         self.assertEqual(file_obj.analysis_json, expected)
 
@@ -2469,6 +2481,22 @@ class PromptTests(NoesisTestCase):
         p.text = "DB"
         p.save()
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
+
+
+    def test_gap_report_anlage2_placeholder(self):
+        p = Prompt.objects.get(name="gap_report_anlage2")
+        self.assertIn("{gap_list}", p.text)
+        self.assertNotIn("{funktionen}", p.text)
+
+    def test_check_anlage3_vision_prompt_text(self):
+        p = Prompt.objects.get(name="check_anlage3_vision")
+        expected = (
+            "Pr\u00fcfe die folgenden Bilder der Anlage. "
+            "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
+        )
+        self.assertEqual(p.text, expected)
+
+
 
 class CheckAnlage5Tests(NoesisTestCase):
     def test_check_anlage5_sets_flag(self):
@@ -4829,6 +4857,10 @@ class GapReportTests(NoesisTestCase):
 
         with patch("core.llm_tasks.query_llm", return_value="T2") as mock_q:
             text = summarize_anlage2_gaps(self.projekt)
+            prompt_sent = mock_q.call_args[0][0]
+            self.assertIn("- **Anmelden**", prompt_sent.text)
+            self.assertNotIn("{gap_list}", prompt_sent.text)
+            self.assertNotIn("{funktionen}", prompt_sent.text)
         self.assertEqual(text, "T2")
         self.assertTrue(mock_q.called)
 
