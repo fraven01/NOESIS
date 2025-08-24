@@ -1620,29 +1620,25 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_check_anlage2_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-        table.cell(1, 0).text = "Anmelden"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("b.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
+        pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=2,
-            upload=upload,
-            text_content="ignored",
+            upload=SimpleUploadedFile("b.txt", b"x"),
+            text_content="Anmelden tv ja ki ja",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.text_ki_beteiligung_true = ["ja"]
+        cfg.save()
+        AntwortErkennungsRegel.objects.create(
+            regel_name="tv ja",
+            erkennungs_phrase="tv ja",
+            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
+        )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="ki ja",
+            erkennungs_phrase="ki ja",
+            actions_json=[{"field": "ki_beteiligung", "value": True}],
         )
         func = self.func
 
@@ -1655,10 +1651,10 @@ class LLMTasksTests(NoesisTestCase):
             "ki_beteiligung": {"value": True, "note": None},
             "source": "parser",
         }
-        file_obj = projekt.anlagen.get(anlage_nr=2)
+        pf.refresh_from_db()
         self.assertEqual(data["task"], "check_anlage2")
         self.assertIn(expected_function, data["functions"])
-        self.assertIn(expected_function, file_obj.analysis_json["functions"])
+        self.assertIn(expected_function, pf.analysis_json["functions"])
 
     def test_run_anlage2_analysis_table(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
