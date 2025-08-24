@@ -28,6 +28,7 @@ class DocxExtractTests(NoesisTestCase):
         count = get_docx_page_count(self.docx_content_path)
         self.assertEqual(count, 1)
 
+    @pytest.mark.slow
     def test_get_docx_page_count_two_pages(self):
         count = get_docx_page_count(self.docx_two_page_path)
         self.assertEqual(count, 2)
@@ -36,6 +37,7 @@ class DocxExtractTests(NoesisTestCase):
         count = get_pdf_page_count(self.pdf_one_page_path)
         self.assertEqual(count, 1)
 
+    @pytest.mark.slow
     def test_get_pdf_page_count_two_pages(self):
         count = get_pdf_page_count(self.pdf_two_page_path)
         self.assertEqual(count, 2)
@@ -51,6 +53,7 @@ class DocxExtractTests(NoesisTestCase):
         for raw, expected in cases.items():
             self.assertEqual(_normalize_header_text(raw), expected)
 
+    @pytest.mark.slow
     def test_parse_anlage2_table(self):
         with patch("core.docx_utils.logging.getLogger") as mock_get_logger:
             mock_logger = mock_get_logger.return_value
@@ -86,6 +89,7 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_multiple_headers(self):
         cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
@@ -127,6 +131,7 @@ class DocxExtractTests(NoesisTestCase):
 
         self.assertTrue(data[0]["technisch_verfuegbar"]["value"])
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_alias_headers(self):
         cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
@@ -181,6 +186,7 @@ class DocxExtractTests(NoesisTestCase):
         )
 
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_extra_text(self):
         cfg = Anlage2Config.get_instance()
         Anlage2ColumnHeading.objects.create(
@@ -238,6 +244,7 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_notes(self):
         doc = Document()
         table = doc.add_table(rows=2, cols=4)
@@ -271,6 +278,7 @@ class DocxExtractTests(NoesisTestCase):
             ],
         )
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_alias_conflict(self):
         cfg = Anlage2Config.get_instance()
         conflict = "Konflikt"
@@ -302,6 +310,7 @@ class DocxExtractTests(NoesisTestCase):
         finally:
             Path(tmp.name).unlink(missing_ok=True)
 
+    @pytest.mark.slow
     def test_parse_anlage2_table_invalid_docx(self):
         tmp = NamedTemporaryFile(delete=False, suffix=".docx")
         tmp.write(b"invalid")

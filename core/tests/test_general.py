@@ -426,6 +426,7 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertTrue(pf.manual_reviewed)
         self.assertTrue(pf.verhandlungsfaehig)
 
+    @pytest.mark.slow
     def test_project_delete_removes_files(self):
         """Sichert, dass beim Löschen eines Projekts die Dateien entfernt werden."""
         with TemporaryDirectory() as tmpdir, override_settings(MEDIA_ROOT=tmpdir):
@@ -762,6 +763,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.anmelden_func = Anlage2Function.objects.create(name="Anmelden")
 
+    @pytest.mark.slow
     def test_docx_upload_extracts_text(self):
         with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
