@@ -1,11 +1,16 @@
+import pytest
+from pathlib import Path
+from unittest.mock import patch
+
 from .base import NoesisTestCase
-from .test_general import *
+from .test_general import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from ..anlage4_parser import parse_anlage4_dual
 from ..models import Anlage4ParserConfig
 from ..docx_utils import _normalize_header_text
 from ..parsers import ExactParser
 from ..llm_tasks import worker_a4_plausibility as check_anlage4_item_plausibility
 
+@pytest.mark.usefixtures("prepared_files")
 class DocxExtractTests(NoesisTestCase):
     def setUp(self) -> None:  # pragma: no cover - setup
         super().setUp()
@@ -16,66 +21,23 @@ class DocxExtractTests(NoesisTestCase):
         self.anwesenheit = Anlage2Function.objects.create(name="Anwesenheit")
 
     def test_extract_text(self):
-        doc = Document()
-        doc.add_paragraph("Das ist ein Test")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        try:
-            text = extract_text(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-        self.assertIn("Das ist ein Test", text)
+        text = extract_text(self.docx_content_path)
+        self.assertIn("Docx Inhalt", text)
 
     def test_get_docx_page_count_single(self):
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        try:
-            count = get_docx_page_count(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
+        count = get_docx_page_count(self.docx_content_path)
         self.assertEqual(count, 1)
 
     def test_get_docx_page_count_two_pages(self):
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        doc.add_page_break()
-        doc.add_paragraph("Seite 2")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        try:
-            count = get_docx_page_count(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
+        count = get_docx_page_count(self.docx_two_page_path)
         self.assertEqual(count, 2)
 
     def test_get_pdf_page_count_single(self):
-        pdf = fitz.open()
-        pdf.new_page()
-        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.close()
-        pdf.save(tmp.name)
-        try:
-            count = get_pdf_page_count(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
+        count = get_pdf_page_count(self.pdf_one_page_path)
         self.assertEqual(count, 1)
 
     def test_get_pdf_page_count_two_pages(self):
-        pdf = fitz.open()
-        pdf.new_page()
-        pdf.new_page()
-        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.close()
-        pdf.save(tmp.name)
-        try:
-            count = get_pdf_page_count(Path(tmp.name))
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
+        count = get_pdf_page_count(self.pdf_two_page_path)
         self.assertEqual(count, 2)
 
     def test_normalize_header_text_variants(self):
@@ -90,46 +52,26 @@ class DocxExtractTests(NoesisTestCase):
             self.assertEqual(_normalize_header_text(raw), expected)
 
     def test_parse_anlage2_table(self):
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-
-        table.cell(1, 0).text = "Anmelden"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        try:
-            with patch("core.docx_utils.logging.getLogger") as mock_get_logger:
-                mock_logger = mock_get_logger.return_value
-                data = parse_anlage2_table(Path(tmp.name))
-                expected_raw = [
-                    "Funktion",
-                    "Technisch vorhanden",
-                    "Einsatz bei Telefónica",
-                    "Zur LV-Kontrolle",
-                    "KI-Beteiligung",
-                ]
-                expected_norm = [
-                    "funktion",
-                    "technisch vorhanden",
-                    "einsatz bei telefónica",
-                    "zur lv-kontrolle",
-                    "ki-beteiligung",
-                ]
-                mock_logger.debug.assert_any_call(
-                    f"Tabelle 0: Roh-Header = {expected_raw}, Normiert = {expected_norm}"
-                )
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
+        with patch("core.docx_utils.logging.getLogger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
+            data = parse_anlage2_table(self.anlage2_table_docx_path)
+            expected_raw = [
+                "Funktion",
+                "Technisch vorhanden",
+                "Einsatz bei Telefónica",
+                "Zur LV-Kontrolle",
+                "KI-Beteiligung",
+            ]
+            expected_norm = [
+                "funktion",
+                "technisch vorhanden",
+                "einsatz bei telefónica",
+                "zur lv-kontrolle",
+                "ki-beteiligung",
+            ]
+            mock_logger.debug.assert_any_call(
+                f"Tabelle 0: Roh-Header = {expected_raw}, Normiert = {expected_norm}"
+            )
 
         self.assertEqual(
             data,

@@ -754,6 +754,7 @@ class BVProjectFileTests(NoesisTestCase):
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
+@pytest.mark.usefixtures("prepared_files")
 class ProjektFileUploadTests(NoesisTestCase):
     def setUp(self):
         self.user = User.objects.create_user("user", password="pass")
@@ -762,14 +763,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.anmelden_func = Anlage2Function.objects.create(name="Anmelden")
 
     def test_docx_upload_extracts_text(self):
-        doc = Document()
-        doc.add_paragraph("Docx Inhalt")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -786,14 +781,8 @@ class ProjektFileUploadTests(NoesisTestCase):
 
     def test_ownerless_project_allows_upload(self):
         """Prüft, dass ein neuer Nutzer Dateien in ein besitzerloses Projekt laden darf."""
-        doc = Document()
-        doc.add_paragraph("Inhalt")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -805,14 +794,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_pdf_upload_stores_bytes(self):
-        pdf = fitz.open()
-        pdf.new_page()
-        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.close()
-        pdf.save(tmp.name)
-        with open(tmp.name, "rb") as fh:
+        with open(self.pdf_one_page_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_3.pdf", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -828,14 +811,8 @@ class ProjektFileUploadTests(NoesisTestCase):
 
     def test_upload_without_anlage_nr_uses_filename(self):
         """Nutzt die Anlagen-Nummer aus dem Dateinamen."""
-        doc = Document()
-        doc.add_paragraph("Inhalt")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage 4 - Entwurf.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -848,18 +825,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertTrue(self.projekt.anlagen.filter(anlage_nr=4).exists())
 
     def test_anlage2_upload_queues_check(self):
-        doc = Document()
-        table = doc.add_table(rows=2, cols=2)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(1, 0).text = "Anmelden"
-        table.cell(1, 1).text = "Ja"
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         _ = self.anmelden_func
 
@@ -908,13 +875,8 @@ class ProjektFileUploadTests(NoesisTestCase):
             technisch_verfuegbar=True,
         )
 
-        doc = Document()
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         with patch("core.views.async_task") as mock_async:
@@ -935,14 +897,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(pf_latest.version, 2)
 
     def test_upload_stores_posted_anlage_nr(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
             url,
@@ -956,14 +912,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(pf.anlage_nr, 2)
 
     def test_save_project_file_respects_form_value(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         form = BVProjectFileForm({}, {"upload": upload}, anlage_nr=1)
         self.assertTrue(form.is_valid())
@@ -974,14 +924,8 @@ class ProjektFileUploadTests(NoesisTestCase):
     def test_save_multiple_files_unique_numbers(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         for nr in range(1, 7):
-            doc = Document()
-            doc.add_paragraph(str(nr))
-            tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-            doc.save(tmp.name)
-            tmp.close()
-            with open(tmp.name, "rb") as fh:
+            with open(self.docx_content_path, "rb") as fh:
                 upload = SimpleUploadedFile(f"Anlage_{nr}.docx", fh.read())
-            Path(tmp.name).unlink(missing_ok=True)
             _save_project_file(projekt, upload=upload, anlage_nr=nr)
 
         qs = BVProjectFile.objects.filter(project=projekt)
@@ -992,14 +936,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         )
 
     def test_upload_uses_filename_when_no_anlage_nr(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_4.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -1014,14 +952,8 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(pf.anlage_nr, 4)
 
     def test_upload_uses_filename_when_anlage_nr_empty(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_3.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("hx_project_file_upload", args=[self.projekt.pk])
         resp = self.client.post(
@@ -1035,6 +967,7 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertEqual(pf.anlage_nr, 3)
 
 
+@pytest.mark.usefixtures("prepared_files")
 class DropzoneUploadTests(NoesisTestCase):
     """Tests für den neuen Datei-Upload-Workflow."""
 
@@ -1044,14 +977,8 @@ class DropzoneUploadTests(NoesisTestCase):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
 
     def test_number_from_filename(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
         resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
@@ -1060,14 +987,8 @@ class DropzoneUploadTests(NoesisTestCase):
         self.assertTrue(self.projekt.anlagen.filter(anlage_nr=2).exists())
 
     def test_manual_assignment_flow(self):
-        doc = Document()
-        doc.add_paragraph("x")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
+        with open(self.docx_content_path, "rb") as fh:
             upload = SimpleUploadedFile("foo.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
 
         url = reverse("projekt_file_upload", args=[self.projekt.pk])
         resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
