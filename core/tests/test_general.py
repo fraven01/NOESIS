@@ -2184,8 +2184,8 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
-        self.assertTrue(data["verhandlungsfaehig"]["value"])
-        self.assertTrue(file_obj.analysis_json["verhandlungsfaehig"]["value"])
+        self.assertTrue(data["auto_ok"])
+        self.assertTrue(file_obj.analysis_json["auto_ok"])
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertTrue(file_obj.verhandlungsfaehig)
 
@@ -2213,8 +2213,8 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
-        self.assertFalse(data["verhandlungsfaehig"]["value"])
-        self.assertFalse(file_obj.analysis_json["verhandlungsfaehig"]["value"])
+        self.assertTrue(data["manual_required"])
+        self.assertTrue(file_obj.analysis_json["manual_required"])
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
 
@@ -2240,8 +2240,8 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
-        self.assertTrue(data["verhandlungsfaehig"]["value"])
-        self.assertTrue(file_obj.analysis_json["verhandlungsfaehig"]["value"])
+        self.assertTrue(data["auto_ok"])
+        self.assertTrue(file_obj.analysis_json["auto_ok"])
 
     def test_analyse_anlage3_pdf_manual_required(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2266,8 +2266,8 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
-        self.assertFalse(data["verhandlungsfaehig"]["value"])
-        self.assertFalse(file_obj.analysis_json["verhandlungsfaehig"]["value"])
+        self.assertTrue(data["manual_required"])
+        self.assertTrue(file_obj.analysis_json["manual_required"])
 
     def test_analyse_anlage3_multiple_files(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2349,6 +2349,7 @@ class LLMTasksTests(NoesisTestCase):
         file_obj = projekt.anlagen.get(anlage_nr=1)
         data = check_anlage1(file_obj.pk)
         expected = {"questions": parse_anlage1_questions(text)}
+        file_obj.refresh_from_db()
         self.assertEqual(data, expected)
         self.assertEqual(file_obj.analysis_json, expected)
 
