@@ -114,11 +114,17 @@ from django.core.management import call_command
 from django.test import override_settings
 import json
 from .base import NoesisTestCase
+from ..initial_data_constants import INITIAL_PROJECT_STATUSES
+
+
+DEFAULT_STATUS_KEY = next(
+    s["key"] for s in INITIAL_PROJECT_STATUSES if s.get("is_default")
+)
 
 
 def create_statuses() -> None:
     data = [
-        ("NEW", "Neu"),
+        (DEFAULT_STATUS_KEY, "Neu"),
         ("CLASSIFIED", "Klassifiziert"),
         ("GUTACHTEN_OK", "Gutachten OK"),
         ("GUTACHTEN_FREIGEGEBEN", "Gutachten freigegeben"),
@@ -132,7 +138,7 @@ def create_statuses() -> None:
             defaults={
                 "name": name,
                 "ordering": idx,
-                "is_default": key == "NEW",
+                "is_default": key == DEFAULT_STATUS_KEY,
                 "is_done_status": key == "ENDGEPRUEFT",
             },
         )
@@ -1262,7 +1268,7 @@ class AnlagenFunktionsMetadatenModelTests(NoesisTestCase):
 class WorkflowTests(NoesisTestCase):
     def test_default_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.assertEqual(projekt.status.key, "NEW")
+        self.assertEqual(projekt.status.key, DEFAULT_STATUS_KEY)
 
     def test_set_project_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
