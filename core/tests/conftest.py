@@ -1,18 +1,21 @@
 """Gemeinsame Testkonfiguration für das core-Modul."""
-
 from unittest.mock import patch
 
 import pytest
+from django.core.management import call_command
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _seed_db(django_db_setup, django_db_blocker) -> None:
     """Initialisiert einmalig die Testdatenbank."""
-    from django.contrib.auth.models import User
-    from .test_general import seed_test_data
-
     with django_db_blocker.unblock():
-        seed_test_data()
+        from django.contrib.auth.models import User
+        from core.models import LLMConfig, Anlage4Config, Anlage4ParserConfig
+
+        call_command("seed_initial_data", verbosity=0)
+        LLMConfig.objects.get_or_create()
+        Anlage4Config.objects.get_or_create()
+        Anlage4ParserConfig.objects.get_or_create()
         if not User.objects.filter(username="baseuser").exists():
             User.objects.create_user("baseuser", password="pass")
         # Sicherstellen, dass der Superuser aus dem Seed-Skript

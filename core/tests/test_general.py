@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from types import SimpleNamespace
 import os
 import re
+import pytest
 
 
 from django.apps import apps
@@ -140,6 +141,14 @@ def create_statuses() -> None:
                 "is_done_status": key == "ENDGEPRUEFT",
             },
         )
+
+
+@pytest.fixture(autouse=True)
+def _extra_statuses(db) -> None:
+    """Legt zusätzliche Projekt-Status für Tests an."""
+    create_statuses()
+
+
 def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
     projekt = BVProject.objects.create(**kwargs)
     for name in software or []:
