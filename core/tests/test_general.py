@@ -2501,6 +2501,11 @@ class PromptTests(NoesisTestCase):
         p.save()
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
 
+    def test_gap_report_anlage2_placeholder(self):
+        p = Prompt.objects.get(name="gap_report_anlage2")
+        self.assertIn("{gap_list}", p.text)
+        self.assertNotIn("{funktionen}", p.text)
+
     def test_check_anlage3_vision_prompt_text(self):
         p = Prompt.objects.get(name="check_anlage3_vision")
         expected = (
@@ -4899,6 +4904,10 @@ class GapReportTests(NoesisTestCase):
 
         with patch("core.llm_tasks.query_llm", return_value="T2") as mock_q:
             text = summarize_anlage2_gaps(self.projekt)
+            prompt_sent = mock_q.call_args[0][0]
+            self.assertIn("- **Anmelden**", prompt_sent.text)
+            self.assertNotIn("{gap_list}", prompt_sent.text)
+            self.assertNotIn("{funktionen}", prompt_sent.text)
         self.assertEqual(text, "T2")
         self.assertTrue(mock_q.called)
 
