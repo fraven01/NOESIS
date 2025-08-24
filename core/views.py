@@ -5309,11 +5309,9 @@ def ajax_generate_gap_summary(request, result_id: int) -> JsonResponse:
     if not _user_can_edit_project(request.user, result.anlage_datei.project):
         return HttpResponseForbidden("Nicht berechtigt")
 
-    model = request.POST.get("model")
     task_id = async_task(
         "core.llm_tasks.worker_generate_gap_summary",
         result.id,
-        model,
     )
     return JsonResponse({"status": "queued", "task_id": task_id})
 
