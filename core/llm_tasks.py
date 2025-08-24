@@ -432,26 +432,65 @@ def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]
             results_map[key] = entry
         return entry
 
-    for line in lines:
-        before, after = (line.split(":", 1) + [""])[0:2]
-        norm = _normalize_search(before)
-        if norm in func_alias_map:
-            func = func_alias_map[norm]
-            entry = _get_entry(func, None)
-        elif norm in sub_alias_map:
-            func, sub = sub_alias_map[norm]
-            entry = _get_entry(func, sub)
-        else:
-            continue
-
-        line_entry: dict[str, object] = {}
-        apply_tokens(line_entry, after, token_map)
-        apply_rules(line_entry, after, rules, func_name=entry["funktion"])
-        for key, value in line_entry.items():
-            if key in {"funktion", "subquestion_id"}:
+    table_rows: list[dict[str, object]] = []
+    mode = project_file.parser_mode or cfg.parser_mode
+    order = cfg.parser_order or ["exact"]
+    path = Path(project_file.upload.path)
+    if mode == "table_only" or (mode == "auto" and order and order[0] == "table"):
+        try:
+            table_rows = parse_anlage2_table(path)
+        except Exception:  # pragma: no cover - defektes Dokument
+            table_rows = []
+    if table_rows:
+        for row in table_rows:
+            name = row.get("funktion", "")
+            if not name:
                 continue
-            if entry.get(key) is None:
+            main, sub_name = (name.split(":", 1) + [""])[:2]
+            norm_main = _normalize_search(main)
+            entry: dict[str, object] | None = None
+            if sub_name:
+                norm_sub = _normalize_search(sub_name)
+                if norm_sub in sub_alias_map:
+                    func, sub = sub_alias_map[norm_sub]
+                    entry = _get_entry(func, sub)
+                elif norm_main in func_alias_map:
+                    func = func_alias_map[norm_main]
+                    for s in func.anlage2subquestion_set.all():
+                        if _normalize_search(s.frage_text) == norm_sub:
+                            entry = _get_entry(func, s)
+                            break
+            else:
+                if norm_main in func_alias_map:
+                    func = func_alias_map[norm_main]
+                    entry = _get_entry(func, None)
+            if entry is None:
+                continue
+            for key, value in row.items():
+                if key == "funktion":
+                    continue
                 entry[key] = value
+    else:
+        for line in lines:
+            before, after = (line.split(":", 1) + [""])[0:2]
+            norm = _normalize_search(before)
+            if norm in func_alias_map:
+                func = func_alias_map[norm]
+                entry = _get_entry(func, None)
+            elif norm in sub_alias_map:
+                func, sub = sub_alias_map[norm]
+                entry = _get_entry(func, sub)
+            else:
+                continue
+
+            line_entry: dict[str, object] = {}
+            apply_tokens(line_entry, after, token_map)
+            apply_rules(line_entry, after, rules, func_name=entry["funktion"])
+            for key, value in line_entry.items():
+                if key in {"funktion", "subquestion_id"}:
+                    continue
+                if entry.get(key) is None:
+                    entry[key] = value
 
     anlage2_logger.debug(
         "Erkannte Funktionen: %s",
