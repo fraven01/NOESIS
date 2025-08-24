@@ -62,7 +62,9 @@ class FileUploadDuplicateTests(StaticLiveServerTestCase):
         self._login()
         url = self.live_server_url + reverse("projekt_file_upload", args=[self.projekt.pk])
         self.driver.get(url)
-        input_el = self.driver.find_element(By.ID, "id_upload")
+        input_el = self.driver.find_element(
+            By.CSS_SELECTOR, "#dropzone input[type='file']"
+        )
 
         doc = Document()
         doc.add_paragraph("x")
