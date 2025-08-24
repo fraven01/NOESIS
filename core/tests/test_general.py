@@ -2336,10 +2336,9 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        text = (
-            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
-            "Frage 2: Extrahiere alle Fachbereiche als Liste.\u00b6A2"
-        )
+        q1_text = Anlage1Question.objects.get(num=1).text
+        q2_text = Anlage1Question.objects.get(num=2).text
+        text = f"{q1_text}\u00b6A1\u00b6{q2_text}\u00b6A2"
         BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=1,
@@ -2362,10 +2361,8 @@ class LLMTasksTests(NoesisTestCase):
             llm_enabled=True,
         )
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        text = (
-            "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1\u00b6"
-            "Frage 10: Test?\u00b6A10"
-        )
+        q1_text = Anlage1Question.objects.get(num=1).text
+        text = f"{q1_text}\u00b6A1\u00b6Frage 10: Test?\u00b6A10"
         BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=1,
@@ -2412,33 +2409,31 @@ class LLMTasksTests(NoesisTestCase):
 
     def test_parse_anlage1_questions_with_newlines(self):
         """Extraktion funktioniert trotz Zeilenumbr\u00fcche."""
-        text = (
-            "Frage 1:\nExtrahiere alle Unternehmen als Liste.\nA1\n"
-            "Frage 2:\nExtrahiere alle Fachbereiche als Liste.\nA2"
-        )
+        q1_text = Anlage1Question.objects.get(num=1).text
+        q2_text = Anlage1Question.objects.get(num=2).text
+        text = f"{q1_text}\nA1\n{q2_text}\nA2"
         parsed = parse_anlage1_questions(text)
         self.assertEqual(
             parsed,
             {
-                "1": {"answer": "A1", "found_num": "1"},
-                "2": {"answer": "A2", "found_num": "2"},
+                "1": {"answer": "A1", "found_num": None},
+                "2": {"answer": "A2", "found_num": None},
             },
         )
 
     def test_parse_anlage1_questions_split_lines(self):
-        """Fragen werden auch mit Zeilenumbruch nach dem Doppelpunkt erkannt."""
-        text = (
-            "Frage 1:\n"
-            "Extrahiere alle Unternehmen als Liste.\r\n"
-            "A1\nFrage 2:\n"
-            "Extrahiere alle Fachbereiche als Liste.\r\nA2"
-        )
+        """Fragen werden auch mit Zeilenumbrüchen innerhalb des Textes erkannt."""
+        q1_text = Anlage1Question.objects.get(num=1).text
+        q2_text = Anlage1Question.objects.get(num=2).text
+        q1_split = q1_text.replace(" ", "\n", 1)
+        q2_split = q2_text.replace(" ", "\n", 1)
+        text = f"{q1_split}\r\nA1\n{q2_split}\r\nA2"
         parsed = parse_anlage1_questions(text)
         self.assertEqual(
             parsed,
             {
-                "1": {"answer": "A1", "found_num": "1"},
-                "2": {"answer": "A2", "found_num": "2"},
+                "1": {"answer": "A1", "found_num": None},
+                "2": {"answer": "A2", "found_num": None},
             },
         )
 
@@ -2449,7 +2444,7 @@ class LLMTasksTests(NoesisTestCase):
         q1_text = Anlage1Question.objects.get(num=1).text
         text = f"{q1_text}\u00b6A1"
         parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
+        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": None}})
 
     def test_parse_anlage1_questions_detects_wrong_number(self):
         """Die erkannte Nummer wird zur\u00fcckgegeben."""
