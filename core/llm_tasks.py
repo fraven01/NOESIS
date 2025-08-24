@@ -2233,7 +2233,6 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
         text=final_prompt_text,
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
-        model=prompt_template.model,
     )
 
     text = query_llm(
@@ -2308,7 +2307,6 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
         text=final_prompt_text,
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
-        model=prompt_template.model,
     )
 
     text = query_llm(
