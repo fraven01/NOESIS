@@ -2445,7 +2445,8 @@ class LLMTasksTests(NoesisTestCase):
         q2 = Anlage1Question.objects.get(num=2)
         q2.parser_enabled = False
         q2.save(update_fields=["parser_enabled"])
-        text = "Frage 1: Extrahiere alle Unternehmen als Liste.\u00b6A1"
+        q1_text = Anlage1Question.objects.get(num=1).text
+        text = f"{q1_text}\u00b6A1"
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
 
