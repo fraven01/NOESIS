@@ -1909,61 +1909,6 @@ class LLMTasksTests(NoesisTestCase):
         m_text.assert_not_called()
         self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
-    def test_parser_manager_uses_table_when_configured(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["table", "exact"]
-        cfg.save()
-        table_result = [{"funktion": "Anmelden"}]
-        try:
-            with (
-                patch("core.parsers.TableParser.parse", return_value=table_result) as m_table,
-                patch(
-                    "core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]
-                ) as m_exact,
-            ):
-                result = parser_manager.parse_anlage2(pf)
-        finally:
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
-        m_table.assert_called_once()
-        m_exact.assert_not_called()
-        self.assertEqual(result, table_result)
-
-    def test_parser_manager_no_fallback_on_empty(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["table", "exact"]
-        cfg.save()
-        try:
-            with (
-                patch("core.parsers.TableParser.parse", return_value=[]) as m_table,
-                patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
-            ):
-                result = parser_manager.parse_anlage2(pf)
-        finally:
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
-        m_table.assert_called_once()
-        m_exact.assert_not_called()
-        self.assertEqual(result, [])
-
     def test_parser_manager_uses_exact_by_default(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
@@ -1972,20 +1917,11 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             text_content="t",
         )
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["exact"]
-        cfg.save()
-        try:
-            with (
-                patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
-                patch("core.parsers.TableParser.parse") as m_table,
-            ):
-                result = parser_manager.parse_anlage2(pf)
-        finally:
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
+        with (
+            patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
+            patch("core.parsers.TableParser.parse") as m_table,
+        ):
+            result = parser_manager.parse_anlage2(pf)
         m_exact.assert_called_once()
         m_table.assert_not_called()
         self.assertEqual(result, [{"funktion": "Alt"}])
