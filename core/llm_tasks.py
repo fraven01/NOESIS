@@ -1008,14 +1008,17 @@ def check_anlage2(projekt_id: int) -> dict:
     anlage2_logger.debug("Anlage2 table data: %r", table)
     text = _collect_text(projekt)
     anlage2_logger.debug("Collected project text: %r", text)
-    prompt_base = get_prompt(
-        "check_anlage2_function",
-        (
-            "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
-            "und 'ki_beteiligung' zur\u00fcck.\n\n"
-        ),
-    )
+    try:
+        base_obj = Prompt.objects.get(name="check_anlage2_function")
+    except Prompt.DoesNotExist:
+        base_obj = Prompt(
+            name="check_anlage2_function",
+            text=(
+                "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
+                "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
+                "und 'ki_beteiligung' zur\u00fcck.\n\n"
+            ),
+        )
 
     results: list[dict] = []
     for func in Anlage2Function.objects.prefetch_related(
@@ -1050,14 +1053,16 @@ def check_anlage2(projekt_id: int) -> dict:
             raw = row
         else:
             # Sonst LLM befragen
-            prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+            prompt_text = f"{base_obj.text}Funktion: {func.name}\n\n{text}"
             anlage2_logger.debug(
                 "LLM Prompt für Funktion '%s': %s", func.name, prompt_text
             )
             prompt_obj = Prompt(
                 name="tmp",
                 text=prompt_text,
-                use_project_context=True,
+                role=base_obj.role,
+                use_system_role=base_obj.use_system_role,
+                use_project_context=base_obj.use_project_context,
             )
             reply = query_llm(
                 prompt_obj,
@@ -1107,14 +1112,16 @@ def check_anlage2(projekt_id: int) -> dict:
             )
             if sub_row is None:
                 anlage2_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
-            prompt_text = f"{prompt_base}Funktion: {sub.frage_text}\n\n{text}"
+            prompt_text = f"{base_obj.text}Funktion: {sub.frage_text}\n\n{text}"
             anlage2_logger.debug(
                 "LLM Prompt für Subfrage '%s': %s", sub.frage_text, prompt_text
             )
             prompt_obj = Prompt(
                 name="tmp",
                 text=prompt_text,
-                use_project_context=True,
+                role=base_obj.role,
+                use_system_role=base_obj.use_system_role,
+                use_project_context=base_obj.use_project_context,
             )
             reply = query_llm(
                 prompt_obj,
@@ -1380,21 +1387,26 @@ def check_anlage2_functions(
     except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
         raise ValueError("Anlage 2 fehlt") from exc
     text = _collect_text(projekt)
-    prompt_base = get_prompt(
-        "check_anlage2_function",
-        (
-            "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-            "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
-            "und 'ki_beteiligung' zur\u00fcck.\n\n"
-        ),
-    )
+    try:
+        base_obj = Prompt.objects.get(name="check_anlage2_function")
+    except Prompt.DoesNotExist:
+        base_obj = Prompt(
+            name="check_anlage2_function",
+            text=(
+                "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
+                "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
+                "und 'ki_beteiligung' zur\u00fcck.\n\n"
+            ),
+        )
     results: list[dict] = []
     for func in Anlage2Function.objects.order_by("name"):
-        prompt_text = f"{prompt_base}Funktion: {func.name}\n\n{text}"
+        prompt_text = f"{base_obj.text}Funktion: {func.name}\n\n{text}"
         prompt_obj = Prompt(
             name="tmp",
             text=prompt_text,
-            use_project_context=True,
+            role=base_obj.role,
+            use_system_role=base_obj.use_system_role,
+            use_project_context=base_obj.use_project_context,
         )
         reply = query_llm(
             prompt_obj,
