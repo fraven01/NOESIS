@@ -61,7 +61,7 @@ class FileUploadDuplicateTests(StaticLiveServerTestCase):
     def test_duplicate_files_show_warning(self):
         self._login()
         WebDriverWait(self.driver, 10).until(
-            EC.text_to_be_present_in_element((By.TAG_NAME, "h1"), "Meine Aufnahmen")
+            EC.text_to_be_present_in_element((By.TAG_NAME, "h1"), "Meine Projekte")
         )
         self.assertEqual(
             self.driver.current_url,
