@@ -17,7 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from core.models import BVProject, ProjectStatus
 
-pytestmark = pytest.mark.selenium
+pytestmark = [pytest.mark.selenium, pytest.mark.e2e]
 
 
 @unittest.skipUnless(

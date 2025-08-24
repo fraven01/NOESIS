@@ -55,9 +55,10 @@ WebDriver beispielsweise mit folgendem Befehl bereitgestellt werden:
 sudo apt-get update && sudo apt-get install -y google-chrome-stable
 ```
 
-Lokal müssen Browser und Treiber ebenfalls verfügbar sein. Die Tests
+Lokal müssen Browser und Treiber ebenfalls verfügbar sein. Die E2E-Tests
 werden nur ausgeführt, wenn die Umgebungsvariable
-`NOESIS_RUN_SELENIUM=1` gesetzt ist; andernfalls werden sie automatisch
+`NOESIS_RUN_SELENIUM=1` gesetzt ist und mit `pytest -m e2e` gestartet
+werden; andernfalls werden sie automatisch
 übersprungen.
 
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
