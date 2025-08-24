@@ -282,16 +282,8 @@ def create_initial_data(apps) -> None:
     for q in INITIAL_ANLAGE1_QUESTIONS:
         prompts.append((f"anlage1_q{q['num']}", q["text"], True))
     for entry in prompts:
-        if len(entry) == 3:
-            name, text, use_system_role = entry
-            defaults = {"text": text, "use_system_role": use_system_role}
-        else:
-            name, text, use_system_role, model = entry
-            defaults = {
-                "text": text,
-                "use_system_role": use_system_role,
-                "model": model,
-            }
+        name, text, use_system_role, *rest = entry
+        defaults = {"text": text, "use_system_role": use_system_role}
         Prompt.objects.update_or_create(name=name, defaults=defaults)
 
     # 12. SupervisionStandardNote
