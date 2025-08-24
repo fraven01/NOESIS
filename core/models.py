@@ -12,6 +12,14 @@ import logging
 
 workflow_logger = logging.getLogger("workflow_debug")
 
+# Parser-Modi für Anlage 2
+PARSER_MODE_CHOICES = [
+    ("auto", "Automatisch"),
+    ("table_only", "Nur Tabellen"),
+    ("text_only", "Nur Text"),
+    ("exact_only", "Nur Exakt"),
+]
+
 
 class BVProjectManager(models.Manager):
     """Manager mit Unterstützung für das alte ``software_typen``-Feld."""
@@ -253,6 +261,18 @@ class BVProjectFile(models.Model):
     anlage4_parser_config = models.ForeignKey(
         "Anlage4ParserConfig", on_delete=models.SET_NULL, null=True, blank=True
     )
+    parser_mode = models.CharField(
+        max_length=20,
+        choices=PARSER_MODE_CHOICES,
+        blank=True,
+        default="",
+        help_text="Spezifischer Parser-Modus für diese Anlage.",
+    )
+    parser_order = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Reihenfolge der Parser für diese Anlage.",
+    )
     version = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
     parent = models.ForeignKey(
@@ -298,10 +318,13 @@ class BVProjectFile(models.Model):
     def save(self, *args, **kwargs):
         """Speichert die Datei und startet ggf. die Funktionsprüfung."""
         is_new = self._state.adding
-        super().save(*args, **kwargs)
         if is_new and self.anlage_nr == 2:
-            from .parser_manager import parser_manager
-            parser_manager.parse_anlage2(self)
+            cfg = Anlage2Config.get_instance()
+            if not self.parser_mode:
+                self.parser_mode = cfg.parser_mode
+            if not self.parser_order:
+                self.parser_order = cfg.parser_order
+        super().save(*args, **kwargs)
 
     def is_verification_running(self) -> bool:
         """Prüft, ob ein Verifizierungstask läuft."""
@@ -654,14 +677,25 @@ class Anlage2Config(models.Model):
 
 
     PARSER_CHOICES = [
-        ("exact", "ExactParser"),
-        ("table", "TableParser"),
+        ("auto", "Automatisch"),
+        ("table_only", "Nur Tabellen"),
+        ("text_only", "Nur Text"),
+        ("exact_only", "Nur Exakt"),
     ]
 
-    default_parser = models.CharField(
+    parser_mode = models.CharField(
         max_length=20,
         choices=PARSER_CHOICES,
-        default="exact",
+        default="auto",
+    )
+
+    def default_parser_order() -> list[str]:
+        """Standard-Parser-Reihenfolge."""
+        return ["exact"]
+
+    parser_order = models.JSONField(
+        default=default_parser_order,
+        help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
     text_technisch_verfuegbar_true = models.JSONField(
@@ -714,7 +748,7 @@ class Anlage2Config(models.Model):
     @classmethod
     def get_instance(cls) -> "Anlage2Config":
         """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
-        return cls.objects.first() or cls.objects.create(default_parser="exact")
+        return cls.objects.first() or cls.objects.create(parser_order=["exact"])
 
 
 class Anlage2ColumnHeading(models.Model):
