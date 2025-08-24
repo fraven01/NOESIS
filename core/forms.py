@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 from django.conf import settings
 
+PARSER_MODE_CHOICES: list[tuple[str, str]] = []
+
 
 class MultiFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
@@ -30,8 +32,6 @@ from .models import (
     Anlage3ParserRule,
     ZweckKategorieA,
     SupervisionStandardNote,
-
-    PARSER_MODE_CHOICES,
     Anlage3Metadata,
 )
 
@@ -712,8 +712,6 @@ class Anlage2ConfigForm(forms.ModelForm):
             if not self.is_bound:
                 current = getattr(self.instance, name, [])
                 self.initial[name] = "\n".join(current)
-        # Vorhandene Instanzwerte nutzen, falls nichts übergeben wurde
-        self.fields["parser_mode"].required = False
 
     def save(self, commit: bool = True) -> Anlage2Config:
         """Speichert nur übergebene Werte."""
@@ -729,8 +727,6 @@ class Anlage2ConfigForm(forms.ModelForm):
                     name,
                     [v.strip() for v in value.splitlines() if v.strip()],
                 )
-        if not self.cleaned_data.get("parser_mode"):
-            instance.parser_mode = self.instance.parser_mode
         if commit:
             instance.save()
         return instance
@@ -740,8 +736,6 @@ class Anlage2ConfigForm(forms.ModelForm):
 
         fields = [
             "enforce_subquestion_override",
-            "parser_mode",
-            "parser_order",
             "text_technisch_verfuegbar_true",
             "text_technisch_verfuegbar_false",
             "text_einsatz_telefonica_true",
@@ -753,8 +747,6 @@ class Anlage2ConfigForm(forms.ModelForm):
         ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
-            "parser_mode": "Parser-Modus",
-            "parser_order": "Parser-Reihenfolge",
             "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
             "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
             "text_einsatz_telefonica_true": "Text‑Parser: Einsatz bei Telefónica – Ja",
