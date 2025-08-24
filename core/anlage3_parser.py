@@ -35,21 +35,32 @@ def _normalize(text: str) -> str:
     return text
 
 
-def parse_anlage3(project_file: BVProjectFile) -> Dict[str, str]:
+def is_verhandlungsfaehig(data: Dict[str, str]) -> bool:
+    """Prüft, ob alle Felder gefüllt sind."""
+    return all(data.get(k, "").strip() for k in ("name", "beschreibung", "zeitraum", "art"))
+
+
+def parse_anlage3(project_file: BVProjectFile) -> Dict[str, object]:
     """Liest Metadaten aus einer DOCX-Datei der Anlage 3."""
     path = Path(project_file.upload.path)
+    result: Dict[str, object] = {
+        "name": "",
+        "beschreibung": "",
+        "zeitraum": "",
+        "art": "",
+        "verhandlungsfaehig": False,
+    }
     if not path.exists() or path.suffix.lower() != ".docx":
         logger.debug("Anlage3 Parser: Datei nicht vorhanden oder kein DOCX")
-        return {}
+        return result
 
     try:
         doc = Document(str(path))
     except Exception as exc:  # pragma: no cover - ungültige Datei
         logger.error("Anlage3 Parser Fehler beim Laden: %s", exc)
-        return {}
+        return result
 
     alias_map = _get_alias_map()
-    result: Dict[str, str] = {"name": "", "beschreibung": "", "zeitraum": "", "art": ""}
 
     def handle_pair(key: str, value: str) -> None:
         norm = _normalize(key)
@@ -71,6 +82,10 @@ def parse_anlage3(project_file: BVProjectFile) -> Dict[str, str]:
         if ":" in text:
             before, after = text.split(":", 1)
             handle_pair(before, after)
+
+    result["verhandlungsfaehig"] = is_verhandlungsfaehig(
+        {k: str(result[k]) for k in ("name", "beschreibung", "zeitraum", "art")}
+    )
 
     logger.debug("Anlage3 Parser Ergebnis: %s", result)
     result_logger.debug("Anlage3 Endergebnis: %s", result)
