@@ -698,6 +698,13 @@ class Anlage2Config(models.Model):
         help_text="Reihenfolge der zu verwendenden Parser.",
     )
 
+    default_parser = models.CharField(
+        max_length=100,
+        blank=True,
+        default="exact",
+        help_text="Name des Standard-Parsers für Anlage 2.",
+    )
+
     text_technisch_verfuegbar_true = models.JSONField(
         default=list,
         help_text="Phrasen für technisch verfügbar = Ja",
@@ -748,7 +755,9 @@ class Anlage2Config(models.Model):
     @classmethod
     def get_instance(cls) -> "Anlage2Config":
         """Liefert die einzige vorhandene Konfiguration oder legt sie an."""
-        return cls.objects.first() or cls.objects.create(parser_order=["exact"])
+        return cls.objects.first() or cls.objects.create(
+            parser_order=["exact"], default_parser="exact"
+        )
 
 
 class Anlage2ColumnHeading(models.Model):

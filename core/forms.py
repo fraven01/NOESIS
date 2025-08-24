@@ -30,8 +30,6 @@ from .models import (
     Anlage3ParserRule,
     ZweckKategorieA,
     SupervisionStandardNote,
-
-    PARSER_MODE_CHOICES,
     Anlage3Metadata,
 )
 
@@ -198,25 +196,14 @@ class BVProjectUploadForm(DocxValidationMixin, forms.Form):
 
 
 class BVProjectFileForm(forms.ModelForm):
-    parser_order = forms.MultipleChoiceField(
-        choices=get_parser_choices(), required=False
-    )
-
-    parser_mode = forms.ChoiceField(
-        choices=PARSER_MODE_CHOICES, required=False
-    )
     class Meta:
         model = BVProjectFile
         fields = [
             "upload",
-            "parser_mode",
-            "parser_order",
             "manual_comment",
         ]
         labels = {
             "upload": "Datei",
-            "parser_mode": "Parser-Modus",
-            "parser_order": "Parser-Reihenfolge",
             "manual_comment": "Kommentar",
             "manual_reviewed": "Manuell geprüft",
             "verhandlungsfaehig": "Verhandlungsfähig",
@@ -230,10 +217,6 @@ class BVProjectFileForm(forms.ModelForm):
             ),
             "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),
             "verhandlungsfaehig": forms.CheckboxInput(attrs={"class": "mr-2"}),
-            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
-            "parser_order": forms.SelectMultiple(
-                attrs={"class": "border rounded p-2"}
-            ),
         }
 
     def __init__(self, *args, anlage_nr=None, **kwargs):
@@ -242,14 +225,6 @@ class BVProjectFileForm(forms.ModelForm):
         self.fields["manual_comment"].required = False
         if self.anlage_nr is None:
             self.anlage_nr = getattr(self.instance, "anlage_nr", None)
-        nr = self.anlage_nr
-        if str(nr) != "2":
-            self.fields.pop("parser_mode", None)
-            self.fields.pop("parser_order", None)
-        else:
-            self.fields["parser_order"].choices = get_parser_choices()
-            if not self.is_bound:
-                self.initial["parser_order"] = self.instance.parser_order
 
     def clean_upload(self):
         """Prüft Größe und Endung abhängig von der Anlagen-Nummer."""
@@ -277,10 +252,6 @@ class BVProjectFileForm(forms.ModelForm):
         obj = super().save(commit=False)
         if self.anlage_nr is not None:
             obj.anlage_nr = self.anlage_nr
-        if "parser_mode" in self.cleaned_data:
-            obj.parser_mode = self.cleaned_data.get("parser_mode") or ""
-        if "parser_order" in self.cleaned_data:
-            obj.parser_order = self.cleaned_data.get("parser_order") or []
         if commit:
             obj.save()
         return obj
@@ -685,7 +656,7 @@ class Anlage1ImportForm(forms.Form):
 class Anlage2ConfigForm(forms.ModelForm):
     """Formular für die Anlage-2-Konfiguration."""
 
-    parser_order = forms.MultipleChoiceField(
+    default_parser = forms.ChoiceField(
         choices=get_parser_choices(),
         required=False,
     )
@@ -712,8 +683,7 @@ class Anlage2ConfigForm(forms.ModelForm):
             if not self.is_bound:
                 current = getattr(self.instance, name, [])
                 self.initial[name] = "\n".join(current)
-        # Vorhandene Instanzwerte nutzen, falls nichts übergeben wurde
-        self.fields["parser_mode"].required = False
+        self.fields["default_parser"].choices = get_parser_choices()
 
     def save(self, commit: bool = True) -> Anlage2Config:
         """Speichert nur übergebene Werte."""
@@ -729,8 +699,10 @@ class Anlage2ConfigForm(forms.ModelForm):
                     name,
                     [v.strip() for v in value.splitlines() if v.strip()],
                 )
-        if not self.cleaned_data.get("parser_mode"):
-            instance.parser_mode = self.instance.parser_mode
+        if self.cleaned_data.get("default_parser"):
+            instance.default_parser = self.cleaned_data.get("default_parser")
+        else:
+            instance.default_parser = self.instance.default_parser
         if commit:
             instance.save()
         return instance
@@ -740,8 +712,7 @@ class Anlage2ConfigForm(forms.ModelForm):
 
         fields = [
             "enforce_subquestion_override",
-            "parser_mode",
-            "parser_order",
+            "default_parser",
             "text_technisch_verfuegbar_true",
             "text_technisch_verfuegbar_false",
             "text_einsatz_telefonica_true",
@@ -753,8 +724,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         ]
         labels = {
             "enforce_subquestion_override": "Unterfragen überschreiben Hauptfunktion",
-            "parser_mode": "Parser-Modus",
-            "parser_order": "Parser-Reihenfolge",
+            "default_parser": "Standardparser",
             "text_technisch_verfuegbar_true": "Text‑Parser: technisch verfügbar – Ja",
             "text_technisch_verfuegbar_false": "Text‑Parser: technisch verfügbar – Nein",
             "text_einsatz_telefonica_true": "Text‑Parser: Einsatz bei Telefónica – Ja",
@@ -766,8 +736,7 @@ class Anlage2ConfigForm(forms.ModelForm):
         }
         widgets = {
             "enforce_subquestion_override": forms.CheckboxInput(attrs={"class": "mr-2"}),
-            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
-            "parser_order": forms.Select(attrs={"class": "border rounded p-2"}),
+            "default_parser": forms.Select(attrs={"class": "border rounded p-2"}),
             "text_technisch_verfuegbar_true": forms.Textarea(attrs={"rows": 2}),
             "text_technisch_verfuegbar_false": forms.Textarea(attrs={"rows": 2}),
             "text_einsatz_telefonica_true": forms.Textarea(attrs={"rows": 2}),
@@ -1133,37 +1102,6 @@ class AntwortErkennungsRegelForm(forms.ModelForm):
         return super().save(commit=commit)
 
 
-class ParserSettingsForm(forms.ModelForm):
-    """Formular für parserbezogene Einstellungen einer Anlage."""
-
-    parser_order = forms.MultipleChoiceField(
-        choices=get_parser_choices(), required=False
-    )
-    parser_mode = forms.ChoiceField(
-        choices=PARSER_MODE_CHOICES, required=False
-    )
-
-    class Meta:
-        model = BVProjectFile
-        fields = ["parser_mode", "parser_order"]
-        widgets = {
-            "parser_mode": forms.Select(attrs={"class": "border rounded p-2"}),
-            "parser_order": forms.SelectMultiple(attrs={"class": "border rounded p-2"}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["parser_order"].choices = get_parser_choices()
-        if self.instance and not self.is_bound:
-            self.initial["parser_order"] = self.instance.parser_order
-
-    def save(self, commit: bool = True) -> BVProjectFile:
-        obj = super().save(commit=False)
-        obj.parser_mode = self.cleaned_data.get("parser_mode") or ""
-        obj.parser_order = self.cleaned_data.get("parser_order") or []
-        if commit:
-            obj.save(update_fields=["parser_mode", "parser_order"])
-        return obj
 
 
 class ActionForm(forms.Form):
