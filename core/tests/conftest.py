@@ -45,7 +45,6 @@ def mock_llm_api_calls():
         patch("core.llm_utils.query_llm", return_value="Mock-Antwort"),
         patch("core.llm_utils.query_llm_with_images", return_value="Mock-Antwort"),
         patch("core.llm_tasks.query_llm", return_value="Mock-Antwort"),
-        patch("core.llm_tasks.query_llm_with_images", return_value="Mock-Antwort"),
         patch("google.generativeai.configure"),
         patch("google.generativeai.list_models", return_value=[]),
     ):

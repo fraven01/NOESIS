@@ -21,7 +21,6 @@ from .models import (
     BVProject,
     BVProjectFile,
     Prompt,
-    LLMConfig,
     Anlage1Config,
     Anlage1Question,
     Anlage2Function,
@@ -45,7 +44,7 @@ from .text_parser import (
     apply_tokens,
     apply_rules,
 )
-from .llm_utils import query_llm, query_llm_with_images
+from .llm_utils import query_llm
 from .docx_utils import (
     extract_text,
     _normalize_function_name,
@@ -809,27 +808,12 @@ def _read_pdf_images(path: Path) -> list[bytes]:
         return []
 
 
-def check_anlage3_vision(projekt_id: int) -> dict:
-    """Prüft Anlage 3 anhand der enthaltenen Bilder."""
+def extract_anlage3_images(projekt_id: int) -> list[list[bytes]]:
+    """Extrahiert die Bilder aller Anlage-3-Dateien."""
 
     projekt = BVProject.objects.get(pk=projekt_id)
-    anlagen = projekt.anlagen.filter(anlage_nr=3)
-    if not anlagen:
-        raise ValueError("Anlage 3 fehlt")
-
-    prompt_obj = Prompt.objects.filter(name__iexact="check_anlage3_vision").first()
-    prompt = (
-        prompt_obj.text
-        if prompt_obj
-        else "Prüfe die folgende Anlage auf Basis der Bilder. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n"
-    )
-    model = (
-        prompt_obj.model.model_name
-        if prompt_obj and prompt_obj.model
-        else LLMConfig.get_default("vision")
-    )
-    result: dict | None = None
-    for anlage in anlagen:
+    images_all: list[list[bytes]] = []
+    for anlage in projekt.anlagen.filter(anlage_nr=3):
         path = Path(anlage.upload.path)
         if path.suffix.lower() == ".docx":
             images = extract_images(path)
@@ -842,20 +826,27 @@ def check_anlage3_vision(projekt_id: int) -> dict:
             except Exception as exc:  # pragma: no cover - ungültige Datei
                 anlage3_logger.error("Fehler beim Lesen von %s: %s", path, exc)
                 images = []
+        images_all.append(images)
+    return images_all
 
-        proj_prompt = projekt.project_prompt if not prompt_obj or prompt_obj.use_project_context else None
-        reply = query_llm_with_images(
-            prompt,
-            images,
-            model,
-            project_prompt=proj_prompt,
-        )
-        try:
-            data = json.loads(reply)
-        except Exception:  # noqa: BLE001
-            data = {"raw": reply}
 
-        data = _add_editable_flags(data)
+def check_anlage3_vision(projekt_id: int) -> dict:
+    """Extrahiert lediglich die Bilder der Anlage 3.
+
+    Eine inhaltliche Bildanalyse durch ein LLM ist noch nicht umgesetzt.
+    Das Ergebnis enthält aktuell nur die Anzahl der gefundenen Bilder.
+    """
+
+    anlagen_images = extract_anlage3_images(projekt_id)
+    if not anlagen_images:
+        raise ValueError("Anlage 3 fehlt")
+
+    result: dict | None = None
+    projekt = BVProject.objects.get(pk=projekt_id)
+    for anlage, images in zip(
+        projekt.anlagen.filter(anlage_nr=3), anlagen_images
+    ):
+        data = {"images": len(images)}
         anlage.analysis_json = data
         anlage.save(update_fields=["analysis_json"])
         if result is None:

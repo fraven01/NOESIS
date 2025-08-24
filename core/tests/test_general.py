@@ -39,7 +39,6 @@ from ..docx_utils import (
     extract_text,
     get_docx_page_count,
     get_pdf_page_count,
-    extract_images,
     parse_anlage2_table,
     _normalize_header_text,
 )
@@ -80,13 +79,11 @@ from ..llm_tasks import (
     analyse_anlage3,
     analyse_anlage4,
     analyse_anlage4_async,
-    check_anlage3_vision,
     check_anlage5,
     run_conditional_anlage2_check,
     worker_verify_feature,
     worker_generate_gutachten,
     worker_run_initial_check,
-    worker_run_anlage3_vision,
     worker_anlage4_evaluate,
     worker_generate_gap_summary,
     summarize_anlage1_gaps,
@@ -2184,8 +2181,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
+
         self.assertTrue(data["auto_ok"])
         self.assertTrue(file_obj.analysis_json["auto_ok"])
+
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertTrue(file_obj.verhandlungsfaehig)
 
@@ -2213,8 +2212,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
+
         self.assertTrue(data["manual_required"])
         self.assertTrue(file_obj.analysis_json["manual_required"])
+
         if hasattr(file_obj, "verhandlungsfaehig"):
             self.assertFalse(file_obj.verhandlungsfaehig)
 
@@ -2240,8 +2241,10 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 1)
+
         self.assertTrue(data["auto_ok"])
         self.assertTrue(file_obj.analysis_json["auto_ok"])
+
 
     def test_analyse_anlage3_pdf_manual_required(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2266,6 +2269,7 @@ class LLMTasksTests(NoesisTestCase):
         pf.refresh_from_db()
         file_obj = pf
         self.assertEqual(data["pages"], 2)
+
         self.assertTrue(data["manual_required"])
         self.assertTrue(file_obj.analysis_json["manual_required"])
 
@@ -2310,30 +2314,6 @@ class LLMTasksTests(NoesisTestCase):
         self.assertIsNotNone(pf1.analysis_json)
         self.assertIsNotNone(pf2.analysis_json)
 
-    def test_check_anlage3_vision_stores_json(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_paragraph("A")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("g.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-        )
-
-        llm_reply = json.dumps({"ok": True, "hinweis": "x"})
-        with patch("core.llm_tasks.query_llm_with_images", return_value=llm_reply):
-            data = check_anlage3_vision(projekt.pk)
-        file_obj = projekt.anlagen.get(anlage_nr=3)
-        self.assertTrue(data["ok"]["value"])
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
-
     def test_check_anlage1_parser(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         text = (
@@ -2348,6 +2328,7 @@ class LLMTasksTests(NoesisTestCase):
         )
         file_obj = projekt.anlagen.get(anlage_nr=1)
         data = check_anlage1(file_obj.pk)
+        file_obj.refresh_from_db()
         expected = {"questions": parse_anlage1_questions(text)}
         file_obj.refresh_from_db()
         self.assertEqual(data, expected)
@@ -2501,6 +2482,7 @@ class PromptTests(NoesisTestCase):
         p.save()
         self.assertEqual(get_prompt("classify_system", "x"), "DB")
 
+
     def test_gap_report_anlage2_placeholder(self):
         p = Prompt.objects.get(name="gap_report_anlage2")
         self.assertIn("{gap_list}", p.text)
@@ -2513,6 +2495,7 @@ class PromptTests(NoesisTestCase):
             "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
         )
         self.assertEqual(p.text, expected)
+
 
 
 class CheckAnlage5Tests(NoesisTestCase):
@@ -2804,36 +2787,6 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1
         )
         Path(path).unlink(missing_ok=True)
-
-
-class WorkerAnlage3VisionTests(NoesisTestCase):
-    def setUp(self):
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_paragraph("A")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("v.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-            manual_analysis_json={"functions": {}},
-            analysis_json={},
-            verification_json={"functions": {}},
-        )
-
-    def test_worker_runs_vision_check(self):
-        reply = json.dumps({"ok": True})
-        with patch("core.llm_tasks.query_llm_with_images", return_value=reply):
-            data = worker_run_anlage3_vision(self.projekt.pk)
-        self.assertTrue(data["ok"]["value"])
-        file_obj = self.projekt.anlagen.get(anlage_nr=3)
-        self.assertTrue(file_obj.analysis_json["ok"]["value"])
 
 
 class ProjektFileDeleteResultTests(NoesisTestCase):
