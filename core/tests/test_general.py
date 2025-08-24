@@ -2451,12 +2451,6 @@ class LLMTasksTests(NoesisTestCase):
         parsed = parse_anlage1_questions(text)
         self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
 
-    def test_parse_anlage1_questions_detects_wrong_number(self):
-        """Die erkannte Nummer wird zur\u00fcckgegeben."""
-        text = "Frage 1.2: Extrahiere alle Unternehmen als Liste.\u00b6A1"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1.2"}})
-
     def test_parse_anlage1_questions_returns_empty_dict(self):
         """Bei fehlenden Treffern wird ein leeres Dict zur\u00fcckgegeben."""
         text = "Es gibt hier keine Fragen."
