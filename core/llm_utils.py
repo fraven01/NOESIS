@@ -27,13 +27,10 @@ def query_llm(
     project_prompt: str | None = None,
 ) -> str:
     """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
-    from .models import LLMConfig, LLMRole, Prompt
+    from .models import LLMConfig, LLMRole
 
     correlation_id = str(uuid.uuid4())
-    if prompt_object.model and getattr(prompt_object.model, "model_name", None):
-        model_name = prompt_object.model.model_name
-    else:
-        model_name = LLMConfig.get_default(model_type)
+    model_name = LLMConfig.get_default(model_type)
 
     final_role_prompt = ""
 
