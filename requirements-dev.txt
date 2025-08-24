@@ -7,3 +7,4 @@ pytest
 rich
 selenium
 pytest-django
+pytest-xdist
