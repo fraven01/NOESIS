@@ -34,8 +34,18 @@ class ParserManager:
             project_file.upload.name,
         )
         cfg = Anlage2Config.get_instance()
-        name = cfg.default_parser
-        logger.debug("Verwende Parser: %s", name)
+        mode = project_file.parser_mode or cfg.parser_mode
+        order = project_file.parser_order or cfg.parser_order or ["exact"]
+        logger.debug("Parser-Modus: %s Reihenfolge: %s", mode, order)
+
+        if mode == "table_only":
+            name = "table"
+        elif mode == "exact_only":
+            name = "exact"
+        elif mode == "text_only":
+            name = "text"
+        else:  # auto or unbekannt
+            name = order[0]
 
         parser = self.get(name)
         if parser is None:
