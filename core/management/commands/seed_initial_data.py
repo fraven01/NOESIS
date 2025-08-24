@@ -221,7 +221,13 @@ def create_initial_data(apps) -> None:
         ),
         (
             "gap_report_anlage2",
-            "Fasse alle GAP-Notizen aus Anlage 2 für den Fachbereich zusammen. Nutze {funktionen} als Input.",
+            (
+                "Fasse die folgenden GAP-Notizen aus Anlage 2 für den Fachbereich zusammen. "
+                "Die Notizen enthalten interne und externe Anmerkungen. Formuliere eine professionelle "
+                "Zusammenfassung, die für den Fachbereich geeignet ist.\n\n"
+                "Hier sind die Gaps:\n"
+                "{gap_list}"
+            ),
             True,
         ),
     ]
