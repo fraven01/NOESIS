@@ -15,10 +15,11 @@ def _seed_db(django_db_setup, django_db_blocker) -> None:
         seed_test_data()
         if not User.objects.filter(username="baseuser").exists():
             User.objects.create_user("baseuser", password="pass")
-        if not User.objects.filter(username="basesuper").exists():
-            User.objects.create_superuser(
-                "basesuper", "admin@example.com", password="pass"
-            )
+        # Sicherstellen, dass der Superuser aus dem Seed-Skript
+        # ein bekanntes Passwort für die Tests besitzt.
+        superuser = User.objects.get(username="frank")
+        superuser.set_password("pass")
+        superuser.save()
 
 
 @pytest.fixture
@@ -34,7 +35,7 @@ def superuser(db) -> "User":
     """Gibt den Basis-Superuser zurück."""
     from django.contrib.auth.models import User
 
-    return User.objects.get(username="basesuper")
+    return User.objects.get(username="frank")
 
 
 @pytest.fixture(autouse=True)
