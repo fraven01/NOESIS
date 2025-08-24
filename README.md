@@ -90,6 +90,8 @@ auszuführen. LLM-API-Aufrufe werden in den Tests durch ein
 `pytest`-Fixture automatisch gemockt, sodass keine externen
 Requests stattfinden.
 
+Langsame Tests sind mit `@pytest.mark.slow` gekennzeichnet. Die schnelle Standardsuite startet man mit `pytest -m "not slow"`.
+
 ### Commit-Richtlinien
 
 - Verwende Präfixe wie `feat:`, `fix:` oder `docs:` in Commit-Botschaften.
