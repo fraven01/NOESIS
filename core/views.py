@@ -3652,7 +3652,7 @@ def projekt_file_check(request, pk, nr):
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
 
-    def parse_only(pid: int, model_name: str | None = None):
+    def parse_only(pid: int):
         pf = BVProjectFile.objects.filter(project_id=pid, anlage_nr=2).first()
         if pf:
             run_anlage2_analysis(pf)
@@ -3697,7 +3697,7 @@ def projekt_file_check_pk(request, pk):
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
 
-    def parse_only(_pid: int, model_name: str | None = None):
+    def parse_only(_pid: int):
         run_anlage2_analysis(anlage)
 
     funcs = {
@@ -3751,7 +3751,7 @@ def projekt_file_check_view(request, pk):
 
     use_llm = request.POST.get("llm") or request.GET.get("llm")
 
-    def parse_only(_pid: int, model_name: str | None = None):
+    def parse_only(_pid: int):
         run_anlage2_analysis(anlage)
 
     funcs = {
@@ -5735,10 +5735,8 @@ def gutachten_llm_check(request, pk):
     """Löst den LLM-Funktionscheck für das Gutachten aus."""
     gutachten = get_object_or_404(Gutachten, pk=pk)
     projekt = gutachten.software_knowledge.project
-    category = request.POST.get("model_category")
-    model = LLMConfig.get_default(category) if category else None
     try:
-        note = check_gutachten_functions(projekt.pk, model_name=model)
+        note = check_gutachten_functions(projekt.pk)
         if note:
             projekt.gutachten_function_note = note
             projekt.save(update_fields=["gutachten_function_note"])
