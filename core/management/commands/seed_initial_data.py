@@ -114,7 +114,9 @@ def create_initial_data(apps) -> None:
 
     # 6. Anlage 2 Konfiguration
     print("\n[6] Verarbeite Anlage 2 Konfiguration...")
-    config, _ = Anlage2Config.objects.update_or_create(singleton_enforcer=True, defaults={"parser_mode": "auto"})
+    config, _ = Anlage2Config.objects.update_or_create(
+        singleton_enforcer=True, defaults={"default_parser": "exact"}
+    )
     for phrase_data in INITIAL_ANLAGE2_CONFIG["global_phrases"]:
         field = PHRASE_FIELD_MAP.get(phrase_data["phrase_type"])
         if not field:

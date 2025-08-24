@@ -3949,8 +3949,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         # globale Instanz verwenden und die benötigten Felder direkt darauf
         # setzen.
         self.cfg = Anlage2Config.get_instance()
-        self.cfg.parser_mode = "auto"
-        self.cfg.parser_order = ["exact"]
+        self.cfg.default_parser = "exact"
         self.cfg.text_technisch_verfuegbar_true = ["ja"]
         self.cfg.save()
 
@@ -3973,8 +3972,9 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
-        self.assertEqual(data["config"]["parser_mode"], self.cfg.parser_mode)
-        self.assertEqual(data["config"]["parser_order"], self.cfg.parser_order)
+        self.assertEqual(
+            data["config"]["default_parser"], self.cfg.default_parser
+        )
         self.assertIn(
             {"field_name": "technisch_vorhanden", "text": "Verfügbar?"},
             data["alias_headings"],
@@ -3987,8 +3987,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         payload = json.dumps(
             {
                 "config": {
-                "parser_mode": "text_only",
-                "parser_order": ["exact"],
+                "default_parser": "text",
                     "enforce_subquestion_override": True,
                     "text_technisch_verfuegbar_true": ["ja"],
                 },
@@ -4017,8 +4016,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         a4_cfg = Anlage4ParserConfig.objects.first()
         self.assertEqual(a4_cfg.delimiter_phrase, "Y")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_mode, "text_only")
-        self.assertEqual(self.cfg.parser_order, ["exact"])
+        self.assertEqual(self.cfg.default_parser, "text")
         self.assertTrue(self.cfg.enforce_subquestion_override)
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja"])
 
@@ -4038,35 +4036,19 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         return data
 
 
-    def test_update_parser_mode(self):
+    def test_update_default_parser(self):
         url = reverse("anlage2_config")
         resp = self.client.post(
             url,
             self._build_general_data(
-                parser_mode="text_only",
-                parser_order=["exact"],
+                default_parser="text",
                 action="save_general",
                 active_tab="general",
             ),
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["exact"])
-
-    def test_update_parser_order(self):
-        url = reverse("anlage2_config")
-        resp = self.client.post(
-            url,
-            self._build_general_data(
-                parser_mode=self.cfg.parser_mode,
-                parser_order=["exact"],
-                action="save_general",
-                active_tab="general",
-            ),
-        )
-        self.assertRedirects(resp, url + "?tab=general")
-        self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_order, ["exact"])
+        self.assertEqual(self.cfg.default_parser, "text")
 
     def test_save_table_tab(self):
         url = reverse("anlage2_config")
@@ -4088,8 +4070,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
             url,
             self._build_general_data(
                 text_technisch_verfuegbar_true="ja\nokay\n",
-                parser_mode=self.cfg.parser_mode,
-                parser_order=self.cfg.parser_order,
+                default_parser=self.cfg.default_parser,
                 action="save_general",
                 active_tab="general",
             ),

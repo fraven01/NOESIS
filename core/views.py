@@ -77,7 +77,6 @@ from .forms import (
     SupervisionStandardNoteForm,
     AntwortErkennungsRegelForm,
     Anlage4ParserConfigForm,
-    ParserSettingsForm,
     ActionForm,
     Anlage3ParserRuleForm,
 )
@@ -2323,8 +2322,7 @@ def admin_anlage2_config_export(request):
 
     cfg_data = {
         "enforce_subquestion_override": cfg.enforce_subquestion_override,
-        "parser_mode": cfg.parser_mode,
-        "parser_order": cfg.parser_order,
+        "default_parser": cfg.default_parser,
     }
     for key, _ in PHRASE_TYPE_CHOICES:
         cfg_data[f"text_{key}"] = getattr(cfg, f"text_{key}")
@@ -2384,8 +2382,7 @@ def admin_anlage2_config_import(request):
         updated_fields: list[str] = []
         base_fields = [
             "enforce_subquestion_override",
-            "parser_mode",
-            "parser_order",
+            "default_parser",
         ]
         phrase_fields = [f"text_{key}" for key, _ in PHRASE_TYPE_CHOICES]
         for field in base_fields + phrase_fields:
@@ -3904,21 +3901,8 @@ def projekt_file_edit_json(request, pk):
         form = None
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
-        parser_form = ParserSettingsForm(
-            request.POST
-            if request.method == "POST" and "save_parser_settings" in request.POST
-            else None,
-            instance=anlage,
-        )
         if request.method == "POST":
-            if "save_parser_settings" in request.POST:
-                form = Anlage2ReviewForm(initial=analysis_init)
-                if parser_form.is_valid() and gap_form.is_valid():
-                    parser_form.save()
-                    gap_form.save()
-                    messages.success(request, "Parser-Einstellungen gespeichert")
-                    return redirect("projekt_file_edit_json", pk=pk)
-            elif "run_parser" in request.POST:
+            if "run_parser" in request.POST:
                 run_anlage2_analysis(anlage)
                 anlage.refresh_from_db()
                 if gap_form.is_valid():
@@ -3936,23 +3920,23 @@ def projekt_file_edit_json(request, pk):
                                 if form.cleaned_data.get(field_name):
                                     functions_to_override.add(func.id)
 
-                data = form.get_json()
-                anlage.manual_analysis_json = data
-                gap_form.save()
-                anlage.save(update_fields=["manual_analysis_json"])
-                logger.info(
-                    "Anlage2 Review gespeichert: %s Funktionen",
-                    len(data.get("functions", {})),
-                )
+                    data = form.get_json()
+                    anlage.manual_analysis_json = data
+                    gap_form.save()
+                    anlage.save(update_fields=["manual_analysis_json"])
+                    logger.info(
+                        "Anlage2 Review gespeichert: %s Funktionen",
+                        len(data.get("functions", {})),
+                    )
 
-                if cfg_rule.enforce_subquestion_override:
-                    for fid in functions_to_override:
-                        AnlagenFunktionsMetadaten.objects.update_or_create(
-                            anlage_datei=anlage,
-                            funktion_id=fid,
-                        )
+                    if cfg_rule.enforce_subquestion_override:
+                        for fid in functions_to_override:
+                            AnlagenFunktionsMetadaten.objects.update_or_create(
+                                anlage_datei=anlage,
+                                funktion_id=fid,
+                            )
 
-                return redirect("projekt_detail", pk=anlage.project.pk)
+                    return redirect("projekt_detail", pk=anlage.project.pk)
         else:
             verif_init = _verification_to_initial(anlage)
             ki_map: dict[tuple[str, str | None], str] = {}
@@ -4233,7 +4217,6 @@ def projekt_file_edit_json(request, pk):
                 "labels": [f[1] for f in fields_def],
                 "field_pairs": fields_def,
                 "no_ai_fields": ["einsatz_bei_telefonica", "zur_lv_kontrolle"],
-                "parser_form": parser_form,
                 "allow_ai_check": not has_ai_results,
             }
         )

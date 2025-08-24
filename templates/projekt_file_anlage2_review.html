@@ -123,24 +123,6 @@
         {% include 'partials/_button.html' with type='button' id='btn-reset-all-reviews' label='Alle Bewertungen zurücksetzen' variant='secondary' %}
     </div>
 </form>
-<details>
-    <summary>Erweiterte Parser-Einstellungen</summary>
-    <form method="post" class="space-y-4 mb-4">
-        {% csrf_token %}
-        {{ parser_form.non_field_errors }}
-        <div>
-            {{ parser_form.parser_mode.label_tag }}<br>
-            {{ parser_form.parser_mode }}
-            {{ parser_form.parser_mode.errors }}
-        </div>
-        <div>
-            {{ parser_form.parser_order.label_tag }}<br>
-            {{ parser_form.parser_order }}
-            {{ parser_form.parser_order.errors }}
-        </div>
-        <button type="submit" name="save_parser_settings" class="bg-accent text-background px-3 py-1 rounded">Einstellungen speichern</button>
-    </form>
-</details>
 </div>
 {% endif %}
 {% endblock %}
