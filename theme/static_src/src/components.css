@@ -50,6 +50,10 @@
     @apply bg-accent text-text-light font-semibold;
   }
 
+  .header-wrapper {
+    @apply bg-header text-text-light border-b;
+  }
+
   /* Dark-Mode-Stile für den EasyMDE-Markdown-Editor */
   .dark .EasyMDEContainer .CodeMirror,
   .dark .EasyMDEContainer .CodeMirror-scroll {
