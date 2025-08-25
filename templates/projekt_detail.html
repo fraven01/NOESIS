@@ -88,7 +88,7 @@ function renderLLM(data){
    sec.innerHTML=`<button id="run" class="bg-success text-background px-4 py-2 rounded">LLM-Check starten</button>`;
  }else if(data.ist_llm_geprueft && !data.llm_validated){
     sec.innerHTML=`<div class="text-error mb-2">LLM-Check unvollständig oder technisch fehlerhaft.</div>
-    <textarea id="edit" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 mb-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">${data.llm_initial_output||''}</textarea>
+    <textarea id="edit" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-text dark:text-text-light rounded w-full p-2 mb-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">${data.llm_initial_output||''}</textarea>
     <input id="context" type="text" placeholder="Weiterer Kontext" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded w-full p-2 mb-2 hidden focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <div class="space-x-2">
      <button id="edit-btn" class="bg-primary text-background px-4 py-2 rounded">Antwort bearbeiten & erneut prüfen</button>
@@ -96,7 +96,7 @@ function renderLLM(data){
    </div>`;
  }else if(data.ist_llm_geprueft && data.llm_validated){
   sec.innerHTML=`<button id="toggle" class="bg-success text-background px-4 py-2 rounded mb-2">Antwort ein-/ausblenden</button>
-  <div id="output" class="prose dark:prose-invert max-w-none bg-muted p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
+  <div id="output" class="prose dark:prose-invert max-w-none bg-background dark:bg-background-dark text-text dark:text-text-light border border-gray-300 dark:border-gray-600 p-2 rounded hidden">${data.llm_initial_output_html}</div>`;
  }
  if(data.llm_initial_output){
   sec.innerHTML += `<button id="recheck" class="bg-primary text-background px-4 py-2 rounded mt-2">Erneut prüfen</button>`;
