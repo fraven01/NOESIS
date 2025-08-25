@@ -1,0 +1,3 @@
+<a href="{% url tile.url_name %}" class="{% if extra_classes %}{{ extra_classes }} {% endif %}nav-link {% if request.resolver_match.url_name == tile.url_name %}active-nav-link{% endif %}">
+    {{ tile.name }}
+</a>
