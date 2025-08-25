@@ -3,8 +3,8 @@
   {% if label %}
   <label for="{{ id_prefix }}-textarea" class="font-semibold">{{ label }}</label>
   {% endif %}
-  <div id="{{ id_prefix }}-view" class="prose dark:prose-invert max-w-none bg-muted p-2 rounded">{{ text|markdownify }}</div>
-    <textarea id="{{ id_prefix }}-textarea" name="{{ name }}" rows="10" class="hidden w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 rounded p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ text }}</textarea>
+  <div id="{{ id_prefix }}-view" class="prose dark:prose-invert max-w-none bg-background dark:bg-background-dark text-text dark:text-text-light border border-gray-300 dark:border-gray-600 p-2 rounded">{{ text|markdownify }}</div>
+    <textarea id="{{ id_prefix }}-textarea" name="{{ name }}" rows="10" class="hidden w-full border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-text dark:text-text-light rounded p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ text }}</textarea>
   <div class="flex space-x-2">
     {% include 'partials/_button.html' with type='button' id=id_prefix|add:'-edit' label='Bearbeiten' variant='primary' %}
     {% include 'partials/_button.html' with type='submit' id=id_prefix|add:'-save' label='Speichern' variant='primary' classes='hidden' %}
