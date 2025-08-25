@@ -23,7 +23,9 @@
         <ul class="space-y-2">
             {% for tile in user_navigation.0.tiles %}
             <li>
-                {% include 'partials/_nav_link.html' with tile=tile extra_classes='block' %}
+                <a href="{% url tile.url_name %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == tile.url_name %}active-nav-link{% endif %}">
+                    {{ tile.name }}
+                </a>
             </li>
             {% endfor %}
         </ul>
@@ -37,7 +39,9 @@
             <ul id="nav-u{{ forloop.counter }}" class="mt-1 pl-2 space-y-1 hidden">
                 {% for tile in section.tiles %}
                 <li>
-                    {% include 'partials/_nav_link.html' with tile=tile extra_classes='block' %}
+                    <a href="{% url tile.url_name %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == tile.url_name %}active-nav-link{% endif %}">
+                        {{ tile.name }}
+                    </a>
                 </li>
                 {% endfor %}
             </ul>
@@ -53,7 +57,9 @@
             <ul id="nav-a{{ forloop.counter }}" class="mt-1 pl-2 space-y-1 hidden">
                 {% for tile in section.tiles %}
                 <li>
-                    {% include 'partials/_nav_link.html' with tile=tile extra_classes='block' %}
+                    <a href="{% url tile.url_name %}" class="block px-4 py-2 rounded hover:bg-accent hover:text-text-light {% if request.resolver_match.url_name == tile.url_name %}active-nav-link{% endif %}">
+                        {{ tile.name }}
+                    </a>
                 </li>
                 {% endfor %}
             </ul>
