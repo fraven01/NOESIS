@@ -2861,12 +2861,16 @@ class LLMConfigTests(NoesisTestCase):
     @patch("google.generativeai.list_models")
     @patch("google.generativeai.configure")
     def test_ready_updates_models(self, mock_conf, mock_list):
-        LLMConfig.objects.create(available_models=["old"])
         mock_list.return_value = [type("M", (), {"name": "new"})()]
         from core.signals import init_llm_config
 
-        init_llm_config(None)
         cfg = LLMConfig.objects.first()
+        cfg.available_models = ["old"]
+        cfg.models_changed = False
+        cfg.save()
+
+        init_llm_config(None)
+        cfg.refresh_from_db()
         self.assertEqual(cfg.available_models, ["new"])
         self.assertTrue(cfg.models_changed)
 
