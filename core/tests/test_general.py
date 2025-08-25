@@ -1181,9 +1181,9 @@ class WorkflowTests(NoesisTestCase):
 
     def test_set_project_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        set_project_status(projekt, "CLASSIFIED")
+        set_project_status(projekt, "IN_PROGRESS")
         projekt.refresh_from_db()
-        self.assertEqual(projekt.status.key, "CLASSIFIED")
+        self.assertEqual(projekt.status.key, "IN_PROGRESS")
 
     def test_invalid_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1204,7 +1204,7 @@ class WorkflowTests(NoesisTestCase):
     def test_status_history_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status_history.count(), 1)
-        set_project_status(projekt, "CLASSIFIED")
+        set_project_status(projekt, "IN_PROGRESS")
         self.assertEqual(projekt.status_history.count(), 2)
 
 
