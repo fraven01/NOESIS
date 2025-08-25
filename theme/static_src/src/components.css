@@ -20,6 +20,10 @@
   .badge-gray {
     @apply bg-background text-text dark:bg-background-dark dark:text-text-light;
   }
+  /* Markenname neben dem Logo */
+  .brand-name {
+    @apply ml-2;
+  }
   .alert {
     @apply p-2 rounded text-text dark:text-text-light;
   }
