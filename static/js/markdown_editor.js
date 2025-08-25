@@ -20,6 +20,10 @@ function loadEasyMDE() {
                     document.head.appendChild(link);
                 }
             }
+            if (window.customElements && customElements.get('mce-autosize-textarea')) {
+                resolve();
+                return;
+            }
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js';
             script.onload = resolve;
