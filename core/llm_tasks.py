@@ -706,11 +706,7 @@ def generate_gutachten(
         old_path.unlink(missing_ok=True)
     doc.save(path)
     projekt.gutachten_file.name = f"gutachten/{fname}"
-    try:
-        projekt.status = ProjectStatus.objects.get(key="GUTACHTEN_OK")
-    except ProjectStatus.DoesNotExist:
-        pass
-    projekt.save(update_fields=["gutachten_file", "status"])
+    projekt.save(update_fields=["gutachten_file"])
     return path
 
 
