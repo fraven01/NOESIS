@@ -66,9 +66,9 @@
             {% else %}
             {% with counter=forloop.counter|stringformat:"s" %}
             {% with section_prefix='nav-a'|add:counter|add:'-' %}
-            <div id="nav-a{{ forloop.counter }}" class="mt-1 pl-2 space-y-1 hidden">
+            <ul id="nav-a{{ forloop.counter }}" class="mt-1 pl-2 space-y-1 hidden">
                 {% include 'partials/_sidebar_group.html' with groups=section.groups prefix=section_prefix %}
-            </div>
+            </ul>
             {% endwith %}
             {% endwith %}
             {% endif %}

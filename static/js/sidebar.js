@@ -74,6 +74,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // localStorage ist möglicherweise nicht verfügbar
     }
 
+    // Aktiven Navigationslink finden und zugehörige Accordion-Liste öffnen
+    const activeNavLink = sidebar.querySelector('.active-nav-link');
+    if (activeNavLink) {
+        const parentList = activeNavLink.closest('ul[id]');
+        if (parentList) {
+            parentList.classList.remove('hidden');
+            const listId = parentList.id;
+            const parentBtn = sidebar.querySelector(`.sidebar-accordion-btn[data-accordion-target="${listId}"]`);
+            if (parentBtn) {
+                const icon = parentBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.add('rotate-180');
+                }
+            }
+            try {
+                localStorage.setItem(accordionKey, listId);
+            } catch (e) {
+                // localStorage ist möglicherweise nicht verfügbar
+            }
+        }
+    }
+
     accordionButtons.forEach((btn) => {
         const targetId = btn.getAttribute('data-accordion-target');
         const target = document.getElementById(targetId);
