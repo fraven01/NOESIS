@@ -403,6 +403,7 @@ class BVProjectFileTests(NoesisTestCase):
                 upload=f,
                 text_content="data",
             )
+        status_before = projekt.status.key
         self.assertEqual(projekt.anlagen.count(), 3)
         self.assertListEqual(
             list(projekt.anlagen.values_list("anlage_nr", flat=True)), [1, 2, 3]
@@ -710,7 +711,7 @@ class BVProjectFileTests(NoesisTestCase):
         resp = self.client.post(url, {"value": "1"})
         self.assertEqual(resp.status_code, 302)
         projekt.refresh_from_db()
-        self.assertEqual(projekt.status.key, "DONE")
+        self.assertEqual(projekt.status.key, status_before)
         self.assertTrue(all(f.verhandlungsfaehig for f in projekt.anlagen.all()))
 
     def test_hx_project_software_tab(self):
@@ -1453,6 +1454,7 @@ class LLMTasksTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Testtext",
         )
+        status_before = projekt.status.key
         with patch(
             "core.llm_tasks.query_llm",
             return_value='{"kategorie":"X","begruendung":"ok"}',
@@ -1460,7 +1462,7 @@ class LLMTasksTests(NoesisTestCase):
             data = classify_system(projekt.pk)
         projekt.refresh_from_db()
         self.assertEqual(projekt.classification_json["kategorie"]["value"], "X")
-        self.assertEqual(projekt.status.key, "CLASSIFIED")
+        self.assertEqual(projekt.status.key, status_before)
         self.assertEqual(data["kategorie"]["value"], "X")
 
     def test_check_anlage2(self):

@@ -663,8 +663,7 @@ def classify_system(projekt_id: int) -> dict:
         data = {"raw": reply}
     data = _add_editable_flags(data)
     projekt.classification_json = data
-    projekt.status = ProjectStatus.objects.get(key="CLASSIFIED")
-    projekt.save(update_fields=["classification_json", "status"])
+    projekt.save(update_fields=["classification_json"])
     return data
 
 
