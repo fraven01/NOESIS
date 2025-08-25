@@ -5351,15 +5351,11 @@ def project_file_toggle_flag(request, pk: int, field: str):
     setattr(project_file, field, new_val)
     project_file.save(update_fields=[field])
     if (
-        field == "manual_reviewed"
-        and project_file.anlage_nr == 3
-        and project_file.project.anlagen.filter(anlage_nr=3).count()
-        == project_file.project.anlagen.filter(
-            anlage_nr=3, manual_reviewed=True
-        ).count()
+        field == "verhandlungsfaehig"
+        and project_file.project.is_verhandlungsfaehig
     ):
         try:
-            set_project_status(project_file.project, "ENDGEPRUEFT")
+            set_project_status(project_file.project, "DONE")
         except ValueError:
             pass
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -5383,15 +5379,11 @@ def hx_toggle_project_file_flag(request, pk: int, field: str):
     project_file.save(update_fields=[field])
 
     if (
-        field == "manual_reviewed"
-        and project_file.anlage_nr == 3
-        and project_file.project.anlagen.filter(anlage_nr=3).count()
-        == project_file.project.anlagen.filter(
-            anlage_nr=3, manual_reviewed=True
-        ).count()
+        field == "verhandlungsfaehig"
+        and project_file.project.is_verhandlungsfaehig
     ):
         try:
-            set_project_status(project_file.project, "ENDGEPRUEFT")
+            set_project_status(project_file.project, "DONE")
         except ValueError:
             pass
 

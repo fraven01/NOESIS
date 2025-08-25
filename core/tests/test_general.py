@@ -129,7 +129,7 @@ def create_statuses() -> None:
         ("GUTACHTEN_FREIGEGEBEN", "Gutachten freigegeben"),
         ("IN_PRUEFUNG_ANLAGE_X", "In Prüfung Anlage X"),
         ("FB_IN_PRUEFUNG", "FB in Prüfung"),
-        ("ENDGEPRUEFT", "Endgeprüft"),
+        ("DONE", "Endgeprüft"),
     ]
     for idx, (key, name) in enumerate(data, start=1):
         ProjectStatus.objects.update_or_create(
@@ -138,7 +138,7 @@ def create_statuses() -> None:
                 "name": name,
                 "ordering": idx,
                 "is_default": key == DEFAULT_STATUS_KEY,
-                "is_done_status": key == "ENDGEPRUEFT",
+                "is_done_status": key == "DONE",
             },
         )
 
@@ -691,6 +691,29 @@ class BVProjectFileTests(NoesisTestCase):
         self.assertContains(resp, "<tr")
         self.assertContains(resp, "✓")
 
+    def test_toggle_verhandlungsfaehig_sets_project_done(self):
+        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+        for nr in range(1, 6):
+            BVProjectFile.objects.create(
+                project=projekt,
+                anlage_nr=nr,
+                upload=SimpleUploadedFile(f"a{nr}.txt", b"x"),
+                verhandlungsfaehig=True,
+            )
+        pf = BVProjectFile.objects.create(
+            project=projekt,
+            anlage_nr=6,
+            upload=SimpleUploadedFile("a6.txt", b"x"),
+            verhandlungsfaehig=False,
+        )
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("project_file_toggle_flag", args=[pf.pk, "verhandlungsfaehig"])
+        resp = self.client.post(url, {"value": "1"})
+        self.assertEqual(resp.status_code, 302)
+        projekt.refresh_from_db()
+        self.assertEqual(projekt.status.key, "DONE")
+        self.assertTrue(all(f.verhandlungsfaehig for f in projekt.anlagen.all()))
+
     def test_hx_project_software_tab(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         SoftwareKnowledge.objects.create(project=projekt, software_name="A")
@@ -1195,7 +1218,7 @@ class WorkflowTests(NoesisTestCase):
         for status in [
             "IN_PRUEFUNG_ANLAGE_X",
             "FB_IN_PRUEFUNG",
-            "ENDGEPRUEFT",
+            "DONE",
         ]:
             set_project_status(projekt, status)
             projekt.refresh_from_db()
