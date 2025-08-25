@@ -1301,9 +1301,22 @@ def talkdiary_detail(request, pk):
         if md_path.exists():
             md_text = md_path.read_text(encoding="utf-8")
 
+    area_slug = getattr(rec.bereich, "slug", "")
+    if area_slug == "work":
+        list_url = reverse("talkdiary_work")
+    else:
+        list_url = reverse("talkdiary_personal")
+
+    filename = Path(rec.audio_file.name).name
+    breadcrumbs = [
+        {"url": list_url, "label": "TalkDiary"},
+        {"label": filename},
+    ]
+
     context = {
         "recording": rec,
         "transcript_text": md_text,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "talkdiary_detail.html", context)
 
@@ -3061,6 +3074,11 @@ def projekt_detail(request, pk):
 
     can_gap_report = has_any_gap(projekt)
 
+    breadcrumbs = [
+        {"url": reverse("projekt_list"), "label": "Projekte"},
+        {"label": projekt.title},
+    ]
+
     context = {
         "projekt": projekt,
         "cockpit": cockpit_ctx,
@@ -3078,6 +3096,7 @@ def projekt_detail(request, pk):
         "software_list": software_list,
         "activities": activities,
         "can_gap_report": can_gap_report,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "projekt_detail.html", context)
 
@@ -5841,11 +5860,25 @@ def justification_detail_edit(request, file_id, function_key):
         form = JustificationForm(initial={"justification": initial_text})
 
     justification_html = markdownify(initial_text)
+    breadcrumbs = [
+        {"url": reverse("projekt_list"), "label": "Projekte"},
+        {
+            "url": reverse("projekt_detail", args=[anlage.project.pk]),
+            "label": anlage.project.title,
+        },
+        {
+            "url": reverse("projekt_file_edit_json", args=[anlage.pk]),
+            "label": f"Anlage {anlage.anlage_nr}",
+        },
+        {"label": function_key},
+    ]
+
     context = {
         "project_file": anlage,
         "function_name": function_key,
         "form": form,
         "justification_html": justification_html,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "justification_detail.html", context)
 
@@ -5908,11 +5941,25 @@ def ki_involvement_detail_edit(request, file_id, function_key):
         form = JustificationForm(initial={"justification": initial_text})
 
     involvement_html = markdownify(initial_text)
+    breadcrumbs = [
+        {"url": reverse("projekt_list"), "label": "Projekte"},
+        {
+            "url": reverse("projekt_detail", args=[anlage.project.pk]),
+            "label": anlage.project.title,
+        },
+        {
+            "url": reverse("projekt_file_edit_json", args=[anlage.pk]),
+            "label": f"Anlage {anlage.anlage_nr}",
+        },
+        {"label": function_key},
+    ]
+
     context = {
         "project_file": anlage,
         "function_name": function_key,
         "form": form,
         "involvement_html": involvement_html,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "involvement_detail.html", context)
 
