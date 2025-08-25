@@ -84,14 +84,16 @@ Vor jedem Commit **muss** laut `AGENTS.md` folgender Befehl erfolgreich laufen:
 ```bash
 python manage.py makemigrations --check
 ```
-
+Vor jedem Commit `pytest` ausführen (dank automatischer LLM-Mocking-Fixture ohne echte API-Anfragen).
 Im Anschluss empfiehlt es sich, noch `python manage.py migrate`,
+Langsame Tests sind mit `@pytest.mark.slow` gekennzeichnet. Die schnelle Standardsuite startet man mit `pytest -m "not slow"`.
+
 `python manage.py seed_initial_data` und `pytest`
-auszuführen. LLM-API-Aufrufe werden in den Tests durch ein
+ausführen. LLM-API-Aufrufe werden in den Tests durch ein
 `pytest`-Fixture automatisch gemockt, sodass keine externen
 Requests stattfinden.
 
-Langsame Tests sind mit `@pytest.mark.slow` gekennzeichnet. Die schnelle Standardsuite startet man mit `pytest -m "not slow"`.
+
 
 ### Commit-Richtlinien
 
