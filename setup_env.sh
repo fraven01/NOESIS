@@ -6,17 +6,8 @@ pip install -r requirements.txt
 # Entwicklungswerkzeuge installieren
 pip install -r requirements-dev.txt
 
-# Optional Selenium-Tests aktivieren
-read -p "Sollen Selenium-Tests ausgeführt werden? (j/n) " run_selenium
-if [[ $run_selenium == "j" || $run_selenium == "J" ]]; then
-    # Variable für aktuelle Sitzung setzen
-    export NOESIS_RUN_SELENIUM=1
-    # Variable dauerhaft im Aktivierungsskript hinterlegen
-    if ! grep -q "NOESIS_RUN_SELENIUM" venv/bin/activate; then
-        echo "export NOESIS_RUN_SELENIUM=1" >> venv/bin/activate
-    fi
-    echo "NOESIS_RUN_SELENIUM=1 in venv/bin/activate gesetzt."
-fi
+# Für zukünftige E2E-Tests kann die Umgebungsvariable
+# NOESIS_RUN_SELENIUM=1 gesetzt werden.
 
 # Systemabhängigkeiten installieren (pandoc wird für DOCX-Exporte benötigt)
 if command -v apt-get >/dev/null; then

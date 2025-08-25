@@ -15,8 +15,8 @@ Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter 
    # Für Entwicklungs- und Testwerkzeuge:
    pip install -r requirements-dev.txt
    ```
-   Selbst für die Test-Suite wird Selenium benötigt, das über
-   `requirements-dev.txt` installiert wird.
+   Die Infrastruktur für zukünftige E2E-Tests basiert auf Selenium und wird über
+   `requirements-dev.txt` bereitgestellt.
    Diese Version nutzt **Django-Q2** (>=1.8.0) für Hintergrundprozesse.
 4. Installiere zusätzliche Systempakete wie `pandoc`, damit der Export nach
    DOCX funktioniert. Unter Debian/Ubuntu lautet der Befehl beispielsweise
@@ -45,21 +45,10 @@ und `pytest` fehl:
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
-Selenium für die Browser-Tests wird durch diese zweite Datei installiert.
-
-Für die eigentliche Ausführung der Selenium-Tests ist zusätzlich ein
-Chrome- oder Chromium-Browser erforderlich. In CI-Umgebungen kann der
-WebDriver beispielsweise mit folgendem Befehl bereitgestellt werden:
-
-```bash
-sudo apt-get update && sudo apt-get install -y google-chrome-stable
-```
-
-Lokal müssen Browser und Treiber ebenfalls verfügbar sein. Die E2E-Tests
-werden nur ausgeführt, wenn die Umgebungsvariable
-`NOESIS_RUN_SELENIUM=1` gesetzt ist und mit `pytest -m e2e` gestartet
-werden; andernfalls werden sie automatisch
-übersprungen.
+Die Infrastruktur für spätere End-to-End-Tests setzt auf Selenium.
+Aktuell sind jedoch keine E2E-Tests implementiert. Für zukünftige Tests
+werden ein Chrome- oder Chromium-Browser sowie die Umgebungsvariable
+`NOESIS_RUN_SELENIUM=1` benötigt.
 
 Alternativ kann `./setup_env.sh` die gesamte Einrichtung übernehmen.
 
