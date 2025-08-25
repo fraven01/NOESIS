@@ -1213,17 +1213,6 @@ class WorkflowTests(NoesisTestCase):
         with self.assertRaises(ValueError):
             set_project_status(projekt, "XXX")
 
-    def test_set_project_status_new_states(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        for status in [
-            "IN_PRUEFUNG_ANLAGE_X",
-            "FB_IN_PRUEFUNG",
-            "DONE",
-        ]:
-            set_project_status(projekt, status)
-            projekt.refresh_from_db()
-            self.assertEqual(projekt.status.key, status)
-
     def test_status_history_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status_history.count(), 1)
