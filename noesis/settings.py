@@ -208,6 +208,8 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Hinzufügen für die Produktion:
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Verzeichnis für gesammelte statische Dateien automatisch anlegen
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
