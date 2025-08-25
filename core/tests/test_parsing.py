@@ -6,6 +6,7 @@ from .base import NoesisTestCase
 from .test_general import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from ..anlage4_parser import parse_anlage4_dual
 from ..models import Anlage4ParserConfig
+from ..docx_utils import extract_images
 from ..docx_utils import _normalize_header_text
 from ..parsers import ExactParser
 from ..llm_tasks import worker_a4_plausibility as check_anlage4_item_plausibility
