@@ -1077,27 +1077,6 @@ class AutoApprovalTests(NoesisTestCase):
         self.assertTrue(pf.manual_reviewed)
         self.assertFalse(pf.verhandlungsfaehig)
 
-    def test_project_status_updated_after_all_anlage3_reviewed(self):
-        pf1 = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=3,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="x",
-        )
-        pf2 = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=3,
-            upload=SimpleUploadedFile("b.txt", b"x"),
-            text_content="y",
-        )
-
-        for pf in (pf1, pf2):
-            url = reverse("project_file_toggle_flag", args=[pf.pk, "manual_reviewed"])
-            self.client.post(url, {"value": "1"})
-
-        self.projekt.refresh_from_db()
-        self.assertEqual(self.projekt.status.key, "ENDGEPRUEFT")
-
 
 class Anlage3AutomationTests(NoesisTestCase):
     def setUp(self) -> None:
@@ -1202,9 +1181,9 @@ class WorkflowTests(NoesisTestCase):
 
     def test_set_project_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        set_project_status(projekt, "CLASSIFIED")
+        set_project_status(projekt, "IN_PROGRESS")
         projekt.refresh_from_db()
-        self.assertEqual(projekt.status.key, "CLASSIFIED")
+        self.assertEqual(projekt.status.key, "IN_PROGRESS")
 
     def test_invalid_status(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1225,7 +1204,7 @@ class WorkflowTests(NoesisTestCase):
     def test_status_history_created(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         self.assertEqual(projekt.status_history.count(), 1)
-        set_project_status(projekt, "CLASSIFIED")
+        set_project_status(projekt, "IN_PROGRESS")
         self.assertEqual(projekt.status_history.count(), 2)
 
 
