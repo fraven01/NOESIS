@@ -2239,7 +2239,7 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
     return text
 
 def summarize_anlage2_gaps(projekt: BVProject) -> str:
-    """Fasst die GAP-Notizen aus Anlage 2 zusammen."""
+    """Fasst externe GAP-Notizen aus Anlage 2 zusammen und ergänzt KI-Begründungen."""
 
     pf = get_project_file(projekt, 2)
     if not pf:
@@ -2247,20 +2247,27 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
 
     qs = (
         AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
-        .filter(
-            (Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
-            | (Q(gap_notiz__isnull=False) & ~Q(gap_notiz=""))
-        )
+        .filter(Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
         .select_related("funktion", "subquestion")
     )
 
     entries: list[dict[str, str]] = []
     for r in qs:
+        ki_entry = (
+            FunktionsErgebnis.objects.filter(
+                anlage_datei=pf,
+                funktion=r.funktion,
+                subquestion=r.subquestion,
+                quelle="ki",
+            )
+            .order_by("-created_at")
+            .first()
+        )
         entries.append(
             {
                 "funktion": r.funktion.name,
                 "unterfrage": r.subquestion.frage_text if r.subquestion else "",
-                "intern": r.gap_notiz or "",
+                "ki": ki_entry.begruendung if ki_entry and ki_entry.begruendung else "",
                 "extern": r.gap_summary or "",
             }
         )
@@ -2271,12 +2278,12 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
     gap_list_string = ""
     for entry in entries:
         gap_list_string += (
-            f"- **{entry['funktion']}"
+            f"### {entry['funktion']}"
             + (f" ({entry['unterfrage']})" if entry['unterfrage'] else "")
-            + "**\n"
+            + "\n"
         )
-        gap_list_string += f"  - KI‑Begründung: {entry['extern']}\n"
-        gap_list_string += f"  - Prüferkommentar: {entry['intern']}\n"
+        gap_list_string += f"- KI-Begründung: {entry['ki']}\n"
+        gap_list_string += f"- GAP-Zusammenfassung: {entry['extern']}\n\n"
 
     prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage2").first()
     if not prompt_template:

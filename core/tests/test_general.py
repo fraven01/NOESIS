@@ -4714,7 +4714,9 @@ class GapReportTests(NoesisTestCase):
         with patch("core.llm_tasks.query_llm", return_value="T2") as mock_q:
             text = summarize_anlage2_gaps(self.projekt)
             prompt_sent = mock_q.call_args[0][0]
-            self.assertIn("- **Anmelden**", prompt_sent.text)
+            self.assertIn("### Anmelden", prompt_sent.text)
+            self.assertIn("- KI-Begründung:", prompt_sent.text)
+            self.assertNotIn("Prüferkommentar", prompt_sent.text)
             self.assertNotIn("{gap_list}", prompt_sent.text)
             self.assertNotIn("{funktionen}", prompt_sent.text)
         self.assertEqual(text, "T2")
