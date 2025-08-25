@@ -3498,8 +3498,12 @@ class InitialCheckTests(NoesisTestCase):
                 software_name="A",
             )
             worker_run_initial_check(sk.pk, user_context="Hint")
-        prompt_text = mock_q.call_args[0][0].text
-        self.assertIn("Hint", prompt_text)
+        context_data = mock_q.call_args[0][1]
+        assert context_data["user_context"] == "Hint"
+        assert (
+            mock_q.call_args[0][0].name
+            == "initial_check_knowledge_with_context"
+        )
 
 
 class EditKIJustificationTests(NoesisTestCase):
