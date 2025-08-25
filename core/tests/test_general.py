@@ -125,7 +125,6 @@ def create_statuses() -> None:
     data = [
         (DEFAULT_STATUS_KEY, "Neu"),
         ("CLASSIFIED", "Klassifiziert"),
-        ("GUTACHTEN_OK", "Gutachten OK"),
         ("GUTACHTEN_FREIGEGEBEN", "Gutachten freigegeben"),
         ("IN_PRUEFUNG_ANLAGE_X", "In Prüfung Anlage X"),
         ("FB_IN_PRUEFUNG", "FB in Prüfung"),
@@ -2628,7 +2627,6 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             path = worker_generate_gutachten(self.projekt.pk, self.knowledge.pk)
         self.projekt.refresh_from_db()
         self.assertTrue(self.projekt.gutachten_file.name)
-        self.assertEqual(self.projekt.status.key, "GUTACHTEN_OK")
         self.assertEqual(
             Gutachten.objects.filter(software_knowledge=self.knowledge).count(), 1
         )
