@@ -706,12 +706,14 @@ class BVProjectFileTests(NoesisTestCase):
             upload=SimpleUploadedFile("a6.txt", b"x"),
             verhandlungsfaehig=False,
         )
+        status_before = projekt.status.key
         self.client.login(username=self.superuser.username, password="pass")
         url = reverse("project_file_toggle_flag", args=[pf.pk, "verhandlungsfaehig"])
         resp = self.client.post(url, {"value": "1"})
         self.assertEqual(resp.status_code, 302)
         projekt.refresh_from_db()
-        self.assertEqual(projekt.status.key, status_before)
+        self.assertNotEqual(projekt.status.key, status_before)
+        self.assertEqual(projekt.status.key, "DONE")
         self.assertTrue(all(f.verhandlungsfaehig for f in projekt.anlagen.all()))
 
     def test_hx_project_software_tab(self):
