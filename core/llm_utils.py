@@ -58,7 +58,7 @@ def query_llm(
     span_ctx = (
         lf.start_as_current_span(
             name="query_llm",
-            trace_context={"id": trace_id},
+            trace_context={"trace_id": trace_id},
             metadata={
                 "correlation_id": correlation_id,
                 "model_type": model_type,
@@ -259,7 +259,7 @@ def query_llm(
     
                             with lf.start_as_current_observation(
                                 as_type="generation",
-                                trace_context={"id": trace_id} if trace_id else None,
+                                trace_context={"trace_id": trace_id} if trace_id else None,
                                 name="query_llm",
                                 input=final_prompt_to_llm,
                                 output="",
@@ -305,7 +305,7 @@ def query_llm(
     
                         with lf.start_as_current_observation(
                             as_type="generation",
-                            trace_context={"id": trace_id} if trace_id else None,
+                            trace_context={"trace_id": trace_id} if trace_id else None,
                             name="query_llm",
                             input=final_prompt_to_llm,
                             output=llm_response,
@@ -402,7 +402,7 @@ def query_llm(
     
                     with lf.start_as_current_observation(
                         as_type="generation",
-                        trace_context={"id": trace_id} if trace_id else None,
+                        trace_context={"trace_id": trace_id} if trace_id else None,
                         name="query_llm",
                         input=final_prompt_to_llm,
                         output=llm_response,
@@ -460,7 +460,7 @@ def call_gemini_api(
     span_ctx = (
         lf.start_as_current_span(
             name="call_gemini_api",
-            trace_context={"id": trace_id},
+            trace_context={"trace_id": trace_id},
             metadata={
                 "correlation_id": correlation_id,
                 "model_name": model_name,
@@ -578,7 +578,7 @@ def call_gemini_api(
     
                             with lf.start_as_current_observation(
                                 as_type="generation",
-                                trace_context={"id": trace_id} if trace_id else None,
+                                trace_context={"trace_id": trace_id} if trace_id else None,
                                 name="call_gemini_api",
                                 input=prompt,
                                 output="",
@@ -613,7 +613,7 @@ def call_gemini_api(
     
                     with lf.start_as_current_observation(
                         as_type="generation",
-                        trace_context={"id": trace_id} if trace_id else None,
+                        trace_context={"trace_id": trace_id} if trace_id else None,
                         name="call_gemini_api",
                         input=prompt,
                         output=llm_response,
@@ -682,7 +682,7 @@ def query_llm_with_images(
     span_ctx = (
         lf.start_as_current_span(
             name="query_llm_with_images",
-            trace_context={"id": trace_id},
+            trace_context={"trace_id": trace_id},
             metadata={
                 "correlation_id": correlation_id,
                 "model_name": model_name,
@@ -795,7 +795,7 @@ def query_llm_with_images(
     
                             with lf.start_as_current_observation(
                                 as_type="generation",
-                                trace_context={"id": trace_id} if trace_id else None,
+                                trace_context={"trace_id": trace_id} if trace_id else None,
                                 name="query_llm_with_images",
                                 input=prompt,
                                 output="",
@@ -829,7 +829,7 @@ def query_llm_with_images(
     
                         with lf.start_as_current_observation(
                             as_type="generation",
-                            trace_context={"id": trace_id} if trace_id else None,
+                            trace_context={"trace_id": trace_id} if trace_id else None,
                             name="query_llm_with_images",
                             input=prompt,
                             output=llm_response,
@@ -923,7 +923,7 @@ def query_llm_with_images(
     
                     with lf.start_as_current_observation(
                         as_type="generation",
-                        trace_context={"id": trace_id} if trace_id else None,
+                        trace_context={"trace_id": trace_id} if trace_id else None,
                         name="query_llm_with_images",
                         input=prompt,
                         output=llm_response,
