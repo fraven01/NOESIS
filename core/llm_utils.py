@@ -52,6 +52,23 @@ def query_llm(
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
     trace_id = lf.create_trace_id() if lf else None
+    if lf and trace_id:
+        try:
+            lf.trace(
+                name="query_llm",
+                id=trace_id,
+                metadata={
+                    "correlation_id": correlation_id,
+                    "model_type": model_type,
+                },
+            )
+        except Exception as lf_exc:  # pragma: no cover - Logging
+            logger.warning(
+                "[%s] [%s] Langfuse-Fehler: %s",
+                _timestamp(),
+                correlation_id,
+                str(lf_exc),
+            )
 
     limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
     logger.debug(
@@ -376,6 +393,23 @@ def call_gemini_api(
     """
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+    if lf and trace_id:
+        try:
+            lf.trace(
+                name="call_gemini_api",
+                id=trace_id,
+                metadata={
+                    "correlation_id": correlation_id,
+                    "model_name": model_name,
+                },
+            )
+        except Exception as lf_exc:  # pragma: no cover - Logging
+            logger.warning(
+                "[%s] [%s] Langfuse-Fehler: %s",
+                _timestamp(),
+                correlation_id,
+                str(lf_exc),
+            )
 
     limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
     logger.debug(
@@ -491,6 +525,23 @@ def query_llm_with_images(
 
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+    if lf and trace_id:
+        try:
+            lf.trace(
+                name="query_llm_with_images",
+                id=trace_id,
+                metadata={
+                    "correlation_id": correlation_id,
+                    "model_name": model_name,
+                },
+            )
+        except Exception as lf_exc:  # pragma: no cover - Logging
+            logger.warning(
+                "[%s] [%s] Langfuse-Fehler: %s",
+                _timestamp(),
+                correlation_id,
+                str(lf_exc),
+            )
 
     if project_prompt:
         prompt = project_prompt.strip() + "\n\n" + prompt
