@@ -29,6 +29,19 @@ if Langfuse is not None:
             secret_key=getattr(settings, "LANGFUSE_SECRET_KEY", ""),
             host=getattr(settings, "LANGFUSE_HOST", ""),
         )
+        try:
+            ok = lf.auth_check()
+            logger.info(
+                "Langfuse auth_check=%s host=%r",
+                ok,
+                getattr(settings, "LANGFUSE_HOST", None),
+            )
+        except Exception as e:
+            logger.error(
+                "Langfuse auth_check failed: %s (host=%r)",
+                e,
+                getattr(settings, "LANGFUSE_HOST", None),
+            )
     except Exception:  # pragma: no cover - Fehler bei Initialisierung
         lf = None
 
