@@ -35,6 +35,23 @@ def _timestamp() -> str:
     return datetime.utcnow().isoformat()
 
 
+def _extract_text_parts(resp: object) -> tuple[list[str], list[str]]:
+    """Extrahiere Textbestandteile aus einer Gemini-Antwort."""
+    texts: list[str] = []
+    parts_summary: list[str] = []
+    for cand in getattr(resp, "candidates", []) or []:
+        content = getattr(cand, "content", None)
+        parts = getattr(content, "parts", []) if content else []
+        for part in parts:
+            text_part = getattr(part, "text", "")
+            if text_part:
+                texts.append(text_part)
+                parts_summary.append(text_part[:30])
+            else:
+                parts_summary.append(type(part).__name__)
+    return texts, parts_summary
+
+
 def query_llm(
     prompt_object: "Prompt",
     context_data: dict,
@@ -130,55 +147,28 @@ def query_llm(
             resp = model.generate_content(
                 prompt, generation_config={"max_output_tokens": limit}
             )
-
-            finish_reason = None
-            block_reason = None
-            parts_summary: list[str] = []
-
-            if getattr(resp, "candidates", []):
-                finish_reason = getattr(resp.candidates[0], "finish_reason", None)
-                content = getattr(resp.candidates[0], "content", None)
-                parts = getattr(content, "parts", []) if content else []
-                for part in parts:
-                    text_part = getattr(part, "text", "")
-                    parts_summary.append(text_part[:30] if text_part else type(part).__name__)
-
-            if getattr(resp, "prompt_feedback", None):
-                block_reason = getattr(resp.prompt_feedback, "block_reason", None)
-
-            usage_meta = getattr(resp, "usage_metadata", None) or {}
-            usage = {
-                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
-                "completion_tokens": getattr(
-                    usage_meta, "candidates_token_count", None
-                ),
-                "total_tokens": getattr(usage_meta, "total_token_count", None),
-            }
-
-            logger.debug(
-                "[%s] [%s] LLM-Metadaten: finish_reason=%s block_reason=%s parts=%s",
-                _timestamp(),
-                correlation_id,
-                finish_reason,
-                block_reason,
-                parts_summary,
-            )
-
-            try:
-                llm_response = resp.text
-            except ValueError:
-                # Fallback: Textteile aus den Kandidaten extrahieren
-                texts: list[str] = []
-                for cand in getattr(resp, "candidates", []) or []:
-                    content = getattr(cand, "content", None)
-                    parts = getattr(content, "parts", []) if content else []
-                    for part in parts:
-                        text_part = getattr(part, "text", "")
-                        if text_part:
-                            texts.append(text_part)
-                if texts:
-                    llm_response = "\n".join(texts)
-                else:
+            texts, parts_summary = _extract_text_parts(resp)
+            if not texts:
+                logger.warning(
+                    "[%s] [%s] Leere LLM-Antwort, versuche Retry",
+                    _timestamp(),
+                    correlation_id,
+                )
+                resp = model.generate_content(
+                    prompt, generation_config={"max_output_tokens": limit}
+                )
+                texts, parts_summary = _extract_text_parts(resp)
+                if not texts:
+                    finish_reason = None
+                    block_reason = None
+                    if getattr(resp, "candidates", []):
+                        finish_reason = getattr(
+                            resp.candidates[0], "finish_reason", None
+                        )
+                    if getattr(resp, "prompt_feedback", None):
+                        block_reason = getattr(
+                            resp.prompt_feedback, "block_reason", None
+                        )
                     logger.error(
                         "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s, parts=%s",
                         _timestamp(),
@@ -187,6 +177,18 @@ def query_llm(
                         block_reason,
                         parts_summary,
                     )
+                    usage_meta = getattr(resp, "usage_metadata", None) or {}
+                    usage = {
+                        "prompt_tokens": getattr(
+                            usage_meta, "prompt_token_count", None
+                        ),
+                        "completion_tokens": getattr(
+                            usage_meta, "candidates_token_count", None
+                        ),
+                        "total_tokens": getattr(
+                            usage_meta, "total_token_count", None
+                        ),
+                    }
                     if lf:
                         try:
                             lf.start_generation(
@@ -217,6 +219,33 @@ def query_llm(
                         "LLM returned no text: finish_reason=%s, block_reason=%s"
                         % (finish_reason, block_reason)
                     )
+
+            finish_reason = None
+            block_reason = None
+            if getattr(resp, "candidates", []):
+                finish_reason = getattr(resp.candidates[0], "finish_reason", None)
+            if getattr(resp, "prompt_feedback", None):
+                block_reason = getattr(resp.prompt_feedback, "block_reason", None)
+
+            usage_meta = getattr(resp, "usage_metadata", None) or {}
+            usage = {
+                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+                "completion_tokens": getattr(
+                    usage_meta, "candidates_token_count", None
+                ),
+                "total_tokens": getattr(usage_meta, "total_token_count", None),
+            }
+
+            logger.debug(
+                "[%s] [%s] LLM-Metadaten: finish_reason=%s block_reason=%s parts=%s",
+                _timestamp(),
+                correlation_id,
+                finish_reason,
+                block_reason,
+                parts_summary,
+            )
+
+            llm_response = "\n".join(texts)
 
             logger.debug(
                 "[%s] [%s] Response 200 %s",
@@ -394,7 +423,43 @@ def call_gemini_api(
                 "max_output_tokens": limit,
             },
         )
-        llm_response = resp.text
+        texts, _ = _extract_text_parts(resp)
+        if not texts:
+            logger.warning(
+                "[%s] [%s] Leere LLM-Antwort, versuche Retry",
+                _timestamp(),
+                correlation_id,
+            )
+            resp = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": temperature,
+                    "max_output_tokens": limit,
+                },
+            )
+            texts, _ = _extract_text_parts(resp)
+            if not texts:
+                finish_reason = None
+                block_reason = None
+                if getattr(resp, "candidates", []):
+                    finish_reason = getattr(
+                        resp.candidates[0], "finish_reason", None
+                    )
+                if getattr(resp, "prompt_feedback", None):
+                    block_reason = getattr(
+                        resp.prompt_feedback, "block_reason", None
+                    )
+                logger.error(
+                    "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s",
+                    _timestamp(),
+                    correlation_id,
+                    finish_reason,
+                    block_reason,
+                )
+                raise RuntimeError(
+                    "LLM returned no text: finish_reason=%s, block_reason=%s"
+                    % (finish_reason, block_reason)
+                )
         usage_meta = getattr(resp, "usage_metadata", None) or {}
         usage = {
             "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
@@ -403,6 +468,7 @@ def call_gemini_api(
             ),
             "total_tokens": getattr(usage_meta, "total_token_count", None),
         }
+        llm_response = "\n".join(texts)
         logger.debug(
             "[%s] [%s] Response 200 %s",
             _timestamp(),
@@ -491,7 +557,38 @@ def query_llm_with_images(
                 len(images),
             )
             resp = model.generate_content(content)
-            llm_response = resp.text
+            texts, _ = _extract_text_parts(resp)
+            if not texts:
+                logger.warning(
+                    "[%s] [%s] Leere LLM-Antwort, versuche Retry",
+                    _timestamp(),
+                    correlation_id,
+                )
+                resp = model.generate_content(content)
+                texts, _ = _extract_text_parts(resp)
+                if not texts:
+                    finish_reason = None
+                    block_reason = None
+                    if getattr(resp, "candidates", []):
+                        finish_reason = getattr(
+                            resp.candidates[0], "finish_reason", None
+                        )
+                    if getattr(resp, "prompt_feedback", None):
+                        block_reason = getattr(
+                            resp.prompt_feedback, "block_reason", None
+                        )
+                    logger.error(
+                        "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s",
+                        _timestamp(),
+                        correlation_id,
+                        finish_reason,
+                        block_reason,
+                    )
+                    raise RuntimeError(
+                        "LLM returned no text: finish_reason=%s, block_reason=%s"
+                        % (finish_reason, block_reason)
+                    )
+            llm_response = "\n".join(texts)
             usage_meta = getattr(resp, "usage_metadata", None) or {}
             usage = {
                 "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
