@@ -116,6 +116,40 @@ def query_llm(
             )
 
             resp = model.generate_content(prompt)
+
+            finish_reason = None
+            block_reason = None
+            parts_summary: list[str] = []
+
+            if getattr(resp, "candidates", []):
+                finish_reason = getattr(resp.candidates[0], "finish_reason", None)
+                content = getattr(resp.candidates[0], "content", None)
+                parts = getattr(content, "parts", []) if content else []
+                for part in parts:
+                    text_part = getattr(part, "text", "")
+                    parts_summary.append(text_part[:30] if text_part else type(part).__name__)
+
+            if getattr(resp, "prompt_feedback", None):
+                block_reason = getattr(resp.prompt_feedback, "block_reason", None)
+
+            usage_meta = getattr(resp, "usage_metadata", None) or {}
+            usage = {
+                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+                "completion_tokens": getattr(
+                    usage_meta, "candidates_token_count", None
+                ),
+                "total_tokens": getattr(usage_meta, "total_token_count", None),
+            }
+
+            logger.debug(
+                "[%s] [%s] LLM-Metadaten: finish_reason=%s block_reason=%s parts=%s",
+                _timestamp(),
+                correlation_id,
+                finish_reason,
+                block_reason,
+                parts_summary,
+            )
+
             try:
                 llm_response = resp.text
             except ValueError:
@@ -131,32 +165,44 @@ def query_llm(
                 if texts:
                     llm_response = "\n".join(texts)
                 else:
-                    finish_reason = None
-                    block_reason = None
-                    if getattr(resp, "candidates", []):
-                        finish_reason = getattr(resp.candidates[0], "finish_reason", None)
-                    if getattr(resp, "prompt_feedback", None):
-                        block_reason = getattr(
-                            resp.prompt_feedback, "block_reason", None
-                        )
                     logger.error(
-                        "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s",
+                        "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s, parts=%s",
                         _timestamp(),
                         correlation_id,
                         finish_reason,
                         block_reason,
+                        parts_summary,
                     )
+                    if lf:
+                        try:
+                            lf.start_generation(
+                                trace_context={"trace_id": trace_id} if trace_id else None,
+                                name="query_llm",
+                                input=final_prompt_to_llm,
+                                output="",
+                                model=model_name,
+                                usage_details=usage,
+                                metadata={
+                                    "context": context_data,
+                                    "correlation_id": correlation_id,
+                                    "finish_reason": finish_reason,
+                                    "block_reason": block_reason,
+                                    "content_parts": parts_summary,
+                                    "error": "no_text_returned",
+                                },
+                            )
+                            lf.flush()
+                        except Exception as lf_exc:  # pragma: no cover - Logging
+                            logger.warning(
+                                "[%s] [%s] Langfuse-Fehler: %s",
+                                _timestamp(),
+                                correlation_id,
+                                str(lf_exc),
+                            )
                     raise RuntimeError(
-                        f"LLM returned no text: finish_reason={finish_reason}, block_reason={block_reason}"
+                        "LLM returned no text: finish_reason=%s, block_reason=%s"
+                        % (finish_reason, block_reason)
                     )
-            usage_meta = getattr(resp, "usage_metadata", None) or {}
-            usage = {
-                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
-                "completion_tokens": getattr(
-                    usage_meta, "candidates_token_count", None
-                ),
-                "total_tokens": getattr(usage_meta, "total_token_count", None),
-            }
 
             logger.debug(
                 "[%s] [%s] Response 200 %s",
@@ -181,6 +227,9 @@ def query_llm(
                         metadata={
                             "context": context_data,
                             "correlation_id": correlation_id,
+                            "finish_reason": finish_reason,
+                            "block_reason": block_reason,
+                            "content_parts": parts_summary,
                         },
                     )
                     lf.flush()
