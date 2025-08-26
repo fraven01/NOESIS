@@ -3542,19 +3542,14 @@ def _save_project_file(
 
             meta = parse_anlage3(obj)
             if meta:
+                verhandlungsfaehig = meta.pop("verhandlungsfaehig", False)
                 Anlage3Metadata.objects.update_or_create(
                     project_file=obj, defaults=meta
                 )
-        except Exception:
-            logger.exception("Fehler beim Anlage3 Parser")
-
-        try:
-            pages = get_docx_page_count(Path(obj.upload.path))
-            if pages == 1:
-                obj.verhandlungsfaehig = True
+                obj.verhandlungsfaehig = verhandlungsfaehig
                 obj.save(update_fields=["verhandlungsfaehig"])
         except Exception:
-            logger.exception("Fehler beim Seitenzählen")
+            logger.exception("Fehler beim Anlage3 Parser")
 
     return obj
 
