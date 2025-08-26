@@ -1,6 +1,7 @@
 # NOESIS
 
 Dieses Projekt ist eine Django-Anwendung als persönlicher und personalisierter Agent.
+Die LLM-Integration verwendet das Langfuse SDK (Version 3.3.1).
 ## Installation
 
 1. Installiere Python 3.11 und `pip`.
