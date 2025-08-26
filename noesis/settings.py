@@ -244,6 +244,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_LLM_MODEL = "gpt-4o"
 GOOGLE_VISION_MODEL = "gemini-pro-vision"
 OPENAI_VISION_MODEL = OPENAI_LLM_MODEL
+# Maximale Tokenzahl für LLM-Antworten
+LLM_MAX_OUTPUT_TOKENS = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "2048"))
 
 # API-Schlüssel für Langfuse
 LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")

@@ -41,13 +41,25 @@ def query_llm(
     model_type: str = "default",
     temperature: float = 0.5,
     project_prompt: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> str:
-    """Sende eine Anfrage an ein LLM und gib die Antwort zurück."""
+    """Sende eine Anfrage an ein LLM und gib die Antwort zurück.
+
+    :param max_output_tokens: Optionale Begrenzung der Antwortlänge.
+    """
     from .models import LLMConfig, LLMRole
 
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
     trace_id = lf.create_trace_id() if lf else None
+
+    limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
+    logger.debug(
+        "[%s] [%s] Verwende max_output_tokens=%s",
+        _timestamp(),
+        correlation_id,
+        limit,
+    )
 
     final_role_prompt = ""
 
@@ -115,7 +127,9 @@ def query_llm(
                 name,  # Logge den Modellnamen, nicht einen alten Endpoint.
             )
 
-            resp = model.generate_content(prompt)
+            resp = model.generate_content(
+                prompt, generation_config={"max_output_tokens": limit}
+            )
 
             finish_reason = None
             block_reason = None
@@ -267,6 +281,8 @@ def query_llm(
     endpoint = "https://api.openai.com/v1/chat/completions"
     openai_model = model_name
     payload = {"model": openai_model, "messages": [{"role": "user", "content": prompt}]}
+    if limit:
+        payload["max_tokens"] = limit
     logger.debug(
         "[%s] [%s] Request to %s payload=%s",
         _timestamp(),
@@ -335,10 +351,23 @@ def query_llm(
         raise
 
 
-def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> str:
-    """Sendet einen Prompt direkt an das Gemini-Modell."""
+def call_gemini_api(
+    prompt: str, model_name: str, temperature: float = 0.5, max_output_tokens: int | None = None
+) -> str:
+    """Sendet einen Prompt direkt an das Gemini-Modell.
+
+    :param max_output_tokens: Optionale Begrenzung der Antwortlänge.
+    """
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+
+    limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
+    logger.debug(
+        "[%s] [%s] Verwende max_output_tokens=%s",
+        _timestamp(),
+        correlation_id,
+        limit,
+    )
 
     if not settings.GOOGLE_API_KEY:
         logger.error(
@@ -359,7 +388,11 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
             model_name,
         )
         resp = model.generate_content(
-            prompt, generation_config={"temperature": temperature}
+            prompt,
+            generation_config={
+                "temperature": temperature,
+                "max_output_tokens": limit,
+            },
         )
         llm_response = resp.text
         usage_meta = getattr(resp, "usage_metadata", None) or {}
