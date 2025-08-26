@@ -6,6 +6,7 @@ markdown
 #git+https://github.com/openai/whisper.git
 openai
 google-generativeai
+langfuse
 python-dotenv
 python-docx
 Pillow
