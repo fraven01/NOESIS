@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime
@@ -7,9 +9,10 @@ import google.generativeai as genai
 from django.conf import settings
 
 try:
-    from langfuse import Langfuse
+    from langfuse import Langfuse, TraceContext
 except Exception:  # pragma: no cover - Langfuse optional
     Langfuse = None  # type: ignore[assignment]
+    TraceContext = None  # type: ignore[assignment]
 
 try:
     from google.api_core import exceptions as g_exceptions
@@ -52,23 +55,40 @@ def query_llm(
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
     trace_id = lf.create_trace_id() if lf else None
+    span_cm = None
     if lf and trace_id:
         try:
-            lf.trace(
+            span_cm = lf.start_as_current_span(
                 name="query_llm",
-                id=trace_id,
+                trace_context=TraceContext(id=trace_id),
                 metadata={
                     "correlation_id": correlation_id,
                     "model_type": model_type,
                 },
             )
+            span_cm.__enter__()
         except Exception as lf_exc:  # pragma: no cover - Logging
+            span_cm = None
             logger.warning(
                 "[%s] [%s] Langfuse-Fehler: %s",
                 _timestamp(),
                 correlation_id,
                 str(lf_exc),
             )
+
+    def _end_span() -> None:
+        """Beende den Langfuse-Span und flush ihn."""
+        if span_cm:
+            try:
+                span_cm.__exit__(None, None, None)
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
 
     limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
     logger.debug(
@@ -101,6 +121,7 @@ def query_llm(
                 exc.args[0],
                 prompt_object.name,
             )
+            _end_span()
             raise KeyError(
                 f"Missing placeholder '{exc.args[0]}' in prompt '{prompt_object.name}'"
             ) from exc
@@ -130,6 +151,7 @@ def query_llm(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -240,9 +262,12 @@ def query_llm(
                 )
                 if lf:
                     try:
-                        lf.start_generation(
-                            trace_context={"trace_id": trace_id} if trace_id else None,
+                        lf.start_observation(
+                            trace_context=TraceContext(id=trace_id)
+                            if trace_id
+                            else None,
                             name="query_llm",
+                            as_type="generation",
                             input=final_prompt_to_llm,
                             output="",
                             model=model_name,
@@ -255,8 +280,7 @@ def query_llm(
                                 "content_parts": parts_summary,
                                 "error": "no_text_returned",
                             },
-                        )
-                        lf.flush()
+                        ).end()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
                             "[%s] [%s] Langfuse-Fehler: %s",
@@ -264,6 +288,7 @@ def query_llm(
                             correlation_id,
                             str(lf_exc),
                         )
+                _end_span()
                 raise RuntimeError(
                     "LLM returned no text: finish_reason=%s, block_reason=%s"
                     % (finish_reason, block_reason)
@@ -282,9 +307,12 @@ def query_llm(
 
             if lf:
                 try:
-                    lf.start_generation(
-                        trace_context={"trace_id": trace_id} if trace_id else None,
+                    lf.start_observation(
+                        trace_context=TraceContext(id=trace_id)
+                        if trace_id
+                        else None,
                         name="query_llm",
+                        as_type="generation",
                         input=final_prompt_to_llm,
                         output=llm_response,
                         model=model_name,
@@ -296,8 +324,7 @@ def query_llm(
                             "block_reason": block_reason,
                             "content_parts": parts_summary,
                         },
-                    )
-                    lf.flush()
+                    ).end()
                 except Exception as lf_exc:  # pragma: no cover - Logging
                     logger.warning(
                         "[%s] [%s] Langfuse-Fehler: %s",
@@ -306,6 +333,7 @@ def query_llm(
                         str(lf_exc),
                     )
 
+            _end_span()
             return llm_response
 
         except Exception as exc:
@@ -321,6 +349,7 @@ def query_llm(
                         lf.flush()
                     except Exception:
                         logger.warning("Langfuse flush failed", exc_info=True)
+                _end_span()
                 raise RuntimeError(f"Unsupported Gemini model: {name}.") from exc
 
             logger.error(
@@ -335,6 +364,7 @@ def query_llm(
                     lf.flush()
                 except Exception:
                     logger.warning("Langfuse flush failed", exc_info=True)
+            _end_span()
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -373,9 +403,10 @@ def query_llm(
 
         if lf:
             try:
-                lf.start_generation(
-                    trace_context={"trace_id": trace_id} if trace_id else None,
+                lf.start_observation(
+                    trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm",
+                    as_type="generation",
                     input=final_prompt_to_llm,
                     output=llm_response,
                     model=model_name,
@@ -384,8 +415,7 @@ def query_llm(
                         "context": context_data,
                         "correlation_id": correlation_id,
                     },
-                )
-                lf.flush()
+                ).end()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
                     "[%s] [%s] Langfuse-Fehler: %s",
@@ -394,6 +424,7 @@ def query_llm(
                     str(lf_exc),
                 )
 
+        _end_span()
         return llm_response
     except Exception as exc:
         status = getattr(exc, "http_status", "N/A")
@@ -411,6 +442,7 @@ def query_llm(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise
 
 
@@ -423,23 +455,40 @@ def call_gemini_api(
     """
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+    span_cm = None
     if lf and trace_id:
         try:
-            lf.trace(
+            span_cm = lf.start_as_current_span(
                 name="call_gemini_api",
-                id=trace_id,
+                trace_context=TraceContext(id=trace_id),
                 metadata={
                     "correlation_id": correlation_id,
                     "model_name": model_name,
                 },
             )
+            span_cm.__enter__()
         except Exception as lf_exc:  # pragma: no cover - Logging
+            span_cm = None
             logger.warning(
                 "[%s] [%s] Langfuse-Fehler: %s",
                 _timestamp(),
                 correlation_id,
                 str(lf_exc),
             )
+
+    def _end_span() -> None:
+        """Beende den Langfuse-Span und flush ihn."""
+        if span_cm:
+            try:
+                span_cm.__exit__(None, None, None)
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
 
     limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
     logger.debug(
@@ -460,6 +509,7 @@ def call_gemini_api(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     try:
@@ -524,33 +574,36 @@ def call_gemini_api(
                     retries,
                 )
 
-        if not llm_response:
-            logger.error(
-                "[%s] [%s] Keine Text-Antwort erhalten", _timestamp(), correlation_id
-            )
-            if lf:
-                try:
-                    lf.start_generation(
-                        trace_context={"trace_id": trace_id} if trace_id else None,
-                        name="call_gemini_api",
-                        input=prompt,
-                        output="",
-                        model=model_name,
-                        usage_details=usage,
-                        metadata={
-                            "temperature": temperature,
-                            "correlation_id": correlation_id,
-                            "error": "no_text_returned",
-                        },
-                    )
-                    lf.flush()
-                except Exception as lf_exc:  # pragma: no cover - Logging
-                    logger.warning(
-                        "[%s] [%s] Langfuse-Fehler: %s",
-                        _timestamp(),
-                        correlation_id,
-                        str(lf_exc),
-                    )
+            if not llm_response:
+                logger.error(
+                    "[%s] [%s] Keine Text-Antwort erhalten", _timestamp(), correlation_id
+                )
+                if lf:
+                    try:
+                        lf.start_observation(
+                            trace_context=TraceContext(id=trace_id)
+                            if trace_id
+                            else None,
+                            name="call_gemini_api",
+                            as_type="generation",
+                            input=prompt,
+                            output="",
+                            model=model_name,
+                            usage_details=usage,
+                            metadata={
+                                "temperature": temperature,
+                                "correlation_id": correlation_id,
+                                "error": "no_text_returned",
+                            },
+                        ).end()
+                    except Exception as lf_exc:  # pragma: no cover - Logging
+                        logger.warning(
+                            "[%s] [%s] Langfuse-Fehler: %s",
+                            _timestamp(),
+                            correlation_id,
+                            str(lf_exc),
+                        )
+            _end_span()
             raise RuntimeError("LLM returned no text")
 
         logger.debug(
@@ -561,9 +614,10 @@ def call_gemini_api(
         )
         if lf:
             try:
-                lf.start_generation(
-                    trace_context={"trace_id": trace_id} if trace_id else None,
+                lf.start_observation(
+                    trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="call_gemini_api",
+                    as_type="generation",
                     input=prompt,
                     output=llm_response,
                     model=model_name,
@@ -572,8 +626,7 @@ def call_gemini_api(
                         "temperature": temperature,
                         "correlation_id": correlation_id,
                     },
-                )
-                lf.flush()
+                ).end()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
                     "[%s] [%s] Langfuse-Fehler: %s",
@@ -581,6 +634,7 @@ def call_gemini_api(
                     correlation_id,
                     str(lf_exc),
                 )
+        _end_span()
         return llm_response
     except Exception as exc:  # noqa: BLE001 - Weitergabe an Aufrufer
         if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -595,6 +649,7 @@ def call_gemini_api(
                     lf.flush()
                 except Exception:
                     logger.warning("Langfuse flush failed", exc_info=True)
+            _end_span()
             raise RuntimeError(f"Unsupported Gemini model: {model_name}.") from exc
 
         logger.error(
@@ -609,6 +664,7 @@ def call_gemini_api(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise
 
 
@@ -621,23 +677,40 @@ def query_llm_with_images(
 
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+    span_cm = None
     if lf and trace_id:
         try:
-            lf.trace(
+            span_cm = lf.start_as_current_span(
                 name="query_llm_with_images",
-                id=trace_id,
+                trace_context=TraceContext(id=trace_id),
                 metadata={
                     "correlation_id": correlation_id,
                     "model_name": model_name,
                 },
             )
+            span_cm.__enter__()
         except Exception as lf_exc:  # pragma: no cover - Logging
+            span_cm = None
             logger.warning(
                 "[%s] [%s] Langfuse-Fehler: %s",
                 _timestamp(),
                 correlation_id,
                 str(lf_exc),
             )
+
+    def _end_span() -> None:
+        """Beende den Langfuse-Span und flush ihn."""
+        if span_cm:
+            try:
+                span_cm.__exit__(None, None, None)
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
 
     if project_prompt:
         prompt = project_prompt.strip() + "\n\n" + prompt
@@ -653,6 +726,7 @@ def query_llm_with_images(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -722,9 +796,12 @@ def query_llm_with_images(
                 )
                 if lf:
                     try:
-                        lf.start_generation(
-                            trace_context={"trace_id": trace_id} if trace_id else None,
+                        lf.start_observation(
+                            trace_context=TraceContext(id=trace_id)
+                            if trace_id
+                            else None,
                             name="query_llm_with_images",
+                            as_type="generation",
                             input=prompt,
                             output="",
                             model=model_name,
@@ -734,8 +811,7 @@ def query_llm_with_images(
                                 "correlation_id": correlation_id,
                                 "error": "no_text_returned",
                             },
-                        )
-                        lf.flush()
+                        ).end()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
                             "[%s] [%s] Langfuse-Fehler: %s",
@@ -743,6 +819,7 @@ def query_llm_with_images(
                             correlation_id,
                             str(lf_exc),
                         )
+                _end_span()
                 raise RuntimeError("LLM returned no text")
             logger.debug(
                 "[%s] [%s] Response 200 %s",
@@ -752,9 +829,10 @@ def query_llm_with_images(
             )
             if lf:
                 try:
-                    lf.start_generation(
-                        trace_context={"trace_id": trace_id} if trace_id else None,
+                    lf.start_observation(
+                        trace_context=TraceContext(id=trace_id) if trace_id else None,
                         name="query_llm_with_images",
+                        as_type="generation",
                         input=prompt,
                         output=llm_response,
                         model=model_name,
@@ -763,8 +841,7 @@ def query_llm_with_images(
                             "images": len(images),
                             "correlation_id": correlation_id,
                         },
-                    )
-                    lf.flush()
+                    ).end()
                 except Exception as lf_exc:  # pragma: no cover - Logging
                     logger.warning(
                         "[%s] [%s] Langfuse-Fehler: %s",
@@ -772,6 +849,7 @@ def query_llm_with_images(
                         correlation_id,
                         str(lf_exc),
                     )
+            _end_span()
             return llm_response
         except Exception as exc:  # noqa: BLE001
             if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -786,6 +864,7 @@ def query_llm_with_images(
                         lf.flush()
                     except Exception:
                         logger.warning("Langfuse flush failed", exc_info=True)
+                _end_span()
                 raise RuntimeError(
                     f"Unsupported Gemini model: {model_name}."
                 ) from exc
@@ -801,6 +880,7 @@ def query_llm_with_images(
                     lf.flush()
                 except Exception:
                     logger.warning("Langfuse flush failed", exc_info=True)
+            _end_span()
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -840,9 +920,10 @@ def query_llm_with_images(
         )
         if lf:
             try:
-                lf.start_generation(
-                    trace_context={"trace_id": trace_id} if trace_id else None,
+                lf.start_observation(
+                    trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm_with_images",
+                    as_type="generation",
                     input=prompt,
                     output=llm_response,
                     model=model_name,
@@ -851,8 +932,7 @@ def query_llm_with_images(
                         "images": len(images),
                         "correlation_id": correlation_id,
                     },
-                )
-                lf.flush()
+                ).end()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
                     "[%s] [%s] Langfuse-Fehler: %s",
@@ -860,6 +940,7 @@ def query_llm_with_images(
                     correlation_id,
                     str(lf_exc),
                 )
+        _end_span()
         return llm_response
     except Exception as exc:  # noqa: BLE001
         status = getattr(exc, "http_status", "N/A")
@@ -877,4 +958,5 @@ def query_llm_with_images(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise
