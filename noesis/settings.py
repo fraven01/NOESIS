@@ -245,6 +245,11 @@ OPENAI_LLM_MODEL = "gpt-4o"
 GOOGLE_VISION_MODEL = "gemini-pro-vision"
 OPENAI_VISION_MODEL = OPENAI_LLM_MODEL
 
+# API-Schlüssel für Langfuse
+LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
+LANGFUSE_SECRET_KEY = os.environ.get("LANGFUSE_SECRET_KEY", "")
+LANGFUSE_HOST = os.environ.get("LANGFUSE_HOST", "")
+
 
 LOGGING = {
     "version": 1,
