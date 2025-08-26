@@ -2282,8 +2282,8 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
             + (f" ({entry['unterfrage']})" if entry['unterfrage'] else "")
             + "\n"
         )
-        gap_list_string += f"- KI-Begründung: {entry['ki']}\n"
-        gap_list_string += f"- GAP-Zusammenfassung: {entry['extern']}\n\n"
+        gap_list_string += f"- KI-Analyse: {entry['ki']}\n"
+        gap_list_string += f"- GAP-Anmerkung (Extern): {entry['extern']}\n\n"
 
     prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage2").first()
     if not prompt_template:
