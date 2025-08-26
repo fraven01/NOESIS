@@ -145,99 +145,129 @@ def query_llm(
                 "[%s] [%s] Request to Google Gemini model=%s",
                 _timestamp(),
                 correlation_id,
-                name,  # Logge den Modellnamen, nicht einen alten Endpoint.
+                name,
             )
 
-            resp = model.generate_content(
-                prompt, generation_config={"max_output_tokens": limit}
-            )
+            retries = 1
+            llm_response = ""
+            for attempt in range(retries + 1):
+                resp = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "max_output_tokens": limit,
+                        "response_mime_type": "text/plain",
+                    },
+                )
 
-            finish_reason = None
-            block_reason = None
-            parts_summary: list[str] = []
+                finish_reason = None
+                block_reason = None
+                parts_summary: list[str] = []
 
-            if getattr(resp, "candidates", []):
-                finish_reason = getattr(resp.candidates[0], "finish_reason", None)
-                content = getattr(resp.candidates[0], "content", None)
-                parts = getattr(content, "parts", []) if content else []
-                for part in parts:
-                    text_part = getattr(part, "text", "")
-                    parts_summary.append(text_part[:30] if text_part else type(part).__name__)
-
-            if getattr(resp, "prompt_feedback", None):
-                block_reason = getattr(resp.prompt_feedback, "block_reason", None)
-
-            usage_meta = getattr(resp, "usage_metadata", None) or {}
-            usage = {
-                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
-                "completion_tokens": getattr(
-                    usage_meta, "candidates_token_count", None
-                ),
-                "total_tokens": getattr(usage_meta, "total_token_count", None),
-            }
-
-            logger.debug(
-                "[%s] [%s] LLM-Metadaten: finish_reason=%s block_reason=%s parts=%s",
-                _timestamp(),
-                correlation_id,
-                finish_reason,
-                block_reason,
-                parts_summary,
-            )
-
-            try:
-                llm_response = resp.text
-            except ValueError:
-                # Fallback: Textteile aus den Kandidaten extrahieren
-                texts: list[str] = []
-                for cand in getattr(resp, "candidates", []) or []:
-                    content = getattr(cand, "content", None)
+                if getattr(resp, "candidates", []):
+                    finish_reason = getattr(
+                        resp.candidates[0], "finish_reason", None
+                    )
+                    content = getattr(resp.candidates[0], "content", None)
                     parts = getattr(content, "parts", []) if content else []
                     for part in parts:
                         text_part = getattr(part, "text", "")
-                        if text_part:
-                            texts.append(text_part)
-                if texts:
-                    llm_response = "\n".join(texts)
-                else:
-                    logger.error(
-                        "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s, parts=%s",
+                        parts_summary.append(
+                            text_part[:30] if text_part else type(part).__name__
+                        )
+
+                if getattr(resp, "prompt_feedback", None):
+                    block_reason = getattr(
+                        resp.prompt_feedback, "block_reason", None
+                    )
+
+                usage_meta = getattr(resp, "usage_metadata", None) or {}
+                usage = {
+                    "prompt_tokens": getattr(
+                        usage_meta, "prompt_token_count", None
+                    ),
+                    "completion_tokens": getattr(
+                        usage_meta, "candidates_token_count", None
+                    ),
+                    "total_tokens": getattr(
+                        usage_meta, "total_token_count", None
+                    ),
+                }
+
+                logger.debug(
+                    "[%s] [%s] LLM-Metadaten: finish_reason=%s block_reason=%s parts=%s",
+                    _timestamp(),
+                    correlation_id,
+                    finish_reason,
+                    block_reason,
+                    parts_summary,
+                )
+
+                try:
+                    llm_response = resp.text
+                    if not llm_response:
+                        raise ValueError("empty text")
+                except Exception:
+                    texts: list[str] = []
+                    for cand in getattr(resp, "candidates", []) or []:
+                        content = getattr(cand, "content", None)
+                        parts = getattr(content, "parts", []) if content else []
+                        for part in parts:
+                            text_part = getattr(part, "text", "")
+                            if text_part:
+                                texts.append(text_part)
+                    llm_response = "\n".join(texts).strip()
+
+                if llm_response:
+                    break
+
+                if attempt < retries:
+                    logger.warning(
+                        "[%s] [%s] Leere Gemini-Antwort, wiederhole (%s/%s)",
                         _timestamp(),
                         correlation_id,
-                        finish_reason,
-                        block_reason,
-                        parts_summary,
+                        attempt + 1,
+                        retries,
                     )
-                    if lf:
-                        try:
-                            lf.start_generation(
-                                trace_context={"trace_id": trace_id} if trace_id else None,
-                                name="query_llm",
-                                input=final_prompt_to_llm,
-                                output="",
-                                model=model_name,
-                                usage_details=usage,
-                                metadata={
-                                    "context": context_data,
-                                    "correlation_id": correlation_id,
-                                    "finish_reason": finish_reason,
-                                    "block_reason": block_reason,
-                                    "content_parts": parts_summary,
-                                    "error": "no_text_returned",
-                                },
-                            )
-                            lf.flush()
-                        except Exception as lf_exc:  # pragma: no cover - Logging
-                            logger.warning(
-                                "[%s] [%s] Langfuse-Fehler: %s",
-                                _timestamp(),
-                                correlation_id,
-                                str(lf_exc),
-                            )
-                    raise RuntimeError(
-                        "LLM returned no text: finish_reason=%s, block_reason=%s"
-                        % (finish_reason, block_reason)
-                    )
+
+            if not llm_response:
+                logger.error(
+                    "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s, parts=%s",
+                    _timestamp(),
+                    correlation_id,
+                    finish_reason,
+                    block_reason,
+                    parts_summary,
+                )
+                if lf:
+                    try:
+                        lf.start_generation(
+                            trace_context={"trace_id": trace_id} if trace_id else None,
+                            name="query_llm",
+                            input=final_prompt_to_llm,
+                            output="",
+                            model=model_name,
+                            usage_details=usage,
+                            metadata={
+                                "context": context_data,
+                                "correlation_id": correlation_id,
+                                "finish_reason": finish_reason,
+                                "block_reason": block_reason,
+                                "content_parts": parts_summary,
+                                "error": "no_text_returned",
+                            },
+                        )
+                        lf.flush()
+                    except Exception as lf_exc:  # pragma: no cover - Logging
+                        logger.warning(
+                            "[%s] [%s] Langfuse-Fehler: %s",
+                            _timestamp(),
+                            correlation_id,
+                            str(lf_exc),
+                        )
+                raise RuntimeError(
+                    "LLM returned no text: finish_reason=%s, block_reason=%s"
+                    % (finish_reason, block_reason)
+                )
 
             logger.debug(
                 "[%s] [%s] Response 200 %s",
@@ -441,22 +471,88 @@ def call_gemini_api(
             correlation_id,
             model_name,
         )
-        resp = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": limit,
-            },
-        )
-        llm_response = resp.text
-        usage_meta = getattr(resp, "usage_metadata", None) or {}
-        usage = {
-            "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
-            "completion_tokens": getattr(
-                usage_meta, "candidates_token_count", None
-            ),
-            "total_tokens": getattr(usage_meta, "total_token_count", None),
-        }
+
+        retries = 1
+        llm_response = ""
+        for attempt in range(retries + 1):
+            resp = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": temperature,
+                    "max_output_tokens": limit,
+                    "response_mime_type": "text/plain",
+                },
+            )
+
+            usage_meta = getattr(resp, "usage_metadata", None) or {}
+            usage = {
+                "prompt_tokens": getattr(
+                    usage_meta, "prompt_token_count", None
+                ),
+                "completion_tokens": getattr(
+                    usage_meta, "candidates_token_count", None
+                ),
+                "total_tokens": getattr(
+                    usage_meta, "total_token_count", None
+                ),
+            }
+
+            try:
+                llm_response = resp.text
+                if not llm_response:
+                    raise ValueError("empty text")
+            except Exception:
+                texts: list[str] = []
+                for cand in getattr(resp, "candidates", []) or []:
+                    content = getattr(cand, "content", None)
+                    parts = getattr(content, "parts", []) if content else []
+                    for part in parts:
+                        text_part = getattr(part, "text", "")
+                        if text_part:
+                            texts.append(text_part)
+                llm_response = "\n".join(texts).strip()
+
+            if llm_response:
+                break
+
+            if attempt < retries:
+                logger.warning(
+                    "[%s] [%s] Leere Gemini-Antwort, wiederhole (%s/%s)",
+                    _timestamp(),
+                    correlation_id,
+                    attempt + 1,
+                    retries,
+                )
+
+        if not llm_response:
+            logger.error(
+                "[%s] [%s] Keine Text-Antwort erhalten", _timestamp(), correlation_id
+            )
+            if lf:
+                try:
+                    lf.start_generation(
+                        trace_context={"trace_id": trace_id} if trace_id else None,
+                        name="call_gemini_api",
+                        input=prompt,
+                        output="",
+                        model=model_name,
+                        usage_details=usage,
+                        metadata={
+                            "temperature": temperature,
+                            "correlation_id": correlation_id,
+                            "error": "no_text_returned",
+                        },
+                    )
+                    lf.flush()
+                except Exception as lf_exc:  # pragma: no cover - Logging
+                    logger.warning(
+                        "[%s] [%s] Langfuse-Fehler: %s",
+                        _timestamp(),
+                        correlation_id,
+                        str(lf_exc),
+                    )
+            raise RuntimeError("LLM returned no text")
+
         logger.debug(
             "[%s] [%s] Response 200 %s",
             _timestamp(),
@@ -573,16 +669,81 @@ def query_llm_with_images(
                 model_name,
                 len(images),
             )
-            resp = model.generate_content(content)
-            llm_response = resp.text
-            usage_meta = getattr(resp, "usage_metadata", None) or {}
-            usage = {
-                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
-                "completion_tokens": getattr(
-                    usage_meta, "candidates_token_count", None
-                ),
-                "total_tokens": getattr(usage_meta, "total_token_count", None),
-            }
+            retries = 1
+            llm_response = ""
+            for attempt in range(retries + 1):
+                resp = model.generate_content(
+                    content,
+                    generation_config={"response_mime_type": "text/plain"},
+                )
+                usage_meta = getattr(resp, "usage_metadata", None) or {}
+                usage = {
+                    "prompt_tokens": getattr(
+                        usage_meta, "prompt_token_count", None
+                    ),
+                    "completion_tokens": getattr(
+                        usage_meta, "candidates_token_count", None
+                    ),
+                    "total_tokens": getattr(
+                        usage_meta, "total_token_count", None
+                    ),
+                }
+                try:
+                    llm_response = resp.text
+                    if not llm_response:
+                        raise ValueError("empty text")
+                except Exception:
+                    texts: list[str] = []
+                    for cand in getattr(resp, "candidates", []) or []:
+                        content_c = getattr(cand, "content", None)
+                        parts = (
+                            getattr(content_c, "parts", []) if content_c else []
+                        )
+                        for part in parts:
+                            text_part = getattr(part, "text", "")
+                            if text_part:
+                                texts.append(text_part)
+                    llm_response = "\n".join(texts).strip()
+                if llm_response:
+                    break
+                if attempt < retries:
+                    logger.warning(
+                        "[%s] [%s] Leere Gemini-Antwort, wiederhole (%s/%s)",
+                        _timestamp(),
+                        correlation_id,
+                        attempt + 1,
+                        retries,
+                    )
+            if not llm_response:
+                logger.error(
+                    "[%s] [%s] Keine Text-Antwort erhalten",
+                    _timestamp(),
+                    correlation_id,
+                )
+                if lf:
+                    try:
+                        lf.start_generation(
+                            trace_context={"trace_id": trace_id} if trace_id else None,
+                            name="query_llm_with_images",
+                            input=prompt,
+                            output="",
+                            model=model_name,
+                            usage_details=usage,
+                            metadata={
+                                "images": len(images),
+                                "correlation_id": correlation_id,
+                                "error": "no_text_returned",
+                            },
+                        )
+                        lf.flush()
+                    except Exception as lf_exc:  # pragma: no cover - Logging
+                        logger.warning(
+                            "[%s] [%s] Langfuse-Fehler: %s",
+                            _timestamp(),
+                            correlation_id,
+                            str(lf_exc),
+                        )
+                raise RuntimeError("LLM returned no text")
             logger.debug(
                 "[%s] [%s] Response 200 %s",
                 _timestamp(),
