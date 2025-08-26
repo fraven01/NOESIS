@@ -2335,6 +2335,7 @@ class PromptTests(NoesisTestCase):
     def test_gap_report_anlage2_placeholder(self):
         p = Prompt.objects.get(name="gap_report_anlage2")
         self.assertIn("{gap_list}", p.text)
+        self.assertIn("{system_name}", p.text)
         self.assertNotIn("{funktionen}", p.text)
 
     def test_check_anlage3_vision_prompt_text(self):
@@ -4715,9 +4716,11 @@ class GapReportTests(NoesisTestCase):
             text = summarize_anlage2_gaps(self.projekt)
             prompt_sent = mock_q.call_args[0][0]
             self.assertIn("### Anmelden", prompt_sent.text)
-            self.assertIn("- KI-Begründung:", prompt_sent.text)
-            self.assertNotIn("Prüferkommentar", prompt_sent.text)
+            self.assertIn("- KI-Analyse:", prompt_sent.text)
+            self.assertIn("- GAP-Anmerkung (Extern):", prompt_sent.text)
+            self.assertIn(self.projekt.title, prompt_sent.text)
             self.assertNotIn("{gap_list}", prompt_sent.text)
+            self.assertNotIn("{system_name}", prompt_sent.text)
             self.assertNotIn("{funktionen}", prompt_sent.text)
         self.assertEqual(text, "T2")
         self.assertTrue(mock_q.called)
