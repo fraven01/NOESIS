@@ -55,10 +55,12 @@ def query_llm(
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
     trace_id = lf.create_trace_id() if lf else None
+
     span_ctx = None
     if lf and trace_id:
         try:
             span_ctx = lf.start_as_current_span(
+
                 name="query_llm",
                 trace_context=TraceContext(id=trace_id),
                 metadata={
@@ -77,9 +79,11 @@ def query_llm(
 
     def _end_span() -> None:
         """Beende den Langfuse-Span und flush ihn."""
+
         if span_ctx:
             try:
                 span_ctx.__exit__(None, None, None)
+
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
@@ -261,7 +265,9 @@ def query_llm(
                 )
                 if lf:
                     try:
+
                         gen_ctx = lf.start_as_current_generation(
+
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="query_llm",
                             input=final_prompt_to_llm,
@@ -306,7 +312,9 @@ def query_llm(
 
             if lf:
                 try:
+
                     gen_ctx = lf.start_as_current_generation(
+
                         trace_context=TraceContext(id=trace_id) if trace_id else None,
                         name="query_llm",
                         input=final_prompt_to_llm,
@@ -402,7 +410,9 @@ def query_llm(
 
         if lf:
             try:
+
                 gen_ctx = lf.start_as_current_generation(
+
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm",
                     input=final_prompt_to_llm,
@@ -456,10 +466,12 @@ def call_gemini_api(
     """
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+
     span_ctx = None
     if lf and trace_id:
         try:
             span_ctx = lf.start_as_current_span(
+
                 name="call_gemini_api",
                 trace_context=TraceContext(id=trace_id),
                 metadata={
@@ -478,9 +490,11 @@ def call_gemini_api(
 
     def _end_span() -> None:
         """Beende den Langfuse-Span und flush ihn."""
+
         if span_ctx:
             try:
                 span_ctx.__exit__(None, None, None)
+
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
@@ -580,7 +594,9 @@ def call_gemini_api(
                 )
                 if lf:
                     try:
+
                         gen_ctx = lf.start_as_current_generation(
+
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="call_gemini_api",
                             input=prompt,
@@ -593,8 +609,10 @@ def call_gemini_api(
                                 "error": "no_text_returned",
                             },
                         )
+
                         gen_ctx.__enter__()
                         gen_ctx.__exit__(None, None, None)
+
                         lf.flush()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
@@ -614,7 +632,9 @@ def call_gemini_api(
         )
         if lf:
             try:
+
                 gen_ctx = lf.start_as_current_generation(
+
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="call_gemini_api",
                     input=prompt,
@@ -679,10 +699,12 @@ def query_llm_with_images(
 
     correlation_id = str(uuid.uuid4())
     trace_id = lf.create_trace_id() if lf else None
+
     span_ctx = None
     if lf and trace_id:
         try:
             span_ctx = lf.start_as_current_span(
+
                 name="query_llm_with_images",
                 trace_context=TraceContext(id=trace_id),
                 metadata={
@@ -701,9 +723,11 @@ def query_llm_with_images(
 
     def _end_span() -> None:
         """Beende den Langfuse-Span und flush ihn."""
+
         if span_ctx:
             try:
                 span_ctx.__exit__(None, None, None)
+
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
@@ -797,7 +821,9 @@ def query_llm_with_images(
                 )
                 if lf:
                     try:
+
                         gen_ctx = lf.start_as_current_generation(
+
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="query_llm_with_images",
                             input=prompt,
@@ -830,7 +856,9 @@ def query_llm_with_images(
             )
             if lf:
                 try:
+
                     gen_ctx = lf.start_as_current_generation(
+
                         trace_context=TraceContext(id=trace_id) if trace_id else None,
                         name="query_llm_with_images",
                         input=prompt,
@@ -923,7 +951,9 @@ def query_llm_with_images(
         )
         if lf:
             try:
+
                 gen_ctx = lf.start_as_current_generation(
+
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm_with_images",
                     input=prompt,
