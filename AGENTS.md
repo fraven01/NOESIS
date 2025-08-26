@@ -42,6 +42,7 @@ Backend: Django 5.x
 Asynchrone Tasks: django-q2 wird für alle langlaufenden Prozesse (LLM-Anfragen, Analysen) verwendet. Dies erfordert einen laufenden qcluster-Prozess.
 Dokumenten-Export: Die Konvertierung von Markdown zu .docx erfordert die System-Abhängigkeit pandoc.
 Datenbank: SQLite für die Entwicklung, für den Produktivbetrieb ist PostgreSQL empfohlen.
+LLM-Logging: Langfuse SDK 3.3.1.
 
 
 ## Projektstruktur
