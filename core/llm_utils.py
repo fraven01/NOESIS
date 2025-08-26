@@ -266,8 +266,8 @@ def query_llm(
                 if lf:
                     try:
 
-                        gen_ctx = lf.start_as_current_generation(
-
+                        with lf.start_as_current_observation(
+                            as_type="generation",
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="query_llm",
                             input=final_prompt_to_llm,
@@ -282,9 +282,8 @@ def query_llm(
                                 "content_parts": parts_summary,
                                 "error": "no_text_returned",
                             },
-                        )
-                        gen_ctx.__enter__()
-                        gen_ctx.__exit__(None, None, None)
+                        ):
+                            pass
                         lf.flush()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
@@ -313,8 +312,8 @@ def query_llm(
             if lf:
                 try:
 
-                    gen_ctx = lf.start_as_current_generation(
-
+                    with lf.start_as_current_observation(
+                        as_type="generation",
                         trace_context=TraceContext(id=trace_id) if trace_id else None,
                         name="query_llm",
                         input=final_prompt_to_llm,
@@ -328,9 +327,8 @@ def query_llm(
                             "block_reason": block_reason,
                             "content_parts": parts_summary,
                         },
-                    )
-                    gen_ctx.__enter__()
-                    gen_ctx.__exit__(None, None, None)
+                    ):
+                        pass
                     lf.flush()
                 except Exception as lf_exc:  # pragma: no cover - Logging
                     logger.warning(
@@ -411,8 +409,8 @@ def query_llm(
         if lf:
             try:
 
-                gen_ctx = lf.start_as_current_generation(
-
+                with lf.start_as_current_observation(
+                    as_type="generation",
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm",
                     input=final_prompt_to_llm,
@@ -423,9 +421,8 @@ def query_llm(
                         "context": context_data,
                         "correlation_id": correlation_id,
                     },
-                )
-                gen_ctx.__enter__()
-                gen_ctx.__exit__(None, None, None)
+                ):
+                    pass
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
@@ -595,8 +592,8 @@ def call_gemini_api(
                 if lf:
                     try:
 
-                        gen_ctx = lf.start_as_current_generation(
-
+                        with lf.start_as_current_observation(
+                            as_type="generation",
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="call_gemini_api",
                             input=prompt,
@@ -608,11 +605,8 @@ def call_gemini_api(
                                 "correlation_id": correlation_id,
                                 "error": "no_text_returned",
                             },
-                        )
-
-                        gen_ctx.__enter__()
-                        gen_ctx.__exit__(None, None, None)
-
+                        ):
+                            pass
                         lf.flush()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
@@ -633,8 +627,8 @@ def call_gemini_api(
         if lf:
             try:
 
-                gen_ctx = lf.start_as_current_generation(
-
+                with lf.start_as_current_observation(
+                    as_type="generation",
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="call_gemini_api",
                     input=prompt,
@@ -645,9 +639,8 @@ def call_gemini_api(
                         "temperature": temperature,
                         "correlation_id": correlation_id,
                     },
-                )
-                gen_ctx.__enter__()
-                gen_ctx.__exit__(None, None, None)
+                ):
+                    pass
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
@@ -822,8 +815,8 @@ def query_llm_with_images(
                 if lf:
                     try:
 
-                        gen_ctx = lf.start_as_current_generation(
-
+                        with lf.start_as_current_observation(
+                            as_type="generation",
                             trace_context=TraceContext(id=trace_id) if trace_id else None,
                             name="query_llm_with_images",
                             input=prompt,
@@ -835,9 +828,8 @@ def query_llm_with_images(
                                 "correlation_id": correlation_id,
                                 "error": "no_text_returned",
                             },
-                        )
-                        gen_ctx.__enter__()
-                        gen_ctx.__exit__(None, None, None)
+                        ):
+                            pass
                         lf.flush()
                     except Exception as lf_exc:  # pragma: no cover - Logging
                         logger.warning(
@@ -857,8 +849,8 @@ def query_llm_with_images(
             if lf:
                 try:
 
-                    gen_ctx = lf.start_as_current_generation(
-
+                    with lf.start_as_current_observation(
+                        as_type="generation",
                         trace_context=TraceContext(id=trace_id) if trace_id else None,
                         name="query_llm_with_images",
                         input=prompt,
@@ -869,9 +861,8 @@ def query_llm_with_images(
                             "images": len(images),
                             "correlation_id": correlation_id,
                         },
-                    )
-                    gen_ctx.__enter__()
-                    gen_ctx.__exit__(None, None, None)
+                    ):
+                        pass
                     lf.flush()
                 except Exception as lf_exc:  # pragma: no cover - Logging
                     logger.warning(
@@ -952,8 +943,8 @@ def query_llm_with_images(
         if lf:
             try:
 
-                gen_ctx = lf.start_as_current_generation(
-
+                with lf.start_as_current_observation(
+                    as_type="generation",
                     trace_context=TraceContext(id=trace_id) if trace_id else None,
                     name="query_llm_with_images",
                     input=prompt,
@@ -964,9 +955,8 @@ def query_llm_with_images(
                         "images": len(images),
                         "correlation_id": correlation_id,
                     },
-                )
-                gen_ctx.__enter__()
-                gen_ctx.__exit__(None, None, None)
+                ):
+                    pass
                 lf.flush()
             except Exception as lf_exc:  # pragma: no cover - Logging
                 logger.warning(
