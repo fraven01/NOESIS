@@ -116,7 +116,39 @@ def query_llm(
             )
 
             resp = model.generate_content(prompt)
-            llm_response = resp.text
+            try:
+                llm_response = resp.text
+            except ValueError:
+                # Fallback: Textteile aus den Kandidaten extrahieren
+                texts: list[str] = []
+                for cand in getattr(resp, "candidates", []) or []:
+                    content = getattr(cand, "content", None)
+                    parts = getattr(content, "parts", []) if content else []
+                    for part in parts:
+                        text_part = getattr(part, "text", "")
+                        if text_part:
+                            texts.append(text_part)
+                if texts:
+                    llm_response = "\n".join(texts)
+                else:
+                    finish_reason = None
+                    block_reason = None
+                    if getattr(resp, "candidates", []):
+                        finish_reason = getattr(resp.candidates[0], "finish_reason", None)
+                    if getattr(resp, "prompt_feedback", None):
+                        block_reason = getattr(
+                            resp.prompt_feedback, "block_reason", None
+                        )
+                    logger.error(
+                        "[%s] [%s] Keine Text-Antwort erhalten: finish_reason=%s, block_reason=%s",
+                        _timestamp(),
+                        correlation_id,
+                        finish_reason,
+                        block_reason,
+                    )
+                    raise RuntimeError(
+                        f"LLM returned no text: finish_reason={finish_reason}, block_reason={block_reason}"
+                    )
             usage_meta = getattr(resp, "usage_metadata", None) or {}
             usage = {
                 "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),

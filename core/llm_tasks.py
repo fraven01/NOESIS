@@ -749,12 +749,27 @@ def worker_generate_gutachten(
         role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
-    text = query_llm(
-        prompt_obj,
-        {},
-        model_type="gutachten",
-        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-    )
+    try:
+        text = query_llm(
+            prompt_obj,
+            {},
+            model_type="gutachten",
+            project_prompt=projekt.project_prompt
+            if prompt_obj.use_project_context
+            else None,
+        )
+    except RuntimeError as exc:
+        logger.error(
+            "LLM-Anfrage für Gutachten fehlgeschlagen: %s", exc
+        )
+        return ""
+
+    if not text:
+        logger.warning(
+            "Leere LLM-Antwort für Gutachten in Projekt %s", project_id
+        )
+        return ""
+
     path = generate_gutachten(projekt.id, text)
 
     if knowledge:
