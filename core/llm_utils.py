@@ -125,7 +125,11 @@ def query_llm(
             _timestamp(),
             correlation_id,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -294,7 +298,11 @@ def query_llm(
                     correlation_id,
                     name,
                 )
-                lf.flush()
+                if lf:
+                    try:
+                        lf.flush()
+                    except Exception:
+                        logger.warning("Langfuse flush failed", exc_info=True)
                 raise RuntimeError(f"Unsupported Gemini model: {name}.") from exc
 
             logger.error(
@@ -304,7 +312,11 @@ def query_llm(
                 str(exc),
                 exc_info=True,
             )
-            lf.flush()
+            if lf:
+                try:
+                    lf.flush()
+                except Exception:
+                    logger.warning("Langfuse flush failed", exc_info=True)
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -376,7 +388,11 @@ def query_llm(
             body,
             exc_info=True,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise
 
 
@@ -404,7 +420,11 @@ def call_gemini_api(
             _timestamp(),
             correlation_id,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise RuntimeError("Missing LLM credentials from environment.")
 
     try:
@@ -506,7 +526,11 @@ def call_gemini_api(
                 correlation_id,
                 model_name,
             )
-            lf.flush()
+            if lf:
+                try:
+                    lf.flush()
+                except Exception:
+                    logger.warning("Langfuse flush failed", exc_info=True)
             raise RuntimeError(f"Unsupported Gemini model: {model_name}.") from exc
 
         logger.error(
@@ -516,7 +540,11 @@ def call_gemini_api(
             str(exc),
             exc_info=True,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise
 
 
@@ -539,7 +567,11 @@ def query_llm_with_images(
             _timestamp(),
             correlation_id,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -634,7 +666,11 @@ def query_llm_with_images(
                     correlation_id,
                     model_name,
                 )
-                lf.flush()
+                if lf:
+                    try:
+                        lf.flush()
+                    except Exception:
+                        logger.warning("Langfuse flush failed", exc_info=True)
                 raise RuntimeError(
                     f"Unsupported Gemini model: {model_name}."
                 ) from exc
@@ -645,7 +681,11 @@ def query_llm_with_images(
                 str(exc),
                 exc_info=True,
             )
-            lf.flush()
+            if lf:
+                try:
+                    lf.flush()
+                except Exception:
+                    logger.warning("Langfuse flush failed", exc_info=True)
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -717,5 +757,9 @@ def query_llm_with_images(
             body,
             exc_info=True,
         )
-        lf.flush()
+        if lf:
+            try:
+                lf.flush()
+            except Exception:
+                logger.warning("Langfuse flush failed", exc_info=True)
         raise
