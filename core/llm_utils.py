@@ -5,6 +5,7 @@ from datetime import datetime
 import openai
 import google.generativeai as genai
 from django.conf import settings
+from langfuse import Langfuse
 
 try:
     from google.api_core import exceptions as g_exceptions
@@ -12,6 +13,12 @@ except ModuleNotFoundError:
     g_exceptions = None
 
 logger = logging.getLogger("llm_debugger")
+
+lf = Langfuse(
+    public_key=getattr(settings, "LANGFUSE_PUBLIC_KEY", ""),
+    secret_key=getattr(settings, "LANGFUSE_SECRET_KEY", ""),
+    host=getattr(settings, "LANGFUSE_HOST", ""),
+)
 
 
 def _timestamp() -> str:
@@ -31,6 +38,10 @@ def query_llm(
 
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
+    trace = lf.trace(
+        name="query_llm",
+        metadata={"correlation_id": correlation_id, "model": model_name},
+    )
 
     final_role_prompt = ""
 
@@ -79,6 +90,7 @@ def query_llm(
             _timestamp(),
             correlation_id,
         )
+        lf.flush()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -99,6 +111,14 @@ def query_llm(
 
             resp = model.generate_content(prompt)
             llm_response = resp.text
+            usage_meta = getattr(resp, "usage_metadata", None) or {}
+            usage = {
+                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+                "completion_tokens": getattr(
+                    usage_meta, "candidates_token_count", None
+                ),
+                "total_tokens": getattr(usage_meta, "total_token_count", None),
+            }
 
             logger.debug(
                 "[%s] [%s] Response 200 %s",
@@ -111,6 +131,15 @@ def query_llm(
                 f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
             )
 
+            trace.generation(
+                input=final_prompt_to_llm,
+                output=llm_response,
+                model=model_name,
+                usage=usage,
+                metadata={"context": context_data},
+            )
+            lf.flush()
+
             return llm_response
 
         except Exception as exc:
@@ -121,6 +150,7 @@ def query_llm(
                     correlation_id,
                     name,
                 )
+                lf.flush()
                 raise RuntimeError(f"Unsupported Gemini model: {name}.") from exc
 
             logger.error(
@@ -130,6 +160,7 @@ def query_llm(
                 str(exc),
                 exc_info=True,
             )
+            lf.flush()
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -146,6 +177,12 @@ def query_llm(
         openai.api_key = settings.OPENAI_API_KEY
         completion = openai.ChatCompletion.create(**payload)
         llm_response = completion.choices[0].message.content
+        usage_info = completion.get("usage", {})
+        usage = {
+            "prompt_tokens": usage_info.get("prompt_tokens"),
+            "completion_tokens": usage_info.get("completion_tokens"),
+            "total_tokens": usage_info.get("total_tokens"),
+        }
         logger.debug(
             "[%s] [%s] Response %s %s",
             _timestamp(),
@@ -157,6 +194,15 @@ def query_llm(
         logger.debug(
             f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
         )
+
+        trace.generation(
+            input=final_prompt_to_llm,
+            output=llm_response,
+            model=model_name,
+            usage=usage,
+            metadata={"context": context_data},
+        )
+        lf.flush()
 
         return llm_response
     except Exception as exc:
@@ -170,13 +216,17 @@ def query_llm(
             body,
             exc_info=True,
         )
+        lf.flush()
         raise
 
 
 def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> str:
     """Sendet einen Prompt direkt an das Gemini-Modell."""
-
     correlation_id = str(uuid.uuid4())
+    trace = lf.trace(
+        name="call_gemini_api",
+        metadata={"correlation_id": correlation_id, "model": model_name},
+    )
 
     if not settings.GOOGLE_API_KEY:
         logger.error(
@@ -184,6 +234,7 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
             _timestamp(),
             correlation_id,
         )
+        lf.flush()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     try:
@@ -198,13 +249,30 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
         resp = model.generate_content(
             prompt, generation_config={"temperature": temperature}
         )
+        llm_response = resp.text
+        usage_meta = getattr(resp, "usage_metadata", None) or {}
+        usage = {
+            "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+            "completion_tokens": getattr(
+                usage_meta, "candidates_token_count", None
+            ),
+            "total_tokens": getattr(usage_meta, "total_token_count", None),
+        }
         logger.debug(
             "[%s] [%s] Response 200 %s",
             _timestamp(),
             correlation_id,
-            repr(resp.text)[:200],
+            repr(llm_response)[:200],
         )
-        return resp.text
+        trace.generation(
+            input=prompt,
+            output=llm_response,
+            model=model_name,
+            usage=usage,
+            metadata={"temperature": temperature},
+        )
+        lf.flush()
+        return llm_response
     except Exception as exc:  # noqa: BLE001 - Weitergabe an Aufrufer
         if g_exceptions and isinstance(exc, g_exceptions.NotFound):
             logger.error(
@@ -213,6 +281,7 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
                 correlation_id,
                 model_name,
             )
+            lf.flush()
             raise RuntimeError(f"Unsupported Gemini model: {model_name}.") from exc
 
         logger.error(
@@ -222,6 +291,7 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
             str(exc),
             exc_info=True,
         )
+        lf.flush()
         raise
 
 
@@ -233,6 +303,10 @@ def query_llm_with_images(
     import base64
 
     correlation_id = str(uuid.uuid4())
+    trace = lf.trace(
+        name="query_llm_with_images",
+        metadata={"correlation_id": correlation_id, "model": model_name},
+    )
 
     if project_prompt:
         prompt = project_prompt.strip() + "\n\n" + prompt
@@ -243,6 +317,7 @@ def query_llm_with_images(
             _timestamp(),
             correlation_id,
         )
+        lf.flush()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -261,12 +336,28 @@ def query_llm_with_images(
             )
             resp = model.generate_content(content)
             llm_response = resp.text
+            usage_meta = getattr(resp, "usage_metadata", None) or {}
+            usage = {
+                "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+                "completion_tokens": getattr(
+                    usage_meta, "candidates_token_count", None
+                ),
+                "total_tokens": getattr(usage_meta, "total_token_count", None),
+            }
             logger.debug(
                 "[%s] [%s] Response 200 %s",
                 _timestamp(),
                 correlation_id,
                 repr(llm_response)[:200],
             )
+            trace.generation(
+                input=prompt,
+                output=llm_response,
+                model=model_name,
+                usage=usage,
+                metadata={"images": len(images)},
+            )
+            lf.flush()
             return llm_response
         except Exception as exc:  # noqa: BLE001
             if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -276,6 +367,7 @@ def query_llm_with_images(
                     correlation_id,
                     model_name,
                 )
+                lf.flush()
                 raise RuntimeError(
                     f"Unsupported Gemini model: {model_name}."
                 ) from exc
@@ -286,6 +378,7 @@ def query_llm_with_images(
                 str(exc),
                 exc_info=True,
             )
+            lf.flush()
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -310,6 +403,12 @@ def query_llm_with_images(
         openai.api_key = settings.OPENAI_API_KEY
         completion = openai.ChatCompletion.create(**payload)
         llm_response = completion.choices[0].message.content
+        usage_info = completion.get("usage", {})
+        usage = {
+            "prompt_tokens": usage_info.get("prompt_tokens"),
+            "completion_tokens": usage_info.get("completion_tokens"),
+            "total_tokens": usage_info.get("total_tokens"),
+        }
         logger.debug(
             "[%s] [%s] Response %s %s",
             _timestamp(),
@@ -317,6 +416,14 @@ def query_llm_with_images(
             completion.response_ms,
             repr(completion)[:200],
         )
+        trace.generation(
+            input=prompt,
+            output=llm_response,
+            model=model_name,
+            usage=usage,
+            metadata={"images": len(images)},
+        )
+        lf.flush()
         return llm_response
     except Exception as exc:  # noqa: BLE001
         status = getattr(exc, "http_status", "N/A")
@@ -329,4 +436,5 @@ def query_llm_with_images(
             body,
             exc_info=True,
         )
+        lf.flush()
         raise
