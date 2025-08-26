@@ -691,6 +691,7 @@ def generate_gutachten(
             {},
             model_type="gutachten",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
+            max_output_tokens=8192,
         )
     doc = Document()
     for line in text.splitlines():
@@ -757,6 +758,7 @@ def worker_generate_gutachten(
             project_prompt=projekt.project_prompt
             if prompt_obj.use_project_context
             else None,
+            max_output_tokens=8192,
         )
     except RuntimeError as exc:
         logger.error(
