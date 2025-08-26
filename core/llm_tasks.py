@@ -677,18 +677,20 @@ def generate_gutachten(
         prefix = (
             base_obj.text
             if base_obj
-            else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
+            else (
+                "Erstelle ein technisches Gutachten basierend auf deinem Wissen zu"
+                " {software_name}:\n\n"
+            )
         )
-        prompt_text = prefix + projekt.software_string
         prompt_obj = Prompt(
             name="tmp",
-            text=prompt_text,
+            text=prefix,
             role=base_obj.role if base_obj else None,
             use_project_context=base_obj.use_project_context if base_obj else True,
         )
         text = query_llm(
             prompt_obj,
-            {},
+            {"software_name": projekt.software_string},
             model_type="gutachten",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             max_output_tokens=8192,
@@ -734,7 +736,10 @@ def worker_generate_gutachten(
     prefix = (
         base_obj.text
         if base_obj
-        else "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n"
+        else (
+            "Erstelle ein technisches Gutachten basierend auf deinem Wissen zu"
+            " {software_name}:\n\n"
+        )
     )
 
     knowledge = None
@@ -746,14 +751,14 @@ def worker_generate_gutachten(
 
     prompt_obj = Prompt(
         name="tmp",
-        text=prefix + target,
+        text=prefix,
         role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
     try:
         text = query_llm(
             prompt_obj,
-            {},
+            {"software_name": target},
             model_type="gutachten",
             project_prompt=projekt.project_prompt
             if prompt_obj.use_project_context
