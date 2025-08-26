@@ -5,7 +5,11 @@ from datetime import datetime
 import openai
 import google.generativeai as genai
 from django.conf import settings
-from langfuse import Langfuse
+
+try:
+    from langfuse import Langfuse
+except Exception:  # pragma: no cover - Langfuse optional
+    Langfuse = None  # type: ignore[assignment]
 
 try:
     from google.api_core import exceptions as g_exceptions
@@ -14,11 +18,16 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger("llm_debugger")
 
-lf = Langfuse(
-    public_key=getattr(settings, "LANGFUSE_PUBLIC_KEY", ""),
-    secret_key=getattr(settings, "LANGFUSE_SECRET_KEY", ""),
-    host=getattr(settings, "LANGFUSE_HOST", ""),
-)
+lf: Langfuse | None = None
+if Langfuse is not None:
+    try:
+        lf = Langfuse(
+            public_key=getattr(settings, "LANGFUSE_PUBLIC_KEY", ""),
+            secret_key=getattr(settings, "LANGFUSE_SECRET_KEY", ""),
+            host=getattr(settings, "LANGFUSE_HOST", ""),
+        )
+    except Exception:  # pragma: no cover - Fehler bei Initialisierung
+        lf = None
 
 
 def _timestamp() -> str:
@@ -38,10 +47,7 @@ def query_llm(
 
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
-    trace = lf.trace(
-        name="query_llm",
-        metadata={"correlation_id": correlation_id, "model": model_name},
-    )
+    trace_id = lf.create_trace_id() if lf else None
 
     final_role_prompt = ""
 
@@ -131,14 +137,28 @@ def query_llm(
                 f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
             )
 
-            trace.generation(
-                input=final_prompt_to_llm,
-                output=llm_response,
-                model=model_name,
-                usage=usage,
-                metadata={"context": context_data},
-            )
-            lf.flush()
+            if lf:
+                try:
+                    lf.start_generation(
+                        trace_context={"trace_id": trace_id} if trace_id else None,
+                        name="query_llm",
+                        input=final_prompt_to_llm,
+                        output=llm_response,
+                        model=model_name,
+                        usage_details=usage,
+                        metadata={
+                            "context": context_data,
+                            "correlation_id": correlation_id,
+                        },
+                    )
+                    lf.flush()
+                except Exception as lf_exc:  # pragma: no cover - Logging
+                    logger.warning(
+                        "[%s] [%s] Langfuse-Fehler: %s",
+                        _timestamp(),
+                        correlation_id,
+                        str(lf_exc),
+                    )
 
             return llm_response
 
@@ -195,14 +215,28 @@ def query_llm(
             f"--- RESPONSE RECEIVED ---\n{llm_response}\n-----------------------"
         )
 
-        trace.generation(
-            input=final_prompt_to_llm,
-            output=llm_response,
-            model=model_name,
-            usage=usage,
-            metadata={"context": context_data},
-        )
-        lf.flush()
+        if lf:
+            try:
+                lf.start_generation(
+                    trace_context={"trace_id": trace_id} if trace_id else None,
+                    name="query_llm",
+                    input=final_prompt_to_llm,
+                    output=llm_response,
+                    model=model_name,
+                    usage_details=usage,
+                    metadata={
+                        "context": context_data,
+                        "correlation_id": correlation_id,
+                    },
+                )
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
 
         return llm_response
     except Exception as exc:
@@ -223,10 +257,7 @@ def query_llm(
 def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> str:
     """Sendet einen Prompt direkt an das Gemini-Modell."""
     correlation_id = str(uuid.uuid4())
-    trace = lf.trace(
-        name="call_gemini_api",
-        metadata={"correlation_id": correlation_id, "model": model_name},
-    )
+    trace_id = lf.create_trace_id() if lf else None
 
     if not settings.GOOGLE_API_KEY:
         logger.error(
@@ -264,14 +295,28 @@ def call_gemini_api(prompt: str, model_name: str, temperature: float = 0.5) -> s
             correlation_id,
             repr(llm_response)[:200],
         )
-        trace.generation(
-            input=prompt,
-            output=llm_response,
-            model=model_name,
-            usage=usage,
-            metadata={"temperature": temperature},
-        )
-        lf.flush()
+        if lf:
+            try:
+                lf.start_generation(
+                    trace_context={"trace_id": trace_id} if trace_id else None,
+                    name="call_gemini_api",
+                    input=prompt,
+                    output=llm_response,
+                    model=model_name,
+                    usage_details=usage,
+                    metadata={
+                        "temperature": temperature,
+                        "correlation_id": correlation_id,
+                    },
+                )
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
         return llm_response
     except Exception as exc:  # noqa: BLE001 - Weitergabe an Aufrufer
         if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -303,10 +348,7 @@ def query_llm_with_images(
     import base64
 
     correlation_id = str(uuid.uuid4())
-    trace = lf.trace(
-        name="query_llm_with_images",
-        metadata={"correlation_id": correlation_id, "model": model_name},
-    )
+    trace_id = lf.create_trace_id() if lf else None
 
     if project_prompt:
         prompt = project_prompt.strip() + "\n\n" + prompt
@@ -350,14 +392,28 @@ def query_llm_with_images(
                 correlation_id,
                 repr(llm_response)[:200],
             )
-            trace.generation(
-                input=prompt,
-                output=llm_response,
-                model=model_name,
-                usage=usage,
-                metadata={"images": len(images)},
-            )
-            lf.flush()
+            if lf:
+                try:
+                    lf.start_generation(
+                        trace_context={"trace_id": trace_id} if trace_id else None,
+                        name="query_llm_with_images",
+                        input=prompt,
+                        output=llm_response,
+                        model=model_name,
+                        usage_details=usage,
+                        metadata={
+                            "images": len(images),
+                            "correlation_id": correlation_id,
+                        },
+                    )
+                    lf.flush()
+                except Exception as lf_exc:  # pragma: no cover - Logging
+                    logger.warning(
+                        "[%s] [%s] Langfuse-Fehler: %s",
+                        _timestamp(),
+                        correlation_id,
+                        str(lf_exc),
+                    )
             return llm_response
         except Exception as exc:  # noqa: BLE001
             if g_exceptions and isinstance(exc, g_exceptions.NotFound):
@@ -416,14 +472,28 @@ def query_llm_with_images(
             completion.response_ms,
             repr(completion)[:200],
         )
-        trace.generation(
-            input=prompt,
-            output=llm_response,
-            model=model_name,
-            usage=usage,
-            metadata={"images": len(images)},
-        )
-        lf.flush()
+        if lf:
+            try:
+                lf.start_generation(
+                    trace_context={"trace_id": trace_id} if trace_id else None,
+                    name="query_llm_with_images",
+                    input=prompt,
+                    output=llm_response,
+                    model=model_name,
+                    usage_details=usage,
+                    metadata={
+                        "images": len(images),
+                        "correlation_id": correlation_id,
+                    },
+                )
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
         return llm_response
     except Exception as exc:  # noqa: BLE001
         status = getattr(exc, "http_status", "N/A")
