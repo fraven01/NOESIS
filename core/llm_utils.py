@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime
@@ -7,9 +9,10 @@ import google.generativeai as genai
 from django.conf import settings
 
 try:
-    from langfuse import Langfuse
+    from langfuse import Langfuse, TraceContext
 except Exception:  # pragma: no cover - Langfuse optional
     Langfuse = None  # type: ignore[assignment]
+    TraceContext = None  # type: ignore[assignment]
 
 try:
     from google.api_core import exceptions as g_exceptions
@@ -52,11 +55,12 @@ def query_llm(
     correlation_id = str(uuid.uuid4())
     model_name = LLMConfig.get_default(model_type)
     trace_id = lf.create_trace_id() if lf else None
+    span = None
     if lf and trace_id:
         try:
-            lf.trace(
+            span = lf.start_span(
                 name="query_llm",
-                id=trace_id,
+                trace_context=TraceContext(id=trace_id),
                 metadata={
                     "correlation_id": correlation_id,
                     "model_type": model_type,
@@ -69,6 +73,20 @@ def query_llm(
                 correlation_id,
                 str(lf_exc),
             )
+
+    def _end_span() -> None:
+        """Beende den Langfuse-Span und flush ihn."""
+        if span:
+            try:
+                span.end()
+                lf.flush()
+            except Exception as lf_exc:  # pragma: no cover - Logging
+                logger.warning(
+                    "[%s] [%s] Langfuse-Fehler: %s",
+                    _timestamp(),
+                    correlation_id,
+                    str(lf_exc),
+                )
 
     limit = max_output_tokens or getattr(settings, "LLM_MAX_OUTPUT_TOKENS", 2048)
     logger.debug(
@@ -101,6 +119,7 @@ def query_llm(
                 exc.args[0],
                 prompt_object.name,
             )
+            _end_span()
             raise KeyError(
                 f"Missing placeholder '{exc.args[0]}' in prompt '{prompt_object.name}'"
             ) from exc
@@ -130,6 +149,7 @@ def query_llm(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise RuntimeError("Missing LLM credentials from environment.")
 
     if settings.GOOGLE_API_KEY:
@@ -264,6 +284,7 @@ def query_llm(
                             correlation_id,
                             str(lf_exc),
                         )
+                _end_span()
                 raise RuntimeError(
                     "LLM returned no text: finish_reason=%s, block_reason=%s"
                     % (finish_reason, block_reason)
@@ -306,6 +327,7 @@ def query_llm(
                         str(lf_exc),
                     )
 
+            _end_span()
             return llm_response
 
         except Exception as exc:
@@ -321,6 +343,7 @@ def query_llm(
                         lf.flush()
                     except Exception:
                         logger.warning("Langfuse flush failed", exc_info=True)
+                _end_span()
                 raise RuntimeError(f"Unsupported Gemini model: {name}.") from exc
 
             logger.error(
@@ -335,6 +358,7 @@ def query_llm(
                     lf.flush()
                 except Exception:
                     logger.warning("Langfuse flush failed", exc_info=True)
+            _end_span()
             raise
 
     endpoint = "https://api.openai.com/v1/chat/completions"
@@ -394,6 +418,7 @@ def query_llm(
                     str(lf_exc),
                 )
 
+        _end_span()
         return llm_response
     except Exception as exc:
         status = getattr(exc, "http_status", "N/A")
@@ -411,6 +436,7 @@ def query_llm(
                 lf.flush()
             except Exception:
                 logger.warning("Langfuse flush failed", exc_info=True)
+        _end_span()
         raise
 
 
