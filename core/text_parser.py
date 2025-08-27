@@ -8,7 +8,6 @@ from typing import Dict, List, Tuple
 
 
 from .models import (
-    BVProjectFile,
     Anlage2Config,
     Anlage2Function,
     Anlage2SubQuestion,
@@ -205,16 +204,6 @@ def apply_rules(
         entry[best_field]["note"] = remaining
 
 
-def _clean_text(text: str) -> str:
-    """Entfernt Sonderzeichen vor der Zeilenaufteilung."""
-
-    text = text.replace("\n", " ")
-    text = re.sub(r"[\r\n\t]+", " ", text)
-    text = text.replace("\u00b6", " ")
-    text = re.sub(r"\s{2,}", " ", text)
-    return text.strip()
-
-
 def _split_lines(text: str) -> list[str]:
     """Zerteilt einen Text in bereinigte Zeilen."""
 
@@ -290,52 +279,5 @@ def extract_function_segments(text: str) -> list[tuple[str, str]]:
             segments.append((current_key, line))
 
     return segments
-
-
-def parse_anlage2_text(text: str) -> List[dict[str, object]]:
-    """Parst die Freitextvariante der Anlage 2."""
-
-    detail_logger.info("parse_anlage2_text gestartet")
-
-    cfg = Anlage2Config.get_instance()
-    token_map = build_token_map(cfg)
-    rules = list(AntwortErkennungsRegel.objects.all())
-
-    segments = extract_function_segments(text)
-
-    results: dict[str, dict[str, object]] = {}
-    order: list[str] = []
-
-    for func_name, text_part in segments:
-        if ":" in func_name:
-            main_name = func_name.split(":", 1)[0]
-            main_entry = results.get(main_name)
-            if main_entry and main_entry.get("technisch_verfuegbar", {}).get("value") is not True:
-                continue
-
-        entry = results.setdefault(func_name, {"funktion": func_name})
-        if func_name not in order:
-            order.append(func_name)
-
-            detail_logger.info("[Analyse Funktion: '%s']", func_name)
-
-
-        line_entry: dict[str, object] = {}
-        if ":" not in func_name:
-            cleaned_text = apply_tokens(line_entry, text_part, token_map)
-            apply_rules(line_entry, cleaned_text, rules, func_name=func_name)
-        for key, value in line_entry.items():
-            entry[key] = value
-
-    ordered_results = [results[k] for k in order]
-    for res in ordered_results:
-        detail_logger.info(
-
-            "Endergebnis für '%s': %s", res.get("funktion"), res
-        )
-        result_logger.info(
-            "Ergebnis Funktion '%s': %s", res.get("funktion"), res
-        )
-    return ordered_results
 
 
