@@ -287,7 +287,50 @@ def create_initial_data(apps) -> None:
 
             ("check_anlage5", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
             ("classify_system", "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schlüsseln 'kategorie' und 'begruendung' zurück.\n\n", True),
-            ("generate_gutachten", "Erstelle ein technisches Gutachten basierend auf deinem Wissen:\n\n", True),
+            (
+                "generate_gutachten",
+                "Du bist eine Expert:innen-KI für Arbeitsrecht und mit einem "
+                "tiefen Sachverstand für technische Systeme mit Schwerpunkt "
+                "auf Leistungs- und Verhaltenskontrolle. Erstelle ein "
+                "tiefgehendes Gutachten zu der \"{software_name}\" im Sinne des "
+                "§ 87 Abs. 1 Nr. 6 BetrVG. Richte das Gutachten ausschließlich "
+                "an Betriebsräte und überspringe allgemeine Erläuterungen zu "
+                "DSGVO oder Datenschutzrecht ebenso musst du nicht erläutern, "
+                "wann Mitbestimmungsrechte nach §87 (1) Nr. 6 gelten.\n\n"
+                "Dein Gutachten soll folgende Punkte abdecken: \n\n"
+                "1. **Mitbestimmungspflichtige Funktionen**   \n"
+                "- Liste alle Features auf, die der Leistungs- oder "
+                "Verhaltenskontrolle dienen (z. B. Analyse von "
+                "Nutzungshistorien, App- und Kommunikationsauswertung, "
+                "Dateizugriffsprotokolle).\n"
+                "- Erläutere kurz, warum jede einzelne Funktion unter § 87 1 "
+                "Nr. 6 BetrVG fällt. \n\n"
+                "2. **Eingriffsintensität aus Mitarbeitersicht**   \n"
+                "   - Beschreibe, wie stark jede dieser Funktionen in den "
+                "Arbeitsablauf eingreift und welche Verhaltensaspekte sie "
+                "überwacht (z. B. Häufigkeit von App-Nutzung, "
+                "Kommunikationsverhalten, Standortdaten).   \n"
+                "   - Nutze eine Skala (gering – mittel – hoch) und begründe "
+                "die Einstufung anhand typischer Betriebsabläufe. \n\n"
+                "3. **Betroffene Leistungs- und Verhaltensaspekte**   \n"
+                "   - Identifiziere konkret, welche Leistungskennzahlen (z. B. "
+                "Aktivitätszeiten, App-Nutzungsdauer) und Verhaltensmuster "
+                "(z. B. Kommunikationshäufigkeit, Datenübertragung) erfasst "
+                "und ausgewertet werden.   \n"
+                "   - Schätze ab, wie umfassend und detailliert die Auswertung "
+                "jeweils ausfällt. \n\n"
+                "4. **Weitere Mitbestimmungsrechte (Kurzhinweise)**   \n"
+                "   - Verweise knapp auf andere relevante Mitbestimmungsrechte "
+                "nach BetrVG (z. B. §§ 80 ff. zur Informationspflicht). "
+                "Hierbei sollst du begutachten, ob weitere "
+                "Mitbestimmungsrechte durch die {software_name} "
+                "typsicherweise erfüllt sein können und begründe kurz "
+                "warum.\n\n"
+                "Arbeite strukturiert mit klaren Überschriften und "
+                "Bullet-Points. Wo sinnvoll, nutze kurze Tabellen oder "
+                "Zusammenfassungen zur Übersicht.",
+                True,
+            ),
             ("initial_check_knowledge", "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.", False),
             ("initial_check_knowledge_with_context", "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'.", True),
             ("initial_llm_check", "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. Erläutere, was sie tut und wie sie typischerweise eingesetzt wird.", True),
