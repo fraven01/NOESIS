@@ -77,17 +77,6 @@
                     </a>
                     {% endif %}
                     {% endif %}
-                    {% if row.source_text and row.source_text != 'N/A' %}
-                    <span class="text-muted small source-indicator" data-popover-content="{{ row.source_text }}">
-                        {% if row.source_text == 'Manuell' %}
-                        <i class="fa-solid fa-user"></i>
-                        {% else %}
-                        <i class="fa-solid fa-file-alt"></i>
-                        {% endif %}
-                    </span>
-                    {% elif row.source_text == 'N/A' %}
-                    <span class="text-muted small source-indicator"><i class="fa-solid fa-question"></i></span>
-                    {% endif %}
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
