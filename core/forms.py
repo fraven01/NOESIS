@@ -289,30 +289,16 @@ class BVProjectFileForm(forms.ModelForm):
 class BVProjectFileJSONForm(forms.ModelForm):
     """Formular zum Bearbeiten der Analyse-Daten einer Anlage."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.anlage_nr == 3:
-            self.fields.pop("manual_analysis_json", None)
-
     class Meta:
         model = BVProjectFile
-        fields = [
-            "analysis_json",
-            "manual_analysis_json",
-            "manual_reviewed",
-            "verhandlungsfaehig",
-        ]
+        fields = ["analysis_json", "manual_reviewed", "verhandlungsfaehig"]
         labels = {
             "analysis_json": "Automatische Analyse (JSON)",
-            "manual_analysis_json": "Manuelle Analyse (JSON)",
             "manual_reviewed": "Manuell geprüft",
             "verhandlungsfaehig": "Verhandlungsfähig",
         }
         widgets = {
             "analysis_json": forms.Textarea(
-                attrs={"class": "border rounded p-2", "rows": 10}
-            ),
-            "manual_analysis_json": forms.Textarea(
                 attrs={"class": "border rounded p-2", "rows": 10}
             ),
             "manual_reviewed": forms.CheckboxInput(attrs={"class": "mr-2"}),

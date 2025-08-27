@@ -1652,7 +1652,6 @@ def admin_project_export(request):
                 fitem = {
                     "anlage_nr": f.anlage_nr,
                     "manual_comment": f.manual_comment,
-                    "manual_analysis_json": f.manual_analysis_json,
                     "analysis_json": f.analysis_json,
                     "manual_reviewed": f.manual_reviewed,
                     "verhandlungsfaehig": f.verhandlungsfaehig,
@@ -1725,7 +1724,6 @@ def admin_project_import(request):
                             anlage_nr=fentry.get("anlage_nr"),
                             upload=upload_name,
                             manual_comment=fentry.get("manual_comment", ""),
-                            manual_analysis_json=fentry.get("manual_analysis_json"),
                             analysis_json=fentry.get("analysis_json"),
                             manual_reviewed=fentry.get("manual_reviewed", False),
                             verhandlungsfaehig=fentry.get("verhandlungsfaehig", False),
@@ -3213,10 +3211,11 @@ def anlage4_review(request, pk):
         form = Anlage4ReviewForm(
             request.POST,
             items=items,
-            initial=project_file.manual_analysis_json,
+            initial=(project_file.analysis_json or {}).get("manual_review"),
         )
         if form.is_valid() and gap_form.is_valid():
-            existing = project_file.manual_analysis_json or {}
+            analysis = project_file.analysis_json or {}
+            existing = analysis.get("manual_review", {})
             form_json = form.get_json()
             for idx in range(len(items)):
                 key = str(idx)
@@ -3228,15 +3227,19 @@ def anlage4_review(request, pk):
                 if f"item{idx}_note" in request.POST:
                     current["note"] = form_json.get(key, {}).get("note", "")
                 existing[key] = current
-            project_file.manual_analysis_json = existing
+            analysis["manual_review"] = existing
+            project_file.analysis_json = analysis
             gap_form.save()
-            project_file.save(update_fields=["manual_analysis_json"])
+            project_file.save(update_fields=["analysis_json"])
             anlage4_logger.info(
                 "Anlage4 Review gespeichert: %s Eintr\u00e4ge", len(items)
             )
             return redirect("projekt_detail", pk=project_file.project.pk)
     else:
-        form = Anlage4ReviewForm(initial=project_file.manual_analysis_json, items=items)
+        form = Anlage4ReviewForm(
+            initial=(project_file.analysis_json or {}).get("manual_review"),
+            items=items,
+        )
         gap_form = BVGapNotesForm(instance=project_file)
 
     rows = []
@@ -3955,9 +3958,109 @@ def projekt_file_edit_json(request, pk):
                                     functions_to_override.add(func.id)
 
                 data = form.get_json()
-                anlage.manual_analysis_json = data
                 gap_form.save()
-                anlage.save(update_fields=["manual_analysis_json"])
+                field_map = {
+                    "technisch_vorhanden": "technisch_verfuegbar",
+                    "ki_beteiligung": "ki_beteiligung",
+                    "einsatz_bei_telefonica": "einsatz_bei_telefonica",
+                    "zur_lv_kontrolle": "zur_lv_kontrolle",
+                }
+                for fid, fdata in data.get("functions", {}).items():
+                    func = get_object_or_404(Anlage2Function, pk=int(fid))
+                    res, _ = AnlagenFunktionsMetadaten.objects.get_or_create(
+                        anlage_datei=anlage,
+                        funktion=func,
+                        subquestion=None,
+                    )
+                    meta_fields = []
+                    if fdata.get("gap_notiz") is not None:
+                        res.gap_notiz = fdata.get("gap_notiz")
+                        meta_fields.append("gap_notiz")
+                    if fdata.get("gap_summary") is not None:
+                        res.gap_summary = fdata.get("gap_summary")
+                        meta_fields.append("gap_summary")
+                    if meta_fields:
+                        res.save(update_fields=meta_fields)
+                    for fname, attr in field_map.items():
+                        val = fdata.get(fname)
+                        if val is not None:
+                            FunktionsErgebnis.objects.create(
+                                anlage_datei=anlage,
+                                funktion=func,
+                                quelle="manuell",
+                                **{attr: val},
+                            )
+                    qs = FunktionsErgebnis.objects.filter(
+                        anlage_datei=anlage,
+                        funktion=func,
+                        subquestion__isnull=True,
+                    )
+                    tv_res = (
+                        qs.exclude(technisch_verfuegbar__isnull=True)
+                        .order_by("-created_at")
+                        .first()
+                    )
+                    kb_res = (
+                        qs.exclude(ki_beteiligung__isnull=True)
+                        .order_by("-created_at")
+                        .first()
+                    )
+                    auto_val = _calc_auto_negotiable(
+                        tv_res.technisch_verfuegbar if tv_res else None,
+                        kb_res.ki_beteiligung if kb_res else None,
+                    )
+                    if res.is_negotiable_manual_override is None:
+                        res.is_negotiable = auto_val
+                        res.save(update_fields=["is_negotiable"])
+                    for sid, sdata in fdata.get("subquestions", {}).items():
+                        sub = get_object_or_404(Anlage2SubQuestion, pk=int(sid))
+                        sres, _ = AnlagenFunktionsMetadaten.objects.get_or_create(
+                            anlage_datei=anlage,
+                            funktion=func,
+                            subquestion=sub,
+                        )
+                        meta_fields = []
+                        if sdata.get("gap_notiz") is not None:
+                            sres.gap_notiz = sdata.get("gap_notiz")
+                            meta_fields.append("gap_notiz")
+                        if sdata.get("gap_summary") is not None:
+                            sres.gap_summary = sdata.get("gap_summary")
+                            meta_fields.append("gap_summary")
+                        if meta_fields:
+                            sres.save(update_fields=meta_fields)
+                        for fname, attr in field_map.items():
+                            val = sdata.get(fname)
+                            if val is not None:
+                                FunktionsErgebnis.objects.create(
+                                    anlage_datei=anlage,
+                                    funktion=func,
+                                    subquestion=sub,
+                                    quelle="manuell",
+                                    **{attr: val},
+                                )
+                        qs = FunktionsErgebnis.objects.filter(
+                            anlage_datei=anlage,
+                            funktion=func,
+                            subquestion=sub,
+                        )
+                        tv_res = (
+                            qs.exclude(technisch_verfuegbar__isnull=True)
+                            .order_by("-created_at")
+                            .first()
+                        )
+                        kb_res = (
+                            qs.exclude(ki_beteiligung__isnull=True)
+                            .order_by("-created_at")
+                            .first()
+                        )
+                        auto_val = _calc_auto_negotiable(
+                            tv_res.technisch_verfuegbar if tv_res else None,
+                            kb_res.ki_beteiligung if kb_res else None,
+                        )
+                        if sres.is_negotiable_manual_override is None:
+                            sres.is_negotiable = auto_val
+                            sres.save(update_fields=["is_negotiable"])
+
                 logger.info(
                     "Anlage2 Review gespeichert: %s Funktionen",
                     len(data.get("functions", {})),
@@ -4027,17 +4130,12 @@ def projekt_file_edit_json(request, pk):
                     key = res.get_lookup_key()
                     result_map[key] = res
 
-            manual_init = (
-                anlage.manual_analysis_json
-                if isinstance(anlage.manual_analysis_json, dict)
-                else {}
-            )
 
             fields_def = get_anlage2_fields()
 
             analysis_lookup = _initial_to_lookup(analysis_init)
             verification_lookup = _initial_to_lookup(verif_init)
-            manual_lookup = _initial_to_lookup(manual_init)
+            manual_lookup: dict[str, dict] = {}
 
             for key, res in manual_results_map.items():
                 entry = manual_lookup.setdefault(key, {})
@@ -4190,10 +4288,7 @@ def projekt_file_edit_json(request, pk):
         if not items:
             items = []
         if request.method == "POST":
-            if (
-                "analysis_json" in request.POST
-                or "manual_analysis_json" in request.POST
-            ):
+            if "analysis_json" in request.POST:
                 json_form = BVProjectFileJSONForm(request.POST, instance=anlage)
                 if json_form.is_valid():
                     json_form.save()
@@ -4202,11 +4297,16 @@ def projekt_file_edit_json(request, pk):
             else:
                 form = Anlage4ReviewForm(request.POST, items=items)
                 if form.is_valid():
-                    anlage.manual_analysis_json = form.get_json()
-                    anlage.save(update_fields=["manual_analysis_json"])
+                    analysis = anlage.analysis_json or {}
+                    analysis["manual_review"] = form.get_json()
+                    anlage.analysis_json = analysis
+                    anlage.save(update_fields=["analysis_json"])
                     return redirect("projekt_detail", pk=anlage.project.pk)
         else:
-            form = Anlage4ReviewForm(initial=anlage.manual_analysis_json, items=items)
+            form = Anlage4ReviewForm(
+                initial=(anlage.analysis_json or {}).get("manual_review"),
+                items=items,
+            )
         template = "projekt_file_anlage4_review.html"
         rows = [
             (text, form[f"item{idx}_ok"], form[f"item{idx}_note"])
@@ -4767,21 +4867,6 @@ def ajax_save_anlage2_review(request) -> JsonResponse:
         # separates Endpoint und wird hier nicht mehr automatisch ausgelöst.
 
         if field_name is not None and status_provided:
-            manual_data = anlage.manual_analysis_json or {"functions": {}}
-            func_entry = manual_data.setdefault("functions", {}).setdefault(
-                str(func_id), {}
-            )
-            if sub_id:
-                sub_map = func_entry.setdefault("subquestions", {}).setdefault(
-                    str(sub_id), {}
-                )
-                sub_map[field_name] = status
-            else:
-                func_entry[field_name] = status
-
-            anlage.manual_analysis_json = manual_data
-            anlage.save(update_fields=["manual_analysis_json"])
-
             if (
                 field_name == "technisch_vorhanden"
                 and sub_id is None
@@ -4875,26 +4960,6 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
 
     if manual_entry:
         manual_entry.delete()
-        manual_data = pf.manual_analysis_json or {"functions": {}}
-        f_entry = manual_data.get("functions", {}).get(str(result.funktion_id))
-        if f_entry:
-            if sub_id:
-                sub_map = f_entry.get("subquestions", {}).get(str(sub_id))
-                if sub_map and field_name in sub_map:
-                    del sub_map[field_name]
-                    if not sub_map:
-                        f_entry.get("subquestions", {}).pop(str(sub_id), None)
-                        if not f_entry.get("subquestions"):
-                            f_entry.pop("subquestions", None)
-            else:
-                f_entry.pop(field_name, None)
-            if not f_entry:
-                manual_data["functions"].pop(str(result.funktion_id), None)
-        if manual_data.get("functions"):
-            pf.manual_analysis_json = manual_data
-        else:
-            pf.manual_analysis_json = None
-        pf.save(update_fields=["manual_analysis_json"])
     else:
         parser_entry = (
             FunktionsErgebnis.objects.filter(
@@ -4929,17 +4994,6 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
             quelle="manuell",
             **{attr: new_state},
         )
-        manual_data = pf.manual_analysis_json or {"functions": {}}
-        f_entry = manual_data.setdefault("functions", {}).setdefault(
-            str(result.funktion_id), {}
-        )
-        if sub_id:
-            sub_map = f_entry.setdefault("subquestions", {}).setdefault(str(sub_id), {})
-            sub_map[field_name] = new_state
-        else:
-            f_entry[field_name] = new_state
-        pf.manual_analysis_json = manual_data
-        pf.save(update_fields=["manual_analysis_json"])
 
     lookup_key = result.get_lookup_key()
     display_name = (
@@ -4949,17 +5003,6 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
     parser_entry = (
         FunktionsErgebnis.objects.filter(
             anlage_datei=pf,
-            funktion=result.funktion,
-            subquestion_id=sub_id,
-            quelle="parser",
-        )
-        .order_by("-created_at")
-        .first()
-    )
-    ai_entry = (
-        FunktionsErgebnis.objects.filter(
-            anlage_datei=pf,
-            funktion=result.funktion,
             subquestion_id=sub_id,
             quelle="ki",
         )
@@ -5346,9 +5389,6 @@ def ajax_reset_all_reviews(request, pk: int) -> JsonResponse:
         anlage_datei=project_file, quelle="manuell"
     ).delete()
 
-    project_file.manual_analysis_json = None
-    project_file.save(update_fields=["manual_analysis_json"])
-
     return JsonResponse({"status": "success"})
 
 
@@ -5418,13 +5458,11 @@ def projekt_file_delete_result(request, pk: int):
         )
 
     project_file.analysis_json = None
-    project_file.manual_analysis_json = None
     project_file.manual_reviewed = False
     project_file.verhandlungsfaehig = False
     project_file.save(
         update_fields=[
             "analysis_json",
-            "manual_analysis_json",
             "manual_reviewed",
             "verhandlungsfaehig",
         ]

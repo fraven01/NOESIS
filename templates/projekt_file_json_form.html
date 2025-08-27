@@ -15,13 +15,6 @@
         {{ form.analysis_json.errors }}
     </div>
     {% endif %}
-    {% if form.manual_analysis_json %}
-    <div>
-        {{ form.manual_analysis_json.label_tag }}<br>
-        {{ form.manual_analysis_json }}
-        {{ form.manual_analysis_json.errors }}
-    </div>
-    {% endif %}
     <div>
         {{ form.manual_reviewed }} {{ form.manual_reviewed.label_tag }}
         {{ form.manual_reviewed.errors }}
