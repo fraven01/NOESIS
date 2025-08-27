@@ -42,8 +42,6 @@ class ParserManager:
             name = "table"
         elif mode == "exact_only":
             name = "exact"
-        elif mode == "text_only":
-            name = "text"
         else:  # auto or unbekannt
             name = order[0]
 

@@ -16,7 +16,6 @@ workflow_logger = logging.getLogger("workflow_debug")
 PARSER_MODE_CHOICES = [
     ("auto", "Automatisch"),
     ("table_only", "Nur Tabellen"),
-    ("text_only", "Nur Text"),
     ("exact_only", "Nur Exakt"),
 ]
 
@@ -679,7 +678,6 @@ class Anlage2Config(models.Model):
     PARSER_CHOICES = [
         ("auto", "Automatisch"),
         ("table_only", "Nur Tabellen"),
-        ("text_only", "Nur Text"),
         ("exact_only", "Nur Exakt"),
     ]
 
