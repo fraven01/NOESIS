@@ -114,6 +114,7 @@ from django.test import override_settings
 import json
 from .base import NoesisTestCase
 from ..initial_data_constants import INITIAL_PROJECT_STATUSES
+from ..prompt_context import build_prompt_context, available_placeholders
 
 
 DEFAULT_STATUS_KEY = next(
@@ -217,6 +218,17 @@ def seed_test_data(*, skip_prompts: bool = False) -> None:
 
     for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
         Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
+
+
+def test_build_prompt_context_keys(db) -> None:
+    """Prüft, dass ``build_prompt_context`` alle Platzhalter füllt."""
+
+    projekt = create_project(title="Demo", software=["Soft"])
+    ctx = build_prompt_context(projekt)
+    for key in available_placeholders():
+        assert key in ctx
+    assert ctx["project_name"] == "Demo"
+    assert ctx["software_name"] == "Soft"
 
     Prompt.objects.update_or_create(
         name="check_anlage3_vision",

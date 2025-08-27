@@ -115,6 +115,7 @@ from .models import (
 )
 from .docx_utils import extract_text, get_docx_page_count
 from .llm_utils import query_llm
+from .prompt_context import build_prompt_context
 from .workflow import set_project_status
 from .reporting import generate_gap_analysis, generate_management_summary
 from .llm_tasks import (
@@ -4351,7 +4352,8 @@ def _run_llm_check(
     )
 
     logger.debug("Starte LLM-Check für %s", name)
-    reply = query_llm(prompt_obj, {}, project_prompt=project_prompt)
+    ctx = build_prompt_context()
+    reply = query_llm(prompt_obj, ctx, project_prompt=project_prompt)
     valid, _ = _validate_llm_output(reply)
     logger.debug("LLM-Antwort für %s: %s", name, reply[:100])
     return reply, valid
