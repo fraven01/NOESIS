@@ -160,3 +160,35 @@ def admin_navigation(request: HttpRequest) -> dict[str, list[AdminSection]]:
 
     return {"admin_navigation": navigation}
 
+
+def breadcrumbs(request: HttpRequest) -> dict[str, list[dict[str, str]]]:
+    """Erzeugt Breadcrumbs basierend auf dem Anfragepfad.
+
+    Liefert eine Liste von ``{"url": str | None, "label": str}``.
+    Diese dient als Fallback für alle Bereiche, in denen keine spezifischen
+    Breadcrumbs gesetzt wurden, z.B. System- oder Projekt-Admin.
+    """
+
+    path = request.path.strip("/")
+    if not path:
+        return {"breadcrumbs": []}
+
+    mappings = {
+        "admin": "System-Admin",
+        "projects-admin": "Projekt-Admin",
+        "change": "Bearbeiten",
+        "add": "Hinzufügen",
+    }
+
+    segments = [p for p in path.split("/") if p]
+    crumbs: list[dict[str, str]] = []
+    current = "/"
+
+    for idx, segment in enumerate(segments):
+        current += f"{segment}/"
+        label = mappings.get(segment, segment.replace("-", " ").capitalize())
+        url = current if idx < len(segments) - 1 else None
+        crumbs.append({"url": url, "label": label})
+
+    return {"breadcrumbs": crumbs}
+
