@@ -40,10 +40,9 @@ class ParserManager:
 
         if mode == "table_only":
             name = "table"
-        elif mode == "exact_only":
+        elif mode in ("exact_only", "text_only"):
+            # Fallback für veraltete Einträge mit "text_only"
             name = "exact"
-        elif mode == "text_only":
-            name = "text"
         else:  # auto or unbekannt
             name = order[0]
 
