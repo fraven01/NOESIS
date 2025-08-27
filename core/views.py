@@ -14,6 +14,7 @@ from django.http import (
     HttpResponse,
     HttpResponseForbidden,
 )
+from django.core.exceptions import PermissionDenied
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -5192,7 +5193,9 @@ def hx_project_software_tab(request, pk: int, tab: str):
 
     projekt = get_object_or_404(BVProject, pk=pk)
 
-    if not _user_can_edit_project(request.user, projekt):
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
+    has_project_access = _user_can_edit_project(request.user, projekt)
+    if not (is_admin or has_project_access):
         return HttpResponseForbidden("Nicht berechtigt")
 
     software_list = projekt.software_list
@@ -5216,6 +5219,7 @@ def hx_project_software_tab(request, pk: int, tab: str):
         "knowledge_rows": knowledge_rows,
         "knowledge_checked": checked,
         "total_software": len(software_list),
+        "has_project_access": has_project_access,
     }
     return render(request, template, context)
 
@@ -6089,7 +6093,11 @@ def edit_knowledge_description(request, knowledge_id):
 def delete_knowledge_entry(request, knowledge_id):
     """Löscht einen Knowledge-Eintrag."""
     knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
-    project_pk = knowledge.project.pk
+    projekt = knowledge.project
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
+    if not (is_admin or _user_can_edit_project(request.user, projekt)):
+        raise PermissionDenied
+    project_pk = projekt.pk
     knowledge.delete()
     return redirect("projekt_detail", pk=project_pk)
 

@@ -19,10 +19,12 @@
                     {% if row.entry and row.entry.is_known_by_llm is True %}
                         <a href="{% url 'edit_knowledge_description' row.entry.id %}" class="btn btn-primary btn-sm">Bearbeiten</a>
                         <a href="{% url 'download_knowledge_as_word' row.entry.id %}" class="btn btn-secondary btn-sm">Export</a>
-                        <form method="post" action="{% url 'delete_knowledge_entry' row.entry.id %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-error btn-sm" onclick="return confirm('Eintrag wirklich löschen?');">Löschen</button>
-                        </form>
+                        {% if is_admin or has_project_access %}
+                            <form method="post" action="{% url 'delete_knowledge_entry' row.entry.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-error btn-sm" onclick="return confirm('Eintrag wirklich löschen?');">Löschen</button>
+                            </form>
+                        {% endif %}
                     {% elif row.entry and row.entry.is_known_by_llm is False %}
                         <button type="button" class="btn btn-warning btn-sm retry-check-btn" data-knowledge-id="{{ row.entry.id }}">Erneut prüfen</button>
                     {% else %}
