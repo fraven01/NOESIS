@@ -262,43 +262,9 @@ def get_cockpit_context(projekt: BVProject) -> dict:
         "total_software": len(software_list),
     }
 
-
-FIELD_RENAME = {
-    "technisch_verfuegbar": "technisch_vorhanden",
-    "einsatz_telefonica": "einsatz_bei_telefonica",
-}
-
 # Felder ohne KI-Unterstützung: Werte stammen ausschließlich aus
 # Dokumentenparser oder manueller Eingabe.
 NO_AI_FIELDS = {"einsatz_bei_telefonica", "zur_lv_kontrolle"}
-
-
-def _deep_update(base: dict, extra: dict) -> dict:
-    """Aktualisiert ``base`` rekursiv mit ``extra``."""
-    for key, val in extra.items():
-        if isinstance(val, dict):
-            node = base.setdefault(key, {})
-            _deep_update(node, val)
-        else:
-            base[key] = val
-    return base
-
-
-def _normalize_fields(data: dict | str | None) -> dict:
-    """Passt die Feldernamen an ``FIELD_RENAME`` an.
-
-    Behandelt auch JSON-Strings robust."""
-    if data is None:
-        return {}
-    if isinstance(data, str):
-        try:
-            data = json.loads(data)
-        except Exception:  # pragma: no cover - ungültiger JSON-Input
-            return {}
-    if not isinstance(data, dict):
-        return {}
-    return {FIELD_RENAME.get(k, k): v for k, v in data.items()}
-
 
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat für ``Anlage1ReviewForm``."""
@@ -333,16 +299,6 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
 
     if isinstance(anlage.analysis_json, dict):
         funcs = anlage.analysis_json.get("functions")
-        if isinstance(funcs, dict) and "value" in funcs:
-            funcs = funcs["value"]
-        if funcs is None:
-            table = anlage.analysis_json.get("table_functions")
-            if isinstance(table, dict):
-                funcs = [
-                    {"name": k, **v}
-                    for k, v in table.items()
-                    if isinstance(v, dict)
-                ]
         if not isinstance(funcs, list):
             funcs = []
         for item in funcs:
@@ -352,13 +308,8 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                 continue
             fid = str(func.id)
             target = analysis_data.setdefault(fid, {})
-            norm_item = _normalize_fields(item)
             for f in field_names:
-                val = norm_item.get(f)
-                if isinstance(val, dict) and "value" in val:
-                    target[f] = val["value"]
-                else:
-                    target[f] = val
+                target[f] = item.get(f)
             subs = item.get("subquestions", [])
             for sub in subs:
                 text = sub.get("frage_text")
@@ -373,13 +324,8 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                 sub_target = target.setdefault("subquestions", {}).setdefault(
                     sid, {}
                 )
-                nsub = _normalize_fields(sub)
                 for f in field_names:
-                    val = nsub.get(f)
-                    if isinstance(val, dict) and "value" in val:
-                        sub_target[f] = val["value"]
-                    else:
-                        sub_target[f] = val
+                    sub_target[f] = sub.get(f)
 
     results = AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
     has_parser_data = False
@@ -408,25 +354,12 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
             dest["zur_lv_kontrolle"] = latest.zur_lv_kontrolle
             dest["ki_beteiligung"] = latest.ki_beteiligung
             has_parser_data = True
-        else:
-            fallback = analysis_data.get(func_id, {})
-            if res.subquestion_id:
-                fallback = (
-                    fallback.get("subquestions", {})
-                    .get(str(res.subquestion_id), {})
-                )
-            for f in field_names:
-                val = fallback.get(f)
-                if val is not None:
-                    dest[f] = val
         if res.gap_summary:
             dest["gap_summary"] = res.gap_summary
         if res.gap_notiz:
             dest["gap_notiz"] = res.gap_notiz
 
     if not has_parser_data and analysis_data:
-        for fid, data in initial["functions"].items():
-            _deep_update(analysis_data.setdefault(fid, {}), data)
         initial["functions"] = analysis_data
     else:
         for fid, data in analysis_data.items():
@@ -3867,7 +3800,12 @@ def projekt_file_parse_anlage2(request, pk):
     if anlage.anlage_nr != 2:
         raise Http404
     table_data = parser_manager._run_single("table", anlage)
-    anlage.analysis_json = {"table_functions": table_data}
+    funcs = [
+        {"name": k, **v}
+        for k, v in table_data.items()
+        if isinstance(v, dict)
+    ]
+    anlage.analysis_json = {"functions": funcs}
     anlage.save(update_fields=["analysis_json"])
     return redirect("projekt_file_edit_json", pk=pk)
 
@@ -4154,40 +4092,18 @@ def projekt_file_edit_json(request, pk):
         template = "projekt_file_anlage2_review.html"
         answers: dict[str, dict] = {}
         funcs = []
-        if anlage.analysis_json:
+        if isinstance(anlage.analysis_json, dict):
             funcs = anlage.analysis_json.get("functions")
-            if isinstance(funcs, dict) and "value" in funcs:
-                funcs = funcs["value"]
-            if funcs is None:
-                table = anlage.analysis_json.get("table_functions")
-                if isinstance(table, dict):
-                    funcs = []
-                    for k, v in table.items():
-                        if isinstance(v, dict):
-                            funcs.append({"name": k, **v})
-                        else:
-                            logger.warning(
-                                "Unerwarteter Typ in table_functions f\xc3\xbcr %s: %s",
-                                k,
-                                type(v),
-                            )
-                else:
-                    funcs = []
-        for item in funcs or []:
+        if not isinstance(funcs, list):
+            funcs = []
+        for item in funcs:
             name = item.get("funktion") or item.get("name")
             if name:
-                for old, new in FIELD_RENAME.items():
-                    if old in item and new not in item:
-                        item[new] = item[old]
                 answers[name] = item
                 for sub in item.get("subquestions", []):
                     s_text = sub.get("frage_text")
-                    if not s_text:
-                        continue
-                    for old, new in FIELD_RENAME.items():
-                        if old in sub and new not in sub:
-                            sub[new] = sub[old]
-                    answers[f"{name}: {s_text}"] = sub
+                    if s_text:
+                        answers[f"{name}: {s_text}"] = sub
         rows = []
         fields_def = get_anlage2_fields()
 
