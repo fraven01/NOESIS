@@ -4076,6 +4076,19 @@ def projekt_file_edit_json(request, pk):
                 for r in AnlagenFunktionsMetadaten.objects.filter(anlage_datei=anlage)
             }
 
+            # Sicherstellen, dass f\u00fcr jede Funktion und Unterfrage ein Metadatensatz existiert
+            for func in Anlage2Function.objects.order_by("name"):
+                res, _ = AnlagenFunktionsMetadaten.objects.get_or_create(
+                    anlage_datei=anlage, funktion=func
+                )
+                result_map[res.get_lookup_key()] = res
+                for sub in func.anlage2subquestion_set.all().order_by("id"):
+                    res, _ = AnlagenFunktionsMetadaten.objects.get_or_create(
+                        anlage_datei=anlage, funktion=func, subquestion=sub
+                    )
+                    key = res.get_lookup_key()
+                    result_map[key] = res
+
             manual_init = (
                 anlage.manual_analysis_json
                 if isinstance(anlage.manual_analysis_json, dict)
