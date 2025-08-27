@@ -25,13 +25,6 @@
         {{ form.analysis_json.errors }}
     </div>
     {% endif %}
-    {% if form.manual_analysis_json %}
-    <div>
-        {{ form.manual_analysis_json.label_tag }}<br>
-        {{ form.manual_analysis_json }}
-        {{ form.manual_analysis_json.errors }}
-    </div>
-    {% endif %}
     <div class="space-x-2">
         {% include 'partials/_button.html' with type='submit' label='Speichern' variant='primary' %}
         {% url 'projekt_detail' anlage.project.pk as detail_url %}
@@ -42,8 +35,7 @@
 <script>
 document.getElementById('copy-email').addEventListener('click', function(){
     const analysis = document.getElementById('{{ form.analysis_json.id_for_label }}').value;
-    const manual = document.getElementById('{{ form.manual_analysis_json.id_for_label }}').value;
-    const text = `Pr\u00fcfergebnis Anlage {{ anlage.anlage_nr }}\n\nAnalyse:\n${analysis}\n\nManuelle Analyse:\n${manual}`;
+    const text = `Pr\u00fcfergebnis Anlage {{ anlage.anlage_nr }}\n\nAnalyse:\n${analysis}`;
     navigator.clipboard.writeText(text).then(()=>alert('In Zwischenablage kopiert'));
 });
 </script>

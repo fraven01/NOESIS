@@ -284,7 +284,6 @@ class BVProjectFile(models.Model):
     )
     text_content = models.TextField("Textinhalt", blank=True)
     analysis_json = models.JSONField("Analyse", default=dict, null=True, blank=True)
-    manual_analysis_json = models.JSONField(default=dict, blank=True, null=True)
     manual_comment = models.TextField("Kommentar", blank=True)
     anlage6_note = models.TextField("Pr\u00fcfnotiz", blank=True)
     question_review = models.JSONField(default=dict, blank=True, null=True)
