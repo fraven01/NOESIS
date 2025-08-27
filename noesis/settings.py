@@ -105,6 +105,7 @@ TEMPLATES = [
                 "core.context_processors.is_admin",
                 "core.context_processors.user_navigation",
                 "core.context_processors.admin_navigation",
+                "core.context_processors.breadcrumbs",
             ],
             "libraries": {
                 "ui_extras": "core.templatetags.ui_extras",
