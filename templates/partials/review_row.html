@@ -23,6 +23,17 @@
         <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-muted {% btn_classes 'muted' %}">Begründung ansehen/bearbeiten</a>
         {% endif %}
         {% endif %}
+        {% if row.source_text and row.source_text != 'N/A' %}
+        <span class="text-muted small source-indicator" title="{{ row.source_text }}">
+            {% if row.source_text == 'Manuell' %}
+            <i class="fa-solid fa-user"></i>
+            {% else %}
+            <i class="fa-solid fa-file-alt"></i>
+            {% endif %}
+        </span>
+        {% elif row.source_text == 'N/A' %}
+        <span class="text-muted small source-indicator"><i class="fa-solid fa-question"></i></span>
+        {% endif %}
     </td>
     {% for field in fields %}
     {% with f=row.form_fields|get_item:field %}
