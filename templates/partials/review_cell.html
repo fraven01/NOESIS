@@ -1,6 +1,6 @@
 {% load recording_extras %}
 <td class="border px-2 text-center">
-    {% if row.result_id %}
+    {% if row.result_id or row.doc_result|get_item:field_name or row.ai_result|get_item:field_name %}
 
     {% with doc_val=row.doc_result|get_item:field_name ai_val=row.ai_result|get_item:field_name manual_val=row.manual_result|get_item:field_name %}
     <button class="tri-state-icon rounded-full px-2 py-1 text-sm{% if field_name == 'technisch_vorhanden' and row.sub %} opacity-50 pointer-events-none{% endif %}
