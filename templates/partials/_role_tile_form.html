@@ -1,3 +1,4 @@
+{% load ui_extras %}
 {% if selected_group %}
 <form method="post" class="space-y-4">
     {% csrf_token %}
@@ -16,6 +17,6 @@
             {% endfor %}
         </div>
     {% endfor %}
-    <button type="submit" class="px-4 py-2 bg-accent text-background rounded">Speichern</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
 </form>
 {% endif %}

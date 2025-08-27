@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 {% block title %}TalkDiary {{ bereich|capfirst }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">TalkDiary {{ bereich|capfirst }}</h1>
@@ -7,21 +7,21 @@
 <h2 class="text-lg font-semibold mb-2">Aufnahme</h2>
 <div class="mb-6 flex flex-wrap items-center space-x-4">
     {% if is_recording %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-error hover:bg-error-dark flex items-center">
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded flex items-center {% btn_classes 'danger' %}">
         Aufnahme stoppen
         <span class="ml-2 animate-pulse">&#9679;</span>
     </a>
     <span class="text-error-dark font-semibold">Recording…</span>
     {% else %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-success hover:bg-success-dark">Aufnahme starten</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded {% btn_classes 'success' %}">Aufnahme starten</a>
     {% endif %}
 
     <form method="get" class="inline-block">
-        <button name="rescan" value="1" class="px-4 py-2 bg-background-dark text-background rounded">Rescan</button>
+        <button name="rescan" value="1" class="px-4 py-2 rounded {% btn_classes 'muted' %}">Rescan</button>
     </form>
-    <a href="{% url 'upload_recording' %}" class="px-4 py-2 bg-accent text-background rounded">Datei hochladen</a>
+    <a href="{% url 'upload_recording' %}" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Datei hochladen</a>
     {% if is_admin %}
-    <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 bg-primary text-background rounded">Admin</a>
+    <a href="{% url 'admin_talkdiary' %}" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Admin</a>
     {% endif %}
 </div>
 
@@ -34,14 +34,14 @@
             <form action="{% url 'transcribe_recording' rec.pk %}" method="post" class="transcribe-form">
                 {% csrf_token %}
                 <input type="hidden" name="track" value="1">
-                <button type="submit" class="px-2 py-1 text-background bg-accent rounded">Transkribieren</button>
+                <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Transkribieren</button>
             </form>
             {% if rec.transcript_file %}
-            <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 bg-success text-background rounded">Transcript</a>
+            <a href="{% url 'talkdiary_detail' rec.pk %}" class="px-2 py-1 rounded {% btn_classes 'success' %}">Transcript</a>
             {% endif %}
             <form action="{% url 'recording_delete' rec.pk %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="px-2 py-1 bg-error text-background rounded" onclick="return confirm('Aufnahme wirklich löschen?');">Löschen</button>
+                <button type="submit" class="px-2 py-1 rounded {% btn_classes 'danger' %}" onclick="return confirm('Aufnahme wirklich löschen?');">Löschen</button>
             </form>
         </div>
         <p class="mt-1 flex items-center break-all">
@@ -59,7 +59,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {% for rec in recordings %}
         {% if rec.transcript_file %}
-        <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 bg-background hover:bg-background-dark text-sm">
+        <a href="{% url 'talkdiary_detail' rec.pk %}" class="block border rounded p-3 text-sm {% btn_classes 'muted' %}">
             <h3 class="font-semibold flex items-center">
                 <i class="fa-solid fa-file-alt text-success mr-2"></i>
                 {{ rec.audio_file.name|basename|truncatechars:30 }}

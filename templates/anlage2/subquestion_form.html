@@ -1,4 +1,5 @@
 {% extends 'admin_base.html' %}
+{% load ui_extras %}
 {% block title %}{% if subquestion %}Unterfrage bearbeiten{% else %}Neue Unterfrage{% endif %}{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">{% if subquestion %}Unterfrage bearbeiten{% else %}Neue Unterfrage{% endif %}</h1>
@@ -16,15 +17,15 @@
             {% for val in aliases %}
             <div class="flex mb-2">
                   <input type="text" name="name_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
             </div>
             {% endfor %}
             <div class="flex mb-2">
                   <input type="text" name="name_aliases" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
             </div>
         </div>
-        <button type="button" id="add-alias-btn" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Alias hinzufügen</button>
+        <button type="button" id="add-alias-btn" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+ Alias hinzufügen</button>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -44,7 +45,7 @@
             const del = document.createElement('button');
             del.type = 'button';
             del.textContent = 'x';
-            del.className = 'px-2 py-1 bg-gray-200 rounded ml-2 remove-btn';
+            del.className = "px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}";
             del.addEventListener('click', () => wrap.remove());
             wrap.appendChild(input);
             wrap.appendChild(del);

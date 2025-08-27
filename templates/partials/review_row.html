@@ -1,4 +1,4 @@
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 <tr class="{% if row.sub %}subquestion-row hidden subquestions-for-{{ row.func_id }} {% endif %}{% if row.is_negotiable %}opacity-80{% endif %}"
     data-relevant="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'true,false,unknown' }}"
     data-parsed-status="{{ row.doc_result|get_item:'technisch_vorhanden'|yesno:'True,False,None' }}"
@@ -12,15 +12,15 @@
     data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
     <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
         {% if not row.sub %}
-        <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-muted hover:bg-muted" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
+        <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded {% btn_classes 'muted' %}" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
         {{ row.name }}
         {% if row.has_justification %}
-        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-muted hover:bg-muted">Begründung ansehen/bearbeiten</a>
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-muted {% btn_classes 'muted' %}">Begründung ansehen/bearbeiten</a>
         {% endif %}
         {% else %}
         {{ row.name }}
         {% if row.has_justification %}
-        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-muted hover:bg-muted">Begründung ansehen/bearbeiten</a>
+        <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}" class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-muted {% btn_classes 'muted' %}">Begründung ansehen/bearbeiten</a>
         {% endif %}
         {% endif %}
     </td>
@@ -31,7 +31,7 @@
     {% endfor %}
     {% include 'partials/negotiable_cell.html' with row=row is_negotiable=row.is_negotiable override=row.negotiable_manual_override %}
     <td class="border px-2 text-center action-column">
-        <button type="button" class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-muted hover:bg-muted"
+        <button type="button" class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded {% btn_classes 'muted' %}"
             data-state="robot" title="KI-Prüfung starten"
             data-project-file-id="{{ anlage.pk }}"
             data-function-id="{{ row.func_id }}"

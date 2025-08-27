@@ -1,3 +1,4 @@
+{% load ui_extras %}
 <tr>
     <td colspan="{% if show_nr %}7{% else %}6{% endif %}">
         <form hx-post="{% url 'projekt_file_upload' projekt.pk %}" hx-target="closest tr" hx-swap="outerHTML" class="space-x-2">
@@ -9,7 +10,7 @@
                 <option value="{{ n }}">{{ n }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Speichern</button>
+            <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Speichern</button>
         </form>
     </td>
 </tr>

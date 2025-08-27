@@ -1,3 +1,4 @@
+{% load ui_extras %}
 <div class="p-2 space-y-4">
   <div class="border rounded bg-background p-2 space-y-1">
     <h3 class="font-semibold">Parser</h3>
@@ -19,7 +20,7 @@
   </div>
   <div class="border rounded bg-background p-2 space-y-2">
     <form hx-post="{% url 'hx_supervision_confirm' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="inline">
-      <button class="bg-accent text-text px-2 py-1 rounded" type="submit">GAP bestätigen</button>
+      <button class="px-2 py-1 rounded {% btn_classes 'primary' %}" type="submit">GAP bestätigen</button>
     </form>
     <div class="space-x-2">
       {% for note in standard_notes %}
@@ -27,7 +28,7 @@
               hx-post="{% url 'hx_supervision_add_standard_note' row.result_id %}"
               hx-vals='{"note_text": "{{ note.note_text }}"}'
               hx-target="closest details" hx-swap="outerHTML"
-              class="bg-background px-2 py-1 rounded">
+              class="px-2 py-1 rounded {% btn_classes 'muted' %}">
         {{ note.note_text }}
       </button>
       {% endfor %}
@@ -35,11 +36,11 @@
     <form hx-post="{% url 'hx_supervision_save_notes' row.result_id %}" hx-target="closest details" hx-swap="outerHTML" class="space-y-2">
         <textarea name="notes" rows="2" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-text dark:text-text-light rounded w-full p-2 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ row.notes }}</textarea>
       <div class="space-x-2">
-        <button type="submit" class="bg-accent text-text px-2 py-1 rounded">Speichern</button>
+        <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Speichern</button>
         <button type="button"
                 hx-post="{% url 'hx_supervision_revert_to_document' row.result_id %}"
                 hx-target="closest details" hx-swap="outerHTML"
-                class="bg-background px-2 py-1 rounded">
+                class="px-2 py-1 rounded {% btn_classes 'muted' %}">
           GAP auflösen
         </button>
       </div>

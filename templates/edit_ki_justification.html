@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ui_extras %}
 {% block title %}KI-Begründung bearbeiten{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">KI-Begründung bearbeiten</h1>
@@ -10,6 +11,6 @@
     {% else %}
     <input type="hidden" name="subquestion" value="{{ object.id }}">
     {% endif %}
-    <button type="submit" class="bg-accent text-background px-4 py-2 rounded">Speichern</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
 </form>
 {% endblock %}

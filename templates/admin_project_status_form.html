@@ -1,4 +1,5 @@
 {% extends 'admin_base.html' %}
+{% load ui_extras %}
 {% block title %}{% if status %}Status bearbeiten{% else %}Neuer Status{% endif %}{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">{% if status %}Status bearbeiten{% else %}Neuer Status{% endif %}</h1>
@@ -28,6 +29,6 @@
         <label>{{ form.is_done_status }} Abschlussstatus</label>
         {{ form.is_done_status.errors }}
     </div>
-    <button type="submit" class="px-4 py-2 bg-accent text-text rounded">Speichern</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
 </form>
 {% endblock %}

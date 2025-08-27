@@ -1,5 +1,5 @@
 {% extends 'admin_base.html' %}
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 {% block title %}Anlage 2 Konfiguration{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 2 Konfiguration</h1>
@@ -15,11 +15,11 @@
     <input type="hidden" name="active_tab" id="active_tab" value="{{ active_tab }}">
     <input type="hidden" name="phrase_key" id="phrase_key" value="">
     <nav class="border-b border-gray-200 space-x-2 mb-4">
-        <button type="button" data-tab="table" class="px-4 py-2 text-muted bg-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer">Tabellen-Parser</button>
-        <button type="button" data-tab="general" class="px-4 py-2 text-muted bg-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer">Allgemein</button>
-        <button type="button" data-tab="rules" class="px-4 py-2 text-muted bg-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer">Parser-Antwortregeln</button>
-        <button type="button" data-tab="rules2" class="px-4 py-2 text-muted bg-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer">Regeln Fallback</button>
-        <button type="button" data-tab="a4" class="px-4 py-2 text-muted bg-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer">Anlage 4 Parser</button>
+        <button type="button" data-tab="table" class="px-4 py-2 text-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer {% btn_classes 'muted' %}">Tabellen-Parser</button>
+        <button type="button" data-tab="general" class="px-4 py-2 text-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer {% btn_classes 'muted' %}">Allgemein</button>
+        <button type="button" data-tab="rules" class="px-4 py-2 text-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer {% btn_classes 'muted' %}">Parser-Antwortregeln</button>
+        <button type="button" data-tab="rules2" class="px-4 py-2 text-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer {% btn_classes 'muted' %}">Regeln Fallback</button>
+        <button type="button" data-tab="a4" class="px-4 py-2 text-muted border border-gray-300 dark:border-gray-600 border-b-0 rounded-t cursor-pointer {% btn_classes 'muted' %}">Anlage 4 Parser</button>
     </nav>
     <div id="tab-table" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Tabellen-Parser: Spaltenüberschriften (Alias)</h2>
@@ -54,7 +54,7 @@
             </tbody>
         </table>
         </div>
-        <button type="submit" name="action" value="save_table" class="mt-6 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+        <button type="submit" name="action" value="save_table" class="mt-6 px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
     </div>
     <div id="tab-general" class="tab-content">
         <div>
@@ -81,7 +81,7 @@
             <div id="parser-order-inputs"></div>
             {{ config_form.parser_order.errors }}
         </div>
-        <button type="submit" name="action" value="save_general" class="mt-6 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+        <button type="submit" name="action" value="save_general" class="mt-6 px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
     </div>
     <div id="tab-rules" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Parser-Antwortregeln</h2>
@@ -91,7 +91,7 @@
         <div class="mt-2 space-x-2">
             <!-- HTMX-Funktion vorübergehend deaktiviert -->
             {% include 'partials/_button.html' with type='button' label='Neue Regel hinzufügen' variant='secondary' classes='px-3 py-1 rounded' disabled=True %}
-            <button type="submit" name="action" value="save_rules" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+            <button type="submit" name="action" value="save_rules" class="px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
         </div>
     </div>
     <div id="tab-rules2" class="tab-content">
@@ -99,7 +99,7 @@
         <div class="overflow-x-auto">
             {% include 'partials/_response_rules_table_simple.html' with formset=rule_formset_fb raw_actions=raw_actions action_formsets=action_formsets %}
         </div>
-        <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+        <button type="submit" name="action" value="save_rules_fb" class="mt-2 px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
     </div>
     <div id="tab-a4" class="tab-content">
         <h2 class="text-xl font-semibold mb-2">Anlage 4 Parser</h2>
@@ -124,7 +124,7 @@
                 {{ a4_parser_form.fachbereiche_phrase }}
                 {{ a4_parser_form.fachbereiche_phrase.errors }}
             </div>
-            <button type="submit" name="action" value="save_a4" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+            <button type="submit" name="action" value="save_a4" class="px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
         </div>
     </div>
 </form>

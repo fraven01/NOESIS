@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static ui_extras %}
 {% block extra_head %}{% endblock %}
 {% block title %}GAP-Bericht{% endblock %}
 {% block content %}
@@ -13,7 +13,7 @@
 
 <form method="post" action="{% url 'delete_gap_report' projekt.pk %}" class="inline-block">
     {% csrf_token %}
-    <button type="submit" class="bg-error text-background px-4 py-2 rounded">Bericht verwerfen &amp; neu generieren</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'danger' %}">Bericht verwerfen &amp; neu generieren</button>
 </form>
 {% endblock %}
 {% block extra_js %}

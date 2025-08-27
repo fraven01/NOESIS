@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static ui_extras %}
 {% block title %}Aufnahme {{ bereich|capfirst }}{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Aufnahme {{ bereich|capfirst }}</h1>
 <div class="mb-6">
     {% if is_recording %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-error hover:bg-error-dark">Aufnahme stoppen</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded {% btn_classes 'danger' %}">Aufnahme stoppen</a>
     {% else %}
-    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded text-background bg-success hover:bg-success-dark">Aufnahme starten</a>
+    <a href="{% url 'toggle_recording' bereich=bereich %}" class="px-4 py-2 rounded {% btn_classes 'success' %}">Aufnahme starten</a>
     {% endif %}
 </div>
 <h2 class="text-xl font-semibold mb-2">Vergangene Aufnahmen</h2>

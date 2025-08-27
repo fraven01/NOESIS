@@ -60,11 +60,11 @@
                 data-func-id="{{ row.func_id }}" {% if row.sub %}data-sub-id="{{ row.sub_id }}"{% endif %}>
                 <td class="border px-2 {% if row.sub %}pl-8{% endif %}">
                     {% if not row.sub %}
-                    <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-muted hover:bg-muted" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
+                    <button class="toggle-button mr-2 inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded {% btn_classes 'muted' %}" type="button" data-target-class="subquestions-for-{{ row.func_id }}">+</button>
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-muted hover:bg-muted">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-muted {% btn_classes 'muted' %}">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -72,7 +72,7 @@
                     {{ row.name }}
                     {% if row.has_justification %}
                     <a href="{% url 'justification_detail_edit' anlage.pk row.verif_key %}"
-                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-background text-muted hover:bg-muted">
+                       class="ml-2 inline-flex items-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-muted {% btn_classes 'muted' %}">
                         Begründung ansehen/bearbeiten
                     </a>
                     {% endif %}
@@ -87,7 +87,7 @@
                 <td class="border px-2 text-center action-column hidden">
                     {% if allow_ai_check %}
                     <button type="button"
-                        class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-muted hover:bg-muted"
+                        class="review-cycle-btn inline-flex items-center justify-center px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded {% btn_classes 'muted' %}"
                         data-state="robot" data-popover-content="KI-Prüfung starten"
                         data-project-file-id="{{ anlage.pk }}"
                         data-function-id="{{ row.func_id }}"
@@ -103,7 +103,7 @@
         {% if allow_ai_check %}
         {% include 'partials/_button.html' with type='button' id='btn-verify-all' label='Alle Funktionen prüfen 🤖' variant='success' attrs='data-project-id="'|add:anlage.project.pk|add:'"' %}
         {% endif %}
-        <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="bg-accent text-background px-2 py-1 rounded ml-4">Parser-Analyse starten</a>
+        <a href="{% url 'projekt_file_parse_anlage2' anlage.pk %}" class="px-2 py-1 rounded ml-4 {% btn_classes 'primary' %}">Parser-Analyse starten</a>
     </div>
     </div>
     <p class="mb-2">Gap-Notizen werden automatisch erstellt.</p>
@@ -127,7 +127,7 @@
             {{ parser_form.parser_order }}
             {{ parser_form.parser_order.errors }}
         </div>
-        <button type="submit" name="save_parser_settings" class="bg-accent text-background px-3 py-1 rounded">Einstellungen speichern</button>
+        <button type="submit" name="save_parser_settings" class="px-3 py-1 rounded {% btn_classes 'primary' %}">Einstellungen speichern</button>
     </form>
 </details>
 </div>

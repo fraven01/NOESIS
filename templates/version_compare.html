@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 {% block title %}Versionen vergleichen{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Version {{ file.version }} mit Vorgänger vergleichen</h1>
@@ -9,7 +9,7 @@
       Aktuelle Version (v{{ file.version }})
       <form method="post" action="{% url 'delete_project_file_version' file.pk %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+        <button type="submit" class="px-2 py-1 rounded ms-2 {% btn_classes 'danger' %}" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
     <pre class="whitespace-pre-wrap border border-gray-300 dark:border-gray-600 p-2 bg-background dark:bg-background-dark text-text dark:text-text-light">{{ file.manual_analysis_json|default:file.analysis_json|tojson }}</pre>
@@ -20,7 +20,7 @@
       Vorherige Version (v{{ parent.version }})
       <form method="post" action="{% url 'delete_project_file_version' parent.pk %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="bg-error text-background px-2 py-1 rounded ms-2" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
+        <button type="submit" class="px-2 py-1 rounded ms-2 {% btn_classes 'danger' %}" onclick="return confirm('Sind Sie sicher?')">Löschen</button>
       </form>
     </h2>
     <pre class="whitespace-pre-wrap border border-gray-300 dark:border-gray-600 p-2 bg-background dark:bg-background-dark text-text dark:text-text-light">{{ parent.manual_analysis_json|default:parent.analysis_json|tojson }}</pre>
@@ -50,12 +50,12 @@
         <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline">
           <input type="hidden" name="result_id" value="{{ gap.id }}">
           <input type="hidden" name="action" value="carry">
-          <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Übernehmen</button>
+          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Übernehmen</button>
         </form>
         <form hx-post="{% url 'compare_versions' file.pk %}" hx-target="#gap-row-{{ gap.id }}" hx-swap="delete" class="inline ms-2">
           <input type="hidden" name="result_id" value="{{ gap.id }}">
           <input type="hidden" name="action" value="fix">
-          <button type="submit" class="bg-success text-background px-2 py-1 rounded">Behoben</button>
+          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'success' %}">Behoben</button>
         </form>
       </td>
     </tr>
