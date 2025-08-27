@@ -171,6 +171,22 @@ anlage4_logger = logging.getLogger("anlage4_detail")
 workflow_logger = logging.getLogger("workflow_debug")
 
 
+ADMIN_ROOT = ("admin_projects", "Admin")
+
+
+def build_breadcrumbs(*crumbs: tuple[str, str] | str) -> list[dict[str, str]]:
+    """Erzeugt eine Breadcrumb-Liste."""
+
+    items: list[dict[str, str]] = []
+    for c in crumbs:
+        if isinstance(c, tuple):
+            url_name, label = c
+            items.append({"url": reverse(url_name), "label": label})
+        else:
+            items.append({"label": c})
+    return items
+
+
 _WHISPER_MODEL = None
 
 
@@ -1478,10 +1494,11 @@ def admin_talkdiary(request):
                 )
             rec.delete()
         return redirect("admin_talkdiary")
-
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "TalkDiary")
     context = {
         "recordings": filtered,
         "active_filter": active_filter or "",
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "admin_talkdiary.html", context)
 
@@ -1554,7 +1571,7 @@ def admin_projects(request):
         projects = projects.filter(
             bvsoftware__name__icontains=software_filter
         ).distinct()
-
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Projekte")
     context = {
         "projects": projects,
         "projekte": projects,
@@ -1563,6 +1580,7 @@ def admin_projects(request):
         "status_filter": status_filter,
         "software_filter": software_filter,
         "status_choices": ProjectStatus.objects.all(),
+        "breadcrumbs": breadcrumbs,
     }
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return render(request, "partials/_admin_project_rows.html", context)
@@ -1655,11 +1673,13 @@ def admin_project_cleanup(request, pk):
     gap_report_exists = (
         projekt.anlagen.filter(anlage_nr__in=[1, 2]).exclude(gap_summary="").exists()
     )
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Projekt bereinigen")
     context = {
         "projekt": projekt,
         # Dateien nach Anlagennummer und Version sortieren
         "files": projekt.anlagen.all().order_by("anlage_nr", "version"),
         "gap_report_exists": gap_report_exists,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "admin_project_cleanup.html", context)
 
@@ -1861,12 +1881,13 @@ def admin_prompts(request):
     ]
 
     grouped = [(key, label, groups[key]) for key, label in labels]
-
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Prompts")
     context = {
         "grouped": grouped,
         "roles": roles,
         "a4_config": a4_cfg,
         "a4_parser": a4_parser,
+        "breadcrumbs": breadcrumbs,
     }
     return render(request, "admin_prompts.html", context)
 
@@ -1915,10 +1936,15 @@ def admin_prompt_import(request):
                     "use_system_role": item.get("use_system_role", True),
                     "use_project_context": item.get("use_project_context", True),
                 },
-            )
+        )
         messages.success(request, "Prompts importiert")
         return redirect("admin_prompts")
-    return render(request, "admin_prompt_import.html", {"form": form})
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Prompts importieren")
+    return render(
+        request,
+        "admin_prompt_import.html",
+        {"form": form, "breadcrumbs": breadcrumbs},
+    )
 
 
 @login_required
@@ -1937,7 +1963,8 @@ def admin_models(request):
     if cfg.models_changed:
         cfg.models_changed = False
         cfg.save(update_fields=["models_changed"])
-    context = {"config": cfg, "models": LLMConfig.get_available()}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "LLM-Modelle")
+    context = {"config": cfg, "models": LLMConfig.get_available(), "breadcrumbs": breadcrumbs}
     return render(request, "admin_models.html", context)
 
 
@@ -1966,7 +1993,8 @@ def config_export_import_view(request: HttpRequest) -> HttpResponse:
             messages.error(request, f"Import fehlgeschlagen: {exc}")
         finally:
             os.unlink(tmp_path)
-    return render(request, "admin/config_transfer.html")
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Konfigurationen")
+    return render(request, "admin/config_transfer.html", {"breadcrumbs": breadcrumbs})
 
 
 @login_required
@@ -2004,7 +2032,8 @@ def admin_anlage1(request):
                 llm_enabled=bool(request.POST.get("new_llm_enabled")),
             )
         return redirect("admin_anlage1")
-    context = {"questions": questions}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Anlage 1")
+    context = {"questions": questions, "breadcrumbs": breadcrumbs}
     return render(request, "admin_anlage1.html", context)
 
 
@@ -2059,7 +2088,12 @@ def admin_anlage1_import(request):
                 Anlage1QuestionVariant.objects.create(question=obj, text=v_text)
         messages.success(request, "Fragen importiert")
         return redirect("admin_anlage1")
-    return render(request, "admin_anlage1_import.html", {"form": form})
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Anlage 1 importieren")
+    return render(
+        request,
+        "admin_anlage1_import.html",
+        {"form": form, "breadcrumbs": breadcrumbs},
+    )
 
 
 @login_required
@@ -2067,7 +2101,8 @@ def admin_anlage1_import(request):
 def admin_project_statuses(request):
     """Zeigt alle vorhandenen Projektstatus an."""
     statuses = list(ProjectStatus.objects.all().order_by("ordering", "name"))
-    context = {"statuses": statuses}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Projekt-Status")
+    context = {"statuses": statuses, "breadcrumbs": breadcrumbs}
     return render(request, "admin_project_statuses.html", context)
 
 
@@ -2118,7 +2153,12 @@ def admin_project_status_import(request):
             )
         messages.success(request, "Statusdaten importiert")
         return redirect("admin_project_statuses")
-    return render(request, "admin_project_status_import.html", {"form": form})
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Status importieren")
+    return render(
+        request,
+        "admin_project_status_import.html",
+        {"form": form, "breadcrumbs": breadcrumbs},
+    )
 
 
 @login_required
@@ -2130,7 +2170,10 @@ def admin_project_status_form(request, pk=None):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("admin_project_statuses")
-    context = {"form": form, "status": status}
+    breadcrumbs = build_breadcrumbs(
+        ADMIN_ROOT, "Status bearbeiten" if pk else "Status anlegen"
+    )
+    context = {"form": form, "status": status, "breadcrumbs": breadcrumbs}
     return render(request, "admin_project_status_form.html", context)
 
 
@@ -2149,7 +2192,8 @@ def admin_project_status_delete(request, pk):
 def admin_llm_roles(request):
     """Liste aller vorhandenen LLM-Rollen."""
     roles = list(LLMRole.objects.all().order_by("name"))
-    context = {"roles": roles}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "LLM-Rollen")
+    context = {"roles": roles, "breadcrumbs": breadcrumbs}
     return render(request, "admin_llm_roles.html", context)
 
 
@@ -2162,7 +2206,10 @@ def admin_llm_role_form(request, pk=None):
     if request.method == "POST" and form.is_valid():
         form.save()
         return redirect("admin_llm_roles")
-    context = {"form": form, "role": role}
+    breadcrumbs = build_breadcrumbs(
+        ADMIN_ROOT, "LLM-Rolle bearbeiten" if pk else "LLM-Rolle anlegen"
+    )
+    context = {"form": form, "role": role, "breadcrumbs": breadcrumbs}
     return render(request, "admin_llm_role_form.html", context)
 
 
@@ -2216,7 +2263,8 @@ def admin_llm_role_import(request):
             )
         messages.success(request, "LLM-Rollen importiert")
         return redirect("admin_llm_roles")
-    context = {"form": form}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "LLM-Rollen importieren")
+    context = {"form": form, "breadcrumbs": breadcrumbs}
     return render(request, "admin_llm_role_import.html", context)
 
 
@@ -2225,7 +2273,8 @@ def admin_llm_role_import(request):
 def admin_user_list(request):
     """Listet alle Benutzer mit zugehörigen Gruppen und Tiles auf."""
     users = list(User.objects.all().prefetch_related("groups", "tiles"))
-    context = {"users": users}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Benutzer")
+    context = {"users": users, "breadcrumbs": breadcrumbs}
     return render(request, "admin_user_list.html", context)
 
 
@@ -2240,7 +2289,8 @@ def admin_edit_user_permissions(request, user_id):
         user_obj.tiles.set(form.cleaned_data.get("tiles"))
         messages.success(request, "Berechtigungen gespeichert")
         return redirect("admin_user_list")
-    context = {"form": form, "user_obj": user_obj}
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Benutzerrechte")
+    context = {"form": form, "user_obj": user_obj, "breadcrumbs": breadcrumbs}
     return render(request, "admin_user_permissions_form.html", context)
 
 
@@ -2323,7 +2373,12 @@ def admin_import_users_permissions(request):
             user_obj.tiles.set(tile_qs)
         messages.success(request, "Benutzerdaten importiert")
         return redirect("admin_user_list")
-    return render(request, "admin_user_import.html", {"form": form})
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Benutzer importieren")
+    return render(
+        request,
+        "admin_user_import.html",
+        {"form": form, "breadcrumbs": breadcrumbs},
+    )
 
 
 @login_required
@@ -2458,7 +2513,14 @@ def admin_anlage2_config_import(request):
 
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
-    return render(request, "admin_anlage2_config_import.html", {"form": form})
+    breadcrumbs = build_breadcrumbs(
+        ADMIN_ROOT, "Anlage 2 Konfiguration importieren"
+    )
+    return render(
+        request,
+        "admin_anlage2_config_import.html",
+        {"form": form, "breadcrumbs": breadcrumbs},
+    )
 
 
 @login_required
@@ -2747,10 +2809,12 @@ def admin_role_editor(request):
                 tile_items.append({"tile": tile, "checked": tile.id in group_tile_ids})
             tiles_by_area[area] = tile_items
 
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Rollen & Rechte")
     context = {
         "groups": groups,
         "selected_group": selected_group,
         "tiles_by_area": tiles_by_area,
+        "breadcrumbs": breadcrumbs,
     }
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return render(request, "partials/_role_tile_form.html", context)
