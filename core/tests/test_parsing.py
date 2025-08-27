@@ -1212,7 +1212,6 @@ class Anlage4ReviewViewTests(NoesisTestCase):
                 "0": {"ok": True, "nego": False, "note": "alt"},
                 "1": {"ok": False, "nego": True, "note": "vorher"},
             },
-            verification_json={"functions": {}},
         )
 
     def test_post_saves_manual_review(self):
@@ -1241,7 +1240,6 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             text_content="Zwecke",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
 
     def test_get_runs_analysis_and_redirects(self):

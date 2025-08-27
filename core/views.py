@@ -3501,9 +3501,8 @@ def _save_project_file(
             anlage_datei=old_file, quelle="ki"
         )
         if ai_results.exists():
-            obj.verification_json = old_file.verification_json
             obj.processing_status = old_file.processing_status
-            obj.save(update_fields=["verification_json", "processing_status"])
+            obj.save(update_fields=["processing_status"])
 
             meta_copies = [
                 AnlagenFunktionsMetadaten(
@@ -5818,22 +5817,57 @@ def edit_ki_justification(request, pk):
         subquestion=obj if obj_type == "subquestion" else None,
     )
     res = res_qs.first()
-    data = (anlage.verification_json or {}).get(key, {})
+
+    fe = (
+        FunktionsErgebnis.objects.filter(
+            anlage_datei=anlage,
+            funktion=obj if obj_type == "function" else obj.funktion,
+            subquestion=obj if obj_type == "subquestion" else None,
+            quelle="ki",
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
     if request.method == "POST":
         new_text = request.POST.get("ki_begruendung", "")
-        vdata = anlage.verification_json or {}
-        entry = vdata.setdefault(key, {})
-        entry["ki_begruendung"] = new_text
-        anlage.verification_json = vdata
-        anlage.save(update_fields=["verification_json"])
+        field = request.GET.get("field") or request.POST.get("field") or "begruendung"
+        if fe:
+            if field == "ki_beteiligt_begruendung":
+                fe.ki_beteiligt_begruendung = new_text
+                fe.save(update_fields=["ki_beteiligt_begruendung"])
+            else:
+                fe.begruendung = new_text
+                fe.save(update_fields=["begruendung"])
+        else:
+            create_kwargs = {
+                "anlage_datei": anlage,
+                "funktion": obj if obj_type == "function" else obj.funktion,
+                "subquestion": obj if obj_type == "subquestion" else None,
+                "quelle": "ki",
+            }
+            if field == "ki_beteiligt_begruendung":
+                create_kwargs["ki_beteiligt_begruendung"] = new_text
+            else:
+                create_kwargs["begruendung"] = new_text
+            FunktionsErgebnis.objects.create(**create_kwargs)
         messages.success(request, "Begründung gespeichert")
         return redirect("projekt_file_edit_json", pk=anlage.pk)
+
+    field = request.GET.get("field") or "begruendung"
+    initial_text = ""
+    if fe:
+        initial_text = (
+            fe.ki_beteiligt_begruendung
+            if field == "ki_beteiligt_begruendung"
+            else fe.begruendung
+        ) or ""
 
     context = {
         "anlage": anlage,
         "object": obj,
         "object_type": obj_type,
-        "ki_begruendung": data.get("ki_begruendung", ""),
+        "ki_begruendung": initial_text,
     }
     return render(request, "edit_ki_justification.html", context)
 

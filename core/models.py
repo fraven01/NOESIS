@@ -289,12 +289,6 @@ class BVProjectFile(models.Model):
     question_review = models.JSONField(default=dict, blank=True, null=True)
     gap_summary = models.TextField(blank=True, null=True)
     gap_notiz = models.TextField(blank=True, null=True)
-    verification_json = models.JSONField(
-        default=dict,
-        blank=True,
-        null=True,
-        help_text="Ergebnis der KI-gestützten Verifizierung der Funktionen.",
-    )
     verification_task_id = models.CharField(
         max_length=50,
         blank=True,

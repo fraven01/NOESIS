@@ -45,7 +45,6 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             text_content="Text",
             manual_analysis_json={"0": {"ok": False, "nego": False, "note": ""}},
             analysis_json={"items": ["Alt"]},
-            verification_json={"functions": {}},
         )
         self.anlage1 = BVProjectFile.objects.create(
             project=self.projekt,
@@ -63,7 +62,6 @@ class ProjektFileJSONEditTests(NoesisTestCase):
                     }
                 }
             },
-            verification_json={"functions": {}},
         )
 
     def test_edit_json_updates_and_reports(self):

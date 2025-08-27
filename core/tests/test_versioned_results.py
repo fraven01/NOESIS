@@ -96,7 +96,6 @@ def test_new_version_copies_ai_results(db):
             anlage_nr=2,
             upload=SimpleUploadedFile("a.docx", b"a"),
             text_content="a",
-            verification_json={"Anmelden": {"ki_begruendung": "x"}},
             processing_status=BVProjectFile.COMPLETE,
         )
     AnlagenFunktionsMetadaten.objects.create(anlage_datei=pf1, funktion=funktion)
@@ -105,6 +104,7 @@ def test_new_version_copies_ai_results(db):
         funktion=funktion,
         quelle="ki",
         technisch_verfuegbar=True,
+        begruendung="x",
     )
 
     doc = Document()
@@ -118,10 +118,13 @@ def test_new_version_copies_ai_results(db):
     with patch("core.signals.start_analysis_for_file", return_value="tid"):
         pf2 = _save_project_file(projekt, upload=upload, anlage_nr=2)
 
-    assert pf2.verification_json == pf1.verification_json
     assert pf2.processing_status == BVProjectFile.COMPLETE
     assert FunktionsErgebnis.objects.filter(
-        anlage_datei=pf2, funktion=funktion, quelle="ki", technisch_verfuegbar=True
+        anlage_datei=pf2,
+        funktion=funktion,
+        quelle="ki",
+        technisch_verfuegbar=True,
+        begruendung="x",
     ).exists()
     assert AnlagenFunktionsMetadaten.objects.filter(
         anlage_datei=pf2, funktion=funktion

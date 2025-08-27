@@ -46,7 +46,6 @@ class AdminProjectCleanupTests(NoesisTestCase):
             text_content="Text",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
 
     def test_delete_file(self):

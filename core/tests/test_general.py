@@ -2450,7 +2450,6 @@ class ProjektFileCheckViewTests(NoesisTestCase):
             text_content="Text",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
 
     def test_file_check_endpoint_saves_json(self):
@@ -2501,7 +2500,6 @@ class Anlage2ReviewTests(NoesisTestCase):
                     }
                 ]
             },
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Anmelden")
         Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
@@ -2619,7 +2617,6 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             text_content="Text",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.knowledge = SoftwareKnowledge.objects.create(
             project=self.projekt,
@@ -2665,7 +2662,6 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
                 "pages": {"value": 1},
             },
             manual_analysis_json={"functions": {}},
-            verification_json={"functions": {}},
             manual_reviewed=True,
             verhandlungsfaehig=True,
         )
@@ -2757,7 +2753,6 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             text_content="Text",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.file2 = BVProjectFile.objects.create(
             project=self.projekt,
@@ -2766,7 +2761,6 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             text_content="Text2",
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
 
     def test_get_runs_check_and_redirects_to_edit(self):
@@ -3241,7 +3235,6 @@ class FeatureVerificationTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Export")
         Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
@@ -3528,11 +3521,14 @@ class EditKIJustificationTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={
-                "Export": {"technisch_verfuegbar": True, "ki_begruendung": "Alt"}
-            },
         )
         self.func = Anlage2Function.objects.create(name="Export")
+        FunktionsErgebnis.objects.create(
+            anlage_datei=self.file,
+            funktion=self.func,
+            quelle="ki",
+            begruendung="Alt",
+        )
 
     def test_get_returns_form(self):
         url = (
@@ -3555,11 +3551,10 @@ class EditKIJustificationTests(NoesisTestCase):
         self.assertRedirects(
             resp, reverse("projekt_file_edit_json", args=[self.file.pk])
         )
-        self.file.refresh_from_db()
-        self.assertEqual(
-            self.file.verification_json["Export"]["ki_begruendung"],
-            "Neu",
+        fe = FunktionsErgebnis.objects.get(
+            anlage_datei=self.file, funktion=self.func, quelle="ki"
         )
+        self.assertEqual(fe.begruendung, "Neu")
 
 
 class JustificationDetailEditTests(NoesisTestCase):
@@ -3574,7 +3569,6 @@ class JustificationDetailEditTests(NoesisTestCase):
             upload=SimpleUploadedFile("jd.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Export")
         FunktionsErgebnis.objects.create(
@@ -3602,7 +3596,6 @@ class KIInvolvementDetailEditTests(NoesisTestCase):
             upload=SimpleUploadedFile("kid.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Export")
         FunktionsErgebnis.objects.create(
@@ -3637,7 +3630,6 @@ class VerificationToInitialTests(NoesisTestCase):
             upload=SimpleUploadedFile("v.txt", b"data"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Export")
         Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
@@ -3976,7 +3968,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             upload=SimpleUploadedFile("a.txt", b"x"),
             manual_analysis_json={"functions": {}},
             analysis_json={},
-            verification_json={"functions": {}},
         )
         self.func = Anlage2Function.objects.create(name="Anmelden")
         Anlage2SubQuestion.objects.filter(funktion=self.func).delete()
