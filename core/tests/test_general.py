@@ -3814,7 +3814,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         payload = json.dumps(
             {
                 "config": {
-                "parser_mode": "text_only",
+                "parser_mode": "table_only",
                 "parser_order": ["exact"],
                     "enforce_subquestion_override": True,
                     "text_technisch_verfuegbar_true": ["ja"],
@@ -3844,7 +3844,7 @@ class Anlage2ConfigImportExportTests(NoesisTestCase):
         a4_cfg = Anlage4ParserConfig.objects.first()
         self.assertEqual(a4_cfg.delimiter_phrase, "Y")
         self.cfg.refresh_from_db()
-        self.assertEqual(self.cfg.parser_mode, "text_only")
+        self.assertEqual(self.cfg.parser_mode, "table_only")
         self.assertEqual(self.cfg.parser_order, ["exact"])
         self.assertTrue(self.cfg.enforce_subquestion_override)
         self.assertEqual(self.cfg.text_technisch_verfuegbar_true, ["ja"])
@@ -3870,7 +3870,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         resp = self.client.post(
             url,
             self._build_general_data(
-                parser_mode="text_only",
+                parser_mode="table_only",
                 parser_order=["exact"],
                 action="save_general",
                 active_tab="general",
@@ -3878,6 +3878,7 @@ class Anlage2ConfigViewTests(NoesisTestCase):
         )
         self.assertRedirects(resp, url + "?tab=general")
         self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.parser_mode, "table_only")
         self.assertEqual(self.cfg.parser_order, ["exact"])
 
     def test_update_parser_order(self):
