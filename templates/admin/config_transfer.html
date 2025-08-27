@@ -1,14 +1,15 @@
 {% extends "admin/base_site.html" %}
+{% load ui_extras %}
 
 {% block admin_content %}
 <h1 class="text-xl font-bold mb-4">Konfigurationen exportieren / importieren</h1>
 <form method="post" class="mb-6">
     {% csrf_token %}
-    <button type="submit" name="export" class="px-4 py-2 bg-accent text-background rounded">Exportieren</button>
+    <button type="submit" name="export" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Exportieren</button>
 </form>
 <form method="post" enctype="multipart/form-data" class="space-y-4">
     {% csrf_token %}
     <input type="file" name="config_file" accept="application/json" required>
-    <button type="submit" class="px-4 py-2 bg-success text-background rounded">Importieren</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'success' %}">Importieren</button>
 </form>
 {% endblock %}

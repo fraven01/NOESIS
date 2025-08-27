@@ -1,5 +1,5 @@
 {% extends 'admin_base.html' %}
-{% load static %}
+{% load static ui_extras %}
 {% block extra_head %}{{ block.super }}{% endblock %}
 {% block title %}{% if role %}Rolle bearbeiten{% else %}Neue Rolle{% endif %}{% endblock %}
 {% block admin_content %}
@@ -20,7 +20,7 @@
         <label>{{ form.is_default }} Standard</label>
         {{ form.is_default.errors }}
     </div>
-<button type="submit" class="px-4 py-2 bg-accent text-background rounded">Speichern</button>
+<button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
 </form>
 {% endblock %}
 

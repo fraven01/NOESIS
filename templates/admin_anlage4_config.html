@@ -1,4 +1,5 @@
 {% extends 'admin_base.html' %}
+{% load ui_extras %}
 {% block title %}Anlage 4 Konfiguration{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 4 Konfiguration</h1>
@@ -23,15 +24,15 @@
                 {% for val in form.instance.gesellschaft_aliases %}
                 <div class="flex mb-2">
                       <input type="text" name="gesellschaft_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
                       <input type="text" name="gesellschaft_aliases" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
             </div>
-            <button type="button" id="add-ges-alias" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-ges-alias" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+ Alias hinzufügen</button>
         </div>
         <div>
             <label>{{ form.fachbereiche_phrase.label }}</label>
@@ -44,15 +45,15 @@
                 {% for val in form.instance.fachbereich_aliases %}
                 <div class="flex mb-2">
                       <input type="text" name="fachbereich_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
                       <input type="text" name="fachbereich_aliases" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
             </div>
-            <button type="button" id="add-fb-alias" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-fb-alias" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+ Alias hinzufügen</button>
         </div>
         <div>
             <label>{{ form.name_aliases.label }}</label>
@@ -60,15 +61,15 @@
                 {% for val in form.instance.name_aliases %}
                 <div class="flex mb-2">
                       <input type="text" name="name_aliases" value="{{ val }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
                       <input type="text" name="name_aliases" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
             </div>
-            <button type="button" id="add-name-alias" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Alias hinzufügen</button>
+            <button type="button" id="add-name-alias" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+ Alias hinzufügen</button>
         </div>
         <div class="mb-3">
             <label class="form-label">Negative Patterns (jeweils ein Regex pro Feld):</label>
@@ -76,15 +77,15 @@
                 {% for pat in form.instance.negative_patterns %}
                 <div class="flex mb-2">
                       <input type="text" name="negative_patterns" value="{{ pat }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
                       <input type="text" name="negative_patterns" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
             </div>
-            <button type="button" id="add-negative-btn" class="px-2 py-1 bg-gray-200 rounded mt-1">+</button>
+            <button type="button" id="add-negative-btn" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+</button>
         </div>
     </section>
     <section class="border rounded p-4 space-y-4">
@@ -95,18 +96,18 @@
                 {% for col in form.instance.table_columns %}
                 <div class="flex mb-2">
                       <input type="text" name="table_columns" value="{{ col }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
                 {% endfor %}
                 <div class="flex mb-2">
                       <input type="text" name="table_columns" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-gray-900 dark:text-gray-100 focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 flex-grow">
-                    <button type="button" class="px-2 py-1 bg-gray-200 rounded ml-2 remove-btn">x</button>
+                    <button type="button" class="px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}">x</button>
                 </div>
             </div>
-            <button type="button" id="add-column-btn" class="px-2 py-1 bg-gray-200 rounded mt-1">+ Spalte hinzufügen</button>
+            <button type="button" id="add-column-btn" class="px-2 py-1 rounded mt-1 {% btn_classes 'muted' %}">+ Spalte hinzufügen</button>
         </div>
     </section>
-    <button type="submit" class="px-4 py-2 bg-accent text-background rounded shadow-md hover:bg-accent-dark">Speichern</button>
+    <button type="submit" class="px-4 py-2 rounded shadow-md {% btn_classes 'primary' %}">Speichern</button>
 </form>
 {% endblock %}
 {% block extra_js %}
@@ -129,7 +130,7 @@
                 const del = document.createElement('button');
                 del.type = 'button';
                 del.textContent = 'x';
-                del.className = 'px-2 py-1 bg-gray-200 rounded ml-2 remove-btn';
+                del.className = "px-2 py-1 rounded ml-2 remove-btn {% btn_classes 'muted' %}";
                 del.addEventListener('click', () => wrap.remove());
                 wrap.appendChild(input);
                 wrap.appendChild(del);

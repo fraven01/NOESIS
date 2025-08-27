@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ui_extras %}
 {% block title %}Versionen vergleichen{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 1: Version {{ file.version }} mit Vorgänger vergleichen</h1>
@@ -31,14 +32,14 @@
           {% csrf_token %}
           <input type="hidden" name="action" value="negotiate">
           <input type="hidden" name="question" value="{{ row.num }}">
-          <button type="submit" class="bg-accent text-background px-2 py-1 rounded">Verhandlungsfähig</button>
+          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Verhandlungsfähig</button>
         </form>
         <form method="post" class="inline">
           {% csrf_token %}
           <input type="hidden" name="action" value="add_gap">
           <input type="hidden" name="question" value="{{ row.num }}">
           <input type="hidden" name="note" value="Offen">
-          <button type="submit" class="bg-success text-background px-2 py-1 rounded">Gap hinzufügen</button>
+          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'success' %}">Gap hinzufügen</button>
         </form>
       </td>
     </tr>

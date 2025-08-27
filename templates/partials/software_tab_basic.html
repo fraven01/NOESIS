@@ -1,4 +1,4 @@
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 <div class="space-y-4">
     {% for row in knowledge_rows %}
         <div class="card p-4" data-id="{{ row.entry.id|default:'' }}">
@@ -45,5 +45,5 @@
         </div>
     {% endfor %}
 </div>
-<button id="start-checks" type="button" class="bg-success text-background px-4 py-2 rounded">Prüfung starten</button>
+<button id="start-checks" type="button" class="px-4 py-2 rounded {% btn_classes 'success' %}">Prüfung starten</button>
 

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 {% block title %}Anlage 3 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 3 Dateien für {{ projekt.title }} prüfen</h1>
@@ -20,25 +20,25 @@
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'projekt_file_check_view' a.pk %}?llm=1">
                     {% csrf_token %}
-                    <button class="bg-primary text-background px-2 py-1 rounded">LLM-Prüfung</button>
+                    <button class="px-2 py-1 rounded {% btn_classes 'primary' %}">LLM-Prüfung</button>
                 </form>
             </td>
             <td class="px-2 py-1 text-center">
                 <form method="post" action="{% url 'project_file_toggle_flag' a.pk 'manual_reviewed' %}">
                     {% csrf_token %}
                     <input type="hidden" name="value" value="{{ a.manual_reviewed|yesno:'0,1' }}">
-                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}bg-success text-background{% else %}bg-gray-300{% endif %}">
+                    <button class="px-2 py-1 rounded {% if a.manual_reviewed %}{% btn_classes 'success' %}{% else %}{% btn_classes 'muted' %}{% endif %}">
                         {% if a.manual_reviewed %}✓{% else %}✗{% endif %}
                     </button>
                 </form>
             </td>
             <td class="px-2 py-1 text-center space-x-1">
-                <a href="{% url 'projekt_file_edit_json' a.pk %}" class="bg-primary text-background px-2 py-1 rounded">Analyse bearbeiten</a>
+                <a href="{% url 'projekt_file_edit_json' a.pk %}" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Analyse bearbeiten</a>
                 <form method="post" action="{% url 'projekt_file_delete_result' a.pk %}" class="inline">
                     {% csrf_token %}
-                    <button class="bg-error text-background px-2 py-1 rounded" onclick="return confirm('Ergebnis wirklich löschen?')">Ergebnis löschen</button>
+                    <button class="px-2 py-1 rounded {% btn_classes 'danger' %}" onclick="return confirm('Ergebnis wirklich löschen?')">Ergebnis löschen</button>
                 </form>
-                <a href="{{ a.upload.url }}" class="bg-accent text-background px-2 py-1 rounded">Download</a>
+                <a href="{{ a.upload.url }}" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Download</a>
             </td>
         </tr>
         {% if a.analysis_json %}

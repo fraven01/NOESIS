@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ui_extras %}
 {% block title %}Begründung{% endblock %}
 {% block content %}
 {% include 'partials/_breadcrumbs.html' %}
@@ -10,8 +11,8 @@
     {% csrf_token %}
     {{ form.justification.label_tag }}
     {{ form.justification }}
-    <button type="submit" class="bg-accent text-background px-4 py-2 rounded">Speichern</button>
-    <a href="{% url 'justification_delete' project_file.id function_name %}" class="bg-error text-background px-4 py-2 rounded ml-2">Begründung löschen</a>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
+    <a href="{% url 'justification_delete' project_file.id function_name %}" class="px-4 py-2 rounded ml-2 {% btn_classes 'danger' %}">Begründung löschen</a>
 </form>
 {% endblock %}
 

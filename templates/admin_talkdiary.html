@@ -1,13 +1,13 @@
 {% extends 'admin_base.html' %}
-{% load recording_extras %}
+{% load recording_extras ui_extras %}
 {% block title %}Admin TalkDiary{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">Admin TalkDiary</h1>
 <div class="mb-4 space-x-2">
-    <a href="?" class="px-3 py-1 rounded bg-background {% if not active_filter %}bg-primary text-background{% endif %}">Alle</a>
-    <a href="?filter=missing_audio" class="px-3 py-1 rounded bg-background {% if active_filter == 'missing_audio' %}bg-primary text-background{% endif %}">Missing Audio</a>
-    <a href="?filter=missing_transcript" class="px-3 py-1 rounded bg-background {% if active_filter == 'missing_transcript' %}bg-primary text-background{% endif %}">Missing Transcript</a>
-    <a href="?filter=incomplete" class="px-3 py-1 rounded bg-background {% if active_filter == 'incomplete' %}bg-primary text-background{% endif %}">Incomplete</a>
+    <a href="?" class="px-3 py-1 rounded {% if not active_filter %}{% btn_classes 'primary' %}{% else %}{% btn_classes 'muted' %}{% endif %}">Alle</a>
+    <a href="?filter=missing_audio" class="px-3 py-1 rounded {% if active_filter == 'missing_audio' %}{% btn_classes 'primary' %}{% else %}{% btn_classes 'muted' %}{% endif %}">Missing Audio</a>
+    <a href="?filter=missing_transcript" class="px-3 py-1 rounded {% if active_filter == 'missing_transcript' %}{% btn_classes 'primary' %}{% else %}{% btn_classes 'muted' %}{% endif %}">Missing Transcript</a>
+    <a href="?filter=incomplete" class="px-3 py-1 rounded {% if active_filter == 'incomplete' %}{% btn_classes 'primary' %}{% else %}{% btn_classes 'muted' %}{% endif %}">Incomplete</a>
 </div>
 <form method="post">
     {% csrf_token %}
@@ -43,7 +43,7 @@
     </div>
     {% if recordings %}
     <div class="mt-4">
-        <button type="submit" class="px-4 py-2 bg-error text-background rounded" onclick="return confirm('Einträge wirklich löschen?');">Löschen</button>
+        <button type="submit" class="px-4 py-2 rounded {% btn_classes 'danger' %}" onclick="return confirm('Einträge wirklich löschen?');">Löschen</button>
     </div>
     {% endif %}
 </form>

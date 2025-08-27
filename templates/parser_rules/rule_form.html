@@ -1,4 +1,5 @@
 {% extends 'admin_base.html' %}
+{% load ui_extras %}
 {% block title %}{% if form.instance.pk %}Regel bearbeiten{% else %}Neue Regel{% endif %}{% endblock %}
 {% block admin_content %}
 <h1 class="text-2xl font-semibold mb-4">{% if form.instance.pk %}Regel bearbeiten{% else %}Neue Regel{% endif %}</h1>
@@ -25,7 +26,7 @@
         {{ form.prioritaet.label_tag }}<br>
         {{ form.prioritaet }}{{ form.prioritaet.errors }}
     </div>
-    <button type="submit" class="px-4 py-2 bg-accent text-background rounded">Speichern</button>
+    <button type="submit" class="px-4 py-2 rounded {% btn_classes 'primary' %}">Speichern</button>
 </form>
 
 {% endblock %}
