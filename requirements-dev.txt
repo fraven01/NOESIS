@@ -8,3 +8,4 @@ rich
 selenium
 pytest-django
 pytest-xdist
+beautifulsoup4

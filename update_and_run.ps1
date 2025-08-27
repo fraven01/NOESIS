@@ -51,6 +51,6 @@ if ($LASTEXITCODE -ne 0) {
 
 # Schritt 3: Anwendung mit Honcho starten
 Write-Host "3. Starte die Anwendung mit 'honcho start'..."
-honcho start
+honcho -e .env start
 
 Write-Host "Skript beendet."
