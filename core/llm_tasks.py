@@ -45,6 +45,7 @@ from .text_parser import (
     apply_rules,
 )
 from .llm_utils import query_llm
+from .prompt_context import build_prompt_context
 from .docx_utils import (
     extract_text,
     _normalize_function_name,
@@ -308,9 +309,10 @@ def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list
             role=base_obj.role if base_obj else None,
             use_project_context=base_obj.use_project_context if base_obj else True,
         )
+        ctx = build_prompt_context()
         reply = query_llm(
             prompt_obj,
-            {},
+            ctx,
             model_type="anlagen",
             project_prompt=project_prompt,
         )
@@ -647,12 +649,13 @@ def classify_system(projekt_id: int) -> dict:
     prompt_obj = Prompt(
         name="tmp",
         text=prompt_text,
-        role=base_obj.role if base_obj else None,
+       role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
+    ctx = build_prompt_context(projekt)
     reply = query_llm(
         prompt_obj,
-        {},
+        ctx,
         model_type="default",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -688,9 +691,10 @@ def generate_gutachten(
             role=base_obj.role if base_obj else None,
             use_project_context=base_obj.use_project_context if base_obj else True,
         )
+        ctx = build_prompt_context(projekt)
         text = query_llm(
             prompt_obj,
-            {"software_name": projekt.software_string},
+            ctx,
             model_type="gutachten",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             max_output_tokens=8192,
@@ -756,9 +760,10 @@ def worker_generate_gutachten(
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
     try:
+        ctx = build_prompt_context(projekt, software_name=target)
         text = query_llm(
             prompt_obj,
-            {"software_name": target},
+            ctx,
             model_type="gutachten",
             project_prompt=projekt.project_prompt
             if prompt_obj.use_project_context
@@ -934,10 +939,10 @@ def _check_anlage(projekt_id: int, nr: int) -> dict:
         role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
-
+    ctx = build_prompt_context(projekt)
     reply = query_llm(
         prompt_obj,
-        {},
+        ctx,
         model_type="anlagen",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -1081,9 +1086,10 @@ def check_anlage2(projekt_id: int) -> dict:
                 use_system_role=base_obj.use_system_role,
                 use_project_context=base_obj.use_project_context,
             )
+            ctx = build_prompt_context(projekt)
             reply = query_llm(
                 prompt_obj,
-                {},
+                ctx,
                 model_type="anlagen",
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
@@ -1140,9 +1146,10 @@ def check_anlage2(projekt_id: int) -> dict:
                 use_system_role=base_obj.use_system_role,
                 use_project_context=base_obj.use_project_context,
             )
+            ctx = build_prompt_context(projekt)
             reply = query_llm(
                 prompt_obj,
-                {},
+                ctx,
                 model_type="anlagen",
                 project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
             )
@@ -1220,9 +1227,10 @@ def analyse_anlage4(projekt_id: int) -> dict:
             text=prompt_text,
             use_project_context=True,
         )
+        ctx = build_prompt_context(projekt)
         reply = query_llm(
             prompt_obj,
-            {},
+            ctx,
             model_type="anlagen",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
@@ -1261,9 +1269,10 @@ def worker_anlage4_evaluate(
         raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("Anlage4 Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
+    ctx = build_prompt_context(pf.project)
     reply = query_llm(
         prompt_obj,
-        {},
+        ctx,
         model_type="anlagen",
         project_prompt=pf.project.project_prompt,
     )
@@ -1304,9 +1313,10 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int) -> dict:
         raise KeyError(f"Platzhalter fehlt im Prompt-Template: {exc}") from exc
     anlage4_logger.debug("A4 Plausi Prompt #%s: %s", index, prompt_text)
     prompt_obj = Prompt(name="tmp", text=prompt_text)
+    ctx = build_prompt_context(pf.project)
     reply = query_llm(
         prompt_obj,
-        {},
+        ctx,
         model_type="anlagen",
         project_prompt=pf.project.project_prompt,
     )
@@ -1425,9 +1435,10 @@ def check_anlage2_functions(
             use_system_role=base_obj.use_system_role,
             use_project_context=base_obj.use_project_context,
         )
+        ctx = build_prompt_context(projekt)
         reply = query_llm(
             prompt_obj,
-            {},
+            ctx,
             model_type="anlagen",
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
         )
@@ -1580,7 +1591,7 @@ def worker_verify_feature(
             gutachten_text = extract_text(path)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Gutachten konnte nicht geladen werden: %s", exc)
-    context: dict[str, str] = {"gutachten": gutachten_text}
+    context = build_prompt_context(projekt, gutachten=gutachten_text)
 
     obj_to_check = None
     lookup_key: str | None = None
@@ -1634,10 +1645,10 @@ def worker_verify_feature(
 
     individual_results: list[bool | None] = []
     for software in software_list:
-        context["software_name"] = software
+        ctx = {**context, "software_name": software}
         reply = query_llm(
             prompt_obj,
-            context,
+            ctx,
             model_type="anlagen",
             temperature=0.1,
             project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
@@ -1714,14 +1725,15 @@ def worker_verify_feature(
             idx = individual_results.index(True)
         elif result is None and None in individual_results:
             idx = individual_results.index(None)
-        context["software_name"] = software_list[idx]
+        ctx = {**context, "software_name": software_list[idx]}
         justification = query_llm(
             just_prompt_obj,
-            context,
+            ctx,
             model_type="anlagen",
             temperature=0.1,
             project_prompt=projekt.project_prompt if just_prompt_obj.use_project_context else None,
         ).strip()
+        context["software_name"] = ctx["software_name"]
 
         if result is True:
             try:
@@ -1734,16 +1746,16 @@ def worker_verify_feature(
                     ),
                     use_system_role=False,
                 )
-            context["software_name"] = software_list[idx]
+            ctx = {**context, "software_name": software_list[idx]}
             involvement_prompt = ai_check_obj.text.format(
-                software_name=context["software_name"],
+                software_name=ctx["software_name"],
                 function_name=name,
             )
             ki_logger.debug("[%s] Prompt KI-Beteiligung: %s", project_id, involvement_prompt)
             ai_reply = (
                 query_llm(
                     ai_check_obj,
-                    {"software_name": context["software_name"], "function_name": name},
+                    ctx,
                     model_type="anlagen",
                     temperature=0.1,
                     project_prompt=projekt.project_prompt if ai_check_obj.use_project_context else None,
@@ -1781,11 +1793,7 @@ def worker_verify_feature(
             ki_logger.debug("[%s] Prompt KI-Begründung: %s", project_id, involvement_reason_prompt)
             ai_reason = query_llm(
                 ai_just_obj,
-                {
-                    "software_name": context["software_name"],
-                    "function_name": name,
-                    "subquestion_text": context.get("subquestion_text", ""),
-                },
+                context,
                 model_type="anlagen",
                 temperature=0.1,
                 project_prompt=projekt.project_prompt if ai_just_obj.use_project_context else None,
@@ -1947,12 +1955,10 @@ def worker_run_initial_check(
             else "initial_check_knowledge"
         )
         prompt_knowledge = Prompt.objects.get(name=prompt_name)
+        ctx = build_prompt_context(sk.project, name=software_name, user_context=user_context or "")
         reply1 = query_llm(
             prompt_knowledge,
-            {
-                "name": software_name,
-                "user_context": user_context or "",
-            },
+            ctx,
             model_type="default",
             project_prompt=sk.project.project_prompt,
         )
@@ -1962,9 +1968,10 @@ def worker_run_initial_check(
         # --- Stufe 2: Beschreibung nur bei positiver Kenntnis ---
         if sk.is_known_by_llm:
             description_prompt = Prompt.objects.get(name="initial_llm_check")
+            ctx = build_prompt_context(sk.project, name=software_name)
             reply2 = query_llm(
                 description_prompt,
-                {"name": software_name},
+                ctx,
                 model_type="default",
                 project_prompt=sk.project.project_prompt,
             )
@@ -2029,9 +2036,10 @@ def check_gutachten_functions(projekt_id: int) -> str:
         role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
+    ctx = build_prompt_context(projekt)
     reply = query_llm(
         prompt_obj,
-        {},
+        ctx,
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     )
@@ -2251,10 +2259,10 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
     )
-
+    ctx = build_prompt_context(projekt)
     text = query_llm(
         prompt_obj,
-        {},
+        ctx,
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
 
@@ -2332,10 +2340,10 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
         role=prompt_template.role,
         use_project_context=prompt_template.use_project_context,
     )
-
+    ctx = build_prompt_context(projekt)
     text = query_llm(
         prompt_obj,
-        {},
+        ctx,
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
     ).strip()
 
