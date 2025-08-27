@@ -1845,7 +1845,6 @@ def worker_verify_feature(
         getattr(sub_obj, "pk", None),
     )
     try:
-
         with transaction.atomic():
             pf = BVProjectFile.objects.select_for_update().get(pk=pf.pk)
             res, _ = AnlagenFunktionsMetadaten.objects.update_or_create(
@@ -1858,6 +1857,13 @@ def worker_verify_feature(
             if res.is_negotiable_manual_override is None:
                 res.is_negotiable = auto_val
             res.save(update_fields=["is_negotiable"])
+            logger.debug(
+                "Erstelle FunktionsErgebnis: projekt=%s anlage_datei=%s funktion_id=%s subquestion=%s",
+                project_id,
+                pf.pk,
+                func_id,
+                getattr(sub_obj, "pk", None),
+            )
             FunktionsErgebnis.objects.create(
                 anlage_datei=pf,
                 funktion_id=func_id,
@@ -1868,6 +1874,7 @@ def worker_verify_feature(
                 begruendung=justification,
                 ki_beteiligt_begruendung=ai_reason,
             )
+        return verification_result
     except BVProjectFile.DoesNotExist:
         logger.warning(
             "Anlage-2-Datei %s wurde während der Verarbeitung gelöscht. Prüfung wird abgebrochen.",
@@ -1903,30 +1910,6 @@ def worker_verify_feature(
                 pf.pk,
             )
             return verification_result
-        return verification_result
-
-
-    logger.debug(
-        "Erstelle FunktionsErgebnis: projekt=%s anlage_datei=%s funktion_id=%s subquestion=%s",
-        project_id,
-        pf.pk,
-        func_id,
-        getattr(sub_obj, "pk", None),
-    )
-    try:
-        FunktionsErgebnis.objects.create(
-            anlage_datei=pf,
-            funktion_id=func_id,
-            subquestion=sub_obj,
-            quelle="ki",
-            technisch_verfuegbar=tv,
-            ki_beteiligung=ki_bet,
-            begruendung=justification,
-            ki_beteiligt_begruendung=ai_reason,
-        )
-        return verification_result
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Ergebnis konnte nicht gespeichert werden: %s", exc)
         return verification_result
 
 
