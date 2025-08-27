@@ -48,7 +48,7 @@ from ..docx_utils import (
 from ..utils import start_analysis_for_file
 from .. import text_parser
 
-from core.text_parser import PHRASE_TYPE_CHOICES
+from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
 
 from ..anlage4_parser import parse_anlage4
 
@@ -1830,7 +1830,10 @@ class LLMTasksTests(NoesisTestCase):
         )
 
         try:
-            with patch("core.parsers.parse_anlage2_table", return_value=[]) as m_tab:
+            with (
+                patch("core.parsers.parse_anlage2_table", return_value=[]) as m_tab,
+                patch("core.text_parser.parse_anlage2_text", return_value=[]) as m_text,
+            ):
                 result = parser_manager.parse_anlage2(pf)
         finally:
             Path(tmp.name).unlink(missing_ok=True)
@@ -1841,6 +1844,7 @@ class LLMTasksTests(NoesisTestCase):
             cfg.save()
 
         m_tab.assert_not_called()
+        m_text.assert_not_called()
         self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
 
     def test_parser_manager_uses_exact_by_default(self):
@@ -4458,9 +4462,12 @@ class Anlage2ResetTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("new.txt", b"x"),
         )
-        with patch(
-            "core.llm_tasks.parse_anlage2_table",
-            return_value=[{"funktion": "Anmelden"}],
+        with (
+            patch(
+                "core.llm_tasks.parse_anlage2_table",
+                return_value=[{"funktion": "Anmelden"}],
+            ),
+            patch("core.text_parser.parse_anlage2_text", return_value=[]),
         ):
             run_anlage2_analysis(pf)
         results = AnlagenFunktionsMetadaten.objects.filter(
