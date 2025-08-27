@@ -324,6 +324,297 @@ class DocxExtractTests(NoesisTestCase):
         self.assertEqual(data, [])
 
 
+    def test_parse_anlage2_text(self):
+        func = self.anmelden
+        func.detection_phrases = {"name_aliases": ["login"]}
+        func.save()
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+            detection_phrases={"name_aliases": ["warum"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Anmelden tv ja ki nein\nWarum? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {"funktion": "Anmelden: Warum?"},
+            ],
+        )
+
+    def test_parse_anlage2_text_default_aliases(self):
+        func = self.anmelden
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Warum?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Anmelden tv ja ki nein\nWarum? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                },
+                {"funktion": "Anmelden: Warum?"},
+            ],
+        )
+
+    def test_parse_anlage2_text_name_always_alias(self):
+        func = self.anmelden
+        func.detection_phrases = {"name_aliases": ["login"]}
+        func.save()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+            detection_phrases={"name_aliases": ["reason"]},
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_technisch_verfuegbar_false = ["tv nein"]
+        cfg.save()
+        text = "Anmelden tv ja\nGrund? tv nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {"funktion": "Anmelden: Grund?"},
+            ],
+        )
+
+    def test_parse_anlage2_text_normalizes_variants(self):
+        func = self.anmelden
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
+        text = "Anmelden   tv ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_punctuation_variants(self):
+        func = self.reporting
+        func.detection_phrases = {
+            "name_aliases": ["Analyse-/Reportingfunktionen"]
+        }
+        func.save()
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.save()
+        text = "Analyse- / Reportingfunktionen tv ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse-/Reportingfunktionen",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_prefers_specific_subquestion(self):
+        func = self.reporting
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Bitte wähle zutreffendes aus",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        text = "Analyse- / Reportingfunktionen - Bitte wähle zutreffendes aus: ja"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse-/Reportingfunktionen: Bitte wähle zutreffendes aus",
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_merges_duplicate_functions(self):
+        func = self.anmelden
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["tv ja"]
+        cfg.text_ki_beteiligung_false = ["ki nein"]
+        cfg.save()
+        text = "Anmelden tv ja\nAnmelden ki nein"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "ki_beteiligung": {"value": False, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_updates_values_without_function(self):
+        func = self.analyse
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
+        cfg.text_zur_lv_kontrolle_false = ["kein lv"]
+        cfg.save()
+        text = "Analyse verfuegbar\nkein lv"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Analyse",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "zur_lv_kontrolle": {"value": False, "note": None},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_fuzzy_match(self):
+        func = self.anmelden
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        data = parse_anlage2_text("Logn: ja")
+        self.assertEqual(data, [])
+
+    def test_parse_anlage2_text_fuzzy_token_phrase(self):
+        func = self.anmelden
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja bitte"]
+        cfg.save()
+        data = parse_anlage2_text("Lgin: ja bitte")
+        self.assertEqual(data, [])
+
+    def test_parse_anlage2_text_fuzzy_rule_phrase(self):
+        func = self.anmelden
+        AntwortErkennungsRegel.objects.create(
+            regel_name="aktiv",
+            erkennungs_phrase="aktivv",
+            actions_json=[{"field": "einsatz_telefonica", "value": True}],
+        )
+        data = parse_anlage2_text("Lgin: aktivv")
+        self.assertEqual(data, [])
+
+    def test_parse_anlage2_text_multiple_rules_priority(self):
+        func = self.anmelden
+        AntwortErkennungsRegel.objects.create(
+            regel_name="a",
+            erkennungs_phrase="foo",
+            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
+            prioritaet=2,
+        )
+        AntwortErkennungsRegel.objects.create(
+            regel_name="b",
+            erkennungs_phrase="bar",
+            actions_json=[{"field": "einsatz_telefonica", "value": False}],
+            prioritaet=1,
+        )
+        data = parse_anlage2_text("Anmelden: foo bar rest")
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anmelden",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                    "einsatz_telefonica": {"value": False, "note": "rest"},
+                }
+            ],
+        )
+
+    def test_parse_anlage2_text_unknown_question(self):
+        _ = self.anmelden
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["ja"]
+        cfg.save()
+        data = parse_anlage2_text("Unbekannt: ja\nAnmelden: ja")
+        self.assertEqual(len(data), 1)
+        self.assertEqual(
+            data[0],
+            {
+                "funktion": "Anmelden",
+                "technisch_verfuegbar": {"value": True, "note": None},
+            },
+        )
+
+    def test_subquestion_skipped_when_main_absent(self):
+        func = self.anwesenheit
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_false = ["nicht verfuegbar"]
+        cfg.save()
+        text = "Anwesenheit: technisch nicht verfuegbar\nGrund? nicht verfuegbar"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anwesenheit",
+                    "technisch_verfuegbar": {"value": False, "note": None},
+                }
+            ],
+        )
+
+    def test_subquestion_processed_when_main_present(self):
+        func = self.anwesenheit
+        Anlage2SubQuestion.objects.filter(funktion=func).delete()
+        Anlage2SubQuestion.objects.create(
+            funktion=func,
+            frage_text="Grund?",
+        )
+        cfg = Anlage2Config.get_instance()
+        cfg.text_technisch_verfuegbar_true = ["verfuegbar"]
+        cfg.text_technisch_verfuegbar_false = ["nicht verfuegbar"]
+        cfg.save()
+        text = "Anwesenheit: verfuegbar\nGrund? nicht verfuegbar"
+        data = parse_anlage2_text(text)
+        self.assertEqual(
+            data,
+            [
+                {
+                    "funktion": "Anwesenheit",
+                    "technisch_verfuegbar": {"value": True, "note": None},
+                },
+                {"funktion": "Anwesenheit: Grund?"},
+            ],
+        )
+
     def test_exact_parser_handles_segments(self):
         func1 = self.anmelden
         func2 = self.analyse
