@@ -3,9 +3,13 @@ coverage
 django-picklefield
 django-q2>=1.8.0
 honcho
-pytest
 rich
 selenium
 pytest-django
 pytest-xdist
 beautifulsoup4
+pytest>=8.2
+pytest-django>=4.8
+pytest-xdist>=3.6
+pytest-cov>=5.0
+pre-commit>=3.7

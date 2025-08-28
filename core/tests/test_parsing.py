@@ -1207,10 +1207,12 @@ class Anlage4ReviewViewTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
-            analysis_json={"items": [{"text": "A"}, {"text": "B"}]},
-            manual_analysis_json={
-                "0": {"ok": True, "nego": False, "note": "alt"},
-                "1": {"ok": False, "nego": True, "note": "vorher"},
+            analysis_json={
+                "items": [{"text": "A"}, {"text": "B"}],
+                "manual_review": {
+                    "0": {"ok": True, "nego": False, "note": "alt"},
+                    "1": {"ok": False, "nego": True, "note": "vorher"},
+                },
             },
         )
 
@@ -1220,7 +1222,7 @@ class Anlage4ReviewViewTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
         self.file.refresh_from_db()
         self.assertEqual(
-            self.file.manual_analysis_json,
+            self.file.analysis_json.get("manual_review"),
             {
                 "0": {"ok": True, "nego": False, "note": "alt"},
                 "1": {"ok": False, "nego": True, "note": "neu"},
@@ -1238,7 +1240,6 @@ class ProjektFileAnalyseAnlage4ViewTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zwecke",
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
 

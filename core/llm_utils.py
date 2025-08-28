@@ -22,26 +22,28 @@ except ModuleNotFoundError:
 logger = logging.getLogger("llm_debugger")
 
 lf: Langfuse | None = None
-if Langfuse is not None:
+if Langfuse is not None and getattr(settings, "LANGFUSE_ENABLED", False):
     try:
-        lf = Langfuse(
-            public_key=getattr(settings, "LANGFUSE_PUBLIC_KEY", ""),
-            secret_key=getattr(settings, "LANGFUSE_SECRET_KEY", ""),
-            host=getattr(settings, "LANGFUSE_HOST", ""),
-        )
-        try:
-            ok = lf.auth_check()
+        public_key = getattr(settings, "LANGFUSE_PUBLIC_KEY", "")
+        secret_key = getattr(settings, "LANGFUSE_SECRET_KEY", "")
+        host = getattr(settings, "LANGFUSE_HOST", "")
+
+        if not (public_key and secret_key and host):
             logger.info(
-                "Langfuse auth_check=%s host=%r",
-                ok,
-                getattr(settings, "LANGFUSE_HOST", None),
+                "Langfuse deaktiviert: Fehlende Zugangsdaten oder Host (enabled=True, host=%r)",
+                host,
             )
-        except Exception as e:
-            logger.error(
-                "Langfuse auth_check failed: %s (host=%r)",
-                e,
-                getattr(settings, "LANGFUSE_HOST", None),
-            )
+        else:
+            lf = Langfuse(public_key=public_key, secret_key=secret_key, host=host)
+            try:
+                ok = lf.auth_check()
+                logger.info("Langfuse auth_check=%s host=%r", ok, host)
+                if not ok:
+                    logger.warning("Langfuse auth_check nicht erfolgreich – Langfuse wird deaktiviert")
+                    lf = None
+            except Exception as e:
+                logger.error("Langfuse auth_check fehlgeschlagen: %s (host=%r)", e, host)
+                lf = None
     except Exception:  # pragma: no cover - Fehler bei Initialisierung
         lf = None
 

@@ -36,6 +36,17 @@ installiert werden:
 pip install -r requirements-dev.txt
 ```
 
+## Tests
+
+- Manuell ausführen (volle Suite): `pytest -q`
+- Pre‑Commit führt automatisch die schnellen Tests aus (ohne `slow`, `e2e`, `selenium`) und prüft Migrationen.
+  Einrichtung:
+  ```bash
+  pip install -r requirements-dev.txt
+  pre-commit install
+  ```
+  Danach blockiert ein fehlschlagender Test den Commit. Für Notfälle kann mit `git commit --no-verify` übersprungen werden (nicht empfohlen).
+
 ## Dependencies for Tests
 
 Installiere vor jedem Testlauf **alle** Abhängigkeiten aus beiden
@@ -165,6 +176,16 @@ python manage.py qcluster
 
 Ohne diesen Prozess werden keine Hintergrundaufgaben ausgeführt.
 
+### Wartung der Queue/Tasks
+
+Zur Bereinigung der Task‑Datenbank steht ein Management‑Befehl bereit:
+
+```bash
+python manage.py clear_async_tasks            # queued und failed löschen
+python manage.py clear_async_tasks --queued  # nur Queue leeren
+python manage.py clear_async_tasks --failed  # nur fehlgeschlagene Tasks löschen
+```
+
 ## Markdown-Verarbeitung
 
 Alle Antworten der LLMs enthalten Markdown. Im Web werden sie mit
@@ -201,40 +222,21 @@ Das Projekt enthält Befehle zum Exportieren und Importieren der gesamten Anwend
     python manage.py import_configs /pfad/zu/configs.json
     ```
 
+### Verfügbare Management‑Befehle (Auswahl)
+
+- `seed_initial_data`: Standarddaten befüllen/aktualisieren
+- `export_configs`: Konfigurationsmodelle als JSON exportieren
+- `import_configs <pfad>`: Konfigurationsmodelle idempotent importieren
+- `clear_async_tasks [--queued|--failed]`: Django‑Q Queue/fehlgeschlagene Tasks bereinigen
+
 
 ### Anlage 1 prüfen
 
-Der Aufruf
-
-```bash
-python manage.py check_anlage1 <file_id>
-```
-
-führt eine hybride Analyse der Systembeschreibung durch. Zunächst versucht der
-Parser zu jeder im Admin hinterlegten Frage eine Antwort direkt aus dem Text zu
-extrahieren. Anschließend werden – abhängig von den Einstellungen – einzelne
-Fragen zusätzlich einem LLM vorgelegt. Das Ergebnis wird als JSON in der
-zugehörigen Anlage gespeichert. Für jede Frage enthält es neben der Antwort die
-Felder `status`, `hinweis` und `vorschlag`. Diese lassen sich nachträglich im
-Webinterface anpassen und dokumentieren die manuelle Bewertung.
-
-Im Admin-Bereich kann pro Frage separat festgelegt werden, ob sie beim
-Parserlauf (`parser_enabled`) und/oder bei der LLM-Auswertung
-(`llm_enabled`) berücksichtigt wird.
-Für jede Frage lassen sich mehrere Varianten hinterlegen, die der Parser beim
-Extrahieren berücksichtigt.
+Die Analyse von Anlage 1 erfolgt ausschließlich über die Web‑Oberfläche. Der Parser ermittelt Antworten zu den hinterlegten Fragen; optional werden Fragen zusätzlich einem LLM vorgelegt. Ergebnisse landen als JSON in der Anlage und können im UI nachbearbeitet werden (Status, Hinweise, Vorschläge). Welche Fragen per Parser/LLM berücksichtigt werden, legst du im Projekt‑Admin fest.
 
 ### Anlage 5 prüfen
 
-Mit
-
-```bash
-python manage.py check_anlage5 42
-```
-
-wird das hochgeladene Dokument der Anlage 5 nach allen Standardzwecken durchsucht.
-Enthält es alle Zwecke aus der Datenbank und keine sonstigen Zwecke,
-setzt das System die Anlage automatisch auf verhandlungsfähig.
+Die Prüfung von Anlage 5 erfolgt über die Web‑Oberfläche. Das System durchsucht das hochgeladene Dokument nach Standardzwecken. Sind alle Zwecke abgedeckt und gibt es keine sonstigen, kann die Anlage automatisch als verhandlungsfähig markiert werden.
 
 ### Anlage 2 analysieren
 

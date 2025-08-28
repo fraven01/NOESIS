@@ -74,4 +74,28 @@
   .dark .EasyMDEContainer .editor-statusbar {
     @apply bg-background-dark text-text-light border-t border-gray-700;
   }
+
+  /* Formularfelder: Dark-Mode lesbar machen */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  select,
+  textarea {
+    @apply bg-background text-text border border-gray-300 rounded;
+  }
+  .dark input[type="text"],
+  .dark input[type="number"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="search"],
+  .dark input[type="url"],
+  .dark input[type="tel"],
+  .dark select,
+  .dark textarea {
+    @apply bg-background-dark text-text-light placeholder-gray-400 border-gray-700;
+  }
 }

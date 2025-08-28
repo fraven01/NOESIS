@@ -36,6 +36,8 @@ class DeleteKnowledgeEntryTests(NoesisTestCase):
 
     def test_delete_entry_requires_permission(self):
         """Unberechtigter Benutzer erhält einen 403-Status."""
+        other = get_user_model().objects.create_user(username="other", password="pass")
+        self.client.login(username="other", password="pass")
         url = reverse("delete_knowledge_entry", args=[self.knowledge.pk])
         response = self.client.post(url)
         self.assertEqual(response.status_code, 403)

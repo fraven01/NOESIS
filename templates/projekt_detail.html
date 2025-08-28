@@ -3,7 +3,6 @@
 {% load recording_extras ui_extras %}
 {% block title %}Projekt {{ projekt.title }}{% endblock %}
 {% block content %}
-{% include 'partials/_breadcrumbs.html' %}
 <h1 class="text-2xl font-semibold mb-4">{{ projekt.title }}
 {% if is_admin %}
 {% url 'admin_projects' as admin_url %}

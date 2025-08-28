@@ -1,0 +1,250 @@
+
+@login_required
+def edit_project_context(request, pk):
+    """Bearbeitet den Projekt-Kontext."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if request.method == "POST":
+        form = ProjectContextForm(request.POST, instance=projekt)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Projekt-Kontext gespeichert")
+            return redirect("projekt_detail", pk=projekt.pk)
+    else:
+        form = ProjectContextForm(instance=projekt)
+    return render(
+        request,
+        "edit_project_context.html",
+        {"form": form, "projekt": projekt},
+    )
+
+
+@login_required
+def edit_knowledge_description(request, knowledge_id):
+    """Bearbeitet die Beschreibung eines Knowledge-Eintrags."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    if request.method == "POST":
+        form = KnowledgeDescriptionForm(request.POST, instance=knowledge)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Beschreibung gespeichert")
+            return redirect("projekt_detail", pk=knowledge.project.pk)
+    else:
+        form = KnowledgeDescriptionForm(instance=knowledge)
+    return render(
+        request,
+        "edit_knowledge_description.html",
+        {"form": form, "knowledge": knowledge},
+    )
+
+
+@login_required
+@require_POST
+def delete_knowledge_entry(request, knowledge_id):
+    """Löscht einen Knowledge-Eintrag."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    projekt = knowledge.project
+    is_admin = request.user.groups.filter(name__iexact="admin").exists()
+    if not (is_admin or _user_can_edit_project(request.user, projekt)):
+        raise PermissionDenied
+    project_pk = projekt.pk
+    knowledge.delete()
+    return redirect("projekt_detail", pk=project_pk)
+
+
+@login_required
+def download_knowledge_as_word(request, knowledge_id):
+    """Stellt die Beschreibung als Word-Datei bereit."""
+    knowledge = get_object_or_404(SoftwareKnowledge, pk=knowledge_id)
+    if not knowledge.description:
+        raise Http404
+    temp_file_path = os.path.join(
+        tempfile.gettempdir(), f"knowledge_{knowledge_id}.docx"
+    )
+    try:
+        extensions = ["extra", "admonition", "toc"]
+        html_content = markdown.markdown(knowledge.description, extensions=extensions)
+        pypandoc.convert_text(
+            html_content,
+            "docx",
+            format="html",
+            outputfile=temp_file_path,
+        )
+        with open(temp_file_path, "rb") as fh:
+            response = HttpResponse(
+                fh.read(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="{knowledge.software_name}.docx"'
+            )
+            return response
+    except (IOError, OSError) as e:
+        logger.error("Pandoc-Fehler beim Knowledge-Export %s", e)
+        messages.error(
+            request,
+            "Fehler beim Erstellen des Word-Dokuments. Ist Pandoc auf dem Server korrekt installiert?",
+        )
+        return redirect("projekt_detail", pk=knowledge.project.pk)
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+
+def _compare_versions_anlage1(
+    request: HttpRequest,
+    project_file: BVProjectFile,
+    parent: BVProjectFile,
+) -> HttpResponse:
+    """Spezielle Vergleichslogik für Anlage 1."""
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if not _user_can_edit_project(request.user, project_file.project):
+            return HttpResponseForbidden("Nicht berechtigt")
+        if action == "negotiate":
+            project_file.verhandlungsfaehig = True
+            project_file.save(update_fields=["verhandlungsfaehig"])
+        elif action == "add_gap":
+            qnum = request.POST.get("question")
+            note = request.POST.get("note", "")
+            review = project_file.question_review or {}
+            qdata = review.get(qnum, {})
+            qdata["hinweis"] = note
+            review[qnum] = qdata
+            project_file.question_review = review
+            project_file.save(update_fields=["question_review"])
+        return redirect("compare_versions", pk=project_file.pk)
+
+    questions_map = {str(q.num): q.text for q in Anlage1Question.objects.all()}
+    parent_review = parent.question_review or {}
+    current_review = project_file.question_review or {}
+    parent_analysis = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
+    current_analysis = (
+        project_file.analysis_json.get("questions", {})
+        if project_file.analysis_json
+        else {}
+    )
+
+    gap_rows = []
+    for num, pdata in parent_review.items():
+        if isinstance(pdata, dict) and (pdata.get("hinweis") or pdata.get("vorschlag")):
+            gap_rows.append(
+                {
+                    "num": num,
+                    "text": questions_map.get(num, f"Frage {num}"),
+                    "parent": pdata,
+                    "current": current_review.get(num, {}),
+                }
+            )
+
+    all_nums = sorted(
+        set(parent_analysis.keys()) | set(current_analysis.keys()), key=lambda x: int(x)
+    )
+    all_rows = []
+    for num in all_nums:
+        pdata = parent_analysis.get(num, {})
+        cdata = current_analysis.get(num, {})
+        all_rows.append(
+            {
+                "num": num,
+                "text": questions_map.get(num, f"Frage {num}"),
+                "parent": pdata,
+                "current": cdata,
+                "changed": pdata != cdata,
+            }
+        )
+
+    context = {
+        "file": project_file,
+        "parent": parent,
+        "gap_rows": gap_rows,
+        "all_rows": all_rows,
+    }
+    return render(request, "version_compare_anlage1.html", context)
+
+
+@login_required
+def compare_versions(request: HttpRequest, pk: int) -> HttpResponse:
+    """Vergleicht eine Datei mit ihrer Vorgängerversion."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    parent = project_file.parent
+    if not parent:
+        raise Http404
+
+    if project_file.anlage_nr == 1:
+        return _compare_versions_anlage1(request, project_file, parent)
+
+    if request.method == "POST":
+        result_id = int(request.POST.get("result_id", 0))
+        action = request.POST.get("action")
+        result = get_object_or_404(
+            AnlagenFunktionsMetadaten, pk=result_id, anlage_datei=parent
+        )
+        if not _user_can_edit_project(request.user, project_file.project):
+            return HttpResponseForbidden("Nicht berechtigt")
+        if action == "fix":
+            result.gap_summary = ""
+            result.gap_notiz = ""
+            result.save(update_fields=["gap_summary", "gap_notiz"])
+        elif action == "carry":
+            AnlagenFunktionsMetadaten.objects.update_or_create(
+                anlage_datei=project_file,
+                funktion=result.funktion,
+                subquestion=result.subquestion,
+                defaults={
+                    "gap_summary": result.gap_summary,
+                    "gap_notiz": result.gap_notiz,
+                    "is_negotiable": result.is_negotiable,
+                },
+            )
+        return HttpResponse("", status=204)
+
+    parent_gaps = (
+        AnlagenFunktionsMetadaten.objects.filter(anlage_datei=parent)
+        .filter(
+            Q(gap_summary__isnull=False) & ~Q(gap_summary="")
+            | Q(gap_notiz__isnull=False) & ~Q(gap_notiz="")
+        )
+        .select_related("funktion", "subquestion")
+    )
+
+    context = {
+        "file": project_file,
+        "parent": parent,
+        "parent_gaps": parent_gaps,
+    }
+    return render(request, "version_compare.html", context)
+
+
+@login_required
+def anlage5_dummy(request):
+    """Zeigt einen Platzhalter f\xfcr Anlage 5."""
+    return render(request, "anlage5_dummy.html")
+
+
+@login_required
+def anlage6_review(request, pk):
+    """Erm\u00f6glicht die manuelle Sichtpr\u00fcfung von Anlage 6."""
+
+    project_file = get_object_or_404(BVProjectFile, pk=pk)
+    if project_file.anlage_nr != 6:
+        raise Http404
+
+    if request.method == "POST":
+        gap_form = BVGapNotesForm(request.POST, instance=project_file)
+        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+            if gap_form.is_valid():
+                gap_form.save()
+                return redirect("projekt_detail", pk=project_file.project.pk)
+        form = Anlage6ReviewForm(request.POST, instance=project_file)
+        if form.is_valid() and gap_form.is_valid():
+            form.save()
+            gap_form.save()
+            return redirect("projekt_detail", pk=project_file.project.pk)
+    else:
+        form = Anlage6ReviewForm(instance=project_file)
+        gap_form = BVGapNotesForm(instance=project_file)
+
+    context = {"anlage": project_file, "form": form, "gap_form": gap_form}
+    return render(request, "projekt_file_anlage6_review.html", context)

@@ -71,6 +71,20 @@ Procfile: Definiert die Prozesse (web, worker) für den Start mit honcho.
 -   **Analyse und Refactoring:** Bewertung von Code-Alternativen (Patches) und Umsetzung der besten Lösung.
 
 ## Tests und Checks
-- Vor jedem Commit `python manage.py makemigrations --check` ausführen.
-- Aktuell kein pytest ausführen. 
+- Vor jedem Commit müssen folgende Schritte erfolgreich sein:
+  - `python manage.py makemigrations --check`
+  - `pytest -q` (konfiguriert über `pytest.ini`)
+
+- Pre-Commit Hook: Die Datei `.pre-commit-config.yaml` führt beide Schritte automatisch aus.
+  Installation: `pip install -r requirements-dev.txt && pre-commit install`
+  - Der Hook führt standardmäßig nur die „schnellen“ Tests aus (ohne `slow`, `e2e`, `selenium`).
+  - Die vollständige Suite startet man manuell mit `pytest`.
+  - Für Notfälle kann mit `git commit --no-verify` übersprungen werden (nicht empfohlen).
+
+## Management‑Befehle
+
+- `seed_initial_data`: Füllt/aktualisiert Standarddaten (Bereiche, Status, Rollen, Fragen, Parser‑Regeln, Prompts).
+- `export_configs`: Exportiert die Konfigurationsmodelle als JSON (stdout).
+- `import_configs <pfad_zur_json>`: Importiert Konfigurationen idempotent, inkl. Many‑to‑Many‑Werte.
+- `clear_async_tasks [--queued|--failed]`: Löscht Django‑Q Queue‑Einträge und/oder fehlgeschlagene Tasks.
 

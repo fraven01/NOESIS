@@ -77,17 +77,7 @@
                     </a>
                     {% endif %}
                     {% endif %}
-                    {% if row.source_text and row.source_text != 'N/A' %}
-                    <span class="text-muted small source-indicator" data-popover-content="{{ row.source_text }}">
-                        {% if row.source_text == 'Manuell' %}
-                        <i class="fa-solid fa-user"></i>
-                        {% else %}
-                        <i class="fa-solid fa-file-alt"></i>
-                        {% endif %}
-                    </span>
-                    {% elif row.source_text == 'N/A' %}
-                    <span class="text-muted small source-indicator"><i class="fa-solid fa-question"></i></span>
-                    {% endif %}
+                    {# In Spalte 1 kein Quellen-Symbol anzeigen #}
                 </td>
                 {% for field in fields %}
                 {% with f=row.form_fields|get_item:field %}
@@ -148,6 +138,9 @@
 <script src="{% static 'js/anlage2_review_utils.js' %}"></script>
 <script src="{% static 'js/popover.js' %}"></script>
 <script>
+// Felder ohne KI-Unterstützung: Anzeige richtet sich ausschließlich nach dem Dokument
+// Wichtig: |safe, damit das JSON im Skript nicht HTML-escaped wird.
+const NO_AI_FIELDS = new Set({{ no_ai_fields|tojson|safe }});
 function safeJsonParse(jsonString) {
     if (!jsonString || jsonString.trim() === "") {
         return {};
@@ -243,18 +236,21 @@ function updatePopoverContent(icon) {
         if ('value' in docEntry) docVal = docEntry.value;
         docNote = docEntry.note || docEntry.text || '';
     }
+    const isNoAI = NO_AI_FIELDS.has(field);
     let aiEntry = ai[aiKey];
     let aiVal = aiEntry;
     let aiNote = '';
-    if (aiEntry && typeof aiEntry === 'object') {
-        if ('value' in aiEntry) aiVal = aiEntry.value;
-        aiNote = aiEntry.note || aiEntry.text || '';
-    }
-    let aiDisplay;
-    if (ai.hasOwnProperty(aiKey)) {
-        aiDisplay = aiVal === true ? 'True' : aiVal === false ? 'False' : 'Unsicher';
-    } else {
-        aiDisplay = 'Nicht geprüft';
+    let aiDisplay = '';
+    if (!isNoAI) {
+        if (aiEntry && typeof aiEntry === 'object') {
+            if ('value' in aiEntry) aiVal = aiEntry.value;
+            aiNote = aiEntry.note || aiEntry.text || '';
+        }
+        if (ai.hasOwnProperty(aiKey)) {
+            aiDisplay = aiVal === true ? 'True' : aiVal === false ? 'False' : 'Unsicher';
+        } else {
+            aiDisplay = 'Nicht geprüft';
+        }
     }
     let manualVal = null;
     let manualEntry = manual[aiKey];
@@ -267,7 +263,7 @@ function updatePopoverContent(icon) {
         `<span class="popover-manual">Manuell: ${manualVal}</span>` :
         'Manuell: -';
     const html = `Dokument: ${docVal}${docNote ? ' ('+docNote+')' : ''}<br>` +
-                 `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>` +
+                 (isNoAI ? '' : `KI-Check: ${aiDisplay}${aiNote ? ' ('+aiNote+')' : ''}<br>`) +
                  manualHtml;
     icon.dataset.popoverContent = html;
     if (window.attachCustomPopover) {
@@ -311,8 +307,10 @@ function updateRowAppearance(row) {
         if (aiVal && typeof aiVal === 'object' && 'value' in aiVal) aiVal = aiVal.value;
         icon.classList.remove('bg-success','bg-error','bg-warning','text-background');
         if (f === 'einsatz_bei_telefonica' || f === 'zur_lv_kontrolle') {
-            // Farbgebung ausschließlich anhand des Dokumentenwertes
+            // Anzeige ausschließlich anhand des Dokumentenwertes
             const displayVal = docVal === true;
+            // Textinhalt entsprechend setzen, damit kein veralteter Servertext stehen bleibt
+            icon.textContent = displayVal ? '✓ Vorhanden' : '✗ Nicht vorhanden';
             icon.classList.add(displayVal ? 'bg-success' : 'bg-error', 'text-background');
             updatePopoverContent(icon);
             if (calcNeedsReview(manualVal, docVal, aiVal, hasManual, f)) {

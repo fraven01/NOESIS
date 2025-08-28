@@ -44,8 +44,7 @@ class AdminProjectCleanupTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
-            analysis_json={},
+            analysis_json={"ok": {"value": True, "editable": True}},
         )
 
     def test_delete_file(self):
@@ -91,6 +90,14 @@ class AdminProjectCleanupTests(NoesisTestCase):
         pf2.refresh_from_db()
         self.assertEqual(self.file.gap_summary, "")
         self.assertEqual(pf2.gap_summary, "")
+
+    def test_cleanup_does_not_touch_analysis_json(self):
+        original = self.file.analysis_json
+        url = reverse("admin_project_cleanup", args=[self.projekt.pk])
+        resp = self.client.post(url, {"action": "delete_classification"})
+        self.assertRedirects(resp, url)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.analysis_json, original)
 
     def test_version_column_and_sorting(self):
         BVProjectFile.objects.create(

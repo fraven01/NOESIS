@@ -261,9 +261,6 @@ def create_initial_data(apps) -> None:
 
     prompts.extend(
         [
-            ("anlage1_email",
-             "Formuliere eine freundliche E-Mail an den Fachbereich. Wir haben die Anlage 1 geprüft und noch folgende Vorschläge, bevor der Mitbestimmungsprozess weiter gehen kann. Bitte fasse die folgenden Vorschläge zusammen:\r\n\r\n",
-             True),
             (
                 "anlage2_ai_involvement_check",
                 "Antworte ausschließlich mit 'Ja' oder 'Nein'. Frage: Beinhaltet die Funktion '{function_name}' der Software '{software_name}' typischerweise eine KI-Komponente? Eine KI-Komponente liegt vor, wenn die Funktion unstrukturierte Daten (Text, Bild, Ton) verarbeitet, Sentiment-Analysen durchführt oder nicht-deterministische, probabilistische Ergebnisse liefert.",
@@ -285,8 +282,6 @@ def create_initial_data(apps) -> None:
                 True,
             ),
 
-            ("check_anlage5", "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
-            ("classify_system", "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schlüsseln 'kategorie' und 'begruendung' zurück.\n\n", True),
             (
                 "generate_gutachten",
                 "Du bist eine Expert:innen-KI für Arbeitsrecht und mit einem "
@@ -332,16 +327,11 @@ def create_initial_data(apps) -> None:
                 True,
             ),
             ("initial_check_knowledge", "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.", False),
-            ("initial_check_knowledge_with_context", "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'.", True),
             ("initial_llm_check", "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. Erläutere, was sie tut und wie sie typischerweise eingesetzt wird.", True),
-            ("check_anlage3_vision", "Prüfe die folgenden Bilder der Anlage. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n", True),
             ("anlage2_table", "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n", True),
-            ("check_gutachten_functions", "Prüfe das folgende Gutachten auf weitere Funktionen, die nach § 87 Abs. 1 Nr. 6 mitbestimmungspflichtig sein könnten. Gib eine kurze Empfehlung als Text zurück.\n\n", True),
         ]
     )
 
-    for q in INITIAL_ANLAGE1_QUESTIONS:
-        prompts.append((f"anlage1_q{q['num']}", q["text"], True))
     for entry in prompts:
         name, text, use_system_role, *rest = entry
         defaults = {"text": text, "use_system_role": use_system_role}

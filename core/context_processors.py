@@ -6,8 +6,9 @@ from typing import TypedDict
 
 from django.db.models import Q
 from django.http import HttpRequest
+from django.urls import reverse, resolve, Resolver404
 
-from .models import Area, Tile
+from .models import Area, Tile, BVProjectFile
 
 
 def is_admin(request: HttpRequest) -> dict[str, bool]:
@@ -178,16 +179,49 @@ def breadcrumbs(request: HttpRequest) -> dict[str, list[dict[str, str]]]:
         "projects-admin": "Projekt-Admin",
         "change": "Bearbeiten",
         "add": "Hinzufügen",
+        "edit-json": "Review",
     }
 
     segments = [p for p in path.split("/") if p]
     crumbs: list[dict[str, str]] = []
     current = "/"
 
+    # Spezialfall: Schöne Breadcrumbs für work/anlage/<pk>/...
+    if len(segments) >= 3 and segments[0] == "work" and segments[1] == "anlage" and segments[2].isdigit():
+        try:
+            pf = BVProjectFile.objects.select_related("project").get(pk=int(segments[2]))
+            # Work → <Projektname> → Anlage <Nr> v<Version> → [letztes Segment]
+            crumbs.append({"url": reverse("work"), "label": "Work"})
+            try:
+                proj_url = reverse("projekt_detail", args=[pf.project_id])
+            except Exception:
+                proj_url = None
+            # Bezeichnung des Projekts robust bestimmen
+            proj_label = getattr(pf.project, "title", None) or getattr(
+                pf.project, "software_string", None
+            ) or f"Projekt {pf.project_id}"
+            crumbs.append({"url": proj_url, "label": proj_label})
+            crumbs.append({"url": None, "label": f"Anlage {pf.anlage_nr} v{pf.version}"})
+            if len(segments) > 3:
+                last = segments[3]
+                label = mappings.get(last, last.replace("-", " ").capitalize())
+                crumbs.append({"url": None, "label": label})
+            return {"breadcrumbs": crumbs}
+        except BVProjectFile.DoesNotExist:
+            pass
+
     for idx, segment in enumerate(segments):
         current += f"{segment}/"
         label = mappings.get(segment, segment.replace("-", " ").capitalize())
-        url = current if idx < len(segments) - 1 else None
+        # Nur verlinken, wenn der Teilpfad tatsächlich auflösbar ist
+        if idx < len(segments) - 1:
+            try:
+                resolve(current)
+                url = current
+            except Resolver404:
+                url = None
+        else:
+            url = None
         crumbs.append({"url": url, "label": label})
 
     return {"breadcrumbs": crumbs}

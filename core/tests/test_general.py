@@ -75,7 +75,6 @@ from ..forms import (
 from ..workflow import set_project_status
 from ..models import ProjectStatus
 from ..llm_tasks import (
-    classify_system,
     check_anlage1,
     check_anlage2,
     analyse_anlage3,
@@ -342,12 +341,7 @@ def test_build_prompt_context_keys(db) -> None:
             "text": "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.",
             "use_system_role": False,
         },
-        "initial_check_knowledge_with_context": {
-            "text": (
-                "Kennst du die Software '{name}'? Hier ist zusätzlicher Kontext, um sie zu identifizieren: \"{user_context}\". "
-                "Antworte ausschließlich mit einem einigen Wort: 'Ja' oder 'Nein'."
-            )
-        },
+        
         "initial_llm_check": {
             "text": (
                 "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. "
@@ -1449,24 +1443,7 @@ class LLMTasksTests(NoesisTestCase):
         super().setUp()
         self.func = Anlage2Function.objects.create(name="Anmelden")
 
-    def test_classify_system(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Testtext",
-        )
-        status_before = projekt.status.key
-        with patch(
-            "core.llm_tasks.query_llm",
-            return_value='{"kategorie":"X","begruendung":"ok"}',
-        ):
-            data = classify_system(projekt.pk)
-        projekt.refresh_from_db()
-        self.assertEqual(projekt.classification_json["kategorie"]["value"], "X")
-        self.assertEqual(projekt.status.key, status_before)
-        self.assertEqual(data["kategorie"]["value"], "X")
+    # test_classify_system entfernt: Feature ausgebaut
 
     def test_check_anlage2(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -2350,13 +2327,7 @@ class PromptTests(NoesisTestCase):
         self.assertIn("{system_name}", p.text)
         self.assertNotIn("{funktionen}", p.text)
 
-    def test_check_anlage3_vision_prompt_text(self):
-        p = Prompt.objects.get(name="check_anlage3_vision")
-        expected = (
-            "Pr\u00fcfe die folgenden Bilder der Anlage. "
-            "Gib ein JSON mit 'ok' und 'hinweis' zur\u00fcck:\n\n"
-        )
-        self.assertEqual(p.text, expected)
+    # check_anlage3_vision Prompt entfernt – kein Test mehr erforderlich
 
 
 
@@ -2448,7 +2419,6 @@ class ProjektFileCheckViewTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
 
@@ -2488,7 +2458,6 @@ class Anlage2ReviewTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("c.txt", b"d"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
             analysis_json={
                 "functions": [
                     {
@@ -2524,13 +2493,27 @@ class Anlage2ReviewTests(NoesisTestCase):
         )
         self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
         self.file.refresh_from_db()
-        data = self.file.manual_analysis_json["functions"][str(self.func.id)]
-        self.assertTrue(data["technisch_vorhanden"])
-        self.assertTrue(data["subquestions"][str(self.sub.id)]["ki_beteiligung"])
+        fe_func = FunktionsErgebnis.objects.filter(
+            anlage_datei=self.file,
+            funktion=self.func,
+            subquestion__isnull=True,
+            quelle="manuell",
+            technisch_verfuegbar=True,
+        ).first()
+        self.assertIsNotNone(fe_func)
+        self.assertTrue(fe_func.technisch_verfuegbar)
+        fe_sub = FunktionsErgebnis.objects.filter(
+            anlage_datei=self.file,
+            funktion=self.func,
+            subquestion=self.sub,
+            quelle="manuell",
+            ki_beteiligung=True,
+        ).first()
+        self.assertIsNotNone(fe_sub)
+        self.assertTrue(fe_sub.ki_beteiligung)
 
     def test_prefill_from_analysis(self):
         """Die Formulardaten verwenden Analysewerte als Vorgabe."""
-        self.file.manual_analysis_json = None
         self.file.analysis_json = {
             "functions": [
                 {
@@ -2550,7 +2533,7 @@ class Anlage2ReviewTests(NoesisTestCase):
 
     def test_prefill_with_metadaten_no_ergebnis(self):
         """Analysewerte werden auch ohne FunktionsErgebnisse angezeigt."""
-        self.file.manual_analysis_json = None
+        # Keine manuellen Werte gesetzt – nur Metadaten vorhanden
         self.file.save()
         AnlagenFunktionsMetadaten.objects.create(
             anlage_datei=self.file,
@@ -2615,7 +2598,6 @@ class WorkerGenerateGutachtenTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.knowledge = SoftwareKnowledge.objects.create(
@@ -2661,7 +2643,6 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
                 "verhandlungsfaehig": {"value": True},
                 "pages": {"value": 1},
             },
-            manual_analysis_json={"functions": {}},
             manual_reviewed=True,
             verhandlungsfaehig=True,
         )
@@ -2751,7 +2732,6 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             anlage_nr=1,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.file2 = BVProjectFile.objects.create(
@@ -2759,7 +2739,6 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             anlage_nr=2,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text2",
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
 
@@ -2817,7 +2796,7 @@ class ProjektFileCheckResultTests(NoesisTestCase):
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(pf.pk)
 
-    def test_anlage3_llm_param_triggers_vision_check(self):
+    def test_anlage3_llm_param_calls_analyse(self):
         pf = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=3,
@@ -2825,8 +2804,8 @@ class ProjektFileCheckResultTests(NoesisTestCase):
             text_content="T",
         )
         url = reverse("projekt_file_check_view", args=[pf.pk]) + "?llm=1"
-        with patch("core.views.check_anlage3_vision") as mock_func:
-            mock_func.return_value = {"task": "check_anlage3_vision"}
+        with patch("core.views.analyse_anlage3") as mock_func:
+            mock_func.return_value = {"task": "analyse_anlage3"}
             resp = self.client.get(url)
         self.assertRedirects(resp, reverse("anlage3_review", args=[self.projekt.pk]))
         mock_func.assert_called_with(pf.pk)
@@ -3212,14 +3191,14 @@ class GutachtenLLMCheckTests(NoesisTestCase):
             software_knowledge=self.knowledge, text="Test"
         )
 
-    def test_endpoint_updates_note(self):
+    def test_endpoint_disabled_does_not_update_note(self):
         url = reverse("gutachten_llm_check", args=[self.gutachten.pk])
-        with patch("core.views.check_gutachten_functions") as mock_func:
-            mock_func.return_value = "Hinweis"
-            resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("projekt_initial_pruefung", args=[self.projekt.pk]))
+        resp = self.client.post(url)
+        self.assertRedirects(
+            resp, reverse("projekt_initial_pruefung", args=[self.projekt.pk])
+        )
         self.projekt.refresh_from_db()
-        self.assertEqual(self.projekt.gutachten_function_note, "Hinweis")
+        self.assertEqual(self.projekt.gutachten_function_note, "")
 
 
 class FeatureVerificationTests(NoesisTestCase):
@@ -3233,7 +3212,6 @@ class FeatureVerificationTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Export")
@@ -3503,10 +3481,8 @@ class InitialCheckTests(NoesisTestCase):
             worker_run_initial_check(sk.pk, user_context="Hint")
         context_data = mock_q.call_args[0][1]
         assert context_data["user_context"] == "Hint"
-        assert (
-            mock_q.call_args[0][0].name
-            == "initial_check_knowledge_with_context"
-        )
+        # Prompt mit Kontext-Variante ist deaktiviert; Standard-Prompt wird genutzt
+        assert mock_q.call_args[0][0].name == "initial_check_knowledge"
 
 
 class EditKIJustificationTests(NoesisTestCase):
@@ -3519,7 +3495,6 @@ class EditKIJustificationTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"data"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Export")
@@ -3567,7 +3542,6 @@ class JustificationDetailEditTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("jd.txt", b"data"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Export")
@@ -3594,7 +3568,6 @@ class KIInvolvementDetailEditTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("kid.txt", b"data"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Export")
@@ -3628,7 +3601,6 @@ class VerificationToInitialTests(NoesisTestCase):
             project=self.project,
             anlage_nr=2,
             upload=SimpleUploadedFile("v.txt", b"data"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Export")
@@ -3966,7 +3938,6 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             project=self.projekt,
             anlage_nr=2,
             upload=SimpleUploadedFile("a.txt", b"x"),
-            manual_analysis_json={"functions": {}},
             analysis_json={},
         )
         self.func = Anlage2Function.objects.create(name="Anmelden")
@@ -3988,9 +3959,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
-        self.pf.refresh_from_db()
-        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
-        self.assertTrue(func_data["technisch_vorhanden"])
+        # Ergebnis wurde als manueller Eintrag gespeichert
 
         fe = FunktionsErgebnis.objects.filter(
             anlage_datei__project=self.projekt,
@@ -4104,9 +4073,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             quelle="manuell",
         ).first()
         self.assertTrue(fe.einsatz_bei_telefonica)
-        self.pf.refresh_from_db()
-        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
-        self.assertTrue(func_data["einsatz_bei_telefonica"])
+        # Zustand ist in FunktionsErgebnis persistiert
 
     def test_save_lv_kontrolle(self):
         url = reverse("ajax_save_anlage2_review")
@@ -4129,9 +4096,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             quelle="manuell",
         ).first()
         self.assertFalse(fe.zur_lv_kontrolle)
-        self.pf.refresh_from_db()
-        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
-        self.assertFalse(func_data["zur_lv_kontrolle"])
+        # Zustand ist in FunktionsErgebnis persistiert
 
     def test_manual_result_merge(self):
         url = reverse("ajax_save_anlage2_review")
@@ -4160,10 +4125,7 @@ class AjaxAnlage2ReviewTests(NoesisTestCase):
             content_type="application/json",
         )
 
-        self.pf.refresh_from_db()
-        func_data = self.pf.manual_analysis_json["functions"][str(self.func.pk)]
-        self.assertTrue(func_data["technisch_vorhanden"])
-        self.assertFalse(func_data["ki_beteiligung"])
+        # Beide manuellen Einträge wurden gespeichert
         fes = FunktionsErgebnis.objects.filter(
             anlage_datei__project=self.projekt,
             funktion=self.func,
@@ -4668,8 +4630,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 quelle="manuell",
             ).exists()
         )
-        pf.refresh_from_db()
-        self.assertTrue(pf.manual_analysis_json["functions"][str(func.id)]["technisch_vorhanden"])
+        # Manueller Eintrag liegt vor
 
         resp = self.client.post(url, HTTP_HX_REQUEST="true")
         self.assertEqual(resp.status_code, 200)
@@ -4680,8 +4641,7 @@ class Anlage2ResetTests(NoesisTestCase):
                 quelle="manuell",
             ).exists()
         )
-        pf.refresh_from_db()
-        self.assertIsNone(pf.manual_analysis_json)
+        # Manueller Eintrag wurde entfernt
 
 
 class GapReportTests(NoesisTestCase):

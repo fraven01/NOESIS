@@ -636,38 +636,7 @@ def worker_run_anlage2_analysis(file_id: int) -> list[dict[str, object]]:
 
 
 
-def classify_system(projekt_id: int) -> dict:
-    """Klassifiziert das System eines Projekts und speichert das Ergebnis."""
-    projekt = BVProject.objects.get(pk=projekt_id)
-    base_obj = Prompt.objects.filter(name__iexact="classify_system").first()
-    prefix = (
-        base_obj.text
-        if base_obj
-        else "Bitte klassifiziere das folgende Softwaresystem. Gib ein JSON mit den Schl\xfcsseln 'kategorie' und 'begruendung' zur\xfcck.\n\n"
-    )
-    prompt_text = prefix + _collect_text(projekt)
-    prompt_obj = Prompt(
-        name="tmp",
-        text=prompt_text,
-       role=base_obj.role if base_obj else None,
-        use_project_context=base_obj.use_project_context if base_obj else True,
-    )
-    ctx = build_prompt_context(projekt)
-    reply = query_llm(
-        prompt_obj,
-        ctx,
-        model_type="default",
-        project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-    )
-    try:
-        data = json.loads(reply)
-    except Exception:  # noqa: BLE001
-        logger.warning("LLM Antwort kein JSON: %s", reply)
-        data = {"raw": reply}
-    data = _add_editable_flags(data)
-    projekt.classification_json = data
-    projekt.save(update_fields=["classification_json"])
-    return data
+    
 
 
 def generate_gutachten(
@@ -859,61 +828,7 @@ def analyse_anlage3(file_id: int) -> dict:
     return result or {}
 
 
-def _read_pdf_images(path: Path) -> list[bytes]:
-    """Liest die Bytes einer PDF-Datei ein."""
-    try:
-        with open(path, "rb") as fh:
-            return [fh.read()]
-    except Exception as exc:  # pragma: no cover - ungültige Datei
-        anlage3_logger.error("Fehler beim Lesen des PDF %s: %s", path, exc)
-        return []
-
-
-def extract_anlage3_images(projekt_id: int) -> list[list[bytes]]:
-    """Extrahiert die Bilder aller Anlage-3-Dateien."""
-
-    projekt = BVProject.objects.get(pk=projekt_id)
-    images_all: list[list[bytes]] = []
-    for anlage in projekt.anlagen.filter(anlage_nr=3):
-        path = Path(anlage.upload.path)
-        if path.suffix.lower() == ".docx":
-            images = extract_images(path)
-        elif path.suffix.lower() == ".pdf":
-            images = _read_pdf_images(path)
-        else:
-            try:
-                with open(path, "rb") as fh:
-                    images = [fh.read()]
-            except Exception as exc:  # pragma: no cover - ungültige Datei
-                anlage3_logger.error("Fehler beim Lesen von %s: %s", path, exc)
-                images = []
-        images_all.append(images)
-    return images_all
-
-
-def check_anlage3_vision(projekt_id: int) -> dict:
-    """Extrahiert lediglich die Bilder der Anlage 3.
-
-    Eine inhaltliche Bildanalyse durch ein LLM ist noch nicht umgesetzt.
-    Das Ergebnis enthält aktuell nur die Anzahl der gefundenen Bilder.
-    """
-
-    anlagen_images = extract_anlage3_images(projekt_id)
-    if not anlagen_images:
-        raise ValueError("Anlage 3 fehlt")
-
-    result: dict | None = None
-    projekt = BVProject.objects.get(pk=projekt_id)
-    for anlage, images in zip(
-        projekt.anlagen.filter(anlage_nr=3), anlagen_images
-    ):
-        data = {"images": len(images)}
-        anlage.analysis_json = data
-        anlage.save(update_fields=["analysis_json"])
-        if result is None:
-            result = data
-
-    return result or {}
+    
 
 
 def _check_anlage(projekt_id: int, nr: int) -> dict:
@@ -1931,13 +1846,8 @@ def worker_run_initial_check(
 
     result = {"is_known_by_llm": False, "description": ""}
     try:
-        # --- Stufe 1: Wissens-Check ---
-        prompt_name = (
-            "initial_check_knowledge_with_context"
-            if user_context
-            else "initial_check_knowledge"
-        )
-        prompt_knowledge = Prompt.objects.get(name=prompt_name)
+        # --- Stufe 1: Wissens-Check (Kontext-Variante deaktiviert) ---
+        prompt_knowledge = Prompt.objects.get(name="initial_check_knowledge")
         ctx = build_prompt_context(sk.project, name=software_name, user_context=user_context or "")
         reply1 = query_llm(
             prompt_knowledge,
@@ -1981,19 +1891,7 @@ def worker_run_initial_check(
     return result
 
 
-def worker_run_anlage3_vision(project_id: int) -> dict:
-    """Führt die Vision-Prüfung für Anlage 3 im Hintergrund aus."""
-
-    logger.info(
-        "worker_run_anlage3_vision gestartet für Projekt %s",
-        project_id,
-    )
-    result = check_anlage3_vision(project_id)
-    logger.info(
-        "worker_run_anlage3_vision beendet für Projekt %s",
-        project_id,
-    )
-    return result
+    
 
 
 def check_gutachten_functions(projekt_id: int) -> str:
@@ -2019,12 +1917,22 @@ def check_gutachten_functions(projekt_id: int) -> str:
         role=base_obj.role if base_obj else None,
         use_project_context=base_obj.use_project_context if base_obj else True,
     )
+    # Debug-Logging: finaler Prompt-Text
+    llm_logger.debug(
+        "Finaler Prompt für check_gutachten_functions:\n%s",
+        prompt_obj.text,
+    )
     ctx = build_prompt_context(projekt)
     reply = query_llm(
         prompt_obj,
         ctx,
         model_type="gutachten",
         project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
+    )
+    # Debug-Logging: erhaltene Antwort
+    llm_logger.debug(
+        "Antwort für check_gutachten_functions:\n%s",
+        reply,
     )
     projekt.gutachten_function_note = reply
     projekt.save(update_fields=["gutachten_function_note"])

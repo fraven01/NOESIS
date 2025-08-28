@@ -1,0 +1,19 @@
+/* Zusätzliche Dark‑Mode‑Styles für Formulareingaben (ohne Tailwind‑Build) */
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="search"],
+.dark input[type="url"],
+.dark input[type="tel"],
+.dark select,
+.dark textarea {
+  background-color: #1e293b; /* background.dark */
+  color: #f8fafc;            /* text.light */
+  border-color: #334155;     /* gray-700 */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8; /* gray-400 */
+}

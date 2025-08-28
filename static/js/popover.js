@@ -5,7 +5,19 @@
   function createPopover(content, target) {
     removeAll();
     const pop = document.createElement('div');
-    pop.className = 'custom-popover absolute bg-white border border-gray-300 px-2 py-1 rounded shadow text-sm max-w-[250px] whitespace-normal z-[1000]';
+    // Dark-Mode-kompatible Popover-Stile
+    pop.className = [
+      'custom-popover',
+      'absolute',
+      // Hintergrund + Rahmen (Hell/Dunkel)
+      'bg-white', 'dark:bg-gray-800',
+      'border', 'border-gray-300', 'dark:border-gray-600',
+      // Textfarben (Hell/Dunkel)
+      'text-gray-900', 'dark:text-gray-100',
+      // Layout
+      'px-2', 'py-1', 'rounded', 'shadow', 'text-sm',
+      'max-w-[250px]', 'whitespace-normal', 'z-[1000]'
+    ].join(' ');
     pop.innerHTML = (content || '').replace(/\n/g, '<br>');
     document.body.appendChild(pop);
     const rect = target.getBoundingClientRect();

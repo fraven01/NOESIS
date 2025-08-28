@@ -43,15 +43,13 @@ class ProjektFileJSONEditTests(NoesisTestCase):
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={"0": {"ok": False, "nego": False, "note": ""}},
-            analysis_json={"items": ["Alt"]},
+            analysis_json={"items": ["Alt"], "manual_review": {"0": {"ok": False, "nego": False, "note": ""}}},
         )
         self.anlage1 = BVProjectFile.objects.create(
             project=self.projekt,
             anlage_nr=1,
             upload=SimpleUploadedFile("b.txt", b"data"),
             text_content="Text",
-            manual_analysis_json={},
             analysis_json={
                 "questions": {
                     "1": {
@@ -69,14 +67,13 @@ class ProjektFileJSONEditTests(NoesisTestCase):
         resp = self.client.post(
             url,
             {
-                "analysis_json": '{"items": ["Neu"]}',
-                "manual_analysis_json": '{"0": {"note": "Hinweis"}}',
+                "analysis_json": '{"items": ["Neu"], "manual_review": {"0": {"note": "Hinweis"}}}',
             },
         )
         self.assertEqual(resp.status_code, 302)
         self.file.refresh_from_db()
         self.assertEqual(self.file.analysis_json["items"], ["Neu"])
-        self.assertEqual(self.file.manual_analysis_json["0"]["note"], "Hinweis")
+        self.assertEqual(self.file.analysis_json["manual_review"]["0"]["note"], "Hinweis")
         path = generate_gap_analysis(self.projekt)
         try:
             doc = Document(path)
@@ -90,7 +87,7 @@ class ProjektFileJSONEditTests(NoesisTestCase):
         url = reverse("projekt_file_edit_json", args=[self.file.pk])
         self.file.analysis_json = {"items": []}
         self.file.save(update_fields=["analysis_json"])
-        resp = self.client.post(url, {"analysis_json": "{", "manual_analysis_json": "{}"})
+        resp = self.client.post(url, {"analysis_json": "{"})
         self.assertEqual(resp.status_code, 200)
         self.file.refresh_from_db()
         self.assertEqual(self.file.analysis_json, {"items": []})

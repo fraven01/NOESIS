@@ -779,7 +779,16 @@ class JustificationForm(forms.Form):
     """Formular zum Bearbeiten eines KI-Begründungstextes."""
 
     justification = forms.CharField(
-        widget=forms.Textarea(attrs={"rows": 15}),
+        widget=forms.Textarea(
+            attrs={
+                "rows": 15,
+                "class": (
+                    "w-full p-2 border rounded bg-background text-text "
+                    "dark:bg-background-dark dark:text-text-light "
+                    "placeholder-gray-400 border-gray-300 dark:border-gray-700"
+                ),
+            }
+        ),
         label="KI-Begründung bearbeiten",
         required=False,
     )

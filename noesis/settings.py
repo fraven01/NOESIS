@@ -252,6 +252,8 @@ LLM_MAX_OUTPUT_TOKENS = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "2048"))
 LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET_KEY = os.environ.get("LANGFUSE_SECRET_KEY", "")
 LANGFUSE_HOST = os.environ.get("LANGFUSE_HOST", "")
+# Feature-Flag: Langfuse/OTel nur aktivieren, wenn explizit erlaubt
+LANGFUSE_ENABLED = env.bool("LANGFUSE_ENABLED", default=False)
 
 
 LOGGING = {
