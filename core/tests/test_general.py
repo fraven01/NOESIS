@@ -93,7 +93,6 @@ from ..llm_tasks import (
     generate_gutachten,
     run_anlage2_analysis,
     parse_anlage1_questions,
-    _parse_anlage2,
 )
 from ..views import (
     _verification_to_initial,
@@ -308,14 +307,6 @@ def test_build_prompt_context_keys(db) -> None:
             "role": roles.get("Standard"),
             "use_system_role": False,
         },
-        "check_anlage2_function": {
-            "text": (
-                "Prüfe anhand des folgenden Textes, ob die genannte Funktion "
-                'vorhanden ist. Gib ein JSON mit den Schlüsseln "technisch_verfuegbar", '
-                '"einsatz_telefonica", "zur_lv_kontrolle" und "ki_beteiligung" '
-                "zurück.\n\n"
-            )
-        },
         "check_anlage4": {
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n",
         },
@@ -352,19 +343,19 @@ def test_build_prompt_context_keys(db) -> None:
         },
     }
 
-        for name, data in prompt_data.items():
-            Prompt.objects.update_or_create(
-                name=name,
-                defaults={
-                    "text": data["text"],
-                    "role": data.get("role"),
-                    "use_system_role": data.get("use_system_role", True),
-                },
-            )
+    for name, data in prompt_data.items():
+        Prompt.objects.update_or_create(
+            name=name,
+            defaults={
+                "text": data["text"],
+                "role": data.get("role"),
+                "use_system_role": data.get("use_system_role", True),
+            },
+        )
 
-        # Angleiche den Prompt an die Seeds: KI-Begründung inkl. Projekt/Software/Funktion/Unterfrage
-        ai_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
-        ai_obj.text = (
+    # Angleiche den Prompt an die Seeds: KI-Begründung inkl. Projekt/Software/Funktion/Unterfrage
+    ai_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
+    ai_obj.text = (
             " [SYSTEM]\n"
             "Du bist Fachautor*in für IT‑Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG)."
             " Begründe prägnant in 1–3 Sätzen, warum eine KI‑Beteiligung plausibel ist.\n\n"
@@ -379,8 +370,8 @@ def test_build_prompt_context_keys(db) -> None:
             "Unterfrage: \"{subquestion_text}\"\n\n"
             "Aufgabe: Gib eine kurze Begründung, warum hier eine KI‑Komponente beteiligt ist oder beteiligt sein kann."
         )
-        ai_obj.use_system_role = False
-        ai_obj.save(update_fields=["text", "use_system_role"])
+    ai_obj.use_system_role = False
+    ai_obj.save(update_fields=["text", "use_system_role"])
 
 
 class SeedInitialDataTests(NoesisTestCase):
@@ -1465,7 +1456,7 @@ class LLMTasksTests(NoesisTestCase):
 
     # test_classify_system entfernt: Feature ausgebaut
 
-    def test_check_anlage2(self):
+    def test_check_anlage2_parser_only(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
         pf = BVProjectFile.objects.create(
             project=projekt,
@@ -1474,19 +1465,15 @@ class LLMTasksTests(NoesisTestCase):
             text_content="Anlagetext",
         )
         func = self.func
-        llm_reply = json.dumps({"technisch_verfuegbar": True})
-        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
-            data = check_anlage2(projekt.pk)
-        mock_q.assert_called()
-        file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(data["functions"][0]["technisch_verfuegbar"])
-        self.assertEqual(data["functions"][0]["source"], "llm")
-        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
-        fe = FunktionsErgebnis.objects.filter(
+        # Ohne Parserdaten: keine LLM-Aufrufe, Werte bleiben None und Quelle ist parser
+        data = check_anlage2(projekt.pk)
+        self.assertIsNone(data["functions"][0]["technisch_verfuegbar"])
+        self.assertEqual(data["functions"][0]["source"], "parser")
+        # Es sollte kein LLM-Ergebnis gespeichert sein
+        fe_llm = FunktionsErgebnis.objects.filter(
             anlage_datei=pf, funktion=func, quelle="llm"
         ).first()
-        self.assertIsNotNone(fe)
-        self.assertTrue(fe.technisch_verfuegbar)
+        self.assertIsNone(fe_llm)
 
     def test_check_anlage2_functions_stores_result(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -1528,7 +1515,8 @@ class LLMTasksTests(NoesisTestCase):
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
-        self.assertIn("Testinhalt Anlage2", mock_q.call_args_list[0].args[0].text)
+        # Parser-only: kein LLM-Aufruf erwartet
+        mock_q.assert_not_called()
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(
             any(f["funktion"] == "Anmelden" for f in data["functions"])
@@ -1547,8 +1535,8 @@ class LLMTasksTests(NoesisTestCase):
         llm_reply = json.dumps({"technisch_verfuegbar": False})
         with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
             data = check_anlage2(projekt.pk)
-        prompt = mock_q.call_args_list[0].args[0].text
-        self.assertIn("Testinhalt Anlage2", prompt)
+        # Parser-only: kein LLM-Aufruf erwartet
+        mock_q.assert_not_called()
         file_obj = projekt.anlagen.get(anlage_nr=2)
         self.assertTrue(
             any(f["funktion"] == "Anmelden" for f in data["functions"])
@@ -1580,7 +1568,8 @@ class LLMTasksTests(NoesisTestCase):
 
         with patch("core.llm_tasks.query_llm") as mock_q:
             data = check_anlage2(projekt.pk)
-        mock_q.assert_called()
+        # Parser-only: kein LLM-Aufruf erwartet
+        mock_q.assert_not_called()
         expected_function = {
             "funktion": "Anmelden",
             "technisch_verfuegbar": {"value": True, "note": None},
@@ -2313,19 +2302,7 @@ class LLMTasksTests(NoesisTestCase):
         finally:
             second.unlink(missing_ok=True)
 
-    def test_parse_anlage2_question_list(self):
-        text = "Welche Funktionen bietet das System?\u00b6- Anmelden\u00b6- Suche"
-        parsed = _parse_anlage2(text)
-        self.assertEqual(parsed, ["Anmelden", "Suche"])
-
-    def test_parse_anlage2_table_llm(self):
-        text = "Funktion | Beschreibung\u00b6Anmelden | a\u00b6Suche | b"
-        with patch(
-            "core.llm_tasks.query_llm", return_value='["Anmelden", "Suche"]'
-        ) as mock_q:
-            parsed = _parse_anlage2(text)
-        mock_q.assert_called_once()
-        self.assertEqual(parsed, ["Anmelden", "Suche"])
+    # Tests für die entfernte Hilfsfunktion _parse_anlage2 entfallen.
 
 
 class PromptTests(NoesisTestCase):
@@ -4479,6 +4456,9 @@ class Anlage2ResetTests(NoesisTestCase):
         )
 
         def fake(_pid, _typ, fid, _model=None):
+            # Nur Hauptfunktionen schreiben; Unterfragen nicht berksichtigen
+            if _typ != "function":
+                return {}
             pf_latest = BVProjectFile.objects.filter(
                 project=projekt, anlage_nr=2
             ).first()
@@ -4505,8 +4485,10 @@ class Anlage2ResetTests(NoesisTestCase):
             )
             mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
+        # Z2hle explizit nur Hauptfunktionen projektweit (ohne Unterfragen)
         results = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__project=projekt
+            anlage_datei__project=projekt,
+            subquestion__isnull=True,
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(

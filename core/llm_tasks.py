@@ -282,65 +282,7 @@ def parse_anlage1_questions(
     return parsed or {}
 
 
-def _parse_anlage2(text_content: str, project_prompt: str | None = None) -> list[str] | None:
-    """Extrahiert Funktionslisten aus Anlage 2."""
-    if not text_content:
-        return None
-    text = text_content.replace("\u00b6", "\n")
-    anlage2_logger.debug("Starte Parsing für Anlage 2. Rohtext wird geloggt.")
-    anlage2_logger.debug(
-        f"--- ANFANG ROH-TEXT ANLAGE 2 ---\n{text}\n--- ENDE ROH-TEXT ANLAGE 2 ---"
-    )
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-    table_like = any(
-        ("|" in line and line.count("|") >= 1) or "\t" in line for line in lines
-    )
-    if table_like:
-        base_obj = Prompt.objects.filter(name__iexact="anlage2_table").first()
-        prompt_text = (
-            base_obj.text
-            if base_obj
-            else "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n"
-        ) + text_content
-        prompt_obj = Prompt(
-            name="tmp",
-            text=prompt_text,
-            role=base_obj.role if base_obj else None,
-            use_project_context=base_obj.use_project_context if base_obj else True,
-        )
-        ctx = build_prompt_context()
-        reply = query_llm(
-            prompt_obj,
-            ctx,
-            model_type="anlagen",
-            project_prompt=project_prompt,
-        )
-        try:
-            data = json.loads(reply)
-            if isinstance(data, list):
-                return [str(x) for x in data]
-        except Exception:  # noqa: BLE001
-            anlage2_logger.warning("_parse_anlage2: LLM Antwort kein JSON: %s", reply)
-        return None
-
-    bullet_re = re.compile(r"^(?:[-*]|\d+[.)]|[a-z]\))\s*(.+)$", re.I)
-    functions: list[str] = []
-    capture = False
-    for line in lines:
-        lower = line.lower()
-        if not capture and "funktion" in lower and "?" in line:
-            capture = True
-            continue
-        m = bullet_re.match(line)
-        if capture and m:
-            functions.append(m.group(1).strip())
-            continue
-        if capture and not m:
-            break
-        if not capture and m:
-            functions.append(m.group(1).strip())
-    return functions or None
+## Entfernt: _parse_anlage2 – nicht mehr produktiv verwendet.
 
 
 def run_anlage2_analysis(project_file: BVProjectFile) -> list[dict[str, object]]:
@@ -915,12 +857,12 @@ def check_anlage1(file_id: int) -> dict:
 
 
 def check_anlage2(projekt_id: int) -> dict:
-    """Prüft die zweite Anlage.
+    """Prüft die zweite Anlage rein parserbasiert.
 
-    Für jede Funktion aus Anlage 2 wird geprüft, ob sie in der Tabelle der Anlage vorhanden ist.
-    Falls ja, werden die Werte direkt übernommen (Quelle: parser).
-    Falls nein, wird ein LLM befragt (Quelle: llm).
-    Zusätzlich werden für jede Subfrage (anlage2subquestion_set) ebenfalls LLM-Abfragen durchgeführt.
+    Für jede Funktion aus Anlage 2 wird geprüft, ob sie in der Tabelle der
+    Anlage vorhanden ist. Werte werden ausschließlich aus dem Parser übernommen.
+    Wenn der Parser nichts liefert, bleiben die Felder ``None``. Es erfolgen
+    keine LLM‑Abfragen (kein Fallback, keine Subfragen‑LLMs).
     Das Ergebnis wird als JSON im Analysefeld der Anlage gespeichert.
     """
     projekt = BVProject.objects.get(pk=projekt_id)
@@ -943,20 +885,7 @@ def check_anlage2(projekt_id: int) -> dict:
         anlage.save(update_fields=["analysis_json"])
         table = []
     anlage2_logger.debug("Anlage2 table data: %r", table)
-    text = _collect_text(projekt)
-    anlage2_logger.debug("Collected project text: %r", text)
-    try:
-        base_obj = Prompt.objects.get(name="check_anlage2_function")
-    except Prompt.DoesNotExist:
-        base_obj = Prompt(
-            name="check_anlage2_function",
-            text=(
-                "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-                "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
-                "und 'ki_beteiligung' zur\u00fcck.\n\n"
-            ),
-        )
-
+    # Parser-only: Kein Projekttext für LLM erforderlich
     results: list[dict] = []
     for func in Anlage2Function.objects.prefetch_related(
         "anlage2subquestion_set"
@@ -977,49 +906,15 @@ def check_anlage2(projekt_id: int) -> dict:
                 return value["value"]
             return value
 
-        if (
-            row
-            and _val(row, "technisch_verfuegbar") is not None
-            and _val(row, "ki_beteiligung") is not None
-        ):
+        # Nur Parserdaten verwenden; bei fehlender Zeile bleiben Werte None
+        if row:
             vals = {
                 "technisch_verfuegbar": row.get("technisch_verfuegbar"),
                 "ki_beteiligung": row.get("ki_beteiligung"),
             }
-            source = "parser"
-            raw = row
         else:
-            # Sonst LLM befragen
-            prompt_text = f"{base_obj.text}Funktion: {func.name}\n\n{text}"
-            anlage2_logger.debug(
-                "LLM Prompt für Funktion '%s': %s", func.name, prompt_text
-            )
-            prompt_obj = Prompt(
-                name="tmp",
-                text=prompt_text,
-                role=base_obj.role,
-                use_system_role=base_obj.use_system_role,
-                use_project_context=base_obj.use_project_context,
-            )
-            ctx = build_prompt_context(projekt)
-            reply = query_llm(
-                prompt_obj,
-                ctx,
-                model_type="anlagen",
-                project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-            )
-            anlage2_logger.debug(
-                "LLM Antwort für Funktion '%s': %s", func.name, reply
-            )
-            try:
-                raw = json.loads(reply)
-            except Exception:  # noqa: BLE001
-                raw = {"raw": reply}
-            vals = {
-                "technisch_verfuegbar": raw.get("technisch_verfuegbar"),
-                "ki_beteiligung": raw.get("ki_beteiligung"),
-            }
-            source = "llm"
+            vals = {"technisch_verfuegbar": None, "ki_beteiligung": None}
+        source = "parser"
 
         AnlagenFunktionsMetadaten.objects.update_or_create(
 
@@ -1035,52 +930,25 @@ def check_anlage2(projekt_id: int) -> dict:
         )
         anlage2_logger.debug("Ergebnis Funktion '%s': %s", func.name, vals)
         entry = {"funktion": func.name, **vals, "source": source}
+        # Subfragen: nur Parserdaten, kein LLM
         sub_list: list[dict] = []
-        # Für jede Subfrage ebenfalls LLM befragen
         for sub in func.anlage2subquestion_set.all().order_by("id"):
             sub_name = f"{func.name}: {sub.frage_text}"
             sub_row = next(
                 (
                     r
                     for r in table
-                    if _normalize_function_name(r["funktion"])
+                    if _normalize_function_name(r.get("funktion", ""))
                     == _normalize_function_name(sub_name)
                 ),
                 None,
             )
-            if sub_row is None:
-                anlage2_logger.debug("Parser fand Unterfrage '%s' nicht", sub_name)
-            prompt_text = f"{base_obj.text}Funktion: {sub.frage_text}\n\n{text}"
-            anlage2_logger.debug(
-                "LLM Prompt für Subfrage '%s': %s", sub.frage_text, prompt_text
-            )
-            prompt_obj = Prompt(
-                name="tmp",
-                text=prompt_text,
-                role=base_obj.role,
-                use_system_role=base_obj.use_system_role,
-                use_project_context=base_obj.use_project_context,
-            )
-            ctx = build_prompt_context(projekt)
-            reply = query_llm(
-                prompt_obj,
-                ctx,
-                model_type="anlagen",
-                project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-            )
-            anlage2_logger.debug(
-                "LLM Antwort für Subfrage '%s': %s", sub.frage_text, reply
-            )
-            try:
-                s_raw = json.loads(reply)
-            except Exception:  # noqa: BLE001
-                s_raw = {"raw": reply}
             sub_list.append(
                 {
                     "frage_text": sub.frage_text,
-                    "technisch_verfuegbar": s_raw.get("technisch_verfuegbar"),
-                    "ki_beteiligung": s_raw.get("ki_beteiligung"),
-                    "source": "llm",
+                    "technisch_verfuegbar": None,  # Subzeilen enthalten diesen Wert nicht
+                    "ki_beteiligung": sub_row.get("ki_beteiligung") if sub_row else None,
+                    "source": "parser",
                 }
             )
         if sub_list:
@@ -1345,70 +1213,7 @@ def analyse_anlage4_async(file_id: int) -> dict:
     return anlage.analysis_json
 
 
-def check_anlage2_functions(
-    projekt_id: int
-) -> list[dict]:
-    """Pr\xfcft alle Funktionen aus Anlage 2 einzeln."""
-    projekt = BVProject.objects.get(pk=projekt_id)
-    try:
-        anlage = projekt.anlagen.get(anlage_nr=2)
-    except BVProjectFile.DoesNotExist as exc:  # pragma: no cover - selten
-        raise ValueError("Anlage 2 fehlt") from exc
-    text = _collect_text(projekt)
-    try:
-        base_obj = Prompt.objects.get(name="check_anlage2_function")
-    except Prompt.DoesNotExist:
-        base_obj = Prompt(
-            name="check_anlage2_function",
-            text=(
-                "Pr\u00fcfe anhand des folgenden Textes die Funktion. "
-                "Gib ein JSON mit den Schl\u00fcsseln 'technisch_verfuegbar' "
-                "und 'ki_beteiligung' zur\u00fcck.\n\n"
-            ),
-        )
-    results: list[dict] = []
-    for func in Anlage2Function.objects.order_by("name"):
-        prompt_text = f"{base_obj.text}Funktion: {func.name}\n\n{text}"
-        prompt_obj = Prompt(
-            name="tmp",
-            text=prompt_text,
-            role=base_obj.role,
-            use_system_role=base_obj.use_system_role,
-            use_project_context=base_obj.use_project_context,
-        )
-        ctx = build_prompt_context(projekt)
-        reply = query_llm(
-            prompt_obj,
-            ctx,
-            model_type="anlagen",
-            project_prompt=projekt.project_prompt if prompt_obj.use_project_context else None,
-        )
-        try:
-            data = json.loads(reply)
-        except Exception:  # noqa: BLE001
-            data = {"raw": reply}
-        vals = {
-            "technisch_verfuegbar": data.get("technisch_verfuegbar"),
-            "ki_beteiligung": data.get("ki_beteiligung"),
-        }
-
-        AnlagenFunktionsMetadaten.objects.update_or_create(
-
-            anlage_datei=anlage,
-            funktion=func,
-        )
-        FunktionsErgebnis.objects.create(
-            anlage_datei=anlage,
-            funktion=func,
-            quelle="llm",
-            technisch_verfuegbar=vals.get("technisch_verfuegbar"),
-            ki_beteiligung=vals.get("ki_beteiligung"),
-        )
-        results.append({**vals, "source": "llm", "funktion": func.name})
-    if anlage:
-        anlage.verification_task_id = ""
-        anlage.save(update_fields=["verification_task_id"])
-    return results
+## Entfernt: check_anlage2_functions – Parser‑only Strategie, kein Sammel‑LLM.
 
 
 @updates_file_status

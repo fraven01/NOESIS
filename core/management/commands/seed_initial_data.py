@@ -297,11 +297,7 @@ def create_initial_data(apps) -> None:
                 "Deine einzige Aufgabe ist es, die folgende Frage mit einem einzigen Wort zu beantworten. Deine Antwort darf AUSSCHLIESSLICH \"Ja\", \"Nein\" oder \"Unsicher\" sein. Gib keine Einleitung, keine Begründung und keine weiteren Erklärungen ab.\r\n\r\nFrage: Besitzt die Software '{software_name}' basierend auf allgemeinem Wissen typischerweise die Funktion oder Eigenschaft '{function_name}'?\n\n{gutachten}",
                 False,
             ),
-            (
-                "check_anlage2_function",
-                "Prüfe anhand des folgenden Textes, ob die genannte Funktion vorhanden ist. Gib ein JSON mit den Schlüsseln \"technisch_verfuegbar\", \"einsatz_telefonica\", \"zur_lv_kontrolle\" und \"ki_beteiligung\" zurück.\n\n",
-                True,
-            ),
+            # Der Prompt "check_anlage2_function" wurde entfernt: Parser-only Strategie
 
             (
                 "generate_gutachten",
@@ -349,7 +345,8 @@ def create_initial_data(apps) -> None:
             ),
             ("initial_check_knowledge", "Kennst du die Software '{name}'? Antworte ausschließlich mit einem einzigen Wort: 'Ja' oder 'Nein'.", False),
             ("initial_llm_check", "Erstelle eine kurze, technisch korrekte Beschreibung für die Software '{name}'. Nutze Markdown mit Überschriften, Listen oder Fettdruck, um den Text zu strukturieren. Erläutere, was sie tut und wie sie typischerweise eingesetzt wird.", True),
-            ("anlage2_table", "Extrahiere die Funktionsnamen aus der folgenden Tabelle als JSON-Liste:\n\n", True),
+            # Hinweis: Der frühere Prompt "anlage2_table" wurde entfernt, da
+            # die zugehörige Logik (_parse_anlage2) nicht mehr produktiv genutzt wird.
         ]
     )
 
