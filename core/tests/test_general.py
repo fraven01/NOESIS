@@ -352,15 +352,35 @@ def test_build_prompt_context_keys(db) -> None:
         },
     }
 
-    for name, data in prompt_data.items():
-        Prompt.objects.update_or_create(
-            name=name,
-            defaults={
-                "text": data["text"],
-                "role": data.get("role"),
-                "use_system_role": data.get("use_system_role", True),
-            },
+        for name, data in prompt_data.items():
+            Prompt.objects.update_or_create(
+                name=name,
+                defaults={
+                    "text": data["text"],
+                    "role": data.get("role"),
+                    "use_system_role": data.get("use_system_role", True),
+                },
+            )
+
+        # Angleiche den Prompt an die Seeds: KI-Begründung inkl. Projekt/Software/Funktion/Unterfrage
+        ai_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
+        ai_obj.text = (
+            " [SYSTEM]\n"
+            "Du bist Fachautor*in für IT‑Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG)."
+            " Begründe prägnant in 1–3 Sätzen, warum eine KI‑Beteiligung plausibel ist.\n\n"
+            "Hinweise: Beziehe dich auf typische KI‑Merkmale (z. B. Verarbeitung unstrukturierter Daten,"
+            " probabilistische/nicht‑deterministische Verfahren, Mustererkennung, generative Modelle)."
+            " Wenn eine Unterfrage angegeben ist, argumentiere konkret zur Unterfrage; ist sie leer,"
+            " beziehe dich nur auf die Funktion.\n\n"
+            " [USER]\n"
+            "Projekt: {project_name}  \n"
+            "Software: {software_name}  \n"
+            "Funktion/Eigenschaft: {function_name}  \n"
+            "Unterfrage: \"{subquestion_text}\"\n\n"
+            "Aufgabe: Gib eine kurze Begründung, warum hier eine KI‑Komponente beteiligt ist oder beteiligt sein kann."
         )
+        ai_obj.use_system_role = False
+        ai_obj.save(update_fields=["text", "use_system_role"])
 
 
 class SeedInitialDataTests(NoesisTestCase):

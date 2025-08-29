@@ -199,6 +199,27 @@ def create_initial_data(apps) -> None:
             False,
         ),
         (
+            "anlage4_plausibility_prompt",
+            (
+                "[SYSTEM]\n"
+                "Du bist Fachautor*in für IT-Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG) und Datenschutz mit Fokus auf die Vermeidung von Leistungs- und Verhaltenskontrolle.\n"
+                "Bewerte, ob die beschriebene Auswertung plausibel rein administrativen Zwecken dient.\n\n"
+                "Bewertungslogik:\n"
+                "1) Interpretiere den Namen der Auswertung fachlich.\n"
+                "2) Berücksichtige die Kombination aus anwendenden Gesellschaften und zuständigen Fachbereichen.\n"
+                "   - Erhöhte Vorsicht bei HR/OD&P (Personal), Compliance, Vertrieb, Customer Service (Risiko personen-/leistungsbezogener Nutzung).\n"
+                "   - Tendenziell unkritischer bei technischen Bereichen (IT-Betrieb/Capacity/Asset) oder Finanz/Controlling mit aggregierten Kennzahlen.\n"
+                "3) Prüfe Hinweise auf personen- oder leistungsbezogene Daten (z. B. Nutzungs-/Leistungsdaten einzelner Mitarbeiter, Ranking, Echtzeit-Überwachung).\n"
+                "4) Fehlende Felder (Gesellschaften/Fachbereiche) senken die Sicherheit der Bewertung.\n\n"
+                "Antworte ausschließlich als valides JSON mit:\n"
+                "- 'plausibilitaet': 'plausibel' | 'nicht plausibel' | 'unklar'\n"
+                "- 'score': Zahl 0.0–1.0 (Vertrauensgrad)\n"
+                "- 'begruendung': kurze, fachlich präzise Begründung (1–3 Sätze)\n\n"
+                "[USER]\nEingabedaten (JSON):\n{json}"
+            ),
+            True,
+        ),
+        (
             "anlage2_ai_verification_prompt",
             "Gib eine kurze Begründung, warum die Funktion '{function_name}' (oder die Unterfrage '{subquestion_text}') der Software '{software_name}' eine KI-Komponente beinhaltet oder beinhalten kann, insbesondere im Hinblick auf die Verarbeitung unstrukturierter Daten oder nicht-deterministischer Ergebnisse.",
             False,
@@ -336,6 +357,27 @@ def create_initial_data(apps) -> None:
         name, text, use_system_role, *rest = entry
         defaults = {"text": text, "use_system_role": use_system_role}
         Prompt.objects.update_or_create(name=name, defaults=defaults)
+
+    # Präziserer Standardtext für KI-Begründung (inkl. Projekt/Software/Funktion/Unterfrage)
+    ai_ver_prompt = Prompt.objects.filter(name="anlage2_ai_verification_prompt").first()
+    if ai_ver_prompt:
+        ai_ver_prompt.text = (
+            " [SYSTEM]\n"
+            "Du bist Fachautor*in für IT‑Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG)."
+            " Begründe prägnant in 1–3 Sätzen, warum eine KI‑Beteiligung plausibel ist.\n\n"
+            "Hinweise: Beziehe dich auf typische KI‑Merkmale (z. B. Verarbeitung unstrukturierter Daten,"
+            " probabilistische/nicht‑deterministische Verfahren, Mustererkennung, generative Modelle)."
+            " Wenn eine Unterfrage angegeben ist, argumentiere konkret zur Unterfrage; ist sie leer,"
+            " beziehe dich nur auf die Funktion.\n\n"
+            " [USER]\n"
+            "Projekt: {project_name}  \n"
+            "Software: {software_name}  \n"
+            "Funktion/Eigenschaft: {function_name}  \n"
+            "Unterfrage: \"{subquestion_text}\"\n\n"
+            "Aufgabe: Gib eine kurze Begründung, warum hier eine KI‑Komponente beteiligt ist oder beteiligt sein kann."
+        )
+        ai_ver_prompt.use_system_role = False
+        ai_ver_prompt.save(update_fields=["text", "use_system_role"])
 
     # 12. SupervisionStandardNote
     print("\n[12] Verarbeite SupervisionStandardNotes...")

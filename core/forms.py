@@ -987,16 +987,6 @@ class Anlage4ConfigForm(forms.ModelForm):
         }
 
 
-class Anlage4ParserPromptForm(forms.ModelForm):
-    """Formular zum Bearbeiten der Anlage-4-Prompts."""
-
-    class Meta:
-        model = Anlage4ParserConfig
-        fields = ["prompt_plausibility"]
-        widgets = {
-            "prompt_plausibility": forms.Textarea(attrs={"rows": 4}),
-        }
-
 
 class Anlage4ParserConfigForm(forms.ModelForm):
     """Formular für die Anlage-4-Parser-Konfiguration."""

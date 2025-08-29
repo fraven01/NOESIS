@@ -1754,9 +1754,6 @@ def admin_prompts(request):
     prompts = list(Prompt.objects.all().order_by("name"))
     roles = list(LLMRole.objects.all().order_by("name"))
     a4_cfg = Anlage4Config.objects.first() or Anlage4Config.objects.create()
-    a4_parser = (
-        Anlage4ParserConfig.objects.first() or Anlage4ParserConfig.objects.create()
-    )
     groups = {
         "general": [],
         "anlage1": [],
@@ -1783,11 +1780,6 @@ def admin_prompts(request):
         if action == "save_a4_config":
             a4_cfg.prompt_template = request.POST.get("prompt_template", "")
             a4_cfg.save(update_fields=["prompt_template"])
-            return redirect("admin_prompts")
-        if action == "save_a4_parser_prompts":
-            text = request.POST.get("prompt_text", "")
-            a4_parser.prompt_plausibility = text
-            a4_parser.save(update_fields=["prompt_plausibility"])
             return redirect("admin_prompts")
         if pk:
             try:
@@ -1830,7 +1822,7 @@ def admin_prompts(request):
         "grouped": grouped,
         "roles": roles,
         "a4_config": a4_cfg,
-        "a4_parser": a4_parser,
+        
         "breadcrumbs": breadcrumbs,
     }
     return render(request, "admin_prompts.html", context)
@@ -2362,7 +2354,6 @@ def admin_anlage2_config_export(request):
         "gesellschaft_aliases": a4_cfg.gesellschaft_aliases,
         "fachbereich_aliases": a4_cfg.fachbereich_aliases,
         "negative_patterns": a4_cfg.negative_patterns,
-        "prompt_plausibility": a4_cfg.prompt_plausibility,
     }
 
     data = {
@@ -2447,7 +2438,6 @@ def admin_anlage2_config_import(request):
                 "gesellschaft_aliases",
                 "fachbereich_aliases",
                 "negative_patterns",
-                "prompt_plausibility",
             ]:
                 if field in a4_data:
                     setattr(a4_cfg, field, a4_data[field])

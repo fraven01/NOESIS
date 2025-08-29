@@ -833,7 +833,6 @@ class Anlage4ParserConfig(models.Model):
     gesellschaft_aliases = models.JSONField(default=list, blank=True)
     fachbereich_aliases = models.JSONField(default=list, blank=True)
     negative_patterns = models.JSONField(default=list, blank=True)
-    prompt_plausibility = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "Anlage4 Parser Konfiguration"

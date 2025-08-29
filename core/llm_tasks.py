@@ -1122,7 +1122,7 @@ def analyse_anlage4(projekt_id: int) -> dict:
         auswertungen = parse_anlage4(anlage, cfg)
     anlage4_logger.debug("Gefundene Auswertungen: %s", auswertungen)
 
-    template = ((cfg.prompt_template if cfg else "") or _DEFAULT_A4_PROMPT)
+    template = _get_a4_prompt_template(cfg)
 
     items: list[dict] = []
     for idx, entry in enumerate(auswertungen):
@@ -1130,7 +1130,12 @@ def analyse_anlage4(projekt_id: int) -> dict:
             structured = entry
         else:
             structured = {"name_der_auswertung": entry}
-        plausi_data = {**structured, "kontext": projekt.title}
+        plausi_data = {
+            **structured,
+            "kontext": projekt.title,
+            "projektname": projekt.title,
+            "software": getattr(projekt, "software_list", []),
+        }
         data_json = json.dumps(plausi_data, ensure_ascii=False)
         try:
             prompt_text = template.format(json=data_json, json_data=data_json)
@@ -1175,8 +1180,13 @@ def worker_anlage4_evaluate(
 
     pf = BVProjectFile.objects.get(pk=project_file_id)
     cfg = pf.anlage4_config or Anlage4Config.objects.first()
-    template = ((cfg.prompt_template if cfg else "") or _DEFAULT_A4_PROMPT)
-    structured = {"name": item_text, "kontext": pf.project.title}
+    template = _get_a4_prompt_template(cfg)
+    structured = {
+        "name_der_auswertung": item_text,
+        "kontext": pf.project.title,
+        "projektname": pf.project.title,
+        "software": getattr(pf.project, "software_list", []),
+    }
     data_json = json.dumps(structured, ensure_ascii=False)
     try:
         prompt_text = template.format(json=data_json, json_data=data_json)
@@ -1220,8 +1230,14 @@ def worker_a4_plausibility(structured: dict, pf_id: int, index: int) -> dict:
 
     pf = BVProjectFile.objects.get(pk=pf_id)
     cfg = pf.anlage4_config or Anlage4Config.objects.first()
-    template = ((cfg.prompt_template if cfg else "") or _DEFAULT_A4_PROMPT)
-    data_json = json.dumps(structured, ensure_ascii=False)
+    template = _get_a4_prompt_template(cfg)
+    enriched = {
+        **(structured or {}),
+        "kontext": pf.project.title,
+        "projektname": pf.project.title,
+        "software": getattr(pf.project, "software_list", []),
+    }
+    data_json = json.dumps(enriched, ensure_ascii=False)
     try:
         prompt_text = template.format(json=data_json, json_data=data_json)
     except KeyError as exc:  # pragma: no cover - falsches Template
@@ -1286,7 +1302,12 @@ def analyse_anlage4_async(file_id: int) -> dict:
         for idx, item in enumerate(items):
             if use_dual:
                 worker_a4_plausibility(
-                    {**item["structured"], "kontext": projekt.title},
+                    {
+                        **item["structured"],
+                        "kontext": projekt.title,
+                        "projektname": projekt.title,
+                        "software": getattr(projekt, "software_list", []),
+                    },
                     anlage.pk,
                     idx,
                 )
@@ -1303,7 +1324,12 @@ def analyse_anlage4_async(file_id: int) -> dict:
             if use_dual:
                 async_task(
                     "core.llm_tasks.worker_a4_plausibility",
-                    {**item["structured"], "kontext": projekt.title},
+                    {
+                        **item["structured"],
+                        "kontext": projekt.title,
+                        "projektname": projekt.title,
+                        "software": getattr(projekt, "software_list", []),
+                    },
                     anlage.pk,
                     idx,
                 )
@@ -1514,6 +1540,9 @@ def worker_verify_feature(
     if object_type == "function":
         obj_to_check = Anlage2Function.objects.get(pk=object_id)
         context["function_name"] = obj_to_check.name
+        # Bei Funktionsprüfungen existiert keine Unterfrage – Standardwert setzen,
+        # damit Prompts mit '{subquestion_text}' nicht scheitern.
+        context.setdefault("subquestion_text", "")
         lookup_key = obj_to_check.name
     elif object_type == "subquestion":
         obj_to_check = Anlage2SubQuestion.objects.get(pk=object_id)
@@ -2239,3 +2268,20 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
     ).strip()
 
     return text
+def _get_a4_prompt_template(cfg=None) -> str:
+    """Liefert das Anlage-4-Prompt-Template in Priorität:
+    1) Prompt(name="anlage4_plausibility_prompt")
+    2) Konfiguration `cfg.prompt_template`
+    3) Fallback `_DEFAULT_A4_PROMPT`
+    """
+    try:
+        from .models import Prompt  # lokale Import-Zirkularität vermeiden
+
+        p = Prompt.objects.get(name="anlage4_plausibility_prompt")
+        if p and (p.text or "").strip():
+            return p.text
+    except Exception:  # noqa: BLE001 - Prompt evtl. nicht vorhanden
+        pass
+    if cfg and getattr(cfg, "prompt_template", None):
+        return cfg.prompt_template
+    return _DEFAULT_A4_PROMPT
