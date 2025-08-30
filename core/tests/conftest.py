@@ -9,9 +9,9 @@ import fitz
 from pathlib import Path
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _seed_db(django_db_setup, django_db_blocker) -> None:
-    """Initialisiert einmalig die Testdatenbank."""
+@pytest.fixture(scope="module")
+def seed_db(django_db_setup, django_db_blocker) -> None:
+    """Initialisiert die Testdatenbank mit Seed-Daten."""
     with django_db_blocker.unblock():
         from django.contrib.auth.models import User
         from core.models import LLMConfig, Anlage4Config, Anlage4ParserConfig
@@ -30,7 +30,7 @@ def _seed_db(django_db_setup, django_db_blocker) -> None:
 
 
 @pytest.fixture
-def user(db) -> "User":
+def user(seed_db, db) -> "User":
     """Gibt den Basisbenutzer zurück."""
     from django.contrib.auth.models import User
 
@@ -38,7 +38,7 @@ def user(db) -> "User":
 
 
 @pytest.fixture
-def superuser(db) -> "User":
+def superuser(seed_db, db) -> "User":
     """Gibt den Basis-Superuser zurück."""
     from django.contrib.auth.models import User
 
