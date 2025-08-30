@@ -1,9 +1,35 @@
-from .base import NoesisTestCase
-from .test_general import *
-from ..forms import Anlage5ReviewForm, BVProjectFileForm
-from ..models import ZweckKategorieA
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+import pytest
+from django.http import QueryDict
+from django.urls import reverse
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
+from docx import Document
+
+from .base import NoesisTestCase
+from ..forms import (
+    BVProjectForm,
+    BVProjectUploadForm,
+    BVProjectFileJSONForm,
+    BVProjectFileForm,
+    Anlage2ConfigForm,
+    Anlage2ReviewForm,
+    Anlage5ReviewForm,
+)
+from ..models import (
+    BVProject,
+    BVProjectFile,
+    ZweckKategorieA,
+    SoftwareKnowledge,
+    Gutachten,
+    Anlage2Config,
+)
+from ..reporting import generate_gap_analysis
+
+pytestmark = pytest.mark.usefixtures("seed_db")
 
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
