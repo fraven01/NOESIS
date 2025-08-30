@@ -58,21 +58,21 @@ def mock_llm_api_calls():
         yield
 
 
-@pytest.fixture(scope="session")
-def docx_content_path(tmp_path_factory) -> "Path":
+@pytest.fixture
+def docx_content_path(tmp_path: "Path") -> "Path":
     """Erzeugt ein einfaches DOCX-Dokument."""
     doc = Document()
     doc.add_paragraph("Docx Inhalt")
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
-    path = tmp_path_factory.mktemp("docs") / "content.docx"
+    path = tmp_path / "content.docx"
     path.write_bytes(bio.getvalue())
     return path
 
 
-@pytest.fixture(scope="session")
-def docx_two_page_path(tmp_path_factory) -> "Path":
+@pytest.fixture
+def docx_two_page_path(tmp_path: "Path") -> "Path":
     """DOCX-Dokument mit zwei Seiten."""
     doc = Document()
     doc.add_paragraph("Seite 1")
@@ -81,38 +81,38 @@ def docx_two_page_path(tmp_path_factory) -> "Path":
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
-    path = tmp_path_factory.mktemp("docs") / "two_pages.docx"
+    path = tmp_path / "two_pages.docx"
     path.write_bytes(bio.getvalue())
     return path
 
 
-@pytest.fixture(scope="session")
-def pdf_one_page_path(tmp_path_factory) -> "Path":
+@pytest.fixture
+def pdf_one_page_path(tmp_path: "Path") -> "Path":
     """Einseitiges PDF-Dokument."""
     pdf = fitz.open()
     pdf.new_page()
     bio = BytesIO()
     pdf.save(bio)
-    path = tmp_path_factory.mktemp("docs") / "one_page.pdf"
+    path = tmp_path / "one_page.pdf"
     path.write_bytes(bio.getvalue())
     return path
 
 
-@pytest.fixture(scope="session")
-def pdf_two_page_path(tmp_path_factory) -> "Path":
+@pytest.fixture
+def pdf_two_page_path(tmp_path: "Path") -> "Path":
     """PDF-Dokument mit zwei Seiten."""
     pdf = fitz.open()
     pdf.new_page()
     pdf.new_page()
     bio = BytesIO()
     pdf.save(bio)
-    path = tmp_path_factory.mktemp("docs") / "two_pages.pdf"
+    path = tmp_path / "two_pages.pdf"
     path.write_bytes(bio.getvalue())
     return path
 
 
-@pytest.fixture(scope="session")
-def anlage2_table_docx_path(tmp_path_factory) -> "Path":
+@pytest.fixture
+def anlage2_table_docx_path(tmp_path: "Path") -> "Path":
     """DOCX mit einfacher Anlage-2-Tabelle."""
     doc = Document()
     table = doc.add_table(rows=2, cols=5)
@@ -129,12 +129,12 @@ def anlage2_table_docx_path(tmp_path_factory) -> "Path":
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
-    path = tmp_path_factory.mktemp("docs") / "anlage2_table.docx"
+    path = tmp_path / "anlage2_table.docx"
     path.write_bytes(bio.getvalue())
     return path
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def prepared_files(
     request,
     docx_content_path,
