@@ -9,9 +9,9 @@ from django.contrib.auth.models import User
 from PIL import Image
 from docx import Document
 
-from .base import NoesisTestCase
-from ..anlage4_parser import parse_anlage4, parse_anlage4_dual
-from ..docx_utils import (
+from ..base import NoesisTestCase
+from ...anlage4_parser import parse_anlage4, parse_anlage4_dual
+from ...docx_utils import (
     extract_text,
     get_docx_page_count,
     get_pdf_page_count,
@@ -19,7 +19,7 @@ from ..docx_utils import (
     _normalize_header_text,
     extract_images,
 )
-from ..models import (
+from ...models import (
     BVProject,
     BVProjectFile,
     Anlage2Function,
@@ -30,16 +30,16 @@ from ..models import (
     Anlage4Config,
     AntwortErkennungsRegel,
 )
-from ..parsers import ExactParser
-from ..text_parser import parse_anlage2_text
-from ..llm_tasks import (
+from ...parsers import ExactParser
+from ...text_parser import parse_anlage2_text
+from ...llm_tasks import (
     analyse_anlage4,
     analyse_anlage4_async,
     worker_anlage4_evaluate,
     worker_a4_plausibility as check_anlage4_item_plausibility,
 )
 
-pytestmark = pytest.mark.usefixtures("seed_db")
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db")]
 
 @pytest.mark.usefixtures("prepared_files")
 class DocxExtractTests(NoesisTestCase):

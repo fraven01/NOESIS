@@ -1,3 +1,4 @@
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -15,6 +16,8 @@ from core.models import (
     ProjectStatus,
 )
 from core.views import _verification_to_initial, _save_project_file
+
+pytestmark = pytest.mark.unit
 
 
 def test_funktions_ergebnisse_sind_versionsabhaengig(db):

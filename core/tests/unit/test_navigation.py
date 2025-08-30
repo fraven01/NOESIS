@@ -3,7 +3,7 @@
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
 
-from .base import NoesisTestCase
+from ..base import NoesisTestCase
 
 from core.models import (
     Area,
@@ -11,7 +11,11 @@ from core.models import (
     UserAreaAccess,
     UserTileAccess,
 )
-from ..views import get_user_tiles
+from ...views import get_user_tiles
+
+import pytest
+
+pytestmark = pytest.mark.unit
 
 
 class NavigationSidebarTests(NoesisTestCase):
