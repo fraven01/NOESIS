@@ -5,7 +5,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from pytest_django.asserts import assertRedirects
 
-from ..models import BVProject, SoftwareKnowledge, ProjectStatus
+from ...models import BVProject, SoftwareKnowledge, ProjectStatus
+
+pytestmark = pytest.mark.unit
 
 
 @pytest.fixture

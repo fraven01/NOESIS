@@ -9,8 +9,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
 from docx import Document
 
-from .base import NoesisTestCase
-from ..forms import (
+from ..base import NoesisTestCase
+from ...forms import (
     BVProjectForm,
     BVProjectUploadForm,
     BVProjectFileJSONForm,
@@ -19,7 +19,7 @@ from ..forms import (
     Anlage2ReviewForm,
     Anlage5ReviewForm,
 )
-from ..models import (
+from ...models import (
     BVProject,
     BVProjectFile,
     ZweckKategorieA,
@@ -27,9 +27,9 @@ from ..models import (
     Gutachten,
     Anlage2Config,
 )
-from ..reporting import generate_gap_analysis
+from ...reporting import generate_gap_analysis
 
-pytestmark = pytest.mark.usefixtures("seed_db")
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db")]
 
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):

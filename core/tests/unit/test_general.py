@@ -8,9 +8,10 @@ import os
 import re
 import pytest
 
+pytestmark = pytest.mark.unit
 
 from django.apps import apps
-from ..models import (
+from ...models import (
     BVProject,
     BVProjectFile,
     Recording,
@@ -37,7 +38,7 @@ from ..models import (
     ZweckKategorieA,
     Anlage5Review,
 )
-from ..docx_utils import (
+from ...docx_utils import (
     extract_text,
     get_docx_page_count,
     get_pdf_page_count,
@@ -45,15 +46,15 @@ from ..docx_utils import (
     _normalize_header_text,
 )
 
-from ..utils import start_analysis_for_file
-from .. import text_parser
+from ...utils import start_analysis_for_file
+from ... import text_parser
 
 from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
 
-from ..anlage4_parser import parse_anlage4
+from ...anlage4_parser import parse_anlage4
 
-from ..parser_manager import parser_manager
-from ..parsers import AbstractParser
+from ...parser_manager import parser_manager
+from ...parsers import AbstractParser
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -64,7 +65,7 @@ from PIL import Image
 import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from ..forms import (
+from ...forms import (
     BVProjectForm,
     BVProjectUploadForm,
     BVProjectFileJSONForm,
@@ -72,9 +73,9 @@ from ..forms import (
     Anlage2ConfigForm,
     Anlage2ReviewForm,
 )
-from ..workflow import set_project_status
-from ..models import ProjectStatus
-from ..llm_tasks import (
+from ...workflow import set_project_status
+from ...models import ProjectStatus
+from ...llm_tasks import (
     check_anlage1,
     check_anlage2,
     analyse_anlage3,
@@ -95,7 +96,7 @@ from ..llm_tasks import (
     parse_anlage1_questions,
     _parse_anlage2,
 )
-from ..views import (
+from ...views import (
     _verification_to_initial,
     _build_row_data,
     _build_supervision_row,
@@ -106,15 +107,15 @@ from ..views import (
     _build_supervision_groups,
     _resolve_value,
 )
-from ..reporting import generate_gap_analysis, generate_management_summary
+from ...reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
 from django.core.management import call_command
 from django.test import override_settings
 import json
-from .base import NoesisTestCase
-from ..initial_data_constants import INITIAL_PROJECT_STATUSES
-from ..prompt_context import build_prompt_context, available_placeholders
-from .utils import (
+from ..base import NoesisTestCase
+from ...initial_data_constants import INITIAL_PROJECT_STATUSES
+from ...prompt_context import build_prompt_context, available_placeholders
+from ..utils import (
     create_project,
     seed_test_data,
     DEFAULT_STATUS_KEY,
@@ -275,7 +276,7 @@ class SeedInitialDataTests(NoesisTestCase):
 
     def test_answer_rules_seeded(self) -> None:
         """Prüft die durch die globale Fixture angelegten Antwortregeln."""
-        from ..initial_data_constants import INITIAL_ANSWER_RULES
+        from ...initial_data_constants import INITIAL_ANSWER_RULES
 
         for rule in INITIAL_ANSWER_RULES:
             obj = AntwortErkennungsRegel.objects.get(

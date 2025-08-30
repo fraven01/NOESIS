@@ -3,10 +3,10 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from .base import NoesisTestCase
-from ..models import BVProject, BVProjectFile
+from ..base import NoesisTestCase
+from ...models import BVProject, BVProjectFile
 
-pytestmark = pytest.mark.usefixtures("seed_db")
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db")]
 
 
 class CompareVersionsAnlage1Tests(NoesisTestCase):

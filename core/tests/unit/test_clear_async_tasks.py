@@ -4,6 +4,8 @@ import pytest
 from django.core.management import call_command
 
 
+pytestmark = pytest.mark.unit
+
 @pytest.mark.django_db
 def test_command_runs_without_error() -> None:
     """Erwartet keinen Fehler auch ohne vorhandene Queue-/Task-Einträge."""
