@@ -5,8 +5,17 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from docx import Document
 
 from .base import NoesisTestCase
+import pytest
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from docx import Document
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+from .base import NoesisTestCase
 from ..models import BVProject, BVProjectFile
 from ..anlage3_parser import parse_anlage3
+
+pytestmark = pytest.mark.usefixtures("seed_db")
 
 
 class Anlage3ParserTests(NoesisTestCase):
