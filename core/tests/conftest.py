@@ -8,6 +8,8 @@ from docx import Document
 import fitz
 from pathlib import Path
 
+pytest_plugins = ["core.tests.factories"]
+
 
 @pytest.fixture(scope="module")
 def seed_db(django_db_setup, django_db_blocker) -> None:

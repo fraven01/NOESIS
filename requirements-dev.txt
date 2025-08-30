@@ -13,3 +13,6 @@ pytest-django>=4.8
 pytest-xdist>=3.6
 pytest-cov>=5.0
 pre-commit>=3.7
+factory-boy
+pytest-factoryboy
+
