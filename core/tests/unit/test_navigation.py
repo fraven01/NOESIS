@@ -1,141 +1,151 @@
 """Tests für die Sidebar-Navigation."""
 
-from django.contrib.auth.models import Group, User
 from django.urls import reverse
-
-from ..base import NoesisTestCase
-
-from core.models import (
-    Area,
-    Tile,
-    UserAreaAccess,
-    UserTileAccess,
-)
-from ...views import get_user_tiles
+from django.contrib.auth.models import Group
 
 import pytest
 
-pytestmark = pytest.mark.unit
+from core.models import Area, Tile, UserAreaAccess, UserTileAccess
+from ...views import get_user_tiles
+
+pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
-class NavigationSidebarTests(NoesisTestCase):
-    """Überprüfung der sichtbaren Bereiche, Tiles und Admin-Links."""
+@pytest.fixture
+def navigation_setup(user_factory, area_factory, tile_factory):
+    """Erzeugt Bereiche, Tiles und Nutzer mit Zugriffsrechten."""
 
-    @staticmethod
-    def _grant_access(user: User, areas: list[Area], tiles: list[Tile]) -> None:
-        """Erteilt einem Benutzer Zugriff auf Bereiche und Tiles."""
+    area_work = area_factory(slug="work-test", name="Arbeitsbereich")
+    area_private = area_factory(slug="personal-test", name="Privatbereich")
 
+    tile_dashboard = tile_factory(
+        slug="dashboard-test", name="Dashboard", url_name="home", areas=[area_work]
+    )
+    tile_account = tile_factory(
+        slug="account-tile-test",
+        name="Privatkachel",
+        url_name="account",
+        areas=[area_private],
+    )
+    tile_hidden = tile_factory(
+        slug="hidden-test", name="Versteckt", url_name="home", areas=[area_work]
+    )
+
+    def grant_access(user, areas, tiles):
         for area in areas:
             UserAreaAccess.objects.create(user=user, area=area)
         for tile in tiles:
             UserTileAccess.objects.create(user=user, tile=tile)
 
-    def setUp(self) -> None:
-        """Legt Bereiche, Tiles und Nutzer für die Tests an."""
-        self.area_work = Area.objects.create(slug="work-test", name="Arbeitsbereich")
-        self.area_private = Area.objects.create(
-            slug="personal-test", name="Privatbereich"
-        )
+    user_alice = user_factory(username="alice")
+    grant_access(user_alice, [area_work], [tile_dashboard])
 
-        self.tile_dashboard = Tile.objects.create(
-            slug="dashboard-test", name="Dashboard", url_name="home"
-        )
-        self.tile_dashboard.areas.add(self.area_work)
-        self.tile_account = Tile.objects.create(
-            slug="account-tile-test", name="Privatkachel", url_name="account"
-        )
-        self.tile_account.areas.add(self.area_private)
+    user_bob = user_factory(username="bob")
+    grant_access(user_bob, [area_work, area_private], [tile_dashboard, tile_account])
 
-        self.tile_hidden = Tile.objects.create(
-            slug="hidden-test", name="Versteckt", url_name="home"
-        )
-        self.tile_hidden.areas.add(self.area_work)
+    user_carol = user_factory(username="carol")
+    grant_access(user_carol, [area_work], [tile_dashboard])
 
-        self.user_alice = User.objects.create_user("alice", password="pw")
-        self._grant_access(self.user_alice, [self.area_work], [self.tile_dashboard])
+    admin_group = Group.objects.create(name="admin")
+    user_dave = user_factory(username="dave")
+    user_dave.groups.add(admin_group)
+    grant_access(user_dave, [area_work], [tile_dashboard])
 
-        self.user_bob = User.objects.create_user("bob", password="pw")
-        self._grant_access(
-            self.user_bob,
-            [self.area_work, self.area_private],
-            [self.tile_dashboard, self.tile_account],
-        )
+    user_eve = user_factory(username="eve", is_superuser=True, is_staff=True)
+    grant_access(user_eve, [area_work], [tile_dashboard])
 
-        self.user_carol = User.objects.create_user("carol", password="pw")
-        self._grant_access(self.user_carol, [self.area_work], [self.tile_dashboard])
+    return {
+        "area_work": area_work,
+        "area_private": area_private,
+        "tile_dashboard": tile_dashboard,
+        "tile_account": tile_account,
+        "tile_hidden": tile_hidden,
+        "user_alice": user_alice,
+        "user_bob": user_bob,
+        "user_carol": user_carol,
+        "user_dave": user_dave,
+        "user_eve": user_eve,
+    }
 
-        self.admin_group = Group.objects.create(name="admin")
-        self.user_dave = User.objects.create_user("dave", password="pw")
-        self.user_dave.groups.add(self.admin_group)
-        self._grant_access(self.user_dave, [self.area_work], [self.tile_dashboard])
 
-        self.user_eve = User.objects.create_superuser("eve", "eve@example.com", "pw")
-        self._grant_access(self.user_eve, [self.area_work], [self.tile_dashboard])
+def test_get_user_tiles(navigation_setup):
+    """Gibt die zugänglichen Bereiche und Tiles zurück."""
 
-    def test_get_user_tiles(self) -> None:
-        """Gibt die zugänglichen Bereiche und Tiles zurück."""
+    area_work = navigation_setup["area_work"]
+    area_private = navigation_setup["area_private"]
+    tile_dashboard = navigation_setup["tile_dashboard"]
+    user_bob = navigation_setup["user_bob"]
 
-        areas, tiles = get_user_tiles(self.user_bob, self.area_work.slug)
+    areas, tiles = get_user_tiles(user_bob, area_work.slug)
 
-        self.assertEqual(len(areas), 2)
-        self.assertCountEqual(areas, [self.area_work, self.area_private])
-        self.assertEqual(len(tiles), 1)
-        self.assertListEqual(tiles, [self.tile_dashboard])
+    assert len(areas) == 2
+    assert set(areas) == {area_work, area_private}
+    assert len(tiles) == 1
+    assert tiles == [tile_dashboard]
 
-    def test_sidebar_single_area_tiles_only(self) -> None:
-        """Bei genau einem Bereich werden nur die Tiles angezeigt."""
 
-        self.client.force_login(self.user_alice)
+def test_sidebar_single_area_tiles_only(client, navigation_setup):
+    """Bei genau einem Bereich werden nur die Tiles angezeigt."""
 
-        response = self.client.get(reverse("account"))
+    client.force_login(navigation_setup["user_alice"])
 
-        self.assertContains(response, "Dashboard")
-        self.assertNotContains(response, self.area_work.name)
-        self.assertNotContains(response, self.tile_account.name)
-        self.assertNotContains(response, self.tile_hidden.name)
+    response = client.get(reverse("account"))
+    content = response.content.decode()
 
-    def test_sidebar_multiple_areas(self) -> None:
-        """Mehrere Bereiche werden mit Überschriften dargestellt."""
+    assert "Dashboard" in content
+    assert navigation_setup["area_work"].name not in content
+    assert navigation_setup["tile_account"].name not in content
+    assert navigation_setup["tile_hidden"].name not in content
 
-        self.client.force_login(self.user_bob)
 
-        response = self.client.get(reverse("account"))
+def test_sidebar_multiple_areas(client, navigation_setup):
+    """Mehrere Bereiche werden mit Überschriften dargestellt."""
 
-        self.assertContains(response, self.area_work.name)
-        self.assertContains(response, self.area_private.name)
-        self.assertContains(response, "Dashboard")
-        self.assertContains(response, "Privatkachel")
-        self.assertNotContains(response, self.tile_hidden.name)
+    client.force_login(navigation_setup["user_bob"])
 
-    def test_no_admin_links_for_regular_user(self) -> None:
-        """Ohne Sonderrechte erscheinen keine Admin-Links."""
+    response = client.get(reverse("account"))
+    content = response.content.decode()
 
-        self.client.force_login(self.user_carol)
+    assert navigation_setup["area_work"].name in content
+    assert navigation_setup["area_private"].name in content
+    assert "Dashboard" in content
+    assert "Privatkachel" in content
+    assert navigation_setup["tile_hidden"].name not in content
 
-        response = self.client.get(reverse("account"))
 
-        self.assertNotContains(response, "Projekt-Admin")
-        self.assertNotContains(response, "System-Admin")
+def test_no_admin_links_for_regular_user(client, navigation_setup):
+    """Ohne Sonderrechte erscheinen keine Admin-Links."""
 
-    def test_project_admin_link_for_admin_group(self) -> None:
-        """Mitglied der Admin-Gruppe sieht Projekt-Admin-Link."""
+    client.force_login(navigation_setup["user_carol"])
 
-        self.client.force_login(self.user_dave)
+    response = client.get(reverse("account"))
+    content = response.content.decode()
 
-        response = self.client.get(reverse("account"))
+    assert "Projekt-Admin" not in content
+    assert "System-Admin" not in content
 
-        self.assertContains(response, "Projekt-Admin")
-        self.assertNotContains(response, "System-Admin")
 
-    def test_system_admin_link_for_superuser(self) -> None:
-        """Superuser sieht Projekt- und System-Admin-Link."""
+def test_project_admin_link_for_admin_group(client, navigation_setup):
+    """Mitglied der Admin-Gruppe sieht Projekt-Admin-Link."""
 
-        self.client.force_login(self.user_eve)
+    client.force_login(navigation_setup["user_dave"])
 
-        response = self.client.get(reverse("account"))
+    response = client.get(reverse("account"))
+    content = response.content.decode()
 
-        self.assertContains(response, "Projekt-Admin")
-        self.assertContains(response, "System-Admin")
-        self.assertContains(response, reverse("admin:auth_user_changelist"))
-        self.assertContains(response, reverse("admin:auth_group_changelist"))
+    assert "Projekt-Admin" in content
+    assert "System-Admin" not in content
 
+
+def test_system_admin_link_for_superuser(client, navigation_setup):
+    """Superuser sieht Projekt- und System-Admin-Link."""
+
+    client.force_login(navigation_setup["user_eve"])
+
+    response = client.get(reverse("account"))
+    content = response.content.decode()
+
+    assert "Projekt-Admin" in content
+    assert "System-Admin" in content
+    assert reverse("admin:auth_user_changelist") in content
+    assert reverse("admin:auth_group_changelist") in content
