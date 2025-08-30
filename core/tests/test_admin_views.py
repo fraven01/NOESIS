@@ -1,5 +1,9 @@
 from .base import NoesisTestCase
 from .test_general import *
+import pytest
+
+pytestmark = pytest.mark.usefixtures("seed_db")
+
 
 class AdminProjectsTests(NoesisTestCase):
     def setUp(self):

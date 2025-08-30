@@ -363,6 +363,7 @@ def test_build_prompt_context_keys(db) -> None:
         )
 
 
+@pytest.mark.usefixtures("seed_db")
 class SeedInitialDataTests(NoesisTestCase):
     """Stellt sicher, dass die Seed-Daten vorhanden sind."""
 
@@ -393,6 +394,7 @@ class ExtractAnlageNrTests(NoesisTestCase):
         self.assertEqual(extract_anlage_nr("Anlage3.docx"), 3)
 
 
+@pytest.mark.usefixtures("seed_db")
 class BVProjectFileTests(NoesisTestCase):
     def setUp(self) -> None:  # pragma: no cover - setup
         super().setUp()
@@ -2657,6 +2659,7 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
         self.assertFalse(self.file.verhandlungsfaehig)
 
 
+@pytest.mark.usefixtures("seed_db")
 class ProjektFileVersionDeletionTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -4384,6 +4387,7 @@ class SupervisionGapTests(NoesisTestCase):
         self.assertEqual(row["ai_reason"], "Func reason")
 
 
+@pytest.mark.usefixtures("seed_db")
 class Anlage2ResetTests(NoesisTestCase):
     """Tests zum Zurücksetzen von Anlage-2-Ergebnissen."""
 
@@ -4644,6 +4648,7 @@ class Anlage2ResetTests(NoesisTestCase):
         # Manueller Eintrag wurde entfernt
 
 
+@pytest.mark.usefixtures("seed_db")
 class GapReportTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
@@ -4719,6 +4724,7 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(self.pf2.gap_summary, "")
 
 
+@pytest.mark.usefixtures("seed_db")
 class ProjektDetailGapTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
