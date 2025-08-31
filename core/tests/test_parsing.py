@@ -1128,14 +1128,18 @@ class AnalyseAnlage4Tests(NoesisTestCase):
         m_std.assert_not_called()
 
     def test_template_allows_json_data_placeholder(self):
-        cfg = Anlage4Config.objects.create(prompt_template="Vorlage {json_data}")
+        # Konfiguration \u00fcber Prompt 'anlage4_plausibility_prompt' (statt Anlage4Config.prompt_template)
+        Prompt.objects.update_or_create(
+            name="anlage4_plausibility_prompt",
+            defaults={"text": "Vorlage {json_data}"},
+        )
         projekt = BVProject.objects.create(software_typen="A")
         pf = BVProjectFile.objects.create(
             project=projekt,
             anlage_nr=4,
             upload=SimpleUploadedFile("a.txt", b""),
             text_content="Zweck: A",
-            anlage4_config=cfg,
+            # keine spezielle A4-Konfiguration notwendig
         )
         with patch("core.llm_tasks.query_llm", return_value="{}"):  # kein Fehler
             analyse_anlage4(projekt.pk)

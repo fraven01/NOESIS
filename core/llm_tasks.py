@@ -2076,8 +2076,7 @@ def summarize_anlage2_gaps(projekt: BVProject) -> str:
 def _get_a4_prompt_template(cfg=None) -> str:
     """Liefert das Anlage-4-Prompt-Template in Priorität:
     1) Prompt(name="anlage4_plausibility_prompt")
-    2) Konfiguration `cfg.prompt_template`
-    3) Fallback `_DEFAULT_A4_PROMPT`
+    2) Fallback `_DEFAULT_A4_PROMPT`
     """
     try:
         from .models import Prompt  # lokale Import-Zirkularität vermeiden
@@ -2087,6 +2086,4 @@ def _get_a4_prompt_template(cfg=None) -> str:
             return p.text
     except Exception:  # noqa: BLE001 - Prompt evtl. nicht vorhanden
         pass
-    if cfg and getattr(cfg, "prompt_template", None):
-        return cfg.prompt_template
     return _DEFAULT_A4_PROMPT

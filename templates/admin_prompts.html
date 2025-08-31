@@ -72,19 +72,7 @@
         {% empty %}
             <tr><td colspan="4" class="py-2">Keine Prompts</td></tr>
         {% endfor %}
-        {% if key == 'anlage4' %}
-            <tr class="border-b align-top text-sm">
-                <td class="py-1 font-semibold">Prompt Template</td>
-                <td colspan="4" class="py-1">
-                    <form method="post" class="space-y-2">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="save_a4_config">
-                          <textarea name="prompt_template" rows="4" class="border-gray-300 dark:border-gray-600 bg-background dark:bg-background-dark text-text dark:text-text-light rounded p-2 w-full focus:border-primary dark:focus:border-primary focus:ring-primary dark:focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">{{ a4_config.prompt_template }}</textarea>
-                        <button class="px-2 py-1 rounded {% btn_classes 'primary' %}">Speichern</button>
-                    </form>
-                </td>
-            </tr>
-        {% endif %}
+        {# Hinweis: Anlage 4 Prompt Template entfernt. #}
         </tbody>
     </table>
     </div>

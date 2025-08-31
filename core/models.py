@@ -801,7 +801,6 @@ class Anlage4Config(models.Model):
     table_columns = models.JSONField(default=list, blank=True)
     regex_patterns = models.JSONField(default=list, blank=True)
     negative_patterns = models.JSONField(default=list, blank=True)
-    prompt_template = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "Anlage4 Konfiguration"

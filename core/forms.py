@@ -98,11 +98,7 @@ class RecordingForm(forms.ModelForm):
     class Meta:
         model = Recording
         fields = ["bereich", "audio_file"]
-        widgets = {
-            "audio_file": forms.ClearableFileInput(
-                attrs={"class": "border rounded p-2"}
-            ),
-        }
+        widgets = {}
 
     def clean_audio_file(self):
         """Prüft die Dateiendung des Uploads."""
@@ -982,9 +978,7 @@ class Anlage4ConfigForm(forms.ModelForm):
     class Meta:
         model = Anlage4Config
         fields = "__all__"
-        widgets = {
-            "prompt_template": forms.Textarea(attrs={"rows": 4}),
-        }
+        widgets = {}
 
 
 

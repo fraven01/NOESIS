@@ -1753,7 +1753,6 @@ def admin_prompts(request):
     """Verwaltet die gespeicherten Prompts."""
     prompts = list(Prompt.objects.all().order_by("name"))
     roles = list(LLMRole.objects.all().order_by("name"))
-    a4_cfg = Anlage4Config.objects.first() or Anlage4Config.objects.create()
     groups = {
         "general": [],
         "anlage1": [],
@@ -1777,10 +1776,6 @@ def admin_prompts(request):
     if request.method == "POST":
         pk = request.POST.get("pk")
         action = request.POST.get("action")
-        if action == "save_a4_config":
-            a4_cfg.prompt_template = request.POST.get("prompt_template", "")
-            a4_cfg.save(update_fields=["prompt_template"])
-            return redirect("admin_prompts")
         if pk:
             try:
                 prompt = Prompt.objects.get(pk=pk)
@@ -1821,7 +1816,6 @@ def admin_prompts(request):
     context = {
         "grouped": grouped,
         "roles": roles,
-        "a4_config": a4_cfg,
         
         "breadcrumbs": breadcrumbs,
     }
