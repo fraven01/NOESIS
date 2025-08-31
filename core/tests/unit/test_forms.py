@@ -1,9 +1,35 @@
-from .base import NoesisTestCase
-from .test_general import *
-from ..forms import Anlage5ReviewForm, BVProjectFileForm
-from ..models import ZweckKategorieA
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+import pytest
+from django.http import QueryDict
+from django.urls import reverse
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
+from docx import Document
+
+from ..base import NoesisTestCase
+from ...forms import (
+    BVProjectForm,
+    BVProjectUploadForm,
+    BVProjectFileJSONForm,
+    BVProjectFileForm,
+    Anlage2ConfigForm,
+    Anlage2ReviewForm,
+    Anlage5ReviewForm,
+)
+from ...models import (
+    BVProject,
+    BVProjectFile,
+    ZweckKategorieA,
+    SoftwareKnowledge,
+    Gutachten,
+    Anlage2Config,
+)
+from ...reporting import generate_gap_analysis
+
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db"), pytest.mark.django_db]
 
 class BVProjectFormTests(NoesisTestCase):
     def test_project_form_docx_validation(self):
@@ -33,125 +59,144 @@ class Anlage2ConfigFormTests(NoesisTestCase):
         self.assertEqual(inst.parser_order, ["table"])
 
 
-class ProjektFileJSONEditTests(NoesisTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user("user3", password="pass")
-        self.client.login(username="user3", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.file = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=4,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Text",
-            analysis_json={"items": ["Alt"], "manual_review": {"0": {"ok": False, "nego": False, "note": ""}}},
-        )
-        self.anlage1 = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("b.txt", b"data"),
-            text_content="Text",
-            analysis_json={
-                "questions": {
-                    "1": {
-                        "answer": "foo",
-                        "status": None,
-                        "hinweis": "",
-                        "vorschlag": "",
-                    }
-                }
-            },
-        )
+@pytest.fixture
+def projekt_file_setup(client, user_factory, bv_project_factory, bv_project_file_factory):
+    """Erzeugt Projekt und zugehörige Dateien."""
 
-    def test_edit_json_updates_and_reports(self):
-        url = reverse("projekt_file_edit_json", args=[self.file.pk])
-        resp = self.client.post(
-            url,
-            {
-                "analysis_json": '{"items": ["Neu"], "manual_review": {"0": {"note": "Hinweis"}}}',
-            },
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json["items"], ["Neu"])
-        self.assertEqual(self.file.analysis_json["manual_review"]["0"]["note"], "Hinweis")
-        path = generate_gap_analysis(self.projekt)
-        try:
-            doc = Document(path)
-            text = "\n".join(p.text for p in doc.paragraphs)
-            self.assertIn('"note": "Hinweis"', text)
-            self.assertNotIn('"Alt"', text)
-        finally:
-            path.unlink(missing_ok=True)
-
-    def test_invalid_json_shows_error(self):
-        url = reverse("projekt_file_edit_json", args=[self.file.pk])
-        self.file.analysis_json = {"items": []}
-        self.file.save(update_fields=["analysis_json"])
-        resp = self.client.post(url, {"analysis_json": "{"})
-        self.assertEqual(resp.status_code, 200)
-        self.file.refresh_from_db()
-        self.assertEqual(self.file.analysis_json, {"items": []})
-
-    def test_question_review_saved(self):
-        url = reverse("hx_toggle_anlage1_ok", args=[self.anlage1.pk, 1])
-        resp = self.client.post(url)
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
-        self.anlage1.refresh_from_db()
-        self.assertTrue(self.anlage1.question_review["1"]["ok"])
-        self.assertNotIn("note", self.anlage1.question_review["1"])
-
-    def test_question_review_saved_htmx(self):
-        url = reverse("hx_toggle_anlage1_ok", args=[self.anlage1.pk, 1])
-        resp = self.client.post(url, HTTP_HX_REQUEST="true")
-        self.assertEqual(resp.status_code, 200)
-        self.assertTemplateUsed(resp, "partials/anlage1_negotiable.html")
-        self.anlage1.refresh_from_db()
-        self.assertTrue(self.anlage1.question_review["1"]["ok"])
-        self.assertNotIn("note", self.anlage1.question_review["1"])
-
-    def test_question_review_extended_fields_saved(self):
-        url = reverse("hx_anlage1_note", args=[self.anlage1.pk, 1, "hinweis"])
-        self.client.post(url, {"text": "Fehlt"})
-        url = reverse("hx_anlage1_note", args=[self.anlage1.pk, 1, "vorschlag"])
-        resp = self.client.post(url, {"text": "Mehr Infos"})
-        self.assertEqual(resp.status_code, 200)
-        self.anlage1.refresh_from_db()
-        data = self.anlage1.question_review["1"]
-        self.assertEqual(data["hinweis"], "Fehlt")
-        self.assertEqual(data["vorschlag"], "Mehr Infos")
-        self.assertNotIn("status", data)
-
-    def test_question_review_prefill_from_analysis(self):
-        """Initialwerte stammen aus der automatischen Analyse."""
-        self.anlage1.question_review = None
-        self.anlage1.analysis_json = {
+    user = user_factory(username="user3")
+    client.login(username=user.username, password="pw")
+    projekt = bv_project_factory(software_typen="A", beschreibung="x")
+    file = bv_project_file_factory(
+        project=projekt,
+        anlage_nr=4,
+        analysis_json={"items": ["Alt"], "manual_review": {"0": {"ok": False, "nego": False, "note": ""}}},
+    )
+    anlage1 = bv_project_file_factory(
+        project=projekt,
+        anlage_nr=1,
+        analysis_json={
             "questions": {
                 "1": {
-                    "answer": "A",
-                    "status": "ok",
-                    "hinweis": "H",
-                    "vorschlag": "V",
+                    "answer": "foo",
+                    "status": None,
+                    "hinweis": "",
+                    "vorschlag": "",
                 }
             }
+        },
+    )
+    return {"user": user, "projekt": projekt, "file": file, "anlage1": anlage1}
+
+
+def test_edit_json_updates_and_reports(client, projekt_file_setup):
+    file = projekt_file_setup["file"]
+    projekt = projekt_file_setup["projekt"]
+
+    url = reverse("projekt_file_edit_json", args=[file.pk])
+    resp = client.post(
+        url,
+        {
+            "analysis_json": '{"items": ["Neu"], "manual_review": {"0": {"note": "Hinweis"}}}',
+        },
+    )
+    assert resp.status_code == 302
+    file.refresh_from_db()
+    assert file.analysis_json["items"] == ["Neu"]
+    assert file.analysis_json["manual_review"]["0"]["note"] == "Hinweis"
+    path = generate_gap_analysis(projekt)
+    try:
+        doc = Document(path)
+        text = "\n".join(p.text for p in doc.paragraphs)
+        assert '"note": "Hinweis"' in text
+        assert '"Alt"' not in text
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_invalid_json_shows_error(client, projekt_file_setup):
+    file = projekt_file_setup["file"]
+
+    url = reverse("projekt_file_edit_json", args=[file.pk])
+    file.analysis_json = {"items": []}
+    file.save(update_fields=["analysis_json"])
+    resp = client.post(url, {"analysis_json": "{"})
+    assert resp.status_code == 200
+    file.refresh_from_db()
+    assert file.analysis_json == {"items": []}
+
+
+def test_question_review_saved(client, projekt_file_setup):
+    projekt = projekt_file_setup["projekt"]
+    anlage1 = projekt_file_setup["anlage1"]
+
+    url = reverse("hx_toggle_anlage1_ok", args=[anlage1.pk, 1])
+    resp = client.post(url)
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == reverse("projekt_detail", args=[projekt.pk])
+    anlage1.refresh_from_db()
+    assert anlage1.question_review["1"]["ok"]
+    assert "note" not in anlage1.question_review["1"]
+
+
+def test_question_review_saved_htmx(client, projekt_file_setup):
+    anlage1 = projekt_file_setup["anlage1"]
+
+    url = reverse("hx_toggle_anlage1_ok", args=[anlage1.pk, 1])
+    resp = client.post(url, HTTP_HX_REQUEST="true")
+    assert resp.status_code == 200
+    anlage1.refresh_from_db()
+    assert anlage1.question_review["1"]["ok"]
+
+
+def test_question_review_extended_fields_saved(client, projekt_file_setup):
+    anlage1 = projekt_file_setup["anlage1"]
+
+    url = reverse("hx_anlage1_note", args=[anlage1.pk, 1, "hinweis"])
+    client.post(url, {"text": "Fehlt"})
+    url = reverse("hx_anlage1_note", args=[anlage1.pk, 1, "vorschlag"])
+    resp = client.post(url, {"text": "Mehr Infos"})
+    assert resp.status_code == 200
+    anlage1.refresh_from_db()
+    data = anlage1.question_review["1"]
+    assert data["hinweis"] == "Fehlt"
+    assert data["vorschlag"] == "Mehr Infos"
+    assert "status" not in data
+
+
+def test_question_review_prefill_from_analysis(client, projekt_file_setup):
+    anlage1 = projekt_file_setup["anlage1"]
+
+    anlage1.question_review = None
+    anlage1.analysis_json = {
+        "questions": {
+            "1": {
+                "answer": "A",
+                "status": "ok",
+                "hinweis": "H",
+                "vorschlag": "V",
+            }
         }
-        self.anlage1.save()
+    }
+    anlage1.save()
 
-        url = reverse("projekt_file_edit_json", args=[self.anlage1.pk])
-        resp = self.client.get(url)
-        qa = resp.context["qa"]
-        self.assertEqual(qa[0]["hinweis"], "H")
-        self.assertEqual(qa[0]["vorschlag"], "V")
+    url = reverse("projekt_file_edit_json", args=[anlage1.pk])
+    resp = client.get(url)
+    qa = resp.context["qa"]
+    assert qa[0]["hinweis"] == "H"
+    assert qa[0]["vorschlag"] == "V"
 
-    def test_edit_page_has_mde(self):
-        pf = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=5,
-            upload=SimpleUploadedFile("c.txt", b"data"),
-            text_content="Text",
-        )
-        url = reverse("projekt_file_edit_json", args=[pf.pk])
-        resp = self.client.get(url)
-        self.assertContains(resp, "markdown_editor.js")
+
+def test_edit_page_has_mde(client, projekt_file_setup):
+    projekt = projekt_file_setup["projekt"]
+    pf = BVProjectFile.objects.create(
+        project=projekt,
+        anlage_nr=5,
+        upload=SimpleUploadedFile("c.txt", b"data"),
+        text_content="Text",
+    )
+    url = reverse("projekt_file_edit_json", args=[pf.pk])
+    resp = client.get(url)
+    assert "markdown_editor.js" in resp.content.decode()
 
 
 class GutachtenEditDeleteTests(NoesisTestCase):

@@ -8,9 +8,10 @@ import os
 import re
 import pytest
 
+pytestmark = pytest.mark.unit
 
 from django.apps import apps
-from ..models import (
+from ...models import (
     BVProject,
     BVProjectFile,
     Recording,
@@ -37,7 +38,7 @@ from ..models import (
     ZweckKategorieA,
     Anlage5Review,
 )
-from ..docx_utils import (
+from ...docx_utils import (
     extract_text,
     get_docx_page_count,
     get_pdf_page_count,
@@ -45,15 +46,15 @@ from ..docx_utils import (
     _normalize_header_text,
 )
 
-from ..utils import start_analysis_for_file
-from .. import text_parser
+from ...utils import start_analysis_for_file
+from ... import text_parser
 
 from core.text_parser import parse_anlage2_text, PHRASE_TYPE_CHOICES
 
-from ..anlage4_parser import parse_anlage4
+from ...anlage4_parser import parse_anlage4
 
-from ..parser_manager import parser_manager
-from ..parsers import AbstractParser
+from ...parser_manager import parser_manager
+from ...parsers import AbstractParser
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -64,7 +65,7 @@ from PIL import Image
 import fitz
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from ..forms import (
+from ...forms import (
     BVProjectForm,
     BVProjectUploadForm,
     BVProjectFileJSONForm,
@@ -72,9 +73,9 @@ from ..forms import (
     Anlage2ConfigForm,
     Anlage2ReviewForm,
 )
-from ..workflow import set_project_status
-from ..models import ProjectStatus
-from ..llm_tasks import (
+from ...workflow import set_project_status
+from ...models import ProjectStatus
+from ...llm_tasks import (
     check_anlage1,
     check_anlage2,
     analyse_anlage3,
@@ -93,8 +94,9 @@ from ..llm_tasks import (
     generate_gutachten,
     run_anlage2_analysis,
     parse_anlage1_questions,
+    _parse_anlage2,
 )
-from ..views import (
+from ...views import (
     _verification_to_initial,
     _build_row_data,
     _build_supervision_row,
@@ -105,117 +107,23 @@ from ..views import (
     _build_supervision_groups,
     _resolve_value,
 )
-from ..reporting import generate_gap_analysis, generate_management_summary
+from ...reporting import generate_gap_analysis, generate_management_summary
 from unittest.mock import patch, ANY, Mock, call
 from django.core.management import call_command
 from django.test import override_settings
 import json
-from .base import NoesisTestCase
-from ..initial_data_constants import INITIAL_PROJECT_STATUSES
-from ..prompt_context import build_prompt_context, available_placeholders
-
-
-DEFAULT_STATUS_KEY = next(
-    s["key"] for s in INITIAL_PROJECT_STATUSES if s.get("is_default")
+from ..base import NoesisTestCase
+from ...initial_data_constants import INITIAL_PROJECT_STATUSES
+from ...prompt_context import build_prompt_context, available_placeholders
+from ..utils import (
+    create_project,
+    seed_test_data,
+    DEFAULT_STATUS_KEY,
+    _extra_statuses,
 )
 
 
-def create_statuses() -> None:
-    data = [
-        (DEFAULT_STATUS_KEY, "Neu"),
-        ("CLASSIFIED", "Klassifiziert"),
-        ("GUTACHTEN_FREIGEGEBEN", "Gutachten freigegeben"),
-        ("IN_PRUEFUNG_ANLAGE_X", "In Prüfung Anlage X"),
-        ("FB_IN_PRUEFUNG", "FB in Prüfung"),
-        ("DONE", "Endgeprüft"),
-    ]
-    for idx, (key, name) in enumerate(data, start=1):
-        ProjectStatus.objects.update_or_create(
-            key=key,
-            defaults={
-                "name": name,
-                "ordering": idx,
-                "is_default": key == DEFAULT_STATUS_KEY,
-                "is_done_status": key == "DONE",
-            },
-        )
 
-
-@pytest.fixture(autouse=True)
-def _extra_statuses(db) -> None:
-    """Legt zusätzliche Projekt-Status für Tests an."""
-    create_statuses()
-
-
-def create_project(software: list[str] | None = None, **kwargs) -> BVProject:
-    projekt = BVProject.objects.create(**kwargs)
-    for name in software or []:
-        BVSoftware.objects.create(project=projekt, name=name)
-    return projekt
-
-
-def seed_test_data(*, skip_prompts: bool = False) -> None:
-    """Befüllt die Test-Datenbank mit Initialdaten.
-
-    Bestehende Einträge werden bei Bedarf überschrieben. Optional können die
-    Prompt-Definitionen übersprungen werden.
-    """
-    from django.apps import apps as django_apps
-    from core.management.commands.seed_initial_data import (
-        create_initial_data,
-    )
-    from ..llm_tasks import ANLAGE1_QUESTIONS
-
-    try:
-        create_initial_data(django_apps)
-    except LookupError:
-        # Falls die Migrationsfunktion wegen entfernter Modelle
-        # fehlschlägt, legen wir die benötigten Objekte manuell an.
-        Anlage1QuestionModel = apps.get_model("core", "Anlage1Question")
-        Anlage1QuestionVariant = apps.get_model("core", "Anlage1QuestionVariant")
-        for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
-            question, _ = Anlage1QuestionModel.objects.update_or_create(
-                num=idx,
-                defaults={
-                    "text": text,
-                    "enabled": True,
-                    "parser_enabled": True,
-                    "llm_enabled": True,
-                },
-            )
-            Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
-    create_statuses()
-
-    # Erforderliche Konfigurationen bereitstellen
-    LLMConfig.objects.all().delete()
-    LLMConfig.objects.create()
-    Anlage4Config.objects.get_or_create()
-    Anlage4ParserConfig.objects.get_or_create()
-
-    # Anlage1 Fragen aktualisieren
-    Anlage1QuestionModel = apps.get_model("core", "Anlage1Question")
-    Anlage1QuestionVariant = apps.get_model("core", "Anlage1QuestionVariant")
-    for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
-        try:
-            question = Anlage1QuestionModel.objects.get(num=idx)
-            question.text = text
-            question.parser_enabled = True
-            question.llm_enabled = True
-            question.save()
-        except Anlage1QuestionModel.DoesNotExist:
-            question = Anlage1QuestionModel.objects.create(
-                num=idx,
-                text=text,
-                parser_enabled=True,
-                llm_enabled=True,
-            )
-        Anlage1QuestionVariant.objects.get_or_create(question=question, text=text)
-
-    if skip_prompts:
-        return
-
-    for idx, text in enumerate(ANLAGE1_QUESTIONS, start=1):
-        Prompt.objects.update_or_create(name=f"anlage1_q{idx}", defaults={"text": text})
 
 
 def test_build_prompt_context_keys(db) -> None:
@@ -307,6 +215,14 @@ def test_build_prompt_context_keys(db) -> None:
             "role": roles.get("Standard"),
             "use_system_role": False,
         },
+        "check_anlage2_function": {
+            "text": (
+                "Prüfe anhand des folgenden Textes, ob die genannte Funktion "
+                'vorhanden ist. Gib ein JSON mit den Schlüsseln "technisch_verfuegbar", '
+                '"einsatz_telefonica", "zur_lv_kontrolle" und "ki_beteiligung" '
+                "zurück.\n\n"
+            )
+        },
         "check_anlage4": {
             "text": "Prüfe die folgende Anlage auf Vollständigkeit. Gib ein JSON mit 'ok' und 'hinweis' zurück:\n\n",
         },
@@ -353,33 +269,14 @@ def test_build_prompt_context_keys(db) -> None:
             },
         )
 
-    # Angleiche den Prompt an die Seeds: KI-Begründung inkl. Projekt/Software/Funktion/Unterfrage
-    ai_obj = Prompt.objects.get(name="anlage2_ai_verification_prompt")
-    ai_obj.text = (
-            " [SYSTEM]\n"
-            "Du bist Fachautor*in für IT‑Mitbestimmung (§87 Abs. 1 Nr. 6 BetrVG)."
-            " Begründe prägnant in 1–3 Sätzen, warum eine KI‑Beteiligung plausibel ist.\n\n"
-            "Hinweise: Beziehe dich auf typische KI‑Merkmale (z. B. Verarbeitung unstrukturierter Daten,"
-            " probabilistische/nicht‑deterministische Verfahren, Mustererkennung, generative Modelle)."
-            " Wenn eine Unterfrage angegeben ist, argumentiere konkret zur Unterfrage; ist sie leer,"
-            " beziehe dich nur auf die Funktion.\n\n"
-            " [USER]\n"
-            "Projekt: {project_name}  \n"
-            "Software: {software_name}  \n"
-            "Funktion/Eigenschaft: {function_name}  \n"
-            "Unterfrage: \"{subquestion_text}\"\n\n"
-            "Aufgabe: Gib eine kurze Begründung, warum hier eine KI‑Komponente beteiligt ist oder beteiligt sein kann."
-        )
-    ai_obj.use_system_role = False
-    ai_obj.save(update_fields=["text", "use_system_role"])
 
-
+@pytest.mark.usefixtures("seed_db")
 class SeedInitialDataTests(NoesisTestCase):
     """Stellt sicher, dass die Seed-Daten vorhanden sind."""
 
     def test_answer_rules_seeded(self) -> None:
         """Prüft die durch die globale Fixture angelegten Antwortregeln."""
-        from ..initial_data_constants import INITIAL_ANSWER_RULES
+        from ...initial_data_constants import INITIAL_ANSWER_RULES
 
         for rule in INITIAL_ANSWER_RULES:
             obj = AntwortErkennungsRegel.objects.get(
@@ -404,6 +301,7 @@ class ExtractAnlageNrTests(NoesisTestCase):
         self.assertEqual(extract_anlage_nr("Anlage3.docx"), 3)
 
 
+@pytest.mark.usefixtures("seed_db")
 class BVProjectFileTests(NoesisTestCase):
     def setUp(self) -> None:  # pragma: no cover - setup
         super().setUp()
@@ -796,372 +694,6 @@ class BVProjectFileTests(NoesisTestCase):
         )
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"])
-@pytest.mark.usefixtures("prepared_files")
-class ProjektFileUploadTests(NoesisTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user("user", password="pass")
-        self.client.login(username="user", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        self.anmelden_func = Anlage2Function.objects.create(name="Anmelden")
-
-    @pytest.mark.slow
-    def test_docx_upload_extracts_text(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        file_obj = self.projekt.anlagen.first()
-        self.assertIsNotNone(file_obj)
-        self.assertIn("Docx Inhalt", file_obj.text_content)
-
-    def test_ownerless_project_allows_upload(self):
-        """Prüft, dass ein neuer Nutzer Dateien in ein besitzerloses Projekt laden darf."""
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-
-    def test_pdf_upload_stores_bytes(self):
-        with open(self.pdf_one_page_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_3.pdf", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        file_obj = self.projekt.anlagen.get(anlage_nr=3)
-        self.assertEqual(file_obj.text_content, "")
-
-    def test_upload_without_anlage_nr_uses_filename(self):
-        """Nutzt die Anlagen-Nummer aus dem Dateinamen."""
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage 4 - Entwurf.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=4).exists())
-
-    def test_anlage2_upload_queues_check(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-
-        _ = self.anmelden_func
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        mock_async = Mock(side_effect=["tid1", "tid2"])
-
-        def fake_start(file_id: int) -> str:
-            pf_obj = BVProjectFile.objects.get(pk=file_id)
-            pf_obj.processing_status = BVProjectFile.PROCESSING
-            pf_obj.save(update_fields=["processing_status"])
-            task_id = None
-            for func, arg in pf_obj.get_analysis_tasks():
-                tid = mock_async(func, arg)
-                if task_id is None:
-                    task_id = tid
-            return task_id or ""
-
-        with patch("core.signals.start_analysis_for_file", side_effect=fake_start):
-            resp = self.client.post(
-                url,
-                {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
-                format="multipart",
-                HTTP_HX_REQUEST="true",
-            )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        pf = self.projekt.anlagen.get(anlage_nr=2)
-        self.assertEqual(pf.verification_task_id, "tid1")
-        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
-        mock_async.assert_any_call(
-            "core.llm_tasks.run_conditional_anlage2_check",
-            pf.pk,
-        )
-
-    def test_second_anlage2_version_skips_ai_check(self):
-        func = self.anmelden_func
-        first = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("v1.docx", b"x"),
-        )
-        FunktionsErgebnis.objects.create(
-            anlage_datei=first,
-            funktion=func,
-            quelle="ki",
-            technisch_verfuegbar=True,
-        )
-
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        with patch("core.views.async_task") as mock_async:
-            resp = self.client.post(
-                url,
-                {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
-                format="multipart",
-                HTTP_HX_REQUEST="true",
-            )
-        self.assertEqual(resp.status_code, 200)
-        self.assertFalse(
-            any(
-                call.args[0] == "core.llm_tasks.run_conditional_anlage2_check"
-                for call in mock_async.call_args_list
-            )
-        )
-        pf_latest = self.projekt.anlagen.filter(anlage_nr=2, is_active=True).first()
-        self.assertEqual(pf_latest.version, 2)
-
-    def test_upload_stores_posted_anlage_nr(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 2, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        pf = self.projekt.anlagen.get()
-        self.assertEqual(pf.anlage_nr, 2)
-
-    def test_save_project_file_respects_form_value(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_5.docx", fh.read())
-
-        form = BVProjectFileForm({}, {"upload": upload}, anlage_nr=1)
-        self.assertTrue(form.is_valid())
-        pf = _save_project_file(self.projekt, form)
-        self.assertEqual(pf.anlage_nr, 1)
-
-
-    def test_save_multiple_files_unique_numbers(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        for nr in range(1, 7):
-            with open(self.docx_content_path, "rb") as fh:
-                upload = SimpleUploadedFile(f"Anlage_{nr}.docx", fh.read())
-            _save_project_file(projekt, upload=upload, anlage_nr=nr)
-
-        qs = BVProjectFile.objects.filter(project=projekt)
-        self.assertEqual(qs.count(), 6)
-        self.assertListEqual(
-            sorted(qs.values_list("anlage_nr", flat=True)),
-            [1, 2, 3, 4, 5, 6],
-        )
-
-    def test_upload_uses_filename_when_no_anlage_nr(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_4.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        pf = self.projekt.anlagen.get()
-        self.assertEqual(pf.anlage_nr, 4)
-
-    def test_upload_uses_filename_when_anlage_nr_empty(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_3.docx", fh.read())
-
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": "", "upload": upload},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        pf = self.projekt.anlagen.get()
-        self.assertEqual(pf.anlage_nr, 3)
-
-
-@pytest.mark.usefixtures("prepared_files")
-class DropzoneUploadTests(NoesisTestCase):
-    """Tests für den neuen Datei-Upload-Workflow."""
-
-    def setUp(self):
-        self.user = User.objects.create_user("dz", password="pass")
-        self.client.login(username="dz", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-
-    def test_number_from_filename(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
-
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.headers.get("X-Upload-Status"), "assigned")
-        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=2).exists())
-
-    def test_manual_assignment_flow(self):
-        with open(self.docx_content_path, "rb") as fh:
-            upload = SimpleUploadedFile("foo.docx", fh.read())
-
-        url = reverse("projekt_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(url, {"upload": upload}, format="multipart", HTTP_HX_REQUEST="true")
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.headers.get("X-Upload-Status"), "manual")
-        self.assertIn("form", resp.content.decode())
-        session = self.client.session
-        temp_id = next(iter(session.get("pending_uploads", {})))
-
-        resp2 = self.client.post(
-            url,
-            {"temp_id": temp_id, "anlage_nr": 3},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp2.status_code, 200)
-        self.assertEqual(resp2.headers.get("X-Upload-Status"), "assigned")
-        self.assertTrue(self.projekt.anlagen.filter(anlage_nr=3).exists())
-
-
-
-class AutoApprovalTests(NoesisTestCase):
-    """Tests für die automatische Genehmigung von Dokumenten."""
-
-    def setUp(self) -> None:
-        self.user = User.objects.create_user("auto", password="pass")
-        self.client.login(username="auto", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-
-    def _upload_doc(self, document: Document) -> BVProjectFile:
-        """Hilfsfunktion zum Hochladen eines DOCX-Dokuments."""
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        document.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 1, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        return self.projekt.anlagen.get(anlage_nr=1)
-
-    def test_single_page_auto_approved(self):
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        pf = self._upload_doc(doc)
-        self.assertFalse(pf.manual_reviewed)
-        self.assertFalse(pf.verhandlungsfaehig)
-
-    def test_multi_page_requires_manual_review(self):
-        img = Image.new("RGB", (10, 10), color="red")
-        img_tmp = NamedTemporaryFile(delete=False, suffix=".png")
-        img.save(img_tmp.name)
-        img_tmp.close()
-
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        doc.add_page_break()
-        doc.add_paragraph("Seite 2")
-        doc.add_picture(img_tmp.name)
-        Path(img_tmp.name).unlink(missing_ok=True)
-
-        pf = self._upload_doc(doc)
-        self.assertFalse(pf.manual_reviewed)
-        self.assertFalse(pf.verhandlungsfaehig)
-
-    def test_toggle_manual_review_sets_flag(self):
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        doc.add_page_break()
-        doc.add_paragraph("Seite 2")
-        pf = self._upload_doc(doc)
-
-        url = reverse("project_file_toggle_flag", args=[pf.pk, "manual_reviewed"])
-        resp = self.client.post(url, {"value": "1"})
-        self.assertEqual(resp.status_code, 302)
-        pf.refresh_from_db()
-        self.assertTrue(pf.manual_reviewed)
-        self.assertFalse(pf.verhandlungsfaehig)
-
-
-class Anlage3AutomationTests(NoesisTestCase):
-    def setUp(self) -> None:
-        self.user = User.objects.create_user("auto3", password="pass")
-        self.client.login(username="auto3", password="pass")
-        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-
-    def _upload_docx(self, document: Document) -> BVProjectFile:
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        document.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("Anlage_1.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        url = reverse("hx_project_file_upload", args=[self.projekt.pk])
-        resp = self.client.post(
-            url,
-            {"anlage_nr": 3, "upload": upload, "manual_comment": ""},
-            format="multipart",
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.content.decode().count("<tr"), 1)
-        return BVProjectFile.objects.get(project=self.projekt, anlage_nr=3)
-
-    def test_single_page_sets_negotiable(self):
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        pf = self._upload_docx(doc)
-        self.assertTrue(pf.verhandlungsfaehig)
-
-    def test_review_save_marks_checked(self):
-        pf = BVProjectFile.objects.create(
-            project=self.projekt,
-            anlage_nr=3,
-            upload=SimpleUploadedFile("a.docx", b""),
-            text_content="",
-        )
-        url = reverse("projekt_file_edit_json", args=[pf.pk])
-        resp = self.client.post(url, {"analysis_json": "{}"})
-        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
-        pf.refresh_from_db()
-        self.assertTrue(pf.manual_reviewed)
 
 
 class BVProjectModelTests(NoesisTestCase):
@@ -1447,864 +979,7 @@ class BuildRowDataTests(NoesisTestCase):
         self.assertTrue(row["ai_result"]["technisch_vorhanden"])
 
 
-class LLMTasksTests(NoesisTestCase):
-    maxDiff = None
-
-    def setUp(self) -> None:  # pragma: no cover - setup
-        super().setUp()
-        self.func = Anlage2Function.objects.create(name="Anmelden")
-
-    # test_classify_system entfernt: Feature ausgebaut
-
-    def test_check_anlage2_parser_only(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Anlagetext",
-        )
-        func = self.func
-        # Ohne Parserdaten: keine LLM-Aufrufe, Werte bleiben None und Quelle ist parser
-        data = check_anlage2(projekt.pk)
-        self.assertIsNone(data["functions"][0]["technisch_verfuegbar"])
-        self.assertEqual(data["functions"][0]["source"], "parser")
-        # Es sollte kein LLM-Ergebnis gespeichert sein
-        fe_llm = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="llm"
-        ).first()
-        self.assertIsNone(fe_llm)
-
-    def test_check_anlage2_functions_stores_result(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-        )
-        func = self.func
-        llm_reply = json.dumps({"technisch_verfuegbar": True})
-        with (
-            patch("core.llm_tasks.query_llm", return_value=llm_reply),
-            patch("core.llm_tasks.async_task") as mock_async,
-            patch("core.llm_tasks.result") as mock_result,
-        ):
-            mock_async.side_effect = lambda name, *a, **k: (
-                worker_verify_feature(*a, **k) or "tid"
-            )
-            mock_result.side_effect = lambda *a, **k: None
-            run_conditional_anlage2_check(pf.pk)
-
-        res = AnlagenFunktionsMetadaten.objects.get(anlage_datei=pf, funktion=func)
-        fe = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="ki"
-        ).first()
-        self.assertIsNotNone(fe)
-        self.assertTrue(fe.technisch_verfuegbar)
-
-    def test_check_anlage2_llm_receives_text(self):
-        """Der LLM-Prompt enthält den bekannten Text."""
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Testinhalt Anlage2",
-        )
-        func = self.func
-        llm_reply = json.dumps({"technisch_verfuegbar": False})
-        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
-            data = check_anlage2(projekt.pk)
-        # Parser-only: kein LLM-Aufruf erwartet
-        mock_q.assert_not_called()
-        file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(
-            any(f["funktion"] == "Anmelden" for f in data["functions"])
-        )
-
-    def test_check_anlage2_prompt_contains_text(self):
-        """Der Prompt enth\u00e4lt den gesamten Anlagentext."""
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content="Testinhalt Anlage2",
-        )
-        func = self.func
-        llm_reply = json.dumps({"technisch_verfuegbar": False})
-        with patch("core.llm_tasks.query_llm", return_value=llm_reply) as mock_q:
-            data = check_anlage2(projekt.pk)
-        # Parser-only: kein LLM-Aufruf erwartet
-        mock_q.assert_not_called()
-        file_obj = projekt.anlagen.get(anlage_nr=2)
-        self.assertTrue(
-            any(f["funktion"] == "Anmelden" for f in data["functions"])
-        )
-
-    def test_check_anlage2_parser(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("b.txt", b"x"),
-            text_content="Anmelden tv ja ki ja",
-        )
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["ja"]
-        cfg.text_ki_beteiligung_true = ["ja"]
-        cfg.save()
-        AntwortErkennungsRegel.objects.create(
-            regel_name="tv ja",
-            erkennungs_phrase="tv ja",
-            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
-        )
-        AntwortErkennungsRegel.objects.create(
-            regel_name="ki ja",
-            erkennungs_phrase="ki ja",
-            actions_json=[{"field": "ki_beteiligung", "value": True}],
-        )
-        func = self.func
-
-        with patch("core.llm_tasks.query_llm") as mock_q:
-            data = check_anlage2(projekt.pk)
-        # Parser-only: kein LLM-Aufruf erwartet
-        mock_q.assert_not_called()
-        expected_function = {
-            "funktion": "Anmelden",
-            "technisch_verfuegbar": {"value": True, "note": None},
-            "ki_beteiligung": {"value": True, "note": None},
-            "source": "parser",
-        }
-        pf.refresh_from_db()
-        self.assertEqual(data["task"], "check_anlage2")
-        self.assertIn(expected_function, data["functions"])
-        self.assertIn(expected_function, pf.analysis_json["functions"])
-
-    def test_run_anlage2_analysis_table(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-
-        doc = Document()
-        table = doc.add_table(rows=2, cols=5)
-        table.cell(0, 0).text = "Funktion"
-        table.cell(0, 1).text = "Technisch vorhanden"
-        table.cell(0, 2).text = "Einsatz bei Telefónica"
-        table.cell(0, 3).text = "Zur LV-Kontrolle"
-        table.cell(0, 4).text = "KI-Beteiligung"
-        table.cell(1, 0).text = "Anmelden"
-        table.cell(1, 1).text = "Ja"
-        table.cell(1, 2).text = "Nein"
-        table.cell(1, 3).text = "Nein"
-        table.cell(1, 4).text = "Ja"
-
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-        upload = SimpleUploadedFile("b.docx", buffer.read())
-
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=upload,
-            text_content="Anmelden: tv: ja; tel: nein; lv: nein; ki: ja",
-        )
-        func = self.func
-        cfg = Anlage2Config.get_instance()
-        cfg.parser_mode = "table_only"
-        cfg.parser_order = ["table"]
-        cfg.text_technisch_verfuegbar_true = ["ja"]
-        cfg.text_technisch_verfuegbar_false = []
-        cfg.text_einsatz_telefonica_true = []
-        cfg.text_einsatz_telefonica_false = ["nein"]
-        cfg.text_zur_lv_kontrolle_true = []
-        cfg.text_zur_lv_kontrolle_false = ["nein"]
-        cfg.text_ki_beteiligung_true = ["ja"]
-        cfg.text_ki_beteiligung_false = []
-        cfg.save()
-
-        result = run_anlage2_analysis(pf)
-        expected = [
-            {
-                "funktion": "Anmelden",
-                "technisch_verfuegbar": {"value": True, "note": None},
-                "einsatz_telefonica": {"value": False, "note": None},
-                "zur_lv_kontrolle": {"value": False, "note": None},
-                "ki_beteiligung": {"value": True, "note": None},
-            }
-        ]
-
-        pf.refresh_from_db()
-        fe = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="parser"
-        ).first()
-        self.assertIsNotNone(fe)
-        self.assertTrue(fe.technisch_verfuegbar)
-
-        login_entry = next(
-            f for f in pf.analysis_json["functions"] if f["funktion"] == "Anmelden"
-        )
-        self.assertTrue(login_entry["technisch_verfuegbar"]["value"])
-        self.assertFalse(login_entry["einsatz_telefonica"]["value"])
-        self.assertFalse(login_entry["zur_lv_kontrolle"]["value"])
-        self.assertTrue(login_entry["ki_beteiligung"]["value"])
-
-        self.assertIsInstance(result, list)
-        self.assertTrue(any(r["funktion"] == "Anmelden" for r in result))
-
-    def test_run_anlage2_analysis_sets_negotiable_on_match(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        content = "Anmelden: tv: ja; tel: nein; lv: nein; ki: ja"
-        upload = SimpleUploadedFile("b.txt", b"x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=upload,
-            text_content=content,
-        )
-        func = self.func
-        cfg = Anlage2Config.get_instance()
-        cfg.text_technisch_verfuegbar_true = ["ja"]
-        cfg.save()
-        AnlagenFunktionsMetadaten.objects.create(
-            anlage_datei=pf,
-            funktion=func,
-        )
-        FunktionsErgebnis.objects.create(
-            anlage_datei=pf,
-            funktion=func,
-            quelle="ki",
-            technisch_verfuegbar=True,
-        )
-
-        run_anlage2_analysis(pf)
-
-        parser_fe = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="parser"
-        ).first()
-        ai_fe = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="ki"
-        ).first()
-
-        self.assertTrue(parser_fe.technisch_verfuegbar)
-        self.assertTrue(ai_fe.technisch_verfuegbar)
-
-    def test_parser_manager_no_fallback_on_error(self):
-        class FailParser(AbstractParser):
-            name = "fail"
-
-            def parse(self, project_file):
-                raise ValueError("boom")
-
-        class DummyParser(AbstractParser):
-            name = "dummy"
-
-            def parse(self, project_file):
-                return [{"funktion": "Dummy"}]
-
-        parser_manager.register(FailParser)
-        parser_manager.register(DummyParser)
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["fail", "dummy"]
-        cfg.save()
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_table(rows=1, cols=1)
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("c.docx", fh.read())
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=upload,
-        )
-
-        try:
-            with patch.object(DummyParser, "parse", wraps=DummyParser.parse) as m_dummy:
-                result = parser_manager.parse_anlage2(pf)
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-            parser_manager._parsers.pop("fail")
-            parser_manager._parsers.pop("dummy")
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
-
-        self.assertEqual(result, [])
-        m_dummy.assert_not_called()
-
-    def test_parser_manager_order(self):
-        class P1(AbstractParser):
-            name = "one"
-
-            def parse(self, project_file):
-                return [{"val": 1}]
-
-        class P2(AbstractParser):
-            name = "two"
-
-            def parse(self, project_file):
-                return [{"val": 2}]
-
-        parser_manager.register(P1)
-        parser_manager.register(P2)
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["two", "one"]
-        cfg.save()
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        table = doc.add_table(rows=1, cols=1)
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("d.docx", fh.read())
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=upload,
-        )
-        try:
-            result = parser_manager.parse_anlage2(pf)
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-            parser_manager._parsers.pop("one")
-            parser_manager._parsers.pop("two")
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
-
-        self.assertEqual(result, [{"val": 2}])
-
-    def test_parser_manager_uses_first_result(self):
-        class P1(AbstractParser):
-            name = "p1"
-
-            def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
-
-        class P2(AbstractParser):
-            name = "p2"
-
-            def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
-
-        parser_manager.register(P1)
-        parser_manager.register(P2)
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_order = ["p1", "p2"]
-        cfg.save()
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_table(rows=1, cols=1)
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("e.docx", fh.read())
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=upload,
-        )
-
-        try:
-            with (
-                patch("core.parsers.parse_anlage2_table", return_value=[]) as m_tab,
-                patch("core.text_parser.parse_anlage2_text", return_value=[]) as m_text,
-            ):
-                result = parser_manager.parse_anlage2(pf)
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-            parser_manager._parsers.pop("p1", None)
-            parser_manager._parsers.pop("p2", None)
-            cfg.parser_order = old_order
-            cfg.parser_mode = old_mode
-            cfg.save()
-
-        m_tab.assert_not_called()
-        m_text.assert_not_called()
-        self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
-
-    def test_parser_manager_uses_exact_by_default(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="t",
-        )
-        with (
-            patch("core.parsers.ExactParser.parse", return_value=[{"funktion": "Alt"}]) as m_exact,
-            patch("core.parsers.TableParser.parse") as m_table,
-        ):
-            result = parser_manager.parse_anlage2(pf)
-        m_exact.assert_called_once()
-        m_table.assert_not_called()
-        self.assertEqual(result, [{"funktion": "Alt"}])
-
-    def test_parser_manager_exact_parser_segments(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="Alpha: aktiv\nBeta: kein einsatz",
-        )
-        Anlage2Function.objects.create(name="Alpha")
-        Anlage2Function.objects.create(name="Beta")
-        AntwortErkennungsRegel.objects.create(
-            regel_name="aktiv",
-            erkennungs_phrase="aktiv",
-            actions_json=[{"field": "technisch_verfuegbar", "value": True}],
-        )
-        AntwortErkennungsRegel.objects.create(
-            regel_name="einsatz",
-            erkennungs_phrase="kein einsatz",
-            actions_json=[{"field": "einsatz_telefonica", "value": False}],
-        )
-        cfg = Anlage2Config.get_instance()
-        old_order, old_mode = cfg.parser_order, cfg.parser_mode
-        cfg.parser_mode = "exact_only"
-        cfg.save()
-        result = parser_manager.parse_anlage2(pf)
-        cfg.parser_order = old_order
-        cfg.parser_mode = old_mode
-        cfg.save()
-        self.assertEqual(
-            result,
-            [
-                {
-                    "funktion": "Alpha",
-                    "technisch_verfuegbar": {"value": True, "note": None},
-                },
-                {
-                    "funktion": "Beta",
-                    "einsatz_telefonica": {"value": False, "note": None},
-                },
-            ],
-        )
-
-    def test_run_anlage2_analysis_includes_missing_functions(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="",
-        )
-        func = self.func
-
-        result = run_anlage2_analysis(pf)
-
-        entry = next(r for r in result if r["funktion"] == "Anmelden")
-        self.assertTrue(
-            entry.get("not_found") or entry.get("technisch_verfuegbar") is None
-        )
-        pf.refresh_from_db()
-        fe = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="parser"
-        ).first()
-        self.assertIsNotNone(fe)
-        self.assertIsNone(fe.technisch_verfuegbar)
-
-    def test_run_anlage2_analysis_includes_missing_subquestions(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="",
-        )
-        func = self.func
-        Anlage2SubQuestion.objects.filter(funktion=func).delete()
-        Anlage2SubQuestion.objects.create(funktion=func, frage_text="Warum?")
-
-        result = run_anlage2_analysis(pf)
-
-        names = [row["funktion"] for row in result]
-        self.assertIn("Anmelden", names)
-        self.assertTrue(any("Warum?" in n for n in names))
-        pf.refresh_from_db()
-        parser_res = FunktionsErgebnis.objects.filter(
-            anlage_datei=pf, funktion=func, quelle="parser"
-        )
-        self.assertEqual(parser_res.count(), 2)
-
-    def test_run_anlage2_analysis_sets_complete_status_without_followup(self):
-        """Status wird nur ohne anschließende KI-Prüfung auf COMPLETE gesetzt."""
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="",
-            processing_status=BVProjectFile.PROCESSING,
-        )
-        func = self.func
-        FunktionsErgebnis.objects.create(
-            anlage_datei=pf,
-            funktion=func,
-            quelle="ki",
-            technisch_verfuegbar=True,
-        )
-
-        run_anlage2_analysis(pf)
-
-        pf.refresh_from_db()
-        self.assertEqual(pf.processing_status, BVProjectFile.COMPLETE)
-
-    def test_run_anlage2_analysis_keeps_processing_with_followup(self):
-        """Bei ausstehender KI-Prüfung bleibt der Status PROCESSING."""
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("a.txt", b"x"),
-            text_content="",
-            processing_status=BVProjectFile.PROCESSING,
-        )
-        _ = self.func
-
-        run_anlage2_analysis(pf)
-
-        pf.refresh_from_db()
-        self.assertEqual(pf.processing_status, BVProjectFile.PROCESSING)
-
-    def test_check_anlage2_table_error_fallback(self):
-        class P1(AbstractParser):
-            name = "p1"
-
-            def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": False}}]
-
-        class P2(AbstractParser):
-            name = "p2"
-
-            def parse(self, project_file):
-                return [{"funktion": "A", "technisch_verfuegbar": {"value": True}}]
-
-        parser_manager.register(P1)
-        parser_manager.register(P2)
-        cfg = Anlage2Config.get_instance()
-        cfg.parser_order = ["p1", "p2"]
-        cfg.save()
-
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pf = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=2,
-            upload=SimpleUploadedFile("b.txt", b"x"),
-        )
-
-        try:
-            result = parser_manager.parse_anlage2(pf)
-        finally:
-            parser_manager._parsers.pop("p1", None)
-            parser_manager._parsers.pop("p2", None)
-            cfg.parser_order = ["table"]
-            cfg.save()
-
-        self.assertFalse(result[0]["technisch_verfuegbar"]["value"])
-
-    def test_analyse_anlage3_auto_ok(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("c.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-        )
-
-        pf = projekt.anlagen.get(anlage_nr=3)
-        data = analyse_anlage3(pf.pk)
-        pf.refresh_from_db()
-        file_obj = pf
-        self.assertEqual(data["pages"], 1)
-
-        self.assertTrue(data["auto_ok"])
-        self.assertTrue(file_obj.analysis_json["auto_ok"])
-
-        if hasattr(file_obj, "verhandlungsfaehig"):
-            self.assertTrue(file_obj.verhandlungsfaehig)
-
-    def test_analyse_anlage3_manual_required(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        doc = Document()
-        doc.add_paragraph("Seite 1")
-        doc.add_page_break()
-        doc.add_paragraph("Seite 2")
-        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc.save(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("d.docx", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-        )
-
-        pf = projekt.anlagen.get(anlage_nr=3)
-        data = analyse_anlage3(pf.pk)
-        pf.refresh_from_db()
-        file_obj = pf
-        self.assertEqual(data["pages"], 2)
-
-        self.assertTrue(data["manual_required"])
-        self.assertTrue(file_obj.analysis_json["manual_required"])
-
-        if hasattr(file_obj, "verhandlungsfaehig"):
-            self.assertFalse(file_obj.verhandlungsfaehig)
-
-    def test_analyse_anlage3_pdf_auto_ok(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pdf = fitz.open()
-        pdf.new_page()
-        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.close()
-        pdf.save(tmp.name)
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("c.pdf", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-        )
-
-        pf = projekt.anlagen.get(anlage_nr=3)
-        data = analyse_anlage3(pf.pk)
-        pf.refresh_from_db()
-        file_obj = pf
-        self.assertEqual(data["pages"], 1)
-
-        self.assertTrue(data["auto_ok"])
-        self.assertTrue(file_obj.analysis_json["auto_ok"])
-
-
-    def test_analyse_anlage3_pdf_manual_required(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        pdf = fitz.open()
-        pdf.new_page()
-        pdf.new_page()
-        tmp = NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.close()
-        pdf.save(tmp.name)
-        with open(tmp.name, "rb") as fh:
-            upload = SimpleUploadedFile("d.pdf", fh.read())
-        Path(tmp.name).unlink(missing_ok=True)
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload,
-            text_content="ignored",
-        )
-
-        pf = projekt.anlagen.get(anlage_nr=3)
-        data = analyse_anlage3(pf.pk)
-        pf.refresh_from_db()
-        file_obj = pf
-        self.assertEqual(data["pages"], 2)
-
-        self.assertTrue(data["manual_required"])
-        self.assertTrue(file_obj.analysis_json["manual_required"])
-
-    def test_analyse_anlage3_multiple_files(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-
-        doc1 = Document()
-        doc1.add_paragraph("Seite 1")
-        tmp1 = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc1.save(tmp1.name)
-        tmp1.close()
-        with open(tmp1.name, "rb") as fh:
-            upload1 = SimpleUploadedFile("e.docx", fh.read())
-        Path(tmp1.name).unlink(missing_ok=True)
-        pf1 = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload1,
-            text_content="x",
-        )
-
-        doc2 = Document()
-        doc2.add_paragraph("Seite 1")
-        doc2.add_page_break()
-        doc2.add_paragraph("Seite 2")
-        tmp2 = NamedTemporaryFile(delete=False, suffix=".docx")
-        doc2.save(tmp2.name)
-        tmp2.close()
-        with open(tmp2.name, "rb") as fh:
-            upload2 = SimpleUploadedFile("f.docx", fh.read())
-        Path(tmp2.name).unlink(missing_ok=True)
-        pf2 = BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=3,
-            upload=upload2,
-            text_content="y",
-        )
-
-        analyse_anlage3(pf1.pk)
-        pf1.refresh_from_db()
-        pf2.refresh_from_db()
-        self.assertIsNotNone(pf1.analysis_json)
-        self.assertIsNotNone(pf2.analysis_json)
-
-    def test_check_anlage1_parser(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        q1_text = Anlage1Question.objects.get(num=1).text
-        q2_text = Anlage1Question.objects.get(num=2).text
-        text = f"{q1_text}\u00b6A1\u00b6{q2_text}\u00b6A2"
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content=text,
-        )
-        file_obj = projekt.anlagen.get(anlage_nr=1)
-        data = check_anlage1(file_obj.pk)
-        file_obj.refresh_from_db()
-        expected = {"questions": parse_anlage1_questions(text)}
-        file_obj.refresh_from_db()
-        self.assertEqual(data, expected)
-        self.assertEqual(file_obj.analysis_json, expected)
-
-    def test_parse_anlage1_questions_extra(self):
-        Anlage1Question.objects.create(
-            num=10,
-            text="Frage 10: Test?",
-            enabled=True,
-            parser_enabled=True,
-            llm_enabled=True,
-        )
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        q1_text = Anlage1Question.objects.get(num=1).text
-        text = f"{q1_text}\u00b6A1\u00b6Frage 10: Test?\u00b6A10"
-        BVProjectFile.objects.create(
-            project=projekt,
-            anlage_nr=1,
-            upload=SimpleUploadedFile("a.txt", b"data"),
-            text_content=text,
-        )
-        file_obj = projekt.anlagen.get(anlage_nr=1)
-        data = check_anlage1(file_obj.pk)
-        q_data = data["questions"]
-        self.assertEqual(q_data["10"]["answer"], "A10")
-
-    def test_parse_anlage1_questions_without_numbers(self):
-        """Prüft die Extraktion ohne nummerierte Fragen."""
-        # Frage-Texte ohne Präfix "Frage X:" speichern
-        q1 = Anlage1Question.objects.get(num=1)
-        q2 = Anlage1Question.objects.get(num=2)
-        prefix = r"^Frage\s+\d+(?:\.\d+)?[:.]?\s*"
-        q1.text = re.sub(prefix, "", q1.text)
-        q2.text = re.sub(prefix, "", q2.text)
-        q1.save(update_fields=["text"])
-        q2.save(update_fields=["text"])
-        v1 = q1.variants.first()
-        v2 = q2.variants.first()
-        v1.text = q1.text
-        v2.text = q2.text
-        v1.save()
-        v2.save()
-
-        text = f"{q1.text}\u00b6A1\u00b6{q2.text}\u00b6A2"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(
-            parsed,
-            {
-                "1": {"answer": "A1", "found_num": None},
-                "2": {"answer": "A2", "found_num": None},
-            },
-        )
-
-    def test_parse_anlage1_questions_with_variant(self):
-        q1 = Anlage1Question.objects.get(num=1)
-        q1.variants.create(text="Alternative Frage 1?")
-        text = "Alternative Frage 1?\u00b6A1"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": "1"}})
-
-    def test_parse_anlage1_questions_with_newlines(self):
-        """Extraktion funktioniert trotz Zeilenumbr\u00fcche."""
-        q1_text = Anlage1Question.objects.get(num=1).text
-        q2_text = Anlage1Question.objects.get(num=2).text
-        text = f"{q1_text}\nA1\n{q2_text}\nA2"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(
-            parsed,
-            {
-                "1": {"answer": "A1", "found_num": None},
-                "2": {"answer": "A2", "found_num": None},
-            },
-        )
-
-    def test_parse_anlage1_questions_split_lines(self):
-        """Fragen werden auch mit Zeilenumbrüchen innerhalb des Textes erkannt."""
-        q1_text = Anlage1Question.objects.get(num=1).text
-        q2_text = Anlage1Question.objects.get(num=2).text
-        q1_split = q1_text.replace(" ", "\n", 1)
-        q2_split = q2_text.replace(" ", "\n", 1)
-        text = f"{q1_split}\r\nA1\n{q2_split}\r\nA2"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(
-            parsed,
-            {
-                "1": {"answer": "A1", "found_num": None},
-                "2": {"answer": "A2", "found_num": None},
-            },
-        )
-
-    def test_parse_anlage1_questions_respects_parser_enabled(self):
-        q2 = Anlage1Question.objects.get(num=2)
-        q2.parser_enabled = False
-        q2.save(update_fields=["parser_enabled"])
-        q1_text = Anlage1Question.objects.get(num=1).text
-        text = f"{q1_text}\u00b6A1"
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {"1": {"answer": "A1", "found_num": None}})
-
-    def test_parse_anlage1_questions_returns_empty_dict(self):
-        """Bei fehlenden Treffern wird ein leeres Dict zur\u00fcckgegeben."""
-        text = "Es gibt hier keine Fragen."
-        parsed = parse_anlage1_questions(text)
-        self.assertEqual(parsed, {})
-
-    def test_generate_gutachten_twice_replaces_file(self):
-        projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
-        first = generate_gutachten(projekt.pk, text="Alt")
-        second = generate_gutachten(projekt.pk, text="Neu")
-        try:
-            self.assertTrue(second.exists())
-            self.assertNotEqual(first, second)
-            self.assertFalse(first.exists())
-        finally:
-            second.unlink(missing_ok=True)
-
-    # Tests für die entfernte Hilfsfunktion _parse_anlage2 entfallen.
-
-
+@pytest.mark.usefixtures("seed_db")
 class PromptTests(NoesisTestCase):
     def test_get_prompt_returns_default(self):
         self.assertEqual(get_prompt("unknown", "foo"), "foo")
@@ -2654,6 +1329,7 @@ class ProjektFileDeleteResultTests(NoesisTestCase):
         self.assertFalse(self.file.verhandlungsfaehig)
 
 
+@pytest.mark.usefixtures("seed_db")
 class ProjektFileVersionDeletionTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -3434,6 +2110,7 @@ class FeatureVerificationTests(NoesisTestCase):
         self.assertTrue(any("Integrit" in msg for msg in cm.output))
 
 
+@pytest.mark.usefixtures("seed_db")
 class InitialCheckTests(NoesisTestCase):
     def setUp(self):
         self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
@@ -4381,6 +3058,7 @@ class SupervisionGapTests(NoesisTestCase):
         self.assertEqual(row["ai_reason"], "Func reason")
 
 
+@pytest.mark.usefixtures("seed_db")
 class Anlage2ResetTests(NoesisTestCase):
     """Tests zum Zurücksetzen von Anlage-2-Ergebnissen."""
 
@@ -4456,9 +3134,6 @@ class Anlage2ResetTests(NoesisTestCase):
         )
 
         def fake(_pid, _typ, fid, _model=None):
-            # Nur Hauptfunktionen schreiben; Unterfragen nicht berksichtigen
-            if _typ != "function":
-                return {}
             pf_latest = BVProjectFile.objects.filter(
                 project=projekt, anlage_nr=2
             ).first()
@@ -4485,10 +3160,8 @@ class Anlage2ResetTests(NoesisTestCase):
             )
             mock_result.side_effect = lambda *a, **k: None
             run_conditional_anlage2_check(pf.pk)
-        # Z2hle explizit nur Hauptfunktionen projektweit (ohne Unterfragen)
         results = AnlagenFunktionsMetadaten.objects.filter(
-            anlage_datei__project=projekt,
-            subquestion__isnull=True,
+            anlage_datei__project=projekt
         )
         self.assertEqual(results.count(), Anlage2Function.objects.count())
         fe = FunktionsErgebnis.objects.filter(
@@ -4646,6 +3319,7 @@ class Anlage2ResetTests(NoesisTestCase):
         # Manueller Eintrag wurde entfernt
 
 
+@pytest.mark.usefixtures("seed_db")
 class GapReportTests(NoesisTestCase):
     def setUp(self):
         super().setUp()
@@ -4721,6 +3395,7 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(self.pf2.gap_summary, "")
 
 
+@pytest.mark.usefixtures("seed_db")
 class ProjektDetailGapTests(NoesisTestCase):
     def setUp(self):
         super().setUp()

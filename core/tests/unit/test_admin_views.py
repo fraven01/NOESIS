@@ -1,5 +1,16 @@
-from .base import NoesisTestCase
-from .test_general import *
+import pytest
+from pathlib import Path
+from django.contrib.auth.models import Group, User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+
+from ..base import NoesisTestCase
+from ..utils import create_project
+from ...models import BVProject, BVProjectFile, Prompt, LLMConfig, Anlage1Question
+from ...llm_tasks import generate_gutachten
+
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db")]
+
 
 class AdminProjectsTests(NoesisTestCase):
     def setUp(self):

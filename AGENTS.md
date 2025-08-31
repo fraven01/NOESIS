@@ -1,90 +1,37 @@
 # AGENTS.md
 
-## Zweck der Webanwendung
-- Die Anwendung "NOESIS" ist eine spezialisierte, digitale Assistenz zur Unterstützung von Betriebsräten. Ihr Hauptzweck ist die Vereinfachung, Strukturierung und Nachvollziehbarkeit von Prozessen rund um Betriebsvereinbarungen (BV).
-
-Kernfunktionen:
-
-Strukturiertes Projektmanagement:
-
-Verwaltung von BV-Projekten mit konfigurierbaren Status-Definitionen.
-Slot-basiertes Management der 6 Standard-Anlagen, was eine klare Übersicht über fehlende oder vorhandene Dokumente gibt.
-Revisionssichere Speicherung von Anlagedokumenten, bei der frühere Versionen erhalten bleiben.
-KI-gestützte Dokumenten-Analyse:
-
-Ein duales Parser-System für Anlage 2, das sowohl strukturierte Tabellen als auch unstrukturierte Textdokumente verarbeiten kann.
-Ein vollständig Alias-gesteuertes Parsersystem, das über den Admin-Bereich konfiguriert werden kann, um sich an verschiedene Formulierungen anzupassen.
-Mehrstufige, asynchrone KI-Prüfungen für Software-Komponenten, die Folgendes umfassen:
-Ein Initial-Check, ob eine Software dem System bekannt ist.
-Eine detaillierte Beschreibung der Software und ihrer Funktionen.
-Eine gezielte Prüfung auf das Vorhandensein von mitbestimmungspflichtigen Funktionen (Anlage 2).
-Eine konditionale Prüfung auf KI-Beteiligung bei diesen Funktionen.
-Generierung von Gutachten, sowohl für einzelne Software-Komponenten als auch als zusammenfassender Gesamtbericht.
-Konfigurierbarkeit und Kontrolle:
-
-Ein benutzerdefinierter Admin-Bereich ermöglicht die vollständige Konfiguration der Systemlogik ohne Code-Änderungen.
-LLM-Rollen und Prompts können zentral definiert und verwaltet werden, um den Antwortstil und die "Persönlichkeit" der KI zu steuern.
-Workflow "TalkDiary":
-
-Aufnahme und KI-gestützte Transkription von Audio-Gesprächen zur einfachen Protokollierung.
+## Zweck
+NOESIS unterstützt Betriebsräte bei der Erstellung und Bewertung von Betriebsvereinbarungen. Fokus: Transparente Projektverwaltung, KI‑gestützte Analysen und Audio‑gestützte Dokumentation.
 
 ## Commit-Richtlinien
-- Verwende Präfixe wie `feat:`, `fix:` oder `docs:` in Commit-Botschaften.
-- Erste Zeile enthält eine kurze Zusammenfassung, dann eine Leerzeile und ggf. eine detaillierte Beschreibung.
+- Präfixe: `feat:`, `fix:`, `docs:`, `chore:`, …
+- Erste Zeile: kurze Zusammenfassung, dann Leerzeile und optional detaillierte Beschreibung.
 
-## Stil und Code
-- Python-Code nach PEP8.
-- Kommentare und Docstrings auf Deutsch.
-- Wichtige Funktionen mit Typ-Hints versehen.
+## Stil & Code
+- Python nach PEP8, Kommentare/Docstrings auf Deutsch, wichtige Funktionen mit Typ-Hints.
+- Templates folgen dem vorhandenen Tailwind‑Stil; Farbkontraste gemäß WCAG 2.1.
 
-## Technische Architektur & Abhängigkeiten
-Backend: Django 5.x
-Asynchrone Tasks: django-q2 wird für alle langlaufenden Prozesse (LLM-Anfragen, Analysen) verwendet. Dies erfordert einen laufenden qcluster-Prozess.
-Dokumenten-Export: Die Konvertierung von Markdown zu .docx erfordert die System-Abhängigkeit pandoc.
-Datenbank: SQLite für die Entwicklung, für den Produktivbetrieb ist PostgreSQL empfohlen.
-LLM-Logging: Langfuse SDK 3.3.1.
+## Tests & Pre-Commit
+Vor jedem Commit müssen lokal bestanden sein:
+```bash
+python manage.py makemigrations --check
+pytest -q
+```
 
+`pre-commit` (siehe `.pre-commit-config.yaml`) führt diese Checks automatisch aus. Notfalls `git commit --no-verify` verwenden.
 
-## Projektstruktur
-core/: Zentrale Django-App mit Modellen, Views, Formularen und den meisten Geschäftslogiken.
-migrations/: Django-Migrationsdateien, inklusive Daten-Migrationen für Standard-Prompts und -Rollen.
-Nach `python manage.py migrate` füllt `python manage.py seed_initial_data` die Datenbank mit Standarddaten.
-templatetags/: Eigene Template-Erweiterungen (z.B. für Markdown-Rendering).
-management/commands/: Eigene manage.py-Befehle.
-noesis/: Projekteinstellungen und URL-Konfiguration.
-static/: Statische Dateien; css/ enthält globale und admin-spezifische Stylesheets.
-templates/: HTML-Vorlagen, inklusive eines admin-Unterordners zum Überschreiben der Standard-Admin-Ansicht.
-llm-debug.log: Dediziertes Logfile für alle LLM-Prompts und -Antworten.
-Procfile: Definiert die Prozesse (web, worker) für den Start mit honcho.
+## Architekturüberblick
 
-## Admin-Bereiche
+* **Backend**: Django 5.x
+* **Asynchrone Tasks**: `django-q2` (läuft als `qcluster`)
+* **Dokumentexport**: Pandoc (`markdown_placeholder.py`)
+* **LLM-Integration**: Langfuse SDK 3.3.1, Konfiguration über Admin‐Bereich
+* **Navigation**: Kontextprozessoren `user_navigation`, `admin_navigation`
+* **TalkDiary**: Audioaufnahme mit optionaler OBS‑Steuerung und Whisper-Transkription
+* **Vision-Modell**: Konfigurierbar unter `/projects-admin/vision/`
 
-- `/projects-admin/` – Projekt-Admin für alle projektbezogenen Modelle und
-  Einstellungen (z.B. Funktionskatalog, Parser-Regeln).
-- `/admin/` – System-Admin (das reguläre Django-Admin) für globale
-  Konfiguration wie Benutzer und Gruppen.
+## Management-Befehle
 
-
--   **Implementierung von CRUD-Ansichten:** Entwicklung von Listen-, Erstellungs-, Bearbeitungs- und Löschansichten für verschiedene Modelle.
-
--   **Implementierung einer robusten Import/Export-Funktion:** Entwicklung einer idempotenten Import- und Exportlogik für die gesamte Anwendungskonfiguration, inklusive der Handhabung von Many-to-Many-Beziehungen und der Integration in die Admin-Oberfläche.
--   **Analyse und Refactoring:** Bewertung von Code-Alternativen (Patches) und Umsetzung der besten Lösung.
-
-## Tests und Checks
-- Vor jedem Commit müssen folgende Schritte erfolgreich sein:
-  - `python manage.py makemigrations --check`
-  - `pytest -q` (konfiguriert über `pytest.ini`)
-
-- Pre-Commit Hook: Die Datei `.pre-commit-config.yaml` führt beide Schritte automatisch aus.
-  Installation: `pip install -r requirements-dev.txt && pre-commit install`
-  - Der Hook führt standardmäßig nur die „schnellen“ Tests aus (ohne `slow`, `e2e`, `selenium`).
-  - Die vollständige Suite startet man manuell mit `pytest`.
-  - Für Notfälle kann mit `git commit --no-verify` übersprungen werden (nicht empfohlen).
-
-## Management‑Befehle
-
-- `seed_initial_data`: Füllt/aktualisiert Standarddaten (Bereiche, Status, Rollen, Fragen, Parser‑Regeln, Prompts).
-- `export_configs`: Exportiert die Konfigurationsmodelle als JSON (stdout).
-- `import_configs <pfad_zur_json>`: Importiert Konfigurationen idempotent, inkl. Many‑to‑Many‑Werte.
-- `clear_async_tasks [--queued|--failed]`: Löscht Django‑Q Queue‑Einträge und/oder fehlgeschlagene Tasks.
-
+* `seed_initial_data`: Standarddaten einspielen
+* `export_configs` / `import_configs`: Export/Import der Konfiguration
+* `clear_async_tasks [--queued|--failed]`: Aufräumen der Django-Q-Queues

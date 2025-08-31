@@ -1,6 +1,12 @@
-from .base import NoesisTestCase
-from .test_general import *
+import pytest
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+
+from ..base import NoesisTestCase
+from ...models import BVProject, BVProjectFile, ZweckKategorieA
+
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("seed_db")]
 
 class GapNotesSaveTests(NoesisTestCase):
     def setUp(self):
