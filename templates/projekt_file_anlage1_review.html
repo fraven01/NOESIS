@@ -3,6 +3,7 @@
 {% block title %}Anlage 1 Review{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-semibold mb-4">Anlage 1 Fragen prüfen</h1>
+{% if has_parent %}
 <div class="mb-6">
   <h2 class="text-xl font-semibold mb-2">GAP‑Bericht (Anlage 1)</h2>
   <form method="post" class="space-y-2">
@@ -12,6 +13,7 @@
   <p class="text-sm text-gray-500">Tipp: Der Text wird vorgeschlagen und kann hier projektspezifisch angepasst und gespeichert werden.</p>
   <hr class="my-4">
 </div>
+{% endif %}
 <div class="space-y-4">
     {% for q in qa %}
     <div class="p-4 border rounded space-y-2">
