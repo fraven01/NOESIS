@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import copy
 
 from django_q.tasks import async_task
 from django.db import transaction
@@ -107,4 +108,48 @@ def update_file_status(file_id: int, status: str) -> None:
     pf = BVProjectFile.objects.select_for_update().get(pk=file_id)
     pf.processing_status = status
     pf.save(update_fields=["processing_status"])
+
+
+def propagate_question_review(
+    parent: BVProjectFile,
+    obj: BVProjectFile,
+    current_answers: dict[str, dict] | None = None,
+) -> None:
+    """Übernimmt Fragenbewertungen aus der Vorgängerversion.
+
+    Das ``ok``-Flag bleibt nur gesetzt, wenn die Antwort unverändert ist."""
+
+    if not parent or obj.anlage_nr != 1:
+        return
+
+    parent_review = parent.question_review or {}
+    if not parent_review:
+        return
+
+    parent_answers = (
+        parent.analysis_json.get("questions", {})
+        if isinstance(parent.analysis_json, dict)
+        else {}
+    )
+    if current_answers is None:
+        current_answers = (
+            obj.analysis_json.get("questions", {})
+            if isinstance(obj.analysis_json, dict)
+            else {}
+        )
+    if not current_answers:
+        return
+
+    new_review: dict[str, dict] = {}
+    for num, entry in parent_review.items():
+        new_entry = copy.deepcopy(entry)
+        if parent_answers.get(num) == current_answers.get(num) and entry.get("ok"):
+            new_entry["ok"] = True
+        else:
+            new_entry["ok"] = False
+        new_review[str(num)] = new_entry
+
+    if new_review:
+        obj.question_review = new_review
+        obj.save(update_fields=["question_review"])
 
