@@ -3605,3 +3605,89 @@ class AnlagenTabGapButtonTests(NoesisTestCase):
         url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
         resp = self.client.get(url)
         self.assertContains(resp, "Noch keine aktive Datei vorhanden")
+
+
+@pytest.mark.usefixtures("seed_db")
+class GapReportHashTests(NoesisTestCase):
+    """Tests für Fingerprint + Button-Logik."""
+
+    def setUp(self) -> None:  # pragma: no cover - setup
+        super().setUp()
+        from django.contrib.auth.models import User
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.tests.utils import create_project
+        self.user = User.objects.get(username="frank")
+        self.client.force_login(self.user)
+        self.projekt = create_project(title="Demo")
+
+    def test_outdated_hash_forces_create_button(self) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.models import BVProjectFile
+        from django.urls import reverse
+
+        # Anlage 1 mit relevanten Review-Daten -> Hash wäre nicht leer
+        pf = BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"x"),
+            gap_summary="Vorhanden",
+            question_review={"1": {"vorschlag": "Änderung"}},
+            gap_source_hash="deadbeef",  # absichtlich abweichend
+        )
+        url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "GAP-Bericht erstellen")
+
+    def test_missing_hash_keeps_edit_button(self) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.models import BVProjectFile
+        from django.urls import reverse
+
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"x"),
+            gap_summary="abc",
+            gap_source_hash="",  # kein Hash -> rückwärtskompatibel
+        )
+        url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "GAP-Bericht bearbeiten")
+
+    def test_post_saves_gap_hash(self) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.models import BVProjectFile
+        from core.utils import compute_gap_source_hash
+        from django.urls import reverse
+
+        pf = BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"x"),
+            question_review={"1": {"vorschlag": "Änderung"}},
+        )
+        url = reverse("anlage_gap_report", args=[self.projekt.pk, 1])
+        resp = self.client.post(url, {"text": "E1"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        pf.refresh_from_db()
+        self.assertTrue(pf.gap_source_hash)
+        self.assertEqual(pf.gap_source_hash, compute_gap_source_hash(pf))
+
+    def test_delete_clears_hash(self) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.models import BVProjectFile
+        from django.urls import reverse
+
+        pf = BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"x"),
+            gap_summary="abc",
+            gap_source_hash="ff",
+        )
+        url = reverse("delete_anlage_gap_report", args=[self.projekt.pk, 1])
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        pf.refresh_from_db()
+        self.assertEqual(pf.gap_summary, "")
+        self.assertEqual(pf.gap_source_hash, "")

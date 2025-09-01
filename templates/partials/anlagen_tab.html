@@ -5,14 +5,14 @@
     {% if anlage_nr == 1 or anlage_nr == 2 %}
 <div class="mb-4">
         <div class="flex items-center gap-2">
-            {% if active_file.gap_summary %}
-                {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht bearbeiten' %}
+            {% if active_file.gap_summary and not gap_summary_outdated %}
+                {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht bearbeiten' classes='anlage-gap-btn' attrs='data-spinner-text="Oeffne..."' %}
                 <form method="post" action="{% url 'delete_anlage_gap_report' projekt.pk anlage_nr %}" onsubmit="return confirm('GAP-Bericht wirklich löschen?');">
                     {% csrf_token %}
                     {% include 'partials/_button.html' with type='submit' label='Löschen' variant='danger' %}
                 </form>
             {% else %}
-                {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht erstellen' %}
+                {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht erstellen' classes='anlage-gap-btn' attrs='data-spinner-text="Erstelle..."' %}
             {% endif %}
         </div>
 </div>

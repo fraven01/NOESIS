@@ -15,7 +15,7 @@ repos:
 
       - id: django-checks-tests
         name: Tests (makemigrations --check + pytest)
-        entry: python tools/run_checks_and_tests.py
+        entry: .\venv\Scripts\python.exe tools\run_checks_and_tests.py
         language: system
         pass_filenames: false
         stages: [pre-commit]

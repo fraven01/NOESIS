@@ -140,7 +140,13 @@ from .parser_manager import parser_manager
 
 from .decorators import admin_required, tile_required
 from .obs_utils import start_recording, stop_recording, is_recording
-from .utils import get_project_file, start_analysis_for_file, has_any_gap
+from .utils import (
+    get_project_file,
+    start_analysis_for_file,
+    has_any_gap,
+    compute_gap_source_hash,
+    is_gap_summary_outdated,
+)
 from django.forms import formset_factory, modelformset_factory
 
 
@@ -5232,13 +5238,22 @@ def hx_project_anlage_tab(request, pk: int, nr: int):
     files_qs = projekt.anlagen.filter(anlage_nr=nr).order_by("-version")
     page = request.GET.get("page") if nr == 3 else None
     page_obj = Paginator(files_qs, 10).get_page(page) if nr == 3 else None
+    active_file = get_project_file(projekt, nr)
+    gap_outdated = False
+    if active_file and active_file.gap_summary and active_file.gap_source_hash:
+        try:
+            gap_outdated = is_gap_summary_outdated(active_file)
+        except Exception:
+            gap_outdated = False
+
     context = {
         "projekt": projekt,
         "anlagen": page_obj or files_qs,
         "page_obj": page_obj,
         "anlage_nr": nr,
         "show_nr": False,
-        "active_file": get_project_file(projekt, nr),
+        "active_file": active_file,
+        "gap_summary_outdated": gap_outdated,
     }
     return render(request, "partials/anlagen_tab.html", context)
 
@@ -5553,10 +5568,18 @@ def projekt_gap_report(request, pk):
     if request.method == "POST":
         if pf1:
             pf1.gap_summary = request.POST.get("text1", "")
-            pf1.save(update_fields=["gap_summary"])
+            try:
+                pf1.gap_source_hash = compute_gap_source_hash(pf1)
+            except Exception:
+                pf1.gap_source_hash = ""
+            pf1.save(update_fields=["gap_summary", "gap_source_hash"])
         if pf2:
             pf2.gap_summary = request.POST.get("text2", "")
-            pf2.save(update_fields=["gap_summary"])
+            try:
+                pf2.gap_source_hash = compute_gap_source_hash(pf2)
+            except Exception:
+                pf2.gap_source_hash = ""
+            pf2.save(update_fields=["gap_summary", "gap_source_hash"])
         messages.success(request, "Bericht gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
 
@@ -5585,7 +5608,11 @@ def anlage_gap_report(request, pk, nr):
 
     if request.method == "POST":
         pf.gap_summary = request.POST.get("text", "")
-        pf.save(update_fields=["gap_summary"])
+        try:
+            pf.gap_source_hash = compute_gap_source_hash(pf)
+        except Exception:
+            pf.gap_source_hash = ""
+        pf.save(update_fields=["gap_summary", "gap_source_hash"])
         messages.success(request, "Bericht gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
 
@@ -5621,10 +5648,12 @@ def delete_gap_report(request, pk):
 
     if pf1:
         pf1.gap_summary = ""
-        pf1.save(update_fields=["gap_summary"])
+        pf1.gap_source_hash = ""
+        pf1.save(update_fields=["gap_summary", "gap_source_hash"])
     if pf2:
         pf2.gap_summary = ""
-        pf2.save(update_fields=["gap_summary"])
+        pf2.gap_source_hash = ""
+        pf2.save(update_fields=["gap_summary", "gap_source_hash"])
 
     messages.success(request, "GAP-Bericht verworfen")
     return redirect("projekt_detail", pk=projekt.pk)
@@ -5641,7 +5670,8 @@ def delete_anlage_gap_report(request, pk, nr):
     if not pf:
         raise Http404
     pf.gap_summary = ""
-    pf.save(update_fields=["gap_summary"])
+    pf.gap_source_hash = ""
+    pf.save(update_fields=["gap_summary", "gap_source_hash"])
     messages.success(request, f"GAP-Bericht für Anlage {nr} gelöscht")
     return redirect("projekt_detail", pk=projekt.pk)
 

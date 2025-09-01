@@ -151,6 +151,15 @@ if(recheck){recheck.addEventListener('click',()=>sendCheck({}));}
    });
  }
 
+  // Spinner für GAP-Berichte im Anlagen-Tab (HTMX-Content)
+  document.querySelectorAll('.anlage-gap-btn').forEach(a=>{
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      showSpinner(this, this.dataset.spinnerText || 'Wird geladen...');
+      window.location = this.href;
+    });
+  });
+
  document.querySelectorAll('.generate-gutachten-btn').forEach(button=>{
    button.addEventListener('click',function(event){
      event.preventDefault();

@@ -5,6 +5,8 @@ import logging
 from django_q.tasks import async_task
 from django.db import transaction
 from django.db.models import Q
+import hashlib
+import json
 
 from .models import (
     BVProject,
@@ -107,4 +109,77 @@ def update_file_status(file_id: int, status: str) -> None:
     pf = BVProjectFile.objects.select_for_update().get(pk=file_id)
     pf.processing_status = status
     pf.save(update_fields=["processing_status"])
+
+
+def compute_gap_source_hash(pf: BVProjectFile) -> str:
+    """Erzeugt einen stabilen Fingerprint der relevanten GAP-Eingaben.
+
+    - Anlage 1: basiert auf den manuell gesetzten Review-Feldern (hinweis,
+      vorschlag, ok) je Frage.
+    - Anlage 2: basiert auf vorhandenen externen GAP-Anmerkungen je Funktion/
+      Unterfrage.
+
+    Gibt einen Hex-SHA256-Hash zurück oder einen leeren String, wenn für die
+    Anlage kein Fingerprint definiert ist.
+    """
+    try:
+        if pf.anlage_nr == 1:
+            review = pf.question_review or {}
+            entries: list[dict] = []
+            for num, data in sorted(review.items(), key=lambda x: str(x[0])):
+                if not isinstance(data, dict):
+                    continue
+                hinweis = (data.get("hinweis") or "").strip()
+                vorschlag = (data.get("vorschlag") or "").strip()
+                ok_flag = bool(data.get("ok", False))
+                # Nur relevante Einträge berücksichtigen (wie bei der Zusammenfassung)
+                if hinweis or vorschlag or (str(num) in review and not ok_flag):
+                    entries.append(
+                        {
+                            "num": str(num),
+                            "hinweis": hinweis,
+                            "vorschlag": vorschlag,
+                            "ok": ok_flag,
+                        }
+                    )
+            payload = {"anlage": 1, "entries": entries}
+        elif pf.anlage_nr == 2:
+            qs = (
+                AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf)
+                .filter(Q(gap_summary__isnull=False) & ~Q(gap_summary=""))
+                .values("funktion_id", "subquestion_id", "gap_summary")
+            )
+            entries = [
+                {
+                    "funktion": r["funktion_id"],
+                    "subq": r["subquestion_id"],
+                    "extern": (r["gap_summary"] or "").strip(),
+                }
+                for r in qs
+            ]
+            entries.sort(key=lambda d: (d.get("funktion") or 0, d.get("subq") or 0, d.get("extern")))
+            payload = {"anlage": 2, "entries": entries}
+        else:
+            return ""
+
+        data = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        return hashlib.sha256(data).hexdigest()
+    except Exception:  # pragma: no cover - Fingerprint darf App nicht blockieren
+        logger.exception("Fehler beim Berechnen des GAP-Fingerprints")
+        return ""
+
+
+def is_gap_summary_outdated(pf: BVProjectFile) -> bool:
+    """Prüft, ob die gespeicherte GAP-Zusammenfassung veraltet ist.
+
+    Die Prüfung erfolgt nur, wenn bereits ein Hash gespeichert ist. Dadurch
+    bleiben bestehende Projekte ohne Hash rückwärtskompatibel und zeigen weiter
+    den Bearbeiten-Button.
+    """
+    if not pf or not pf.gap_summary:
+        return False
+    if not pf.gap_source_hash:
+        return False
+    current = compute_gap_source_hash(pf)
+    return bool(current and current != pf.gap_source_hash)
 

@@ -289,6 +289,12 @@ class BVProjectFile(models.Model):
     question_review = models.JSONField(default=dict, blank=True, null=True)
     gap_summary = models.TextField(blank=True, null=True)
     gap_notiz = models.TextField(blank=True, null=True)
+    gap_source_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Fingerprint der Eingabedaten für den zuletzt gespeicherten GAP-Bericht.",
+    )
     verification_task_id = models.CharField(
         max_length=50,
         blank=True,
