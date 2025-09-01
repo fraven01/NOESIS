@@ -63,3 +63,17 @@ class CompareVersionsAnlage1Tests(NoesisTestCase):
 
         # Assert
         assert current.verhandlungsfaehig, "Verhandlungsstatus sollte gesetzt werden"
+
+    def test_negotiate_question_marks_ok(self) -> None:
+        """POST mit question setzt das Review und nicht den Datei-Status."""
+
+        # Arrange
+        url, current = self._create_versions()
+
+        # Act
+        self.client.post(url, {"action": "negotiate", "question": "1"})
+        current.refresh_from_db()
+
+        # Assert
+        assert current.question_review["1"]["ok"] is True
+        assert not current.verhandlungsfaehig

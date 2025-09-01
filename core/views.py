@@ -6273,15 +6273,25 @@ def _compare_versions_anlage1(
 
     if request.method == "POST":
         action = request.POST.get("action")
+        num = request.POST.get("question")
         if not _user_can_edit_project(request.user, project_file.project):
             return HttpResponseForbidden("Nicht berechtigt")
         if action == "negotiate":
-            project_file.verhandlungsfaehig = True
-            project_file.save(update_fields=["verhandlungsfaehig"])
+            if num:
+                review = project_file.question_review or {}
+                entry = review.get(num, {})
+                entry["ok"] = True
+                review[num] = entry
+                project_file.question_review = review
+                project_file.save(update_fields=["question_review"])
+            else:
+                project_file.verhandlungsfaehig = True
+                project_file.save(update_fields=["verhandlungsfaehig"])
         return redirect("compare_versions", pk=project_file.pk)
 
     questions_map = {str(q.num): q.text for q in Anlage1Question.objects.all()}
     parent_review = parent.question_review or {}
+    current_review = project_file.question_review or {}
     parent_analysis = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
     current_analysis = (
         project_file.analysis_json.get("questions", {})
@@ -6298,6 +6308,7 @@ def _compare_versions_anlage1(
                     "text": questions_map.get(num, f"Frage {num}"),
                     "parent": {**parent_analysis.get(num, {}), **pdata},
                     "current": current_analysis.get(num, {}),
+                    "ok": current_review.get(num, {}).get("ok"),
                 }
             )
 
