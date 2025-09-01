@@ -5534,8 +5534,8 @@ def projekt_management_summary(request, pk):
 
 
 @login_required
-def gap_report_view(request, pk):
-    """Erzeugt einen GAP-Bericht f\u00fcr den Fachbereich."""
+def projekt_gap_report(request, pk):
+    """Erzeugt einen GAP-Bericht f\u00fcr den Fachbereich (gesamt)."""
     projekt = get_object_or_404(BVProject, pk=pk)
     if not _user_can_edit_project(request.user, projekt):
         return HttpResponseForbidden("Nicht berechtigt")
@@ -5553,8 +5553,8 @@ def gap_report_view(request, pk):
         messages.success(request, "Bericht gespeichert")
         return redirect("projekt_detail", pk=projekt.pk)
 
-    text1 = summarize_anlage1_gaps(projekt)
-    text2 = summarize_anlage2_gaps(projekt)
+    text1 = summarize_anlage1_gaps(projekt, pf1)
+    text2 = summarize_anlage2_gaps(projekt, pf2)
 
     if pf1 and pf1.gap_summary:
         text1 = pf1.gap_summary
@@ -5563,6 +5563,42 @@ def gap_report_view(request, pk):
 
     context = {"projekt": projekt, "text1": text1, "text2": text2}
     return render(request, "gap_report.html", context)
+
+
+@login_required
+def anlage_gap_report(request, pk, nr):
+    """Erzeugt einen GAP-Bericht f\u00fcr eine einzelne Anlage."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+
+    pf = get_project_file(projekt, nr)
+    if not pf:
+        raise Http404("Anlage nicht gefunden")
+
+    if request.method == "POST":
+        pf.gap_summary = request.POST.get("text", "")
+        pf.save(update_fields=["gap_summary"])
+        messages.success(request, "Bericht gespeichert")
+        return redirect("projekt_detail", pk=projekt.pk)
+
+    if nr == 1:
+        text = summarize_anlage1_gaps(projekt, pf)
+    elif nr == 2:
+        text = summarize_anlage2_gaps(projekt, pf)
+    else:
+        raise Http404("Unbekannte Anlage")
+
+    if pf.gap_summary:
+        text = pf.gap_summary
+
+    context = {
+        "projekt": projekt,
+        "text": text,
+        "nr": nr,
+        "label": f"Anlage {nr}",
+    }
+    return render(request, "gap_report_single.html", context)
 
 
 @login_required

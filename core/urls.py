@@ -517,8 +517,13 @@ urlpatterns = [
     ),
     path(
         "work/projekte/<int:pk>/gap-report/",
-        views.gap_report_view,
-        name="gap_report_view",
+        views.projekt_gap_report,
+        name="projekt_gap_report",
+    ),
+    path(
+        "work/projekte/<int:pk>/gap-report/<int:nr>/",
+        views.anlage_gap_report,
+        name="anlage_gap_report",
     ),
     path(
         "work/projekte/<int:pk>/gap-report/delete/",
