@@ -6324,20 +6324,10 @@ def _compare_versions_anlage1(
         if action == "negotiate":
             project_file.verhandlungsfaehig = True
             project_file.save(update_fields=["verhandlungsfaehig"])
-        elif action == "add_gap":
-            qnum = request.POST.get("question")
-            note = request.POST.get("note", "")
-            review = project_file.question_review or {}
-            qdata = review.get(qnum, {})
-            qdata["hinweis"] = note
-            review[qnum] = qdata
-            project_file.question_review = review
-            project_file.save(update_fields=["question_review"])
         return redirect("compare_versions", pk=project_file.pk)
 
     questions_map = {str(q.num): q.text for q in Anlage1Question.objects.all()}
     parent_review = parent.question_review or {}
-    current_review = project_file.question_review or {}
     parent_analysis = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
     current_analysis = (
         project_file.analysis_json.get("questions", {})
@@ -6352,8 +6342,8 @@ def _compare_versions_anlage1(
                 {
                     "num": num,
                     "text": questions_map.get(num, f"Frage {num}"),
-                    "parent": pdata,
-                    "current": current_review.get(num, {}),
+                    "parent": {**parent_analysis.get(num, {}), **pdata},
+                    "current": current_analysis.get(num, {}),
                 }
             )
 
