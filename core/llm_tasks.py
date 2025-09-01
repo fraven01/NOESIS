@@ -1928,10 +1928,19 @@ def check_anlage5(file_id: int) -> dict:
     anlage5_logger.info("check_anlage5 beendet für Projekt %s mit %s", projekt_id, result)
     return result
 
-def summarize_anlage1_gaps(projekt: BVProject) -> str:
-    """Fasst die GAP-Notizen aus Anlage 1 zusammen."""
+def summarize_anlage1_gaps(projekt: BVProject, pf: BVProjectFile | None = None) -> str:
+    """Fasst die GAP-Notizen aus Anlage 1 zusammen.
 
-    pf = get_project_file(projekt, 1)
+    Parameter
+    ---------
+    projekt:
+        Projekt, zu dem die Anlage gehört.
+    pf:
+        Optional bereits ermittelte Projektdatei. Wird keine übergeben,
+        wird die aktive Datei automatisch bestimmt.
+    """
+
+    pf = pf or get_project_file(projekt, 1)
     if not pf:
         return ""
 
@@ -2049,10 +2058,14 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
 
     return text
 
-def summarize_anlage2_gaps(projekt: BVProject) -> str:
-    """Fasst externe GAP-Notizen aus Anlage 2 zusammen und ergänzt KI-Begründungen."""
+def summarize_anlage2_gaps(projekt: BVProject, pf: BVProjectFile | None = None) -> str:
+    """Fasst externe GAP-Notizen aus Anlage 2 zusammen und ergänzt
+    KI-Begründungen.
 
-    pf = get_project_file(projekt, 2)
+    Parameter siehe :func:`summarize_anlage1_gaps`.
+    """
+
+    pf = pf or get_project_file(projekt, 2)
     if not pf:
         return ""
 

@@ -3363,12 +3363,12 @@ class GapReportTests(NoesisTestCase):
     def test_tasks_return_text(self):
         self.client.login(username=self.superuser.username, password="pass")
         with patch("core.llm_tasks.query_llm", return_value="T1") as mock_q:
-            text = summarize_anlage1_gaps(self.projekt)
+            text = summarize_anlage1_gaps(self.projekt, self.pf1)
         self.assertEqual(text, "T1")
         self.assertTrue(mock_q.called)
 
         with patch("core.llm_tasks.query_llm", return_value="T2") as mock_q:
-            text = summarize_anlage2_gaps(self.projekt)
+            text = summarize_anlage2_gaps(self.projekt, self.pf2)
             prompt_sent = mock_q.call_args[0][0]
             self.assertIn("### Anmelden", prompt_sent.text)
             self.assertIn("- KI-Analyse:", prompt_sent.text)
@@ -3380,9 +3380,9 @@ class GapReportTests(NoesisTestCase):
         self.assertEqual(text, "T2")
         self.assertTrue(mock_q.called)
 
-    def test_view_saves_text(self):
+    def test_projekt_view_saves_text(self):
         self.client.login(username=self.superuser.username, password="pass")
-        url = reverse("gap_report_view", args=[self.projekt.pk])
+        url = reverse("projekt_gap_report", args=[self.projekt.pk])
         with patch("core.views.summarize_anlage1_gaps", return_value="A1"), patch(
             "core.views.summarize_anlage2_gaps", return_value="A2"
         ):
@@ -3394,6 +3394,30 @@ class GapReportTests(NoesisTestCase):
         self.pf1.refresh_from_db()
         self.pf2.refresh_from_db()
         self.assertEqual(self.pf1.gap_summary, "E1")
+        self.assertEqual(self.pf2.gap_summary, "E2")
+
+    def test_anlage_view_generates_and_saves(self):
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("anlage_gap_report", args=[self.projekt.pk, 1])
+        with patch("core.views.summarize_anlage1_gaps", return_value="A1") as mock_sum:
+            resp = self.client.get(url)
+            self.assertContains(resp, "A1")
+            mock_sum.assert_called_once_with(self.projekt, self.pf1)
+            resp = self.client.post(url, {"text": "E1"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.pf1.refresh_from_db()
+        self.assertEqual(self.pf1.gap_summary, "E1")
+
+    def test_anlage2_view_generates_and_saves(self):
+        self.client.login(username=self.superuser.username, password="pass")
+        url = reverse("anlage_gap_report", args=[self.projekt.pk, 2])
+        with patch("core.views.summarize_anlage2_gaps", return_value="A2") as mock_sum:
+            resp = self.client.get(url)
+            self.assertContains(resp, "A2")
+            mock_sum.assert_called_once_with(self.projekt, self.pf2)
+            resp = self.client.post(url, {"text": "E2"})
+        self.assertRedirects(resp, reverse("projekt_detail", args=[self.projekt.pk]))
+        self.pf2.refresh_from_db()
         self.assertEqual(self.pf2.gap_summary, "E2")
 
     def test_delete_gap_report(self):
