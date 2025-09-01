@@ -14,6 +14,7 @@ from ...models import (
     BVProjectFile,
     FunktionsErgebnis,
     Anlage2Function,
+    AnlagenFunktionsMetadaten,
 )
 from ...forms import BVProjectFileForm
 from ...views import _save_project_file
@@ -189,6 +190,34 @@ class ProjektFileUploadTests(NoesisTestCase):
         self.assertTrue(form.is_valid())
         pf = _save_project_file(self.projekt, form)
         self.assertEqual(pf.anlage_nr, 1)
+
+    def test_new_version_has_empty_gap_fields(self):
+        with open(self.docx_content_path, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_2.docx", fh.read())
+        pf1 = _save_project_file(self.projekt, upload=upload, anlage_nr=2)
+        pf1.gap_summary = "Alt"
+        pf1.gap_notiz = "Notiz"
+        pf1.save(update_fields=["gap_summary", "gap_notiz"])
+        FunktionsErgebnis.objects.create(
+            anlage_datei=pf1, funktion=self.anmelden_func, quelle="ki"
+        )
+        AnlagenFunktionsMetadaten.objects.create(
+            anlage_datei=pf1,
+            funktion=self.anmelden_func,
+            gap_summary="S",
+            gap_notiz="N",
+        )
+
+        with open(self.docx_content_path, "rb") as fh:
+            upload = SimpleUploadedFile("Anlage_2_neu.docx", fh.read())
+        pf2 = _save_project_file(self.projekt, upload=upload, anlage_nr=2)
+        meta = AnlagenFunktionsMetadaten.objects.get(
+            anlage_datei=pf2, funktion=self.anmelden_func
+        )
+        self.assertEqual(meta.gap_summary, "")
+        self.assertEqual(meta.gap_notiz, "")
+        self.assertEqual(pf2.gap_summary, "")
+        self.assertEqual(pf2.gap_notiz, "")
 
     def test_save_multiple_files_unique_numbers(self):
         projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
