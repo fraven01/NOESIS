@@ -1932,21 +1932,73 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
     """Fasst die GAP-Notizen aus Anlage 1 zusammen."""
 
     pf = get_project_file(projekt, 1)
-    if not pf or not pf.question_review:
+    if not pf:
         return ""
 
+    review = pf.question_review or {}
+
+    # Zugriff auf erkannte Antworten aus der Parser-Analyse
+    answers_map: dict[str, dict] = {}
+    if isinstance(pf.analysis_json, dict):
+        answers_map = pf.analysis_json.get("questions", {}) or {}
+
+    def _is_unclear(text: str) -> bool:
+        """Einfache Heuristik: Antwort ist zu kurz oder enthält Unschärfen."""
+        t = (text or "").strip().lower()
+        if not t:
+            return True
+        if len(t) < 20:
+            return True
+        ambiguous = [
+            "k.a.", "k. a.", "k.a", "n/a", "na", "kann nicht bewertet",
+            "unklar", "unbekannt", "nicht bekannt", "tbd", "to be defined",
+            "siehe oben", "siehe anlage", "siehe anhang", "nicht beantwortet",
+            "nicht vorhanden", "keine angabe", "keine angaben",
+        ]
+        return any(p in t for p in ambiguous)
+
     entries: list[dict[str, str]] = []
-    for num, data in sorted(pf.question_review.items(), key=lambda x: int(x[0])):
+    for num, data in sorted(review.items(), key=lambda x: int(x[0])):
         if not isinstance(data, dict):
             continue
-        hinweis = data.get("hinweis") or ""
-        vorschlag = data.get("vorschlag") or ""
-        if hinweis or vorschlag:
-            try:
-                question_text = Anlage1Question.objects.get(num=int(num)).text
-            except Anlage1Question.DoesNotExist:
-                question_text = f"Frage {num}"
-            entries.append({"frage": question_text, "hinweis": hinweis, "vorschlag": vorschlag})
+        hinweis = (data.get("hinweis") or "").strip()
+        vorschlag = (data.get("vorschlag") or "").strip()
+        ok_flag = bool(data.get("ok", False))
+
+        # Frage-Text robust ermitteln
+        try:
+            question_text = Anlage1Question.objects.get(num=int(num)).text
+        except Anlage1Question.DoesNotExist:
+            question_text = f"Frage {num}"
+
+        # Antwort (Auszug) bestimmen
+        answer = ""
+        a_entry = answers_map.get(str(num)) or {}
+        if isinstance(a_entry, dict):
+            answer = (a_entry.get("answer") or "").strip()
+        needs_attention = False
+        status_hint = ""
+        if _is_unclear(answer):
+            needs_attention = True
+            status_hint = "Antwort fehlt/unklar"
+
+        # Eintrag aufnehmen, wenn
+        # - es Notizen gibt ODER
+        # - die Antwort unklar ist ODER
+        # - Prüfer hat OK explizit verneint
+        if hinweis or vorschlag or needs_attention or (not ok_flag and str(num) in review):
+            snippet = answer[:300]
+            if len(answer) > 300:
+                snippet += "…"
+            entries.append(
+                {
+                    "frage": question_text,
+                    "hinweis": hinweis,
+                    "vorschlag": vorschlag,
+                    "answer": snippet,
+                    "status": status_hint,
+                }
+            )
 
     if not entries:
         return ""
@@ -1954,9 +2006,13 @@ def summarize_anlage1_gaps(projekt: BVProject) -> str:
     gap_list_string = ""
     for entry in entries:
         gap_list_string += f"- **{entry['frage']}**\n"
-        if entry["vorschlag"]:
+        if entry.get("status"):
+            gap_list_string += f"  - Status: {entry['status']}\n"
+        if entry.get("answer"):
+            gap_list_string += f"  - Antwort (Auszug): {entry['answer']}\n"
+        if entry.get("vorschlag"):
             gap_list_string += f"  - Anmerkung (extern): {entry['vorschlag']}\n"
-        if entry["hinweis"]:
+        if entry.get("hinweis"):
             gap_list_string += f"  - Notiz (intern): {entry['hinweis']}\n"
 
     prompt_template = Prompt.objects.filter(name__iexact="gap_report_anlage1").first()

@@ -242,8 +242,21 @@ def create_initial_data(apps) -> None:
         (
             "gap_report_anlage1",
             (
-                "Fasse alle Hinweise und Vorschläge aus Anlage 1 zu einem kurzen Text für den Fachbereich. "
-                "Die folgenden Fragen dienen als Input:\n\n{fragen}"
+                "Erstelle einen kurzen, freundlichen GAP‑Bericht zu Anlage 1 für das System: {system_name}.\n"
+                "Grundlage ist die folgende Liste offener Punkte (Markdown):\n{fragen}\n\n"
+                "Anforderungen:\n\n"
+                "Schreibe in höflichem, klaren Deutsch.\n"
+                "Struktur:\n"
+                "- Kurze Einleitung (Ziel: fachliche Präzisierung der Unterlagen)\n"
+                "- Je Frage:\n"
+                "  - Kurztitel der Frage\n"
+                "  - Was fehlt/ist unklar (aus Status/Antwort/Anmerkungen ableiten)\n"
+                "  - Konkreter Nacharbeitswunsch (bullet, präzise, überprüfbar)\n"
+                "- Abschluss: Bitte um Prüfung und Rückmeldung\n\n"
+                "Keine Personalisierungen, keine Mutmaßungen. Maximal 2–4 Sätze je Frage.\n"
+                "Wenn „Antwort fehlt/unklar“: fordere explizit eine präzise Formulierung an.\n"
+                "Nutze die Antwortauszüge nur zur Kontexthilfe, nicht wortwörtlich abschreiben.\n"
+                "Gib den Bericht als valides Markdown zurück (ohne Codeblöcke)."
             ),
             True,
             "gutachten",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from contextlib import nullcontext
 
 import openai
@@ -50,7 +50,8 @@ if Langfuse is not None and getattr(settings, "LANGFUSE_ENABLED", False):
 
 def _timestamp() -> str:
     """Aktuelle Zeit im ISO-Format."""
-    return datetime.utcnow().isoformat()
+    # Verwende eine timezone-aware Zeit in UTC statt des veralteten utcnow()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def query_llm(

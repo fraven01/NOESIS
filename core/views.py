@@ -3899,6 +3899,8 @@ def projekt_file_edit_json(request, pk):
                     "ok": entry.get("ok", False),
                 }
             )
+        # Standard-GAP-Text für Anlage 1 bereitstellen: gespeicherter Text oder frische Zusammenfassung
+        gap_text = anlage.gap_summary or summarize_anlage1_gaps(anlage.project)
         form = None
     elif anlage.anlage_nr == 2:
         analysis_init = _analysis_to_initial(anlage)
@@ -4330,6 +4332,7 @@ def projekt_file_edit_json(request, pk):
         pass
     if anlage.anlage_nr == 1:
         context["qa"] = qa
+        context["gap_text"] = gap_text
     elif anlage.anlage_nr == 2:
         context.update(
             {

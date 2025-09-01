@@ -29,6 +29,7 @@ from ...models import (
     Anlage4ParserConfig,
     Anlage4Config,
     AntwortErkennungsRegel,
+    Prompt,
 )
 from ...parsers import ExactParser
 from ...text_parser import parse_anlage2_text

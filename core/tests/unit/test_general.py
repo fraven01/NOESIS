@@ -94,7 +94,6 @@ from ...llm_tasks import (
     generate_gutachten,
     run_anlage2_analysis,
     parse_anlage1_questions,
-    _parse_anlage2,
 )
 from ...views import (
     _verification_to_initial,
@@ -3133,21 +3132,38 @@ class Anlage2ResetTests(NoesisTestCase):
             upload=SimpleUploadedFile("new.txt", b"x"),
         )
 
-        def fake(_pid, _typ, fid, _model=None):
+        def fake(file_id, object_type, object_id, _model=None):
             pf_latest = BVProjectFile.objects.filter(
                 project=projekt, anlage_nr=2
             ).first()
-            AnlagenFunktionsMetadaten.objects.update_or_create(
-                anlage_datei=pf_latest,
-                funktion_id=fid,
-                defaults={},
-            )
-            FunktionsErgebnis.objects.create(
-                anlage_datei=pf_latest,
-                funktion_id=fid,
-                quelle="ki",
-                technisch_verfuegbar=True,
-            )
+            if object_type == "function":
+                fid = object_id
+                AnlagenFunktionsMetadaten.objects.update_or_create(
+                    anlage_datei=pf_latest,
+                    funktion_id=fid,
+                    defaults={},
+                )
+                FunktionsErgebnis.objects.create(
+                    anlage_datei=pf_latest,
+                    funktion_id=fid,
+                    quelle="ki",
+                    technisch_verfuegbar=True,
+                )
+            else:  # subquestion
+                sub = Anlage2SubQuestion.objects.get(pk=object_id)
+                AnlagenFunktionsMetadaten.objects.update_or_create(
+                    anlage_datei=pf_latest,
+                    funktion=sub.funktion,
+                    subquestion=sub,
+                    defaults={},
+                )
+                FunktionsErgebnis.objects.create(
+                    anlage_datei=pf_latest,
+                    funktion=sub.funktion,
+                    subquestion=sub,
+                    quelle="ki",
+                    technisch_verfuegbar=True,
+                )
             return {}
 
         with (
