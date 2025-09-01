@@ -14,7 +14,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django_q.tasks import async_task, result
 
-from .utils import get_project_file, update_file_status
+from .utils import get_project_file, update_file_status, propagate_question_review
 from .decorators import updates_file_status
 
 from .models import (
@@ -838,6 +838,8 @@ def check_anlage1(file_id: int) -> dict:
         anlage.processing_status = BVProjectFile.COMPLETE
         save_fields.append("analysis_json")
         update_file_status(anlage.pk, BVProjectFile.COMPLETE)
+        if anlage.parent:
+            propagate_question_review(anlage.parent, anlage, parsed)
     except Exception:
         anlage.processing_status = BVProjectFile.FAILED
         update_file_status(anlage.pk, BVProjectFile.FAILED)
