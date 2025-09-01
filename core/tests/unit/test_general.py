@@ -3565,3 +3565,43 @@ class ResolveValueLogicTests(NoesisTestCase):
             None, False, True, "technisch_vorhanden", False, True
         )
         self.assertFalse(val)
+
+
+@pytest.mark.usefixtures("seed_db")
+class AnlagenTabGapButtonTests(NoesisTestCase):
+    """Tests für den GAP-Bericht-Button im Anlagen-Tab."""
+
+    def setUp(self) -> None:  # pragma: no cover - setup
+        super().setUp()
+        self.user = User.objects.get(username="frank")
+        self.client.force_login(self.user)
+        self.projekt = create_project(title="Demo")
+
+    def test_show_create_button_without_summary(self) -> None:
+        """Es erscheint ein Erstellen-Button ohne vorhandene Zusammenfassung."""
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"data"),
+        )
+        url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "GAP-Bericht erstellen")
+
+    def test_show_edit_button_with_summary(self) -> None:
+        """Bei vorhandener Zusammenfassung erscheint der Bearbeiten-Button."""
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("f1.txt", b"data"),
+            gap_summary="abc",
+        )
+        url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "GAP-Bericht bearbeiten")
+
+    def test_hint_without_active_file(self) -> None:
+        """Ohne aktive Datei wird ein Hinweis angezeigt."""
+        url = reverse("hx_project_anlage_tab", args=[self.projekt.pk, 1])
+        resp = self.client.get(url)
+        self.assertContains(resp, "Noch keine aktive Datei vorhanden")

@@ -1,5 +1,21 @@
 {% load recording_extras %}
 {% url 'hx_project_anlage_tab' projekt.pk anlage_nr as base_url %}
+{% url 'anlage_gap_report' projekt.pk anlage_nr as gap_url %}
+{% if active_file %}
+    {% if anlage_nr == 1 or anlage_nr == 2 %}
+<div class="mb-4">
+        {% if active_file.gap_summary %}
+            {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht bearbeiten' %}
+        {% else %}
+            {% include 'partials/_button.html' with href=gap_url label='GAP-Bericht erstellen' %}
+        {% endif %}
+</div>
+    {% endif %}
+{% else %}
+<div class="mb-4">
+    <p class="text-sm text-gray-600">Noch keine aktive Datei vorhanden</p>
+</div>
+{% endif %}
 <div class="overflow-x-auto hidden md:block">
 <table class="mb-4 w-full text-left">
     <thead>
