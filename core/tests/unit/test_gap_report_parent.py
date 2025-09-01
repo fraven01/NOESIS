@@ -34,7 +34,7 @@ class GapReportParentTests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.context["gap_text"], "Alt")
         self.assertTrue(resp.context["has_parent"])
-        self.assertContains(resp, "GAP‑Bericht (Anlage 1)")
+        self.assertContains(resp, "GAP‑Bericht (Vorversion)")
 
     def test_view_hides_report_without_parent(self):
         file = self._create_file()
@@ -42,4 +42,4 @@ class GapReportParentTests(NoesisTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.context["gap_text"], "")
         self.assertFalse(resp.context["has_parent"])
-        self.assertNotContains(resp, "GAP‑Bericht (Anlage 1)")
+        self.assertNotContains(resp, "GAP‑Bericht (Vorversion)")
