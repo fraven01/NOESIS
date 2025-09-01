@@ -144,6 +144,7 @@ from .utils import (
     get_project_file,
     start_analysis_for_file,
     has_any_gap,
+    propagate_question_review,
     compute_gap_source_hash,
     is_gap_summary_outdated,
 )
@@ -216,12 +217,13 @@ def get_user_tiles(user, bereich: str) -> tuple[list[Area], list[Tile]]:
     """
 
     areas = Area.objects.filter(
-        Q(userareaaccess__user=user)
-        | Q(groupareaaccess__group__in=user.groups.all())
+        Q(userareaaccess__user=user) | Q(groupareaaccess__group__in=user.groups.all())
     ).distinct()
-    tiles = Tile.objects.filter(areas__slug=bereich).filter(
-        Q(groups__in=user.groups.all()) | Q(users=user)
-    ).distinct()
+    tiles = (
+        Tile.objects.filter(areas__slug=bereich)
+        .filter(Q(groups__in=user.groups.all()) | Q(users=user))
+        .distinct()
+    )
     return list(areas), list(tiles)
 
 
@@ -267,9 +269,11 @@ def get_cockpit_context(projekt: BVProject) -> dict:
         "total_software": len(software_list),
     }
 
+
 # Felder ohne KI-UnterstÃ¼tzung: Werte stammen ausschlieÃŸlich aus
 # Dokumentenparser oder manueller Eingabe.
 NO_AI_FIELDS = {"einsatz_bei_telefonica", "zur_lv_kontrolle"}
+
 
 def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
     """Wandelt ``analysis_json`` in das Initialformat fÃ¼r ``Anlage1ReviewForm``."""
@@ -293,6 +297,7 @@ def _analysis1_to_initial(anlage: BVProjectFile) -> dict:
         }
 
     return out
+
 
 def _analysis_to_initial(anlage: BVProjectFile) -> dict:
     """Ermittelt die Dokumentergebnisse aus der Datenbank.
@@ -326,9 +331,7 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
                 if not sub_obj:
                     continue
                 sid = str(sub_obj.id)
-                sub_target = target.setdefault("subquestions", {}).setdefault(
-                    sid, {}
-                )
+                sub_target = target.setdefault("subquestions", {}).setdefault(sid, {})
                 for f in field_names:
                     sub_target[f] = sub.get(f)
 
@@ -341,7 +344,8 @@ def _analysis_to_initial(anlage: BVProjectFile) -> dict:
         dest = target
         if res.subquestion_id:
             dest = target.setdefault("subquestions", {}).setdefault(
-                str(res.subquestion_id), {},
+                str(res.subquestion_id),
+                {},
             )
         latest = (
             FunktionsErgebnis.objects.filter(
@@ -517,7 +521,9 @@ def _get_display_data(
         if isinstance(ai_val, dict) and "value" in ai_val:
             ai_val = ai_val.get("value")
         manual_exists = field in m_data
-        val, src = _resolve_value(man_val, ai_val, doc_val, field, manual_exists, doc_exists)
+        val, src = _resolve_value(
+            man_val, ai_val, doc_val, field, manual_exists, doc_exists
+        )
         values[field] = val
         sources[field] = src
         manual_flags[field] = manual_exists
@@ -636,9 +642,7 @@ def _build_row_data(
     ai_json = json.dumps(ai_data, ensure_ascii=False)
     manual_json = json.dumps(manual_data, ensure_ascii=False)
 
-    disp = _get_display_data(
-        lookup_key, answers, {lookup_key: ai_data}, manual_lookup
-    )
+    disp = _get_display_data(lookup_key, answers, {lookup_key: ai_data}, manual_lookup)
     fields_def = get_anlage2_fields()
     form_fields_map: dict[str, dict] = {}
     rev_origin = {}
@@ -1822,7 +1826,6 @@ def admin_prompts(request):
     context = {
         "grouped": grouped,
         "roles": roles,
-        
         "breadcrumbs": breadcrumbs,
     }
     return render(request, "admin_prompts.html", context)
@@ -1872,7 +1875,7 @@ def admin_prompt_import(request):
                     "use_system_role": item.get("use_system_role", True),
                     "use_project_context": item.get("use_project_context", True),
                 },
-        )
+            )
         messages.success(request, "Prompts importiert")
         return redirect("admin_prompts")
     breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Prompts importieren")
@@ -1900,7 +1903,11 @@ def admin_models(request):
         cfg.models_changed = False
         cfg.save(update_fields=["models_changed"])
     breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "LLM-Modelle")
-    context = {"config": cfg, "models": LLMConfig.get_available(), "breadcrumbs": breadcrumbs}
+    context = {
+        "config": cfg,
+        "models": LLMConfig.get_available(),
+        "breadcrumbs": breadcrumbs,
+    }
     return render(request, "admin_models.html", context)
 
 
@@ -2247,11 +2254,10 @@ def admin_export_users_permissions(request):
         group_areas = Area.objects.filter(groups__in=user.groups.all()).values_list(
             "slug", flat=True
         )
-        user_areas = Area.objects.filter(
-            userareaaccess__user=user
-        ).values_list("slug", flat=True)
+        user_areas = Area.objects.filter(userareaaccess__user=user).values_list(
+            "slug", flat=True
+        )
         tiles = set(user.tiles.values_list("url_name", flat=True)) | set(group_tiles)
-
 
         areas = set(user_areas) | set(group_areas)
         data.append(
@@ -2447,9 +2453,7 @@ def admin_anlage2_config_import(request):
 
         messages.success(request, "Konfiguration importiert")
         return redirect("anlage2_config")
-    breadcrumbs = build_breadcrumbs(
-        ADMIN_ROOT, "Anlage 2 Konfiguration importieren"
-    )
+    breadcrumbs = build_breadcrumbs(ADMIN_ROOT, "Anlage 2 Konfiguration importieren")
     return render(
         request,
         "admin_anlage2_config_import.html",
@@ -3046,7 +3050,6 @@ def projekt_detail(request, pk):
             checked += 1
         knowledge_rows.append({"name": name, "entry": entry})
 
-
     # Letzte AktivitÃ¤ten aus StatusÃ¤nderungen und Dateiuploads sammeln
     activities = []
     for h in projekt.status_history.order_by("-changed_at")[:5]:
@@ -3151,7 +3154,11 @@ def anlage3_file_review(request, pk):
 
     if request.method == "POST":
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
-        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+        if set(request.POST.keys()) <= {
+            "csrfmiddlewaretoken",
+            "gap_summary",
+            "gap_notiz",
+        }:
             if gap_form.is_valid():
                 gap_form.save()
                 return redirect("projekt_detail", pk=project_file.project.pk)
@@ -3206,7 +3213,11 @@ def anlage4_review(request, pk):
 
     if request.method == "POST":
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
-        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+        if set(request.POST.keys()) <= {
+            "csrfmiddlewaretoken",
+            "gap_summary",
+            "gap_notiz",
+        }:
             if gap_form.is_valid():
                 gap_form.save()
                 return redirect("projekt_detail", pk=project_file.project.pk)
@@ -3312,7 +3323,11 @@ def anlage5_review(request, pk):
 
     if request.method == "POST":
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
-        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+        if set(request.POST.keys()) <= {
+            "csrfmiddlewaretoken",
+            "gap_summary",
+            "gap_notiz",
+        }:
             if gap_form.is_valid():
                 gap_form.save()
                 return redirect("projekt_detail", pk=project_file.project.pk)
@@ -3367,7 +3382,9 @@ def projekt_upload(request):
 
 @login_required
 def projekt_create(request):
-    software_list = request.POST.getlist("software_typen") if request.method == "POST" else []
+    software_list = (
+        request.POST.getlist("software_typen") if request.method == "POST" else []
+    )
     if request.method == "POST":
         form = BVProjectForm(request.POST)
         if form.is_valid():
@@ -3378,7 +3395,9 @@ def projekt_create(request):
             return redirect("projekt_detail", pk=projekt.pk)
     else:
         form = BVProjectForm()
-    return render(request, "projekt_form.html", {"form": form, "software_list": software_list})
+    return render(
+        request, "projekt_form.html", {"form": form, "software_list": software_list}
+    )
 
 
 @login_required
@@ -3502,6 +3521,8 @@ def _save_project_file(
         obj.parent = old_file
 
     obj.save()
+    if old_file:
+        propagate_question_review(old_file, obj)
     if old_file:
         # Ãœbernahme vorhandener KI-PrÃ¼fergebnisse aus der VorgÃ¤ngerversion
         ai_results = FunktionsErgebnis.objects.filter(
@@ -3680,7 +3701,13 @@ def projekt_file_check(request, pk, nr):
         if pf:
             run_anlage2_analysis(pf)
 
-    funcs = {1: check_anlage1, 2: check_anlage2 if use_llm else parse_only, 3: analyse_anlage3, 4: analyse_anlage4, 5: check_anlage5}
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2 if use_llm else parse_only,
+        3: analyse_anlage3,
+        4: analyse_anlage4,
+        5: check_anlage5,
+    }
     func = funcs.get(nr_int)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
@@ -3717,7 +3744,13 @@ def projekt_file_check_pk(request, pk):
     def parse_only(_pid: int):
         run_anlage2_analysis(anlage)
 
-    funcs = {1: check_anlage1, 2: check_anlage2 if use_llm else parse_only, 3: analyse_anlage3, 4: analyse_anlage4, 5: check_anlage5}
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2 if use_llm else parse_only,
+        3: analyse_anlage3,
+        4: analyse_anlage4,
+        5: check_anlage5,
+    }
     func = funcs.get(anlage.anlage_nr)
     if not func:
         return JsonResponse({"error": "invalid"}, status=404)
@@ -3765,7 +3798,13 @@ def projekt_file_check_view(request, pk):
     def parse_only(_pid: int):
         run_anlage2_analysis(anlage)
 
-    funcs = {1: check_anlage1, 2: check_anlage2 if use_llm else parse_only, 3: analyse_anlage3, 4: analyse_anlage4, 5: check_anlage5}
+    funcs = {
+        1: check_anlage1,
+        2: check_anlage2 if use_llm else parse_only,
+        3: analyse_anlage3,
+        4: analyse_anlage4,
+        5: check_anlage5,
+    }
     func = funcs.get(anlage.anlage_nr)
     if not func:
         raise Http404
@@ -3792,11 +3831,7 @@ def projekt_file_parse_anlage2(request, pk):
     if anlage.anlage_nr != 2:
         raise Http404
     table_data = parser_manager._run_single("table", anlage)
-    funcs = [
-        {"name": k, **v}
-        for k, v in table_data.items()
-        if isinstance(v, dict)
-    ]
+    funcs = [{"name": k, **v} for k, v in table_data.items() if isinstance(v, dict)]
     anlage.analysis_json = {"functions": funcs}
     anlage.save(update_fields=["analysis_json"])
     return redirect("projekt_file_edit_json", pk=pk)
@@ -3913,9 +3948,8 @@ def projekt_file_edit_json(request, pk):
             )
         # GAP-Bericht der Vorgängerversion laden oder berechnen
         if anlage.parent:
-            gap_text = (
-                anlage.parent.gap_summary
-                or summarize_anlage1_gaps(anlage.project, pf=anlage.parent)
+            gap_text = anlage.parent.gap_summary or summarize_anlage1_gaps(
+                anlage.project, pf=anlage.parent
             )
             has_parent = True
         else:
@@ -4131,7 +4165,6 @@ def projekt_file_edit_json(request, pk):
                     key = res.get_lookup_key()
                     result_map[key] = res
 
-
             fields_def = get_anlage2_fields()
 
             analysis_lookup = _initial_to_lookup(analysis_init)
@@ -4271,10 +4304,10 @@ def projekt_file_edit_json(request, pk):
                         ki_map,
                         beteilig_map,
                         manual_lookup,
-                    result_map,
-                    sub_id=sub.id,
+                        result_map,
+                        sub_id=sub.id,
+                    )
                 )
-            )
         has_ai_results = FunktionsErgebnis.objects.filter(
             anlage_datei__project=anlage.project,
             anlage_datei__anlage_nr=2,
@@ -4478,9 +4511,7 @@ def projekt_functions_check(request, pk):
                 pf.pk,
                 model,
             )
-            BVProjectFile.objects.filter(pk=pf.pk).update(
-                verification_task_id=task_id
-            )
+            BVProjectFile.objects.filter(pk=pf.pk).update(verification_task_id=task_id)
 
         transaction.on_commit(_start_task)
     return JsonResponse({"status": "ok"})
@@ -5005,7 +5036,9 @@ def hx_update_review_cell(request, result_id: int, field_name: str):
         )
         doc_val = getattr(parser_entry, attr) if parser_entry else None
         ai_val = getattr(ai_entry, attr) if ai_entry else None
-        cur_val, _ = _resolve_value(None, ai_val, doc_val, field_name, False, parser_entry is not None)
+        cur_val, _ = _resolve_value(
+            None, ai_val, doc_val, field_name, False, parser_entry is not None
+        )
         new_state = not cur_val if cur_val is not None else True
         FunktionsErgebnis.objects.create(
             anlage_datei=pf,
@@ -5445,10 +5478,7 @@ def project_file_toggle_flag(request, pk: int, field: str):
     new_val = value in ("1", "true", "True", "on")
     setattr(project_file, field, new_val)
     project_file.save(update_fields=[field])
-    if (
-        field == "verhandlungsfaehig"
-        and project_file.project.is_verhandlungsfaehig
-    ):
+    if field == "verhandlungsfaehig" and project_file.project.is_verhandlungsfaehig:
         try:
             set_project_status(project_file.project, "DONE")
         except ValueError:
@@ -5473,10 +5503,7 @@ def hx_toggle_project_file_flag(request, pk: int, field: str):
     setattr(project_file, field, new_val)
     project_file.save(update_fields=[field])
 
-    if (
-        field == "verhandlungsfaehig"
-        and project_file.project.is_verhandlungsfaehig
-    ):
+    if field == "verhandlungsfaehig" and project_file.project.is_verhandlungsfaehig:
         try:
             set_project_status(project_file.project, "DONE")
         except ValueError:
@@ -6263,7 +6290,10 @@ def delete_knowledge_entry(request, knowledge_id):
     is_admin_group = request.user.groups.filter(name__iexact="admin").exists()
     is_staff_or_super = request.user.is_staff or request.user.is_superuser
     is_owner = hasattr(projekt, "user_id") and projekt.user_id == request.user.id
-    in_team = hasattr(projekt, "team_members") and projekt.team_members.filter(pk=request.user.pk).exists()
+    in_team = (
+        hasattr(projekt, "team_members")
+        and projekt.team_members.filter(pk=request.user.pk).exists()
+    )
     if not (is_admin_group or is_staff_or_super or is_owner or in_team):
         raise PermissionDenied
     project_pk = projekt.pk
@@ -6319,16 +6349,28 @@ def _compare_versions_anlage1(
 
     if request.method == "POST":
         action = request.POST.get("action")
+        num = request.POST.get("question")
         if not _user_can_edit_project(request.user, project_file.project):
             return HttpResponseForbidden("Nicht berechtigt")
         if action == "negotiate":
-            project_file.verhandlungsfaehig = True
-            project_file.save(update_fields=["verhandlungsfaehig"])
+            if num:
+                review = project_file.question_review or {}
+                entry = review.get(num, {})
+                entry["ok"] = True
+                review[num] = entry
+                project_file.question_review = review
+                project_file.save(update_fields=["question_review"])
+            else:
+                project_file.verhandlungsfaehig = True
+                project_file.save(update_fields=["verhandlungsfaehig"])
         return redirect("compare_versions", pk=project_file.pk)
 
     questions_map = {str(q.num): q.text for q in Anlage1Question.objects.all()}
     parent_review = parent.question_review or {}
-    parent_analysis = parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
+    current_review = project_file.question_review or {}
+    parent_analysis = (
+        parent.analysis_json.get("questions", {}) if parent.analysis_json else {}
+    )
     current_analysis = (
         project_file.analysis_json.get("questions", {})
         if project_file.analysis_json
@@ -6344,6 +6386,7 @@ def _compare_versions_anlage1(
                     "text": questions_map.get(num, f"Frage {num}"),
                     "parent": {**parent_analysis.get(num, {}), **pdata},
                     "current": current_analysis.get(num, {}),
+                    "ok": current_review.get(num, {}).get("ok"),
                 }
             )
 
@@ -6443,7 +6486,11 @@ def anlage6_review(request, pk):
 
     if request.method == "POST":
         gap_form = BVGapNotesForm(request.POST, instance=project_file)
-        if set(request.POST.keys()) <= {"csrfmiddlewaretoken", "gap_summary", "gap_notiz"}:
+        if set(request.POST.keys()) <= {
+            "csrfmiddlewaretoken",
+            "gap_summary",
+            "gap_notiz",
+        }:
             if gap_form.is_valid():
                 gap_form.save()
                 return redirect("projekt_detail", pk=project_file.project.pk)

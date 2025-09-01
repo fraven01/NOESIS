@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import copy
 
 from django_q.tasks import async_task
 from django.db import transaction
@@ -19,7 +20,9 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-def get_project_file(projekt: BVProject, nr: int, version: int | None = None) -> BVProjectFile | None:
+def get_project_file(
+    projekt: BVProject, nr: int, version: int | None = None
+) -> BVProjectFile | None:
     """Hilfsfunktion zum Abrufen einer Projektdatei.
 
     Gibt bei Angabe einer ``version`` die entsprechende Datei zurueck. Fehlt die
@@ -37,14 +40,21 @@ def has_any_gap(projekt: BVProject) -> bool:
 
     pf1 = get_project_file(projekt, 1)
     if pf1 and pf1.question_review:
-        if any((d.get("vorschlag") or "").strip() for d in pf1.question_review.values()):
+        if any(
+            (d.get("vorschlag") or "").strip() for d in pf1.question_review.values()
+        ):
             return True
 
     pf2 = get_project_file(projekt, 2)
-    if pf2 and AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf2).filter(
-        Q(is_negotiable_manual_override=False)
-        | (Q(supervisor_notes__isnull=False) & ~Q(supervisor_notes=""))
-    ).exists():
+    if (
+        pf2
+        and AnlagenFunktionsMetadaten.objects.filter(anlage_datei=pf2)
+        .filter(
+            Q(is_negotiable_manual_override=False)
+            | (Q(supervisor_notes__isnull=False) & ~Q(supervisor_notes=""))
+        )
+        .exists()
+    ):
         return True
 
     pf4 = get_project_file(projekt, 4)
@@ -66,11 +76,10 @@ def has_any_gap(projekt: BVProject) -> bool:
     return False
 
 
-
 def start_analysis_for_file(file_id: int) -> str | None:
-    """Startet die Analyse f\xFCr die Projektdatei mit ``file_id``.
+    """Startet die Analyse f\xfcr die Projektdatei mit ``file_id``.
 
-    Setzt den Status auf ``PROCESSING`` und plant die zugeh\xF6rigen
+    Setzt den Status auf ``PROCESSING`` und plant die zugeh\xf6rigen
     Hintergrund-Tasks \u00fcber ``async_task`` ein. Die Tasks werden erst nach
     erfolgreichem Speichern des Status gestartet. Die ID des ersten geplanten
     Tasks wird zur\u00fcckgegeben, nicht vorhandene Anlagen werden ignoriert.
@@ -157,7 +166,13 @@ def compute_gap_source_hash(pf: BVProjectFile) -> str:
                 }
                 for r in qs
             ]
-            entries.sort(key=lambda d: (d.get("funktion") or 0, d.get("subq") or 0, d.get("extern")))
+            entries.sort(
+                key=lambda d: (
+                    d.get("funktion") or 0,
+                    d.get("subq") or 0,
+                    d.get("extern"),
+                )
+            )
             payload = {"anlage": 2, "entries": entries}
         else:
             return ""
@@ -183,3 +198,46 @@ def is_gap_summary_outdated(pf: BVProjectFile) -> bool:
     current = compute_gap_source_hash(pf)
     return bool(current and current != pf.gap_source_hash)
 
+
+def propagate_question_review(
+    parent: BVProjectFile,
+    obj: BVProjectFile,
+    current_answers: dict[str, dict] | None = None,
+) -> None:
+    """Übernimmt Fragenbewertungen aus der Vorgängerversion.
+
+    Das ``ok``-Flag bleibt nur gesetzt, wenn die Antwort unverändert ist."""
+
+    if not parent or obj.anlage_nr != 1:
+        return
+
+    parent_review = parent.question_review or {}
+    if not parent_review:
+        return
+
+    parent_answers = (
+        parent.analysis_json.get("questions", {})
+        if isinstance(parent.analysis_json, dict)
+        else {}
+    )
+    if current_answers is None:
+        current_answers = (
+            obj.analysis_json.get("questions", {})
+            if isinstance(obj.analysis_json, dict)
+            else {}
+        )
+    if not current_answers:
+        return
+
+    new_review: dict[str, dict] = {}
+    for num, entry in parent_review.items():
+        new_entry = copy.deepcopy(entry)
+        if parent_answers.get(num) == current_answers.get(num) and entry.get("ok"):
+            new_entry["ok"] = True
+        else:
+            new_entry["ok"] = False
+        new_review[str(num)] = new_entry
+
+    if new_review:
+        obj.question_review = new_review
+        obj.save(update_fields=["question_review"])

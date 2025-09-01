@@ -416,3 +416,48 @@ class Anlage3AutomationTests(NoesisTestCase):
         pf.refresh_from_db()
         self.assertTrue(pf.manual_reviewed)
 
+
+class QuestionReviewPropagationTests(NoesisTestCase):
+    """Tests zur Übernahme von Fragenbewertungen bei neuen Versionen."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("review", password="pass")
+        self.client.login(username="review", password="pass")
+        self.projekt = BVProject.objects.create(software_typen="A", beschreibung="x")
+
+    def test_answers_unchanged_keep_ok_flag(self) -> None:
+        BVProjectFile.objects.create(
+            project=self.projekt,
+            anlage_nr=1,
+            upload=SimpleUploadedFile("old.docx", b"d"),
+            analysis_json={"questions": {"1": {"answer": "a"}, "2": {"answer": "b"}}},
+            question_review={
+                "1": {"hinweis": "H1", "vorschlag": "V1", "ok": True},
+                "2": {"hinweis": "H2", "vorschlag": "V2", "ok": True},
+            },
+        )
+        tmp = NamedTemporaryFile(delete=False, suffix=".docx")
+        Document().save(tmp.name)
+        tmp.close()
+        with open(tmp.name, "rb") as fh:
+            upload_new = SimpleUploadedFile("new.docx", fh.read())
+        Path(tmp.name).unlink(missing_ok=True)
+        form = BVProjectFileForm(
+            data={"manual_comment": ""},
+            files={"upload": upload_new},
+            anlage_nr=1,
+            instance=BVProjectFile(
+                analysis_json={
+                    "questions": {"1": {"answer": "a"}, "2": {"answer": "c"}}
+                }
+            ),
+        )
+        assert form.is_valid()
+        new_pf = _save_project_file(self.projekt, form=form)
+
+        review = new_pf.question_review
+        self.assertTrue(review["1"]["ok"])
+        self.assertFalse(review["2"]["ok"])
+        self.assertEqual(review["1"]["hinweis"], "H1")
+        self.assertEqual(review["2"]["vorschlag"], "V2")
+

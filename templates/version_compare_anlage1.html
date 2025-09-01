@@ -29,12 +29,10 @@
         {% if row.current.hinweis %}<p>Hinweis: {{ row.current.hinweis }}</p>{% endif %}
         {% if row.current.vorschlag %}<p>Vorschlag: {{ row.current.vorschlag }}</p>{% endif %}
       </td>
-      <td class="border px-2">
-        <form method="post" class="inline">
+      <td class="border px-2 text-center">
+        <form method="post" action="{% url 'hx_toggle_anlage1_ok' file.pk row.num %}" class="inline">
           {% csrf_token %}
-          <input type="hidden" name="action" value="negotiate">
-          <input type="hidden" name="question" value="{{ row.num }}">
-          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Verhandlungsfähig</button>
+          {% include 'partials/anlage1_negotiable.html' with anlage=file num=row.num is_ok=row.ok %}
         </form>
       </td>
     </tr>
