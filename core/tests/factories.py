@@ -1,13 +1,12 @@
 import os
 import django
 import factory
-from django.contrib.auth.models import User, Group
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "noesis.settings")
 django.setup()
 
+from django.contrib.auth.models import User, Group
 from pytest_factoryboy import register
-
 from core.models import Area, Tile, ProjectStatus, BVProject, BVProjectFile
 
 

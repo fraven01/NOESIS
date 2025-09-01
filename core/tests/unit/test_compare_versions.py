@@ -35,7 +35,7 @@ class CompareVersionsAnlage1Tests(NoesisTestCase):
         return url, current
 
     def test_gap_and_diff_display(self) -> None:
-        """Prüft, ob Unterschiede und Hinweise angezeigt werden."""
+        """Prüft, ob Unterschiede, Antworten und Hinweise angezeigt werden."""
 
         # Arrange
         url, _ = self._create_versions()
@@ -45,11 +45,11 @@ class CompareVersionsAnlage1Tests(NoesisTestCase):
 
         # Assert
         content = resp.content.decode()
-        assert (
-            resp.status_code == 200
-            and "Hinweis: H" in content
-            and "bg-warning/20" in content
-        ), "Vergleichsansicht zeigt Hinweis oder Differenz nicht an"
+        assert resp.status_code == 200
+        assert "Hinweis: H" in content
+        assert "alt" in content and "neu" in content
+        assert "Gap hinzufügen" not in content
+        assert "bg-warning/20" in content
 
     def test_negotiate_sets_flag(self) -> None:
         """Verhandlungsflag wird nach POST gesetzt."""
