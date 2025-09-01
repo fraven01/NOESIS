@@ -3496,6 +3496,32 @@ def _save_project_file(
         obj.parent = old_file
 
     obj.save()
+    if old_file and obj.anlage_nr == 1:
+        parent_review = old_file.question_review or {}
+        parent_answers = (
+            old_file.analysis_json.get("questions", {})
+            if isinstance(old_file.analysis_json, dict)
+            else {}
+        )
+        current_answers = (
+            obj.analysis_json.get("questions", {})
+            if isinstance(obj.analysis_json, dict)
+            else {}
+        )
+        new_review: dict[str, dict] = {}
+        for num, entry in parent_review.items():
+            new_entry = copy.deepcopy(entry)
+            if (
+                parent_answers.get(num) == current_answers.get(num)
+                and entry.get("ok")
+            ):
+                new_entry["ok"] = True
+            else:
+                new_entry["ok"] = False
+            new_review[str(num)] = new_entry
+        if new_review:
+            obj.question_review = new_review
+            obj.save(update_fields=["question_review"])
     if old_file:
         # Ãœbernahme vorhandener KI-PrÃ¼fergebnisse aus der VorgÃ¤ngerversion
         ai_results = FunktionsErgebnis.objects.filter(
