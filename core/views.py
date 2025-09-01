@@ -3420,11 +3420,14 @@ def _save_project_file(
     *,
     upload=None,
     anlage_nr: int | None = None,
+    copy_gap_fields: bool = False,
 ) -> BVProjectFile:
     """Speichert eine einzelne hochgeladene Datei.
 
     Kann entweder mit einem bereits validierten Formular oder direkt mit Datei
     und Anlagen-Nummer aufgerufen werden.
+    ``copy_gap_fields`` steuert, ob GAP-Felder der Vorgängerversion
+    übernommen werden.
     """
 
     if form is not None:
@@ -3475,6 +3478,8 @@ def _save_project_file(
     obj.project = projekt
     obj.anlage_nr = anlage_nr
     obj.text_content = content
+    obj.gap_summary = ""
+    obj.gap_notiz = ""
     old_file = (
         BVProjectFile.objects.filter(
             project=projekt,
@@ -3505,8 +3510,8 @@ def _save_project_file(
                     anlage_datei=obj,
                     funktion=m.funktion,
                     subquestion=m.subquestion,
-                    gap_summary=m.gap_summary,
-                    gap_notiz=m.gap_notiz,
+                    gap_summary=m.gap_summary if copy_gap_fields else "",
+                    gap_notiz=m.gap_notiz if copy_gap_fields else "",
                     supervisor_notes=m.supervisor_notes,
                     is_negotiable=m.is_negotiable,
                     is_negotiable_manual_override=m.is_negotiable_manual_override,
