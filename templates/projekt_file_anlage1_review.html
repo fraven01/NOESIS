@@ -36,3 +36,15 @@
 </div>
 <p class="mb-2">Hinweis: Externe Anmerkungen und unklare/fehlende Antworten fließen automatisch in den GAP‑Bericht ein.</p>
 {% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initMarkdownEditor('gap1');
+  });
+  document.body.addEventListener('htmx:afterSettle', function() {
+    // Falls der Inhalt via HTMX neu geladen wurde
+    initMarkdownEditor('gap1');
+  });
+  
+</script>
+{% endblock %}

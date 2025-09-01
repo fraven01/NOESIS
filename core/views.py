@@ -5631,6 +5631,22 @@ def delete_gap_report(request, pk):
 
 
 @login_required
+@require_http_methods(["POST"])
+def delete_anlage_gap_report(request, pk, nr):
+    """Löscht den gespeicherten GAP-Bericht für eine einzelne Anlage."""
+    projekt = get_object_or_404(BVProject, pk=pk)
+    if not _user_can_edit_project(request.user, projekt):
+        return HttpResponseForbidden("Nicht berechtigt")
+    pf = get_project_file(projekt, nr)
+    if not pf:
+        raise Http404
+    pf.gap_summary = ""
+    pf.save(update_fields=["gap_summary"])
+    messages.success(request, f"GAP-Bericht für Anlage {nr} gelöscht")
+    return redirect("projekt_detail", pk=projekt.pk)
+
+
+@login_required
 @require_POST
 def ajax_start_gutachten_generation(request, project_id):
     """Startet die Gutachten-Erstellung als Hintergrund-Task."""

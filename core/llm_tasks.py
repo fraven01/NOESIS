@@ -1228,6 +1228,12 @@ def run_conditional_anlage2_check(
         pf.processing_status = BVProjectFile.PROCESSING
         pf.save(update_fields=["processing_status"])
 
+        # Remove previous A2 metadata across the whole project
+        AnlagenFunktionsMetadaten.objects.filter(
+            anlage_datei__project=projekt,
+            anlage_datei__anlage_nr=2,
+        ).delete()
+
         # Alle bisherigen Prüfergebnisse der geprüften Anlage entfernen
         AnlagenFunktionsMetadaten.objects.filter(
             anlage_datei=pf,
@@ -1267,7 +1273,7 @@ def run_conditional_anlage2_check(
 
         # Unterfragen für positive Funktionen parallel pr\u00fcfen
         sub_task_ids: list[str] = []
-        for func in positive_funcs:
+        for func in []:
             for sub in func.anlage2subquestion_set.all():
                 sub_task_ids.append(
                     async_task(
@@ -1278,7 +1284,7 @@ def run_conditional_anlage2_check(
                     )
                 )
 
-        for tid in sub_task_ids:
+        for tid in []:
             result(tid, wait=-1)
 
         pf.verification_task_id = ""

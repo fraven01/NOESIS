@@ -11,6 +11,29 @@ from pathlib import Path
 pytest_plugins = ["core.tests.factories"]
 
 
+@pytest.fixture(autouse=True, scope="session")
+def disable_langfuse_for_tests():
+    """Deaktiviert Langfuse global während der Tests.
+
+    Verhindert, dass beim (Neu-)Import von ``core.llm_utils``
+    die Langfuse-Instrumentierung aktiviert wird und Events sendet.
+    """
+    # Erzwinge das Feature-Flag über die Umgebung
+    mp = pytest.MonkeyPatch()
+    mp.setenv("LANGFUSE_ENABLED", "False")
+    # Falls Einstellungen bereits geladen sind, explizit abschalten
+    try:
+        from django.conf import settings as dj_settings  # type: ignore
+        # raising=False, damit es auch funktioniert, wenn das Attribut fehlt
+        mp.setattr(dj_settings, "LANGFUSE_ENABLED", False, raising=False)
+    except Exception:
+        pass
+    try:
+        yield
+    finally:
+        mp.undo()
+
+
 @pytest.fixture(scope="module")
 def seed_db(django_db_setup, django_db_blocker) -> None:
     """Initialisiert die Testdatenbank mit Seed-Daten."""
