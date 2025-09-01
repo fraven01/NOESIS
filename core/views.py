@@ -3629,6 +3629,7 @@ def projekt_file_upload(request, pk):
             "page_obj": page_obj,
             "anlage_nr": anlage_nr,
             "show_nr": False,
+            "active_file": get_project_file(projekt, anlage_nr),
         }
         resp = render(request, "partials/anlagen_tab.html", context)
         resp["X-Upload-Status"] = "assigned"
@@ -5232,6 +5233,7 @@ def hx_project_anlage_tab(request, pk: int, nr: int):
         "page_obj": page_obj,
         "anlage_nr": nr,
         "show_nr": False,
+        "active_file": get_project_file(projekt, nr),
     }
     return render(request, "partials/anlagen_tab.html", context)
 
