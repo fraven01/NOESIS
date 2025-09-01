@@ -30,12 +30,16 @@
         {% if row.current.vorschlag %}<p>Vorschlag: {{ row.current.vorschlag }}</p>{% endif %}
       </td>
       <td class="border px-2">
-        <form method="post" class="inline">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="negotiate">
-          <input type="hidden" name="question" value="{{ row.num }}">
-          <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Verhandlungsfähig</button>
-        </form>
+        {% if row.ok %}
+          <span class="text-success">Verhandlungsfähig</span>
+        {% else %}
+          <form method="post" class="inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="negotiate">
+            <input type="hidden" name="question" value="{{ row.num }}">
+            <button type="submit" class="px-2 py-1 rounded {% btn_classes 'primary' %}">Verhandlungsfähig</button>
+          </form>
+        {% endif %}
       </td>
     </tr>
   {% endfor %}
