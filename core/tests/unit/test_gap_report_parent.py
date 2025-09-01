@@ -1,4 +1,5 @@
 import pytest
+from bs4 import BeautifulSoup
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -27,19 +28,25 @@ class GapReportParentTests(NoesisTestCase):
             gap_summary=gap_summary,
         )
 
-    def test_view_uses_parent_summary(self):
+    def test_review_with_parent_renders_gap_section_without_edit_buttons(self):
         parent = self._create_file(gap_summary="Alt")
         child = self._create_file(parent=parent)
         url = reverse("projekt_file_edit_json", args=[child.pk])
         resp = self.client.get(url)
         self.assertEqual(resp.context["gap_text"], "Alt")
         self.assertTrue(resp.context["has_parent"])
-        self.assertContains(resp, "GAP‑Bericht (Vorversion)")
+        soup = BeautifulSoup(resp.content, "html.parser")
+        details = soup.find("details")
+        self.assertIsNotNone(details)
+        self.assertIn("GAP‑Bericht (Vorversion)", details.text)
+        self.assertFalse(details.find_all("form"))
+        self.assertFalse(details.find_all("button"))
 
-    def test_view_hides_report_without_parent(self):
+    def test_review_without_parent_hides_gap_section(self):
         file = self._create_file()
         url = reverse("projekt_file_edit_json", args=[file.pk])
         resp = self.client.get(url)
         self.assertEqual(resp.context["gap_text"], "")
         self.assertFalse(resp.context["has_parent"])
-        self.assertNotContains(resp, "GAP‑Bericht (Vorversion)")
+        soup = BeautifulSoup(resp.content, "html.parser")
+        self.assertIsNone(soup.find("details"))
