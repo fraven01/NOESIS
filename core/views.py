@@ -147,6 +147,7 @@ from .utils import (
     propagate_question_review,
     compute_gap_source_hash,
     is_gap_summary_outdated,
+    update_anlage1_verhandlungsfaehig,
 )
 from django.forms import formset_factory, modelformset_factory
 
@@ -5171,6 +5172,7 @@ def hx_toggle_anlage1_ok(request, pk: int, num: int):
     data[str(num)] = entry
     anlage.question_review = data
     anlage.save(update_fields=["question_review"])
+    update_anlage1_verhandlungsfaehig(anlage)
 
     context = {"anlage": anlage, "num": num, "is_ok": entry["ok"]}
     if request.headers.get("HX-Request", "").lower() == "true":

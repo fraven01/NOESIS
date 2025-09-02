@@ -148,6 +148,19 @@ def test_question_review_saved_htmx(client, projekt_file_setup):
     assert anlage1.question_review["1"]["ok"]
 
 
+def test_question_review_toggle_updates_file_flag(client, projekt_file_setup):
+    anlage1 = projekt_file_setup["anlage1"]
+
+    url = reverse("hx_toggle_anlage1_ok", args=[anlage1.pk, 1])
+    client.post(url)
+    anlage1.refresh_from_db()
+    assert anlage1.verhandlungsfaehig
+
+    client.post(url)
+    anlage1.refresh_from_db()
+    assert not anlage1.verhandlungsfaehig
+
+
 def test_question_review_extended_fields_saved(client, projekt_file_setup):
     anlage1 = projekt_file_setup["anlage1"]
 

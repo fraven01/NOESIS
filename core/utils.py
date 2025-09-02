@@ -199,6 +199,27 @@ def is_gap_summary_outdated(pf: BVProjectFile) -> bool:
     return bool(current and current != pf.gap_source_hash)
 
 
+def update_anlage1_verhandlungsfaehig(anlage: BVProjectFile) -> None:
+    """Aktualisiert das Verhandlungsflag anhand des Frage-Reviews."""
+
+    if anlage.anlage_nr != 1:
+        return
+
+    questions = (
+        anlage.analysis_json.get("questions", {})
+        if isinstance(anlage.analysis_json, dict)
+        else {}
+    )
+    review = anlage.question_review or {}
+    all_ok = questions and all(
+        review.get(str(num), {}).get("ok") for num in questions
+    )
+    new_val = bool(all_ok)
+    if anlage.verhandlungsfaehig != new_val:
+        anlage.verhandlungsfaehig = new_val
+        anlage.save(update_fields=["verhandlungsfaehig"])
+
+
 def propagate_question_review(
     parent: BVProjectFile,
     obj: BVProjectFile,
@@ -241,3 +262,4 @@ def propagate_question_review(
     if new_review:
         obj.question_review = new_review
         obj.save(update_fields=["question_review"])
+        update_anlage1_verhandlungsfaehig(obj)
